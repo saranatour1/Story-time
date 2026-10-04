@@ -10,43 +10,132 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AboutRouteImport } from './routes/about'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppHomeRouteImport } from './routes/_app/home'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as ApiUploadRouteImport } from './routes/api/upload'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as ApiMediaIdRouteImport } from './routes/api/media.$id'
+import { Route as AppEIdIndexRouteImport } from './routes/_app/e.$id.index'
+import { Route as AppEIdNewRouteImport } from './routes/_app/e.$id.new'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppHomeRoute = AppHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const ApiUploadRoute = ApiUploadRouteImport.update({
+  id: '/api/upload',
+  path: '/api/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMediaIdRoute = ApiMediaIdRouteImport.update({
+  id: '/api/media/$id',
+  path: '/api/media/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppEIdIndexRoute = AppEIdIndexRouteImport.update({
+  id: '/e/$id/',
+  path: '/e/$id/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEIdNewRoute = AppEIdNewRouteImport.update({
+  id: '/e/$id/new',
+  path: '/e/$id/new',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/home': typeof AppHomeRoute
+  '/settings': typeof AppSettingsRoute
+  '/api/upload': typeof ApiUploadRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/api/media/$id': typeof ApiMediaIdRoute
+  '/e/$id/new': typeof AppEIdNewRoute
+  '/e/$id/': typeof AppEIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/home': typeof AppHomeRoute
+  '/settings': typeof AppSettingsRoute
+  '/api/upload': typeof ApiUploadRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/api/media/$id': typeof ApiMediaIdRoute
+  '/e/$id/new': typeof AppEIdNewRoute
+  '/e/$id': typeof AppEIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/home': typeof AppHomeRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/api/upload': typeof ApiUploadRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/api/media/$id': typeof ApiMediaIdRoute
+  '/_app/e/$id/new': typeof AppEIdNewRoute
+  '/_app/e/$id/': typeof AppEIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths:
+    | '/'
+    | '/home'
+    | '/settings'
+    | '/api/upload'
+    | '/invite/$token'
+    | '/api/media/$id'
+    | '/e/$id/new'
+    | '/e/$id/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to:
+    | '/'
+    | '/home'
+    | '/settings'
+    | '/api/upload'
+    | '/invite/$token'
+    | '/api/media/$id'
+    | '/e/$id/new'
+    | '/e/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/_app/home'
+    | '/_app/settings'
+    | '/api/upload'
+    | '/invite/$token'
+    | '/api/media/$id'
+    | '/_app/e/$id/new'
+    | '/_app/e/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
+  AppRoute: typeof AppRouteWithChildren
+  ApiUploadRoute: typeof ApiUploadRoute
+  InviteTokenRoute: typeof InviteTokenRoute
+  ApiMediaIdRoute: typeof ApiMediaIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,29 +147,98 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/home': {
+      id: '/_app/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AppHomeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/api/upload': {
+      id: '/api/upload'
+      path: '/api/upload'
+      fullPath: '/api/upload'
+      preLoaderRoute: typeof ApiUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/media/$id': {
+      id: '/api/media/$id'
+      path: '/api/media/$id'
+      fullPath: '/api/media/$id'
+      preLoaderRoute: typeof ApiMediaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/e/$id/': {
+      id: '/_app/e/$id/'
+      path: '/e/$id'
+      fullPath: '/e/$id/'
+      preLoaderRoute: typeof AppEIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/e/$id/new': {
+      id: '/_app/e/$id/new'
+      path: '/e/$id/new'
+      fullPath: '/e/$id/new'
+      preLoaderRoute: typeof AppEIdNewRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
 
+interface AppRouteChildren {
+  AppHomeRoute: typeof AppHomeRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppEIdNewRoute: typeof AppEIdNewRoute
+  AppEIdIndexRoute: typeof AppEIdIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppHomeRoute: AppHomeRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppEIdNewRoute: AppEIdNewRoute,
+  AppEIdIndexRoute: AppEIdIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
+  AppRoute: AppRouteWithChildren,
+  ApiUploadRoute: ApiUploadRoute,
+  InviteTokenRoute: InviteTokenRoute,
+  ApiMediaIdRoute: ApiMediaIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }
