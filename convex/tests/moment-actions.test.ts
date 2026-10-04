@@ -157,3 +157,58 @@ describe("moments.update", () => {
     expect(result.removedMediaIds).toEqual([]);
   });
 });
+
+describe("moments.remove", () => {
+  test("removes the moment and its itinerary row, and frees a slot", async () => {
+    const { t, owner, eventId } = await setup();
+    for (let i = 0; i < 10; i++) await addMoment(owner, eventId, `m${i}`);
+    await expect(addMoment(owner, eventId)).rejects.toThrow(/MOMENT_LIMIT/);
+
+    const [first] = await owner.query(api.moments.list, { eventId });
+    await owner.mutation(api.moments.remove, { momentId: first!._id });
+
+    expect((await owner.query(api.events.get, { eventId }))?.momentCount).toBe(9);
+    const rows = await t.run((ctx) =>
+      ctx.db
+        .query("itinerary")
+        .withIndex("by_moment", (q) => q.eq("momentId", first!._id))
+        .collect(),
+    );
+    expect(rows).toEqual([]);
+    await addMoment(owner, eventId, "fits again");
+  });
+
+  test("returns the moment's photos and detaches them", async () => {
+    const { t, owner, eventId } = await setup();
+    const photo = await readyPhoto(owner, eventId);
+    const momentId = await owner.mutation(api.moments.create, {
+      eventId,
+      startsAt: JUNE_1,
+      blocks: [{ type: "photo", mediaId: photo }],
+    });
+    const result = await owner.mutation(api.moments.remove, { momentId });
+    expect(result.removedMediaIds).toEqual([photo]);
+    expect((await t.run((ctx) => ctx.db.get("media", photo)))?.momentId).toBeUndefined();
+  });
+
+  test("contributors remove only their own; viewers none", async () => {
+    const { owner, helper, viewer, eventId } = await setup();
+    const ownersMoment = await addMoment(owner, eventId);
+    const helpersMoment = await addMoment(helper, eventId);
+    await expect(viewer.mutation(api.moments.remove, { momentId: helpersMoment })).rejects.toThrow();
+    await expect(helper.mutation(api.moments.remove, { momentId: ownersMoment })).rejects.toThrow(/own moments/);
+    await helper.mutation(api.moments.remove, { momentId: helpersMoment });
+  });
+
+  test("removal is logged and blocked on archived experiences", async () => {
+    const { t, owner, eventId } = await setup();
+    const a = await addMoment(owner, eventId);
+    const b = await addMoment(owner, eventId);
+    await owner.mutation(api.moments.remove, { momentId: a });
+    const rows = await t.run((ctx) => ctx.db.query("changes").collect());
+    expect(rows.some((r) => r.entity === "moment" && r.action === "delete" && r.entityId === a)).toBe(true);
+
+    await owner.mutation(api.events.update, { eventId, status: "archived" });
+    await expect(owner.mutation(api.moments.remove, { momentId: b })).rejects.toThrow(/ARCHIVED/);
+  });
+});
