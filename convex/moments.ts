@@ -263,3 +263,52 @@ export const update = mutation({
     return { removedMediaIds };
   },
 });
+
+// Delete a moment. Its photos are detached and returned so the caller can
+// delete them from R2.
+export const remove = mutation({
+  args: { momentId: v.id("moments") },
+  returns: v.object({ removedMediaIds: v.array(v.id("media")) }),
+  handler: async (ctx, args) => {
+    const moment = await ctx.db.get("moments", args.momentId);
+    if (moment === null) throw new Error("Moment not found");
+    const { userId, event, role } = await requireEventAccess(
+      ctx,
+      moment.eventId,
+      "contributor",
+    );
+    if (role !== "owner" && moment.authorId !== userId) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "You can only delete your own moments",
+      });
+    }
+    assertNotArchived(event);
+
+    const removedMediaIds = moment.blocks.flatMap((b) =>
+      b.type === "photo" ? [b.mediaId] : [],
+    );
+    for (const id of removedMediaIds) {
+      await ctx.db.patch("media", id, { momentId: undefined });
+    }
+    const row = await ctx.db
+      .query("itinerary")
+      .withIndex("by_moment", (q) => q.eq("momentId", moment._id))
+      .unique();
+    if (row !== null) await ctx.db.delete("itinerary", row._id);
+    await ctx.db.delete("moments", moment._id);
+    await ctx.db.patch("events", event._id, {
+      momentCount: Math.max(0, event.momentCount - 1),
+    });
+
+    await recordChange(ctx, {
+      eventId: event._id,
+      entity: "moment",
+      entityId: moment._id,
+      actorId: userId,
+      action: "delete",
+      fields: [],
+    });
+    return { removedMediaIds };
+  },
+});
