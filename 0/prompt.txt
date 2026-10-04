@@ -172,3 +172,7 @@ I logged in using giuthub, why doens't it show the image or auth provider
 ---
 
 where's the convex auth information
+
+---
+
+PR?
