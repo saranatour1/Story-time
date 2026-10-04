@@ -3,7 +3,7 @@
   "checkpoint_id": "01M442PXQNPA5WM4N38V6T4N4W",
   "strategy": "manual-commit",
   "branch": "feat/profile-settings",
-  "checkpoints_count": 2,
+  "checkpoints_count": 6,
   "files_touched": [
     "src/components/app-sidebar.tsx",
     "src/components/event/itinerary-tab.tsx",
@@ -29,13 +29,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 748,
-    "cache_creation_tokens": 754812,
-    "cache_read_tokens": 129048494,
-    "output_tokens": 326113,
-    "api_call_count": 368
+    "input_tokens": 130953,
+    "cache_creation_tokens": 911243,
+    "cache_read_tokens": 130640742,
+    "output_tokens": 342531,
+    "api_call_count": 372
   }
 }
