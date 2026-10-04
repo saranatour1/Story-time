@@ -1,15 +1,25 @@
-import { createRouter as createTanStackRouter } from "@tanstack/react-router";
+import { createRouter } from "@tanstack/react-router";
+import { ConvexReactClient } from "convex/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { api } from "../convex/_generated/api";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
-  const router = createTanStackRouter({
+  const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
+
+  return createRouter({
     routeTree,
     scrollRestoration: true,
     defaultPreload: "intent",
-    defaultPreloadStaleTime: 0,
+    defaultNotFoundComponent: () => (
+      <p className="p-8 text-muted-foreground">Page not found.</p>
+    ),
+    Wrap: ({ children }) => (
+      <ConvexAuthProvider client={convex} api={api.auth}>
+        {children}
+      </ConvexAuthProvider>
+    ),
   });
-
-  return router;
 }
 
 declare module "@tanstack/react-router" {
