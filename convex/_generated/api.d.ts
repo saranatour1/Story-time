@@ -15,6 +15,7 @@ import type * as events from "../events.js";
 import type * as invites from "../invites.js";
 import type * as itinerary from "../itinerary.js";
 import type * as lib_access from "../lib/access.js";
+import type * as lib_blocks from "../lib/blocks.js";
 import type * as lib_changes from "../lib/changes.js";
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_limits from "../lib/limits.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   invites: typeof invites;
   itinerary: typeof itinerary;
   "lib/access": typeof lib_access;
+  "lib/blocks": typeof lib_blocks;
   "lib/changes": typeof lib_changes;
   "lib/crypto": typeof lib_crypto;
   "lib/limits": typeof lib_limits;
