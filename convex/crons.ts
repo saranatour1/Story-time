@@ -4,10 +4,11 @@ import { internal } from "./_generated/api";
 const crons = cronJobs();
 
 // Backstop for the per-invite expiry timers.
-crons.daily(
+crons.cron(
   "sweep expired invites",
-  { hourUTC: 3 },
+  "17 3 * * *",
   internal.invites.sweepExpired,
+  {},
 );
 
 export default crons;

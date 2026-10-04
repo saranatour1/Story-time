@@ -1,6 +1,11 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getEventAccess, requireEventAccess, requireUserId } from "./lib/access";
+import {
+  assertNotArchived,
+  getEventAccess,
+  requireEventAccess,
+  requireUserId,
+} from "./lib/access";
 import { recordChange } from "./lib/changes";
 import { IMAGE_MIME_TYPES, MAX_UPLOAD_BYTES } from "./lib/limits";
 
@@ -19,6 +24,7 @@ export const reserveUpload = mutation({
       args.eventId,
       "contributor",
     );
+    assertNotArchived(event);
     if (!Number.isInteger(args.size) || args.size < 1) {
       throw new ConvexError({ code: "INVALID", field: "size", message: "Empty file" });
     }
@@ -82,6 +88,9 @@ export const confirmUpload = mutation({
     if (media === null || media.uploaderId !== userId) {
       throw new Error("Upload not found");
     }
+    // Access can be revoked between reserve and confirm.
+    const { event } = await requireEventAccess(ctx, media.eventId, "contributor");
+    assertNotArchived(event);
     if (media.status === "ready") return null;
     await ctx.db.patch("media", args.mediaId, {
       status: "ready",
@@ -118,6 +127,10 @@ export const getForDownload = query({
     if (media === null || media.status !== "ready") return null;
     const access = await getEventAccess(ctx, media.eventId);
     if (access === null) return null;
+    // Photos not yet attached to a moment are visible to their uploader only.
+    if (media.momentId === undefined && media.uploaderId !== access.userId) {
+      return null;
+    }
     return {
       r2Key: media.r2Key,
       mime: media.mime,

@@ -1,7 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { requireEventAccess } from "./lib/access";
+import { assertNotArchived, requireEventAccess } from "./lib/access";
 import { recordChange } from "./lib/changes";
+import { MAX_MOMENT_LIMIT } from "./lib/limits";
 
 const vStatus = v.union(
   v.literal("pending"),
@@ -18,7 +19,19 @@ export const request = mutation({
   },
   returns: v.id("quotaRequests"),
   handler: async (ctx, args) => {
-    const { userId } = await requireEventAccess(ctx, args.eventId, "contributor");
+    const { userId, event } = await requireEventAccess(
+      ctx,
+      args.eventId,
+      "contributor",
+    );
+    assertNotArchived(event);
+    if (event.momentLimit >= MAX_MOMENT_LIMIT) {
+      throw new ConvexError({
+        code: "MOMENT_LIMIT",
+        message: `Experiences can hold at most ${MAX_MOMENT_LIMIT} moments`,
+        limit: MAX_MOMENT_LIMIT,
+      });
+    }
     if (!Number.isInteger(args.extra) || args.extra < 1 || args.extra > 100) {
       throw new ConvexError({
         code: "INVALID",
@@ -77,11 +90,24 @@ export const listForEvent = query({
   ),
   handler: async (ctx, args) => {
     await requireEventAccess(ctx, args.eventId, "owner");
-    const rows = await ctx.db
-      .query("quotaRequests")
-      .withIndex("by_event_and_status", (q) => q.eq("eventId", args.eventId))
-      .take(50);
-    rows.sort((a, b) => b._creationTime - a._creationTime);
+    // One read per status so pending requests can't be crowded out by
+    // resolved ones (the index sorts by status first).
+    const byStatus = await Promise.all(
+      (["pending", "approved", "denied"] as const).map((status) =>
+        ctx.db
+          .query("quotaRequests")
+          .withIndex("by_event_and_status", (q) =>
+            q.eq("eventId", args.eventId).eq("status", status),
+          )
+          .order("desc")
+          .take(50),
+      ),
+    );
+    const [pending, ...resolved] = byStatus;
+    const rows = [
+      ...pending,
+      ...resolved.flat().sort((a, b) => b._creationTime - a._creationTime),
+    ].slice(0, 50);
     return rows.map((r) => ({
       _id: r._id,
       _creationTime: r._creationTime,
@@ -105,10 +131,12 @@ export const resolve = internalMutation({
     await ctx.db.patch("quotaRequests", args.requestId, {
       status: args.approve ? "approved" : "denied",
     });
+    const newLimit = Math.min(
+      event.momentLimit + request.extra,
+      MAX_MOMENT_LIMIT,
+    );
     if (args.approve) {
-      await ctx.db.patch("events", event._id, {
-        momentLimit: event.momentLimit + request.extra,
-      });
+      await ctx.db.patch("events", event._id, { momentLimit: newLimit });
     }
     await recordChange(ctx, {
       eventId: event._id,
@@ -119,9 +147,7 @@ export const resolve = internalMutation({
       before: { status: "pending", momentLimit: event.momentLimit },
       after: {
         status: args.approve ? "approved" : "denied",
-        momentLimit: args.approve
-          ? event.momentLimit + request.extra
-          : event.momentLimit,
+        momentLimit: args.approve ? newLimit : event.momentLimit,
       },
     });
     return null;

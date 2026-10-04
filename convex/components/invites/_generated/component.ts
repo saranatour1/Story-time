@@ -65,6 +65,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         }>,
         Name
       >;
-      sweep: FunctionReference<"mutation", "internal", {}, number, Name>;
+      sweep: FunctionReference<
+        "mutation",
+        "internal",
+        { limit: number },
+        number,
+        Name
+      >;
     };
   };

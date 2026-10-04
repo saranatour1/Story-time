@@ -105,9 +105,13 @@ export const listForEvent = query({
       .query("invites")
       .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
       .take(100);
-    return rows
-      .filter((r) => r.expiresAt >= Date.now())
-      .map((r) => ({ inviteId: r._id, role: r.role, expiresAt: r.expiresAt }));
+    // No clock check here: queries must be deterministic, and each invite's
+    // purge timer deletes it at expiry.
+    return rows.map((r) => ({
+      inviteId: r._id,
+      role: r.role,
+      expiresAt: r.expiresAt,
+    }));
   },
 });
 
@@ -123,13 +127,13 @@ export const purge = internalMutation({
 
 // Backstop for the per-invite timers; called from the app's daily cron.
 export const sweep = mutation({
-  args: {},
+  args: { limit: v.number() },
   returns: v.number(),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const expired = await ctx.db
       .query("invites")
       .withIndex("by_expiresAt", (q) => q.lt("expiresAt", Date.now()))
-      .take(100);
+      .take(args.limit);
     for (const invite of expired) await ctx.db.delete("invites", invite._id);
     return expired.length;
   },

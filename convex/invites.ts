@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { env, internalMutation, mutation, query } from "./_generated/server";
-import { requireEventAccess, requireUserId } from "./lib/access";
+import { assertNotArchived, requireEventAccess, requireUserId } from "./lib/access";
 import { recordChange } from "./lib/changes";
 import { vRole } from "./schema";
 
@@ -23,6 +23,7 @@ export const create = mutation({
       args.eventId,
       "owner",
     );
+    assertNotArchived(event);
     const ttlDays = Math.min(Math.max(args.ttlDays ?? 7, 1), 14);
     const { token, expiresAt, inviteId } = await ctx.runMutation(
       components.invites.lib.create,
@@ -104,7 +105,7 @@ export const accept = mutation({
     }
     await recordChange(ctx, {
       eventId: event._id,
-      entity: "invite",
+      entity: "session",
       entityId: sessionId,
       actorId: userId,
       action: "accept",
@@ -152,9 +153,19 @@ export const listForEvent = query({
   },
 });
 
+const SWEEP_BATCH = 100;
+
 // Called by the daily cron (crons can't target a component function directly).
 export const sweepExpired = internalMutation({
   args: {},
   returns: v.number(),
-  handler: async (ctx) => await ctx.runMutation(components.invites.lib.sweep, {}),
+  handler: async (ctx) => {
+    const deleted = await ctx.runMutation(components.invites.lib.sweep, {
+      limit: SWEEP_BATCH,
+    });
+    if (deleted === SWEEP_BATCH) {
+      await ctx.scheduler.runAfter(0, internal.invites.sweepExpired, {});
+    }
+    return deleted;
+  },
 });

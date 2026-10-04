@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireEventAccess } from "./lib/access";
+import { assertNotArchived, requireEventAccess } from "./lib/access";
 import { recordChange } from "./lib/changes";
 import { decryptText, encryptText, placeKeyFor } from "./lib/crypto";
 import { MAX_BLOCKS_PER_MOMENT, MAX_TEXT_LENGTH } from "./lib/limits";
@@ -98,12 +98,7 @@ export const create = mutation({
       "contributor",
     );
 
-    if (event.status === "archived") {
-      throw new ConvexError({
-        code: "ARCHIVED",
-        message: "This experience is archived and no longer accepts moments.",
-      });
-    }
+    assertNotArchived(event);
     if (event.momentCount >= event.momentLimit) {
       throw new ConvexError({
         code: "MOMENT_LIMIT",

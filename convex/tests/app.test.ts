@@ -76,6 +76,70 @@ describe("moment limit and credits", () => {
     await owner.mutation(api.events.update, { eventId, status: "active" });
     await addMoment(owner, eventId);
   });
+
+  test("archived experiences reject uploads and quota requests", async () => {
+    const { owner } = await setup();
+    const eventId = await owner.mutation(api.events.createDraft, {});
+    const { mediaId } = await owner.mutation(api.media.reserveUpload, {
+      eventId,
+      size: 100,
+      mime: "image/png",
+    });
+    await owner.mutation(api.events.update, { eventId, status: "archived" });
+
+    await expect(
+      owner.mutation(api.media.reserveUpload, {
+        eventId,
+        size: 100,
+        mime: "image/png",
+      }),
+    ).rejects.toThrow(/ARCHIVED/);
+    await expect(
+      owner.mutation(api.media.confirmUpload, { mediaId }),
+    ).rejects.toThrow(/ARCHIVED/);
+    await expect(
+      owner.mutation(api.quota.request, { eventId, extra: 5 }),
+    ).rejects.toThrow(/ARCHIVED/);
+  });
+
+  test("the moment limit stops at the maximum", async () => {
+    const { t, owner } = await setup();
+    const eventId = await owner.mutation(api.events.createDraft, {});
+    await t.run((ctx) => ctx.db.patch("events", eventId, { momentLimit: 450 }));
+    const requestId = await owner.mutation(api.quota.request, {
+      eventId,
+      extra: 100,
+    });
+    await t.mutation(internal.quota.resolve, { requestId, approve: true });
+    expect((await owner.query(api.events.get, { eventId }))?.momentLimit).toBe(
+      500,
+    );
+    await expect(
+      owner.mutation(api.quota.request, { eventId, extra: 1 }),
+    ).rejects.toThrow(/MOMENT_LIMIT/);
+  });
+
+  test("pending requests are listed even after many resolved ones", async () => {
+    const { t, owner, ownerId } = await setup();
+    const eventId = await owner.mutation(api.events.createDraft, {});
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 60; i++) {
+        await ctx.db.insert("quotaRequests", {
+          eventId,
+          requestedBy: ownerId,
+          extra: 1,
+          status: "approved",
+        });
+      }
+    });
+    const pendingId = await owner.mutation(api.quota.request, {
+      eventId,
+      extra: 5,
+    });
+    const rows = await owner.query(api.quota.listForEvent, { eventId });
+    expect(rows).toHaveLength(50);
+    expect(rows[0]?._id).toBe(pendingId);
+  });
 });
 
 describe("change tracking", () => {
@@ -169,6 +233,59 @@ describe("uploads", () => {
       mime: "image/png",
     });
     expect(ok.r2Key).toContain(eventId);
+  });
+
+  test("a revoked contributor can't confirm a pending upload", async () => {
+    const { t, owner, friend, friendId, ownerId } = await setup();
+    const eventId = await owner.mutation(api.events.createDraft, {});
+    const sessionId = await t.run((ctx) =>
+      ctx.db.insert("sessions", {
+        eventId,
+        userId: friendId,
+        grantedBy: ownerId,
+        role: "contributor",
+      }),
+    );
+    const { mediaId } = await friend.mutation(api.media.reserveUpload, {
+      eventId,
+      size: 100,
+      mime: "image/png",
+    });
+    await owner.mutation(api.sessions.revoke, { sessionId });
+    await expect(
+      friend.mutation(api.media.confirmUpload, { mediaId }),
+    ).rejects.toThrow();
+    const media = await t.run((ctx) => ctx.db.get("media", mediaId));
+    expect(media?.status).toBe("reserved");
+  });
+
+  test("unattached photos are visible to their uploader only", async () => {
+    const { t, owner, friend, friendId, ownerId } = await setup();
+    const eventId = await owner.mutation(api.events.createDraft, {});
+    await t.run((ctx) =>
+      ctx.db.insert("sessions", {
+        eventId,
+        userId: friendId,
+        grantedBy: ownerId,
+        role: "viewer",
+      }),
+    );
+    const { mediaId } = await owner.mutation(api.media.reserveUpload, {
+      eventId,
+      size: 100,
+      mime: "image/png",
+    });
+    await owner.mutation(api.media.confirmUpload, { mediaId });
+
+    expect(await owner.query(api.media.getForDownload, { mediaId })).not.toBeNull();
+    expect(await friend.query(api.media.getForDownload, { mediaId })).toBeNull();
+
+    await owner.mutation(api.moments.create, {
+      eventId,
+      startsAt: Date.UTC(2026, 5, 1, 12),
+      blocks: [{ type: "photo", mediaId }],
+    });
+    expect(await friend.query(api.media.getForDownload, { mediaId })).not.toBeNull();
   });
 });
 

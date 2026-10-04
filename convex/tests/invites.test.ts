@@ -111,6 +111,14 @@ describe("invites", () => {
     await guest.mutation(api.invites.accept, { token: tokenOf(second.link) });
     expect((await guest.query(api.events.get, { eventId }))?.role).toBe("viewer");
   });
+
+  test("archived experiences can't create new invites", async () => {
+    const { owner, eventId } = await setup();
+    await owner.mutation(api.events.update, { eventId, status: "archived" });
+    await expect(
+      owner.mutation(api.invites.create, { eventId, role: "viewer" }),
+    ).rejects.toThrow(/ARCHIVED/);
+  });
 });
 
 describe("email outbox", () => {

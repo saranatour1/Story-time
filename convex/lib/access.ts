@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 
@@ -54,4 +55,14 @@ export async function requireEventAccess(
     throw new Error("Event not found");
   }
   return access;
+}
+
+// Archived experiences are read-only: call on every write that adds content.
+export function assertNotArchived(event: Doc<"events">) {
+  if (event.status === "archived") {
+    throw new ConvexError({
+      code: "ARCHIVED",
+      message: "This experience is archived and no longer accepts changes.",
+    });
+  }
 }
