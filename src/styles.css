@@ -149,8 +149,9 @@
     .magnetic:has(> *:hover) > .magnetic-indicator {
       opacity: 1;
     }
-    /* the indicator draws the hover, so drop the items' own */
-    .magnetic > *:hover {
+    /* the indicator draws the hover, so drop the buttons' own */
+    .magnetic > *:hover,
+    .magnetic [data-sidebar="menu-button"]:hover:not([data-active="true"]) {
       background-color: transparent;
     }
   }
