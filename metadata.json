@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M43KA9WF1GJSWAPQBMVNG2C2",
+  "strategy": "manual-commit",
+  "branch": "feat/shared-experiences",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "src/components/app-sidebar.tsx",
+    "src/lib/errors.ts",
+    "src/router.tsx",
+    "src/routes/__root.tsx",
+    "src/routes/_app.tsx",
+    "src/routes/_app/home.tsx",
+    "src/routes/_app/settings.tsx",
+    "src/routes/index.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 340,
+    "cache_creation_tokens": 454072,
+    "cache_read_tokens": 30712600,
+    "output_tokens": 143568,
+    "api_call_count": 164
+  }
+}
