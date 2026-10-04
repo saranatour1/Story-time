@@ -3,8 +3,15 @@
   "checkpoint_id": "01M4461HZ1773TX5B91C71QSHX",
   "strategy": "manual-commit",
   "branch": "feat/experience-actions",
-  "checkpoints_count": 2,
-  "files_touched": null,
+  "checkpoints_count": 5,
+  "files_touched": [
+    "src/components/event/event-actions-menu.tsx",
+    "src/components/event/itinerary-tab.tsx",
+    "src/components/event/settings-tab.tsx",
+    "src/routes/_app/e.$id.index.tsx",
+    "src/routes/_app/e.$id.new.tsx",
+    "src/routes/_app/home.tsx"
+  ],
   "sessions": [
     {
       "metadata": "/0/metadata.json",
@@ -12,6 +19,13 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
