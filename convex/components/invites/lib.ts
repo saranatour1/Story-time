@@ -138,3 +138,18 @@ export const sweep = mutation({
     return expired.length;
   },
 });
+
+// Deletes up to 500 invites for an experience; returns how many. Called
+// repeatedly by the app while an experience is being deleted.
+export const removeForEvent = mutation({
+  args: { eventId: v.string() },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("invites")
+      .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+      .take(500);
+    for (const row of rows) await ctx.db.delete("invites", row._id);
+    return rows.length;
+  },
+});

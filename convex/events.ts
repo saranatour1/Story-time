@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
+import { components, internal } from "./_generated/api";
+import { internalMutation, mutation, query } from "./_generated/server";
 import {
   getEventAccess,
   getUserId,
@@ -202,5 +203,84 @@ export const listMine = query({
       if (event !== null) shared.push(toView(event, grant.role));
     }
     return [...owned.map((e) => toView(e, "owner")), ...shared];
+  },
+});
+
+// Delete an experience. Deleting the row ends everyone's access at once; the
+// rest is cleaned up in batches so a large experience can't hit write limits.
+// R2 objects are removed first by DELETE /api/events/$id, which calls this.
+export const remove = mutation({
+  args: { eventId: v.id("events") },
+  returns: v.null(),
+  // Explicit return types: these handlers reference `internal.events`,
+  // which TypeScript would otherwise infer from these same functions.
+  handler: async (ctx, args): Promise<null> => {
+    await requireEventAccess(ctx, args.eventId, "owner");
+    await ctx.db.delete("events", args.eventId);
+    await ctx.scheduler.runAfter(0, internal.events.purgeEventData, {
+      eventId: args.eventId,
+    });
+    return null;
+  },
+});
+
+const PURGE_BATCH = 200;
+
+export const purgeEventData = internalMutation({
+  args: { eventId: v.id("events") },
+  returns: v.null(),
+  handler: async (ctx, { eventId }): Promise<null> => {
+    let deleted = 0;
+
+    for (const row of await ctx.db
+      .query("moments")
+      .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", eventId))
+      .take(PURGE_BATCH)) {
+      await ctx.db.delete("moments", row._id);
+      deleted++;
+    }
+    for (const row of await ctx.db
+      .query("itinerary")
+      .withIndex("by_event_and_day", (q) => q.eq("eventId", eventId))
+      .take(PURGE_BATCH)) {
+      await ctx.db.delete("itinerary", row._id);
+      deleted++;
+    }
+    for (const row of await ctx.db
+      .query("media")
+      .withIndex("by_event", (q) => q.eq("eventId", eventId))
+      .take(PURGE_BATCH)) {
+      await ctx.db.delete("media", row._id);
+      deleted++;
+    }
+    for (const row of await ctx.db
+      .query("sessions")
+      .withIndex("by_event_and_user", (q) => q.eq("eventId", eventId))
+      .take(PURGE_BATCH)) {
+      await ctx.db.delete("sessions", row._id);
+      deleted++;
+    }
+    for (const row of await ctx.db
+      .query("quotaRequests")
+      .withIndex("by_event_and_status", (q) => q.eq("eventId", eventId))
+      .take(PURGE_BATCH)) {
+      await ctx.db.delete("quotaRequests", row._id);
+      deleted++;
+    }
+    for (const row of await ctx.db
+      .query("changes")
+      .withIndex("by_event_and_at", (q) => q.eq("eventId", eventId))
+      .take(PURGE_BATCH)) {
+      await ctx.db.delete("changes", row._id);
+      deleted++;
+    }
+    deleted += await ctx.runMutation(components.invites.lib.removeForEvent, {
+      eventId,
+    });
+
+    if (deleted > 0) {
+      await ctx.scheduler.runAfter(0, internal.events.purgeEventData, { eventId });
+    }
+    return null;
   },
 });
