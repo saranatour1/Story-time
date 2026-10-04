@@ -6,6 +6,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { bearerToken, convexAs, json, ssecKeyFor } from "@/server/r2";
 
 const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 
 export const Route = createFileRoute("/api/upload")({
   server: {
@@ -13,24 +14,31 @@ export const Route = createFileRoute("/api/upload")({
       POST: async ({ request }) => {
         const token = bearerToken(request);
         const eventId = request.headers.get("X-Event-Id");
+        const isAvatar = request.headers.get("X-Purpose") === "avatar";
         const size = Number(request.headers.get("X-File-Size"));
         const mime = request.headers.get("Content-Type") ?? "";
         if (!token) return json({ error: "Sign in to upload" }, 401);
-        if (!eventId || !request.body || !Number.isInteger(size)) {
+        if ((!isAvatar && !eventId) || !request.body || !Number.isInteger(size)) {
           return json({ error: "Bad request" }, 400);
         }
-        if (size < 1 || size > MAX_BYTES) {
-          return json({ error: "Photos can be at most 5 MB" }, 413);
+        const cap = isAvatar ? MAX_AVATAR_BYTES : MAX_BYTES;
+        if (size < 1 || size > cap) {
+          return json(
+            { error: isAvatar ? "Profile images can be at most 2 MB" : "Photos can be at most 5 MB" },
+            413,
+          );
         }
 
         const convex = convexAs(token);
         try {
-          // Convex enforces access, type and per-event caps before any bytes move.
-          const reserved = await convex.mutation(api.media.reserveUpload, {
-            eventId: eventId as Id<"events">,
-            size,
-            mime,
-          });
+          // Convex enforces access, type and caps before any bytes move.
+          const reserved = isAvatar
+            ? await convex.mutation(api.media.reserveAvatarUpload, { size, mime })
+            : await convex.mutation(api.media.reserveUpload, {
+                eventId: eventId as Id<"events">,
+                size,
+                mime,
+              });
           // FixedLengthStream errors if the body isn't exactly `size` bytes,
           // so the declared (checked) size is the real size.
           await env.MEDIA.put(
@@ -38,7 +46,7 @@ export const Route = createFileRoute("/api/upload")({
             request.body.pipeThrough(new FixedLengthStream(size)),
             {
               httpMetadata: { contentType: mime },
-              ssecKey: await ssecKeyFor(eventId, reserved.keyVersion),
+              ssecKey: await ssecKeyFor(reserved.keyScope, reserved.keyVersion),
             },
           );
           await convex.mutation(api.media.confirmUpload, {
@@ -50,6 +58,8 @@ export const Route = createFileRoute("/api/upload")({
             const data = e.data as { message?: string } | string;
             return json({ error: typeof data === "string" ? data : data.message }, 400);
           }
+          // Keep the real cause in the server log; the client gets a generic message.
+          console.error("[upload] failed", e);
           return json({ error: "Upload failed" }, 500);
         }
       },

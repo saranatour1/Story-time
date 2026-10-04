@@ -11,9 +11,10 @@ function fromB64(s: string): Uint8Array<ArrayBuffer> {
 }
 
 // Same master key as Convex, different HKDF salt: R2 objects and database
-// fields never share a key. One key per (event, key version).
+// fields never share a key. One key per (scope, key version), where the scope
+// is an event id for moment photos and "avatar:<userId>" for profile images.
 export async function ssecKeyFor(
-  eventId: string,
+  scope: string,
   version: number,
 ): Promise<ArrayBuffer> {
   const master = await crypto.subtle.importKey(
@@ -28,7 +29,7 @@ export async function ssecKeyFor(
       name: "HKDF",
       hash: "SHA-256",
       salt: enc.encode("storytime/r2"),
-      info: enc.encode(`${eventId}:${version}`),
+      info: enc.encode(`${scope}:${version}`),
     },
     master,
     256,
