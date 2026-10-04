@@ -15,6 +15,10 @@ import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.index'
+import { Route as AppSettingsAccountRouteImport } from './routes/_app/settings.account'
+import { Route as AppSettingsDataRouteImport } from './routes/_app/settings.data'
+import { Route as AppSettingsProfileRouteImport } from './routes/_app/settings.profile'
 import { Route as ApiMediaIdRouteImport } from './routes/api/media.$id'
 import { Route as AppEIdIndexRouteImport } from './routes/_app/e.$id.index'
 import { Route as AppEIdNewRouteImport } from './routes/_app/e.$id.new'
@@ -48,6 +52,26 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsAccountRoute = AppSettingsAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsDataRoute = AppSettingsDataRouteImport.update({
+  id: '/data',
+  path: '/data',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppSettingsRoute,
+} as any)
 const ApiMediaIdRoute = ApiMediaIdRouteImport.update({
   id: '/api/media/$id',
   path: '/api/media/$id',
@@ -67,20 +91,27 @@ const AppEIdNewRoute = AppEIdNewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/home': typeof AppHomeRoute
-  '/settings': typeof AppSettingsRoute
+  '/settings': typeof AppSettingsRouteWithChildren
   '/api/upload': typeof ApiUploadRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/settings/account': typeof AppSettingsAccountRoute
+  '/settings/data': typeof AppSettingsDataRoute
+  '/settings/profile': typeof AppSettingsProfileRoute
   '/api/media/$id': typeof ApiMediaIdRoute
+  '/settings/': typeof AppSettingsIndexRoute
   '/e/$id/new': typeof AppEIdNewRoute
   '/e/$id/': typeof AppEIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/home': typeof AppHomeRoute
-  '/settings': typeof AppSettingsRoute
   '/api/upload': typeof ApiUploadRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/settings/account': typeof AppSettingsAccountRoute
+  '/settings/data': typeof AppSettingsDataRoute
+  '/settings/profile': typeof AppSettingsProfileRoute
   '/api/media/$id': typeof ApiMediaIdRoute
+  '/settings': typeof AppSettingsIndexRoute
   '/e/$id/new': typeof AppEIdNewRoute
   '/e/$id': typeof AppEIdIndexRoute
 }
@@ -89,10 +120,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/_app/home': typeof AppHomeRoute
-  '/_app/settings': typeof AppSettingsRoute
+  '/_app/settings': typeof AppSettingsRouteWithChildren
   '/api/upload': typeof ApiUploadRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/_app/settings/account': typeof AppSettingsAccountRoute
+  '/_app/settings/data': typeof AppSettingsDataRoute
+  '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/api/media/$id': typeof ApiMediaIdRoute
+  '/_app/settings/': typeof AppSettingsIndexRoute
   '/_app/e/$id/new': typeof AppEIdNewRoute
   '/_app/e/$id/': typeof AppEIdIndexRoute
 }
@@ -104,17 +139,24 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/upload'
     | '/invite/$token'
+    | '/settings/account'
+    | '/settings/data'
+    | '/settings/profile'
     | '/api/media/$id'
+    | '/settings/'
     | '/e/$id/new'
     | '/e/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/home'
-    | '/settings'
     | '/api/upload'
     | '/invite/$token'
+    | '/settings/account'
+    | '/settings/data'
+    | '/settings/profile'
     | '/api/media/$id'
+    | '/settings'
     | '/e/$id/new'
     | '/e/$id'
   id:
@@ -125,7 +167,11 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/api/upload'
     | '/invite/$token'
+    | '/_app/settings/account'
+    | '/_app/settings/data'
+    | '/_app/settings/profile'
     | '/api/media/$id'
+    | '/_app/settings/'
     | '/_app/e/$id/new'
     | '/_app/e/$id/'
   fileRoutesById: FileRoutesById
@@ -182,6 +228,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/settings/': {
+      id: '/_app/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/account': {
+      id: '/_app/settings/account'
+      path: '/account'
+      fullPath: '/settings/account'
+      preLoaderRoute: typeof AppSettingsAccountRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/data': {
+      id: '/_app/settings/data'
+      path: '/data'
+      fullPath: '/settings/data'
+      preLoaderRoute: typeof AppSettingsDataRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    '/_app/settings/profile': {
+      id: '/_app/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AppSettingsProfileRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
     '/api/media/$id': {
       id: '/api/media/$id'
       path: '/api/media/$id'
@@ -206,16 +280,34 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppSettingsRouteChildren {
+  AppSettingsAccountRoute: typeof AppSettingsAccountRoute
+  AppSettingsDataRoute: typeof AppSettingsDataRoute
+  AppSettingsProfileRoute: typeof AppSettingsProfileRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
+}
+
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsAccountRoute: AppSettingsAccountRoute,
+  AppSettingsDataRoute: AppSettingsDataRoute,
+  AppSettingsProfileRoute: AppSettingsProfileRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
+}
+
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
+)
+
 interface AppRouteChildren {
   AppHomeRoute: typeof AppHomeRoute
-  AppSettingsRoute: typeof AppSettingsRoute
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppEIdNewRoute: typeof AppEIdNewRoute
   AppEIdIndexRoute: typeof AppEIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppHomeRoute: AppHomeRoute,
-  AppSettingsRoute: AppSettingsRoute,
+  AppSettingsRoute: AppSettingsRouteWithChildren,
   AppEIdNewRoute: AppEIdNewRoute,
   AppEIdIndexRoute: AppEIdIndexRoute,
 }
