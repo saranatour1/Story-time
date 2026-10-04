@@ -1,0 +1,205 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M441PJXM36ZY1NX82SCQR95Y",
+  "session_id": "0d62b0a9-b62d-4c19-bf98-5e5938e7404e",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-04T18:09:30.041062Z",
+  "branch": "feat/profile-settings",
+  "checkpoints_count": 10,
+  "save_step_count": 11,
+  "files_touched": [
+    "convex/_generated/api.d.ts",
+    "convex/lib/access.ts",
+    "convex/lib/limits.ts",
+    "convex/media.ts",
+    "convex/schema.ts",
+    "convex/users.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5-5",
+  "turn_id": "d669dc7e593c",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 682,
+    "cache_creation_tokens": 700652,
+    "cache_read_tokens": 108475501,
+    "output_tokens": 295651,
+    "api_call_count": 335
+  },
+  "session_metrics": {
+    "turn_count": 33
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-04T18:09:29.92558Z",
+    "agent_lines": 158,
+    "agent_removed": 4,
+    "human_added": 1176,
+    "human_modified": 11,
+    "human_removed": 0,
+    "total_committed": 1345,
+    "total_lines_changed": 1349,
+    "agent_percentage": 12.008895478131949,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 130,
+      "user_lines_removed": 0,
+      "agent_lines_added": 25,
+      "agent_lines_removed": 8,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 130,
+      "user_lines_removed": 0,
+      "agent_lines_added": 25,
+      "agent_lines_removed": 8,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 130,
+      "user_lines_removed": 0,
+      "agent_lines_added": 25,
+      "agent_lines_removed": 8,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 130,
+      "user_lines_removed": 0,
+      "agent_lines_added": 25,
+      "agent_lines_removed": 8,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 130,
+      "user_lines_removed": 0,
+      "agent_lines_added": 25,
+      "agent_lines_removed": 8,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40
+      }
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 767,
+      "user_lines_removed": 71,
+      "agent_lines_added": 25,
+      "agent_lines_removed": 8,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40,
+        "convex/_generated/api.d.ts": 2,
+        "convex/lib/access.ts": 27,
+        "convex/lib/limits.ts": 2,
+        "convex/lib/profile.ts": 15,
+        "convex/schema.ts": 14,
+        "convex/tests/profile.test.ts": 90,
+        "convex/users.ts": 73,
+        "src/components/app-sidebar.tsx": 4,
+        "src/components/settings-form.tsx": 66,
+        "src/components/ui/dropdown-menu.tsx": 266,
+        "src/components/user-menu.tsx": 55,
+        "src/routes/_app/settings.tsx": 23
+      },
+      "user_removed_per_file": {
+        "convex/schema.ts": 3,
+        "convex/users.ts": 8,
+        "src/components/app-sidebar.tsx": 1,
+        "src/components/settings-form.tsx": 3,
+        "src/components/user-menu.tsx": 51,
+        "src/routes/_app/settings.tsx": 5
+      }
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 637,
+      "user_lines_removed": 0,
+      "agent_lines_added": 693,
+      "agent_lines_removed": 125,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40,
+        "convex/lib/profile.ts": 15,
+        "convex/tests/profile.test.ts": 226,
+        "src/components/ui/dropdown-menu.tsx": 266
+      }
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 637,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1149,
+      "agent_lines_removed": 253,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40,
+        "convex/lib/profile.ts": 15,
+        "convex/tests/profile.test.ts": 226,
+        "src/components/ui/dropdown-menu.tsx": 266
+      }
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 637,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1149,
+      "agent_lines_removed": 253,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40,
+        "convex/lib/profile.ts": 15,
+        "convex/tests/profile.test.ts": 226,
+        "src/components/ui/dropdown-menu.tsx": 266
+      }
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 712,
+      "user_lines_removed": 50,
+      "agent_lines_added": 1124,
+      "agent_lines_removed": 253,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40,
+        "convex/lib/profile.ts": 15,
+        "convex/tests/profile.test.ts": 226,
+        "src/components/settings/profile-form.tsx": 18,
+        "src/components/settings/region-form.tsx": 46,
+        "src/components/settings/section.tsx": 5,
+        "src/components/ui/dropdown-menu.tsx": 266,
+        "src/lib/settings-sections.ts": 6
+      },
+      "user_removed_per_file": {
+        "src/components/settings/profile-form.tsx": 3,
+        "src/components/settings/region-form.tsx": 26,
+        "src/components/settings/section.tsx": 5,
+        "src/lib/settings-sections.ts": 16
+      }
+    }
+  ]
+}
