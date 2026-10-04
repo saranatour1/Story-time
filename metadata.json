@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M43KAARWFBJ1R8DWKE1VK9AB",
+  "strategy": "manual-commit",
+  "branch": "feat/shared-experiences",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "src/components/auth-image.tsx",
+    "src/components/event/activity-tab.tsx",
+    "src/components/event/itinerary-tab.tsx",
+    "src/components/event/moments-tab.tsx",
+    "src/components/event/settings-tab.tsx",
+    "src/components/event/shared-tab.tsx",
+    "src/lib/upload.ts",
+    "src/routeTree.gen.ts",
+    "src/routes/_app/e.$id.index.tsx",
+    "src/routes/_app/e.$id.new.tsx",
+    "src/routes/invite.$token.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 340,
+    "cache_creation_tokens": 454072,
+    "cache_read_tokens": 30712600,
+    "output_tokens": 143568,
+    "api_call_count": 164
+  }
+}
