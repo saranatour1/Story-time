@@ -49,6 +49,8 @@ export function EventActionsMenu({
     try {
       await update({ eventId: event._id, status: status(next) });
       toast.success(next ? "Experience archived" : "Experience restored", {
+        // Long enough to notice and reach Undo; the default is ~4s.
+        duration: 10_000,
         action: {
           label: "Undo",
           onClick: () => void update({ eventId: event._id, status: status(!next) }),

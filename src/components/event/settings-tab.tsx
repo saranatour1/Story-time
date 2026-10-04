@@ -8,7 +8,6 @@ import { errorMessage } from "@/lib/errors";
 export function SettingsTab({ eventId }: { eventId: Id<"events"> }) {
   const event = useQuery(api.events.get, { eventId });
   const requests = useQuery(api.quota.listForEvent, { eventId });
-  const update = useMutation(api.events.update);
   const requestMore = useMutation(api.quota.request);
   if (!event) return null;
 
@@ -34,20 +33,6 @@ export function SettingsTab({ eventId }: { eventId: Id<"events"> }) {
             +{r.extra} requested, {r.status}
           </p>
         ))}
-      </section>
-      <section className="space-y-2">
-        <h2 className="font-semibold">Archive</h2>
-        <p className="text-sm text-muted-foreground">Archived experiences stay private and stop accepting moments.</p>
-        <Button
-          variant="outline"
-          onClick={() =>
-            void update({ eventId, status: event.status === "archived" ? "active" : "archived" })
-              .then(() => toast.success("Updated"))
-              .catch((e) => toast.error(errorMessage(e)))
-          }
-        >
-          {event.status === "archived" ? "Unarchive" : "Archive"}
-        </Button>
       </section>
     </div>
   );

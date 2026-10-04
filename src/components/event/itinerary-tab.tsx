@@ -1,16 +1,33 @@
 import { useQuery } from "convex/react";
 import { ChevronDownIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import type { GroupBy, MomentView } from "@/components/event/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-export type GroupBy = "day" | "place" | "month";
+export type { GroupBy } from "@/components/event/types";
+
+// The outline links to groups by this id.
+export const groupAnchor = (key: string) => `group-${key}`;
 
 const time = (ms: number) =>
   new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
-export function ItineraryTab({ eventId, groupBy }: { eventId: Id<"events">; groupBy: GroupBy }) {
+export function ItineraryTab({
+  eventId,
+  groupBy,
+  selectedMomentId,
+  onSelectMoment,
+  renderActions,
+}: {
+  eventId: Id<"events">;
+  groupBy: GroupBy;
+  selectedMomentId?: string;
+  onSelectMoment: (momentId: string) => void;
+  renderActions: (moment: MomentView) => ReactNode;
+}) {
   const groups = useQuery(api.itinerary.grouped, { eventId, groupBy });
   const [closed, setClosed] = useState<Set<string>>(new Set());
 
@@ -20,11 +37,13 @@ export function ItineraryTab({ eventId, groupBy }: { eventId: Id<"events">; grou
   }
 
   return (
-    <div className="divide-y rounded-lg border">
+    // A container, so rows switch to columns based on the list's own width:
+    // with the panel open the list is much narrower than the screen.
+    <div className="@container divide-y rounded-lg border">
       {groups.map((g) => {
         const open = !closed.has(g.key);
         return (
-          <section key={g.key}>
+          <section key={g.key} id={groupAnchor(g.key)} className="scroll-mt-4">
             <button
               type="button"
               aria-expanded={open}
@@ -43,17 +62,25 @@ export function ItineraryTab({ eventId, groupBy }: { eventId: Id<"events">; grou
             </button>
             {open && (
               <ul className="divide-y">
-                {g.moments.map((m) => (
-                  // Stacked on a phone; three columns from `sm` up.
-                  <li
-                    key={m._id}
-                    className="grid gap-1 px-3 py-3 text-sm sm:grid-cols-[12rem_10rem_1fr] sm:items-baseline sm:gap-4"
-                  >
-                    <span className="text-muted-foreground">{time(m.startsAt)}</span>
-                    <span className="truncate font-medium sm:font-normal">{m.place ?? "No place"}</span>
-                    <span className="text-muted-foreground">{summary(m.blocks)}</span>
-                  </li>
-                ))}
+                {g.moments.map((m) => {
+                  const selected = m._id === selectedMomentId;
+                  return (
+                    <li key={m._id} className={cn("flex items-center gap-1 pr-2", selected && "bg-accent")}>
+                      <button
+                        type="button"
+                        aria-current={selected ? "true" : undefined}
+                        onClick={() => onSelectMoment(m._id)}
+                        // Stacked when the list is narrow; three columns from 32rem.
+                        className="grid min-w-0 flex-1 gap-1 px-3 py-3 text-left text-sm hover:bg-accent/50 @lg:grid-cols-[11rem_9rem_1fr] @lg:items-baseline @lg:gap-4"
+                      >
+                        <span className="text-muted-foreground">{time(m.startsAt)}</span>
+                        <span className="truncate font-medium @lg:font-normal">{m.place ?? "No place"}</span>
+                        <span className="text-muted-foreground">{summary(m.blocks)}</span>
+                      </button>
+                      {renderActions(m)}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
