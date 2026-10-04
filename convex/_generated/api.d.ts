@@ -18,6 +18,7 @@ import type * as lib_access from "../lib/access.js";
 import type * as lib_changes from "../lib/changes.js";
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_limits from "../lib/limits.js";
+import type * as lib_profile from "../lib/profile.js";
 import type * as media from "../media.js";
 import type * as moments from "../moments.js";
 import type * as quota from "../quota.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   "lib/changes": typeof lib_changes;
   "lib/crypto": typeof lib_crypto;
   "lib/limits": typeof lib_limits;
+  "lib/profile": typeof lib_profile;
   media: typeof media;
   moments: typeof moments;
   quota: typeof quota;

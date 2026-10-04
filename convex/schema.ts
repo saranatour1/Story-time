@@ -59,10 +59,15 @@ export default defineSchema({
   // optional and user-entered: nothing is copied from the OAuth profile.
   users: defineTable({
     displayName: v.optional(v.string()),
+    // Lowercase, 3-20 chars of a-z 0-9 _. Unique across users when set.
+    username: v.optional(v.string()),
+    // Typed in by the user, never copied from the OAuth profile and never
+    // verified, so it must not be trusted for sign-in or access decisions.
+    email: v.optional(v.string()),
     imageMediaId: v.optional(v.id("media")),
     region: v.optional(vRegion), // undefined means "us"
     locale: v.optional(v.string()),
-  }),
+  }).index("by_username", ["username"]),
 
   events: defineTable({
     ownerId: v.id("users"),
@@ -114,7 +119,9 @@ export default defineSchema({
     .index("by_moment", ["momentId"]),
 
   media: defineTable({
-    eventId: v.id("events"),
+    // Absent for profile images, which belong to a user, not an experience.
+    eventId: v.optional(v.id("events")),
+    purpose: v.optional(v.literal("avatar")),
     momentId: v.optional(v.id("moments")),
     uploaderId: v.id("users"),
     r2Key: v.string(),
@@ -122,7 +129,11 @@ export default defineSchema({
     mime: v.string(),
     sha256: v.optional(v.string()),
     keyVersion: v.number(),
-    status: v.union(v.literal("reserved"), v.literal("ready")),
+    status: v.union(
+      v.literal("reserved"),
+      v.literal("ready"),
+      v.literal("deleted"),
+    ),
   })
     .index("by_event", ["eventId"])
     .index("by_moment", ["momentId"]),

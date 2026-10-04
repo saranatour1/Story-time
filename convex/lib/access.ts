@@ -66,3 +66,30 @@ export function assertNotArchived(event: Doc<"events">) {
     });
   }
 }
+
+// True when two people have an experience in common: one owns it and the
+// other holds an active grant, or both hold active grants. Used to decide
+// who may see a profile image.
+export async function sharesExperience(
+  ctx: Ctx,
+  a: Id<"users">,
+  b: Id<"users">,
+): Promise<boolean> {
+  const reachable = async (user: Id<"users">) => {
+    const ids = new Set<Id<"events">>();
+    const owned = await ctx.db
+      .query("events")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user))
+      .take(100);
+    for (const e of owned) ids.add(e._id);
+    const grants = await ctx.db
+      .query("sessions")
+      .withIndex("by_user", (q) => q.eq("userId", user))
+      .take(100);
+    for (const g of grants) if (g.revokedAt === undefined) ids.add(g.eventId);
+    return ids;
+  };
+  const [mine, theirs] = await Promise.all([reachable(a), reachable(b)]);
+  for (const id of mine) if (theirs.has(id)) return true;
+  return false;
+}
