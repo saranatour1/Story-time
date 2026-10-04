@@ -8,15 +8,15 @@ function SettingsLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
       <header className="pb-6">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
       </header>
 
-      <div className="grid border-t md:grid-cols-[14rem_1fr]">
+      <div className="grid flex-1 border-t md:grid-cols-[14rem_1fr] md:grid-rows-1">
         <nav
           aria-label="Settings sections"
-          className="magnetic flex gap-1 overflow-x-auto py-4 md:flex-col md:border-r md:py-6 md:pr-4"
+          className="magnetic flex gap-1 overflow-x-auto py-4 [scrollbar-width:none] md:flex-col md:border-r md:py-6 md:pr-4 [&::-webkit-scrollbar]:hidden"
         >
           <span className="magnetic-indicator" aria-hidden />
           {SETTINGS_SECTIONS.map(({ to, label, icon: Icon }) => {
@@ -27,7 +27,7 @@ function SettingsLayout() {
                 to={to}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors",
+                  "flex items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors md:gap-2.5 md:px-3",
                   active && "bg-accent font-semibold text-accent-foreground",
                 )}
               >

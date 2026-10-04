@@ -28,7 +28,7 @@ function AppLayout() {
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
         </header>
-        <div className="flex-1 p-4 md:p-6">
+        <div className="flex flex-1 flex-col p-4 md:p-6">
           <Outlet />
         </div>
       </SidebarInset>

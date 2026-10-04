@@ -31,7 +31,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip="Story-time">
               <Link to="/home">
-                <Logo className="size-7! shrink-0 group-data-[collapsible=icon]:size-4!" />
+                <Logo className="size-7! shrink-0 group-data-[collapsible=icon]:size-8!" />
                 <span className="text-base font-bold tracking-tight group-data-[collapsible=icon]:hidden">
                   Story-time
                 </span>

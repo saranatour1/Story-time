@@ -33,7 +33,7 @@ function NewEvent() {
         <h1 className="text-2xl font-bold tracking-tight">About this experience</h1>
         <EventForm eventId={eventId} event={event} />
       </section>
-      <section className="space-y-6 lg:border-l lg:pl-8">
+      <section className="space-y-6 border-t pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight">New moment</h2>
           <Badge variant="secondary">

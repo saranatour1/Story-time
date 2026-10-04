@@ -37,13 +37,13 @@ function EventPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>
           {event.description && <p className="mt-1 max-w-prose text-muted-foreground">{event.description}</p>}
         </div>
         {canAdd && (
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link to="/e/$id/new" params={{ id }}>
               <PlusIcon /> Add moment
             </Link>
@@ -52,6 +52,7 @@ function EventPage() {
       </div>
 
       <Tabs value={tab} onValueChange={(t) => void navigate({ search: (s) => ({ ...s, tab: t as typeof tab }) })}>
+        <div className="max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <TabsList>
           <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
           <TabsTrigger value="moments">Moments</TabsTrigger>
@@ -59,6 +60,7 @@ function EventPage() {
           {isOwner && <TabsTrigger value="activity">Activity</TabsTrigger>}
           {isOwner && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
+        </div>
 
         <TabsContent value="itinerary" className="space-y-4">
           <div className="flex gap-1" role="group" aria-label="Group by">

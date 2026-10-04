@@ -63,7 +63,27 @@ function Home() {
           <PlusIcon /> New
         </Button>
       </div>
-      <Table>
+      {/* Phone: one card per experience. */}
+      <ul className="space-y-3 md:hidden">
+        {events.map((e) => (
+          <li key={e._id}>
+            <Link
+              to={e.status === "draft" ? "/e/$id/new" : "/e/$id"}
+              params={{ id: e._id }}
+              className="block rounded-lg border p-4 transition-colors hover:bg-accent"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="font-medium">{e.title}</span>
+                <Badge variant="secondary">{e.status}</Badge>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {e.momentCount} of {e.momentLimit} moments · <span className="capitalize">{e.role}</span>
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <Table className="hidden md:table">
         <TableHeader>
           <TableRow>
             <TableHead>Title</TableHead>
