@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M43KA1Z65Y2N73DT0MEFXP8H",
+  "strategy": "manual-commit",
+  "branch": "feat/shared-experiences",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".gitignore",
+    "components.json",
+    "convex/tsconfig.json",
+    "eslint.config.js",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "vitest.config.ts",
+    "worker-configuration.d.ts",
+    "wrangler.jsonc"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 340,
+    "cache_creation_tokens": 454072,
+    "cache_read_tokens": 30712600,
+    "output_tokens": 143568,
+    "api_call_count": 164
+  }
+}
