@@ -1,0 +1,2 @@
+# Names only. Real values go in .dev.vars (gitignored) or Worker secrets.
+ENCRYPTION_MASTER_KEY=
