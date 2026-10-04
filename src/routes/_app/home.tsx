@@ -4,6 +4,7 @@ import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
+import { EventActionsMenu } from "@/components/event/event-actions-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,7 +30,7 @@ function Home() {
     setStarting(true);
     try {
       const id = await createDraft();
-      await navigate({ to: "/e/$id/new", params: { id } });
+      await navigate({ to: "/e/$id", params: { id }, search: { panel: "details" as const } });
     } catch (e) {
       toast.error(errorMessage(e));
       setStarting(false);
@@ -66,11 +67,11 @@ function Home() {
       {/* Phone: one card per experience. */}
       <ul className="space-y-3 md:hidden">
         {events.map((e) => (
-          <li key={e._id}>
+          <li key={e._id} className="relative rounded-lg border transition-colors hover:bg-accent">
             <Link
-              to={e.status === "draft" ? "/e/$id/new" : "/e/$id"}
+              to="/e/$id"
               params={{ id: e._id }}
-              className="block rounded-lg border p-4 transition-colors hover:bg-accent"
+              className="block p-4 pr-12"
             >
               <div className="flex items-start justify-between gap-3">
                 <span className="font-medium">{e.title}</span>
@@ -80,6 +81,9 @@ function Home() {
                 {e.momentCount} of {e.momentLimit} moments · <span className="capitalize">{e.role}</span>
               </p>
             </Link>
+            <div className="absolute top-2 right-2">
+              <EventActionsMenu event={e} />
+            </div>
           </li>
         ))}
       </ul>
@@ -90,6 +94,7 @@ function Home() {
             <TableHead>Status</TableHead>
             <TableHead>Moments</TableHead>
             <TableHead>Access</TableHead>
+            <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -97,7 +102,7 @@ function Home() {
             <TableRow key={e._id}>
               <TableCell className="font-medium">
                 <Link
-                  to={e.status === "draft" ? "/e/$id/new" : "/e/$id"}
+                  to="/e/$id"
                   params={{ id: e._id }}
                   className="hover:underline"
                 >
@@ -111,6 +116,9 @@ function Home() {
                 {e.momentCount} / {e.momentLimit}
               </TableCell>
               <TableCell className="capitalize">{e.role}</TableCell>
+              <TableCell className="text-right">
+                <EventActionsMenu event={e} />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
