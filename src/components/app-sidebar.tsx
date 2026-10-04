@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { HomeIcon, LogOutIcon, SettingsIcon } from "lucide-react";
+import { HomeIcon } from "lucide-react";
+import { Logo } from "@/components/logo";
+import { UserMenu } from "@/components/user-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -11,21 +12,29 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 
-const NAV = [
-  { to: "/home", label: "Experiences", icon: HomeIcon },
-  { to: "/settings", label: "Settings", icon: SettingsIcon },
-] as const;
+const NAV = [{ to: "/home", label: "Experiences", icon: HomeIcon }] as const;
 
 export function AppSidebar() {
-  const { signOut } = useAuthActions();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <Sidebar>
-      <SidebarHeader className="px-4 py-4 text-lg font-bold tracking-tight">
-        Story-time
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild tooltip="Story-time">
+              <Link to="/home">
+                <Logo className="size-7! shrink-0 group-data-[collapsible=icon]:size-4!" />
+                <span className="text-base font-bold tracking-tight group-data-[collapsible=icon]:hidden">
+                  Story-time
+                </span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -36,7 +45,8 @@ export function AppSidebar() {
               <SidebarMenuItem key={to}>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname.startsWith(to)}
+                  tooltip={label}
+                  isActive={pathname === to || pathname.startsWith("/e/")}
                 >
                   <Link to={to}>
                     <Icon />
@@ -51,13 +61,11 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => void signOut()}>
-              <LogOutIcon />
-              <span>Sign out</span>
-            </SidebarMenuButton>
+            <UserMenu />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }
