@@ -212,3 +212,34 @@ describe("moments.remove", () => {
     await expect(owner.mutation(api.moments.remove, { momentId: b })).rejects.toThrow(/ARCHIVED/);
   });
 });
+
+describe("deleting experience photos", () => {
+  test("an unattached photo can be deleted by its uploader or the owner", async () => {
+    const { owner, helper, viewer, eventId } = await setup();
+    const photo = await readyPhoto(helper, eventId);
+    expect(await helper.query(api.media.getForDelete, { mediaId: photo })).not.toBeNull();
+    expect(await owner.query(api.media.getForDelete, { mediaId: photo })).not.toBeNull();
+    expect(await viewer.query(api.media.getForDelete, { mediaId: photo })).toBeNull();
+  });
+
+  test("a photo still on a moment can't be deleted", async () => {
+    const { owner, eventId } = await setup();
+    const photo = await readyPhoto(owner, eventId);
+    await owner.mutation(api.moments.create, {
+      eventId,
+      startsAt: JUNE_1,
+      blocks: [{ type: "photo", mediaId: photo }],
+    });
+    expect(await owner.query(api.media.getForDelete, { mediaId: photo })).toBeNull();
+    await expect(owner.mutation(api.media.markDeleted, { mediaId: photo })).rejects.toThrow();
+  });
+
+  test("after markDeleted the photo is gone for everyone", async () => {
+    const { owner, helper, viewer, eventId } = await setup();
+    const photo = await readyPhoto(helper, eventId);
+    await expect(viewer.mutation(api.media.markDeleted, { mediaId: photo })).rejects.toThrow();
+    await owner.mutation(api.media.markDeleted, { mediaId: photo });
+    expect(await helper.query(api.media.getForDownload, { mediaId: photo })).toBeNull();
+    expect(await owner.query(api.media.getForDelete, { mediaId: photo })).toBeNull();
+  });
+});
