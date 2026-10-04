@@ -1,0 +1,80 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M442PXQNPA5WM4N38V6T4N4W",
+  "session_id": "0d62b0a9-b62d-4c19-bf98-5e5938e7404e",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-04T18:27:09.12512Z",
+  "branch": "feat/profile-settings",
+  "checkpoints_count": 2,
+  "save_step_count": 3,
+  "files_touched": [
+    "src/components/app-sidebar.tsx",
+    "src/components/event/itinerary-tab.tsx",
+    "src/components/ui/dialog.tsx",
+    "src/components/ui/dropdown-menu.tsx",
+    "src/components/ui/field.tsx",
+    "src/components/ui/popover.tsx",
+    "src/components/ui/select.tsx",
+    "src/components/ui/separator.tsx",
+    "src/components/ui/sheet.tsx",
+    "src/components/ui/sidebar.tsx",
+    "src/components/ui/tabs.tsx",
+    "src/routes/_app.tsx",
+    "src/routes/_app/e.$id.index.tsx",
+    "src/routes/_app/e.$id.new.tsx",
+    "src/routes/_app/home.tsx",
+    "src/routes/_app/settings.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5-5",
+  "turn_id": "0cee175baddc",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 748,
+    "cache_creation_tokens": 754812,
+    "cache_read_tokens": 129048494,
+    "output_tokens": 326113,
+    "api_call_count": 368
+  },
+  "session_metrics": {
+    "turn_count": 35
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-04T18:27:08.916179Z",
+    "agent_lines": 75,
+    "agent_removed": 56,
+    "human_added": 0,
+    "human_modified": 3,
+    "human_removed": 0,
+    "total_committed": 78,
+    "total_lines_changed": 134,
+    "agent_percentage": 97.76119402985076,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 133,
+      "user_lines_removed": 3,
+      "agent_lines_added": 25,
+      "agent_lines_removed": 8,
+      "user_added_per_file": {
+        ".claude/settings.json": 90,
+        ".cursor/hooks.json": 40,
+        "src/routes/_app.tsx": 1,
+        "src/routes/_app/settings.tsx": 2
+      },
+      "user_removed_per_file": {
+        "src/routes/_app.tsx": 1,
+        "src/routes/_app/settings.tsx": 2
+      }
+    }
+  ]
+}

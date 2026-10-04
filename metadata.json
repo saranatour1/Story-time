@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M442PXQNPA5WM4N38V6T4N4W",
+  "strategy": "manual-commit",
+  "branch": "feat/profile-settings",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "src/components/app-sidebar.tsx",
+    "src/components/event/itinerary-tab.tsx",
+    "src/components/ui/dialog.tsx",
+    "src/components/ui/dropdown-menu.tsx",
+    "src/components/ui/field.tsx",
+    "src/components/ui/popover.tsx",
+    "src/components/ui/select.tsx",
+    "src/components/ui/separator.tsx",
+    "src/components/ui/sheet.tsx",
+    "src/components/ui/sidebar.tsx",
+    "src/components/ui/tabs.tsx",
+    "src/routes/_app.tsx",
+    "src/routes/_app/e.$id.index.tsx",
+    "src/routes/_app/e.$id.new.tsx",
+    "src/routes/_app/home.tsx",
+    "src/routes/_app/settings.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 748,
+    "cache_creation_tokens": 754812,
+    "cache_read_tokens": 129048494,
+    "output_tokens": 326113,
+    "api_call_count": 368
+  }
+}
