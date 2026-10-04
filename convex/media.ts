@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import {
   assertNotArchived,
   getEventAccess,
@@ -262,7 +263,27 @@ export const clearAvatar = mutation({
   },
 });
 
-// For the delete route: the uploader only, and never an image still in use.
+// Who may permanently delete a stored object. Profile images: the owner,
+// once it's no longer their current image. Experience photos: once no
+// moment uses them, the uploader or the experience owner.
+async function deletableBy(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  media: Doc<"media">,
+): Promise<boolean> {
+  if (media.status === "deleted") return false;
+  if (media.purpose === "avatar") {
+    if (media.uploaderId !== userId) return false;
+    const user = await ctx.db.get("users", userId);
+    return user?.imageMediaId !== media._id;
+  }
+  if (media.momentId !== undefined || media.eventId === undefined) return false;
+  if (media.uploaderId === userId) return true;
+  const event = await ctx.db.get("events", media.eventId);
+  return event?.ownerId === userId;
+}
+
+// For the delete route.
 export const getForDelete = query({
   args: { mediaId: v.id("media") },
   returns: v.union(v.null(), v.object({ r2Key: v.string() })),
@@ -270,16 +291,7 @@ export const getForDelete = query({
     const userId = await getUserId(ctx);
     if (userId === null) return null;
     const media = await ctx.db.get("media", args.mediaId);
-    if (
-      media === null ||
-      media.purpose !== "avatar" ||
-      media.uploaderId !== userId ||
-      media.status === "deleted"
-    ) {
-      return null;
-    }
-    const user = await ctx.db.get("users", userId);
-    if (user?.imageMediaId === args.mediaId) return null;
+    if (media === null || !(await deletableBy(ctx, userId, media))) return null;
     return { r2Key: media.r2Key };
   },
 });
@@ -291,11 +303,7 @@ export const markDeleted = mutation({
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const media = await ctx.db.get("media", args.mediaId);
-    if (
-      media === null ||
-      media.purpose !== "avatar" ||
-      media.uploaderId !== userId
-    ) {
+    if (media === null || !(await deletableBy(ctx, userId, media))) {
       throw new Error("Not found");
     }
     await ctx.db.patch("media", args.mediaId, { status: "deleted" });
