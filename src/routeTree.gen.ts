@@ -19,6 +19,7 @@ import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.ind
 import { Route as AppSettingsAccountRouteImport } from './routes/_app/settings.account'
 import { Route as AppSettingsDataRouteImport } from './routes/_app/settings.data'
 import { Route as AppSettingsProfileRouteImport } from './routes/_app/settings.profile'
+import { Route as ApiEventsIdRouteImport } from './routes/api/events.$id'
 import { Route as ApiMediaIdRouteImport } from './routes/api/media.$id'
 import { Route as AppEIdIndexRouteImport } from './routes/_app/e.$id.index'
 import { Route as AppEIdNewRouteImport } from './routes/_app/e.$id.new'
@@ -72,6 +73,11 @@ const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppSettingsRoute,
 } as any)
+const ApiEventsIdRoute = ApiEventsIdRouteImport.update({
+  id: '/api/events/$id',
+  path: '/api/events/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMediaIdRoute = ApiMediaIdRouteImport.update({
   id: '/api/media/$id',
   path: '/api/media/$id',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof AppSettingsAccountRoute
   '/settings/data': typeof AppSettingsDataRoute
   '/settings/profile': typeof AppSettingsProfileRoute
+  '/api/events/$id': typeof ApiEventsIdRoute
   '/api/media/$id': typeof ApiMediaIdRoute
   '/settings/': typeof AppSettingsIndexRoute
   '/e/$id/new': typeof AppEIdNewRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/settings/account': typeof AppSettingsAccountRoute
   '/settings/data': typeof AppSettingsDataRoute
   '/settings/profile': typeof AppSettingsProfileRoute
+  '/api/events/$id': typeof ApiEventsIdRoute
   '/api/media/$id': typeof ApiMediaIdRoute
   '/settings': typeof AppSettingsIndexRoute
   '/e/$id/new': typeof AppEIdNewRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/_app/settings/account': typeof AppSettingsAccountRoute
   '/_app/settings/data': typeof AppSettingsDataRoute
   '/_app/settings/profile': typeof AppSettingsProfileRoute
+  '/api/events/$id': typeof ApiEventsIdRoute
   '/api/media/$id': typeof ApiMediaIdRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
   '/_app/e/$id/new': typeof AppEIdNewRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/data'
     | '/settings/profile'
+    | '/api/events/$id'
     | '/api/media/$id'
     | '/settings/'
     | '/e/$id/new'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/data'
     | '/settings/profile'
+    | '/api/events/$id'
     | '/api/media/$id'
     | '/settings'
     | '/e/$id/new'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/_app/settings/account'
     | '/_app/settings/data'
     | '/_app/settings/profile'
+    | '/api/events/$id'
     | '/api/media/$id'
     | '/_app/settings/'
     | '/_app/e/$id/new'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ApiUploadRoute: typeof ApiUploadRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  ApiEventsIdRoute: typeof ApiEventsIdRoute
   ApiMediaIdRoute: typeof ApiMediaIdRoute
 }
 
@@ -256,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsProfileRouteImport
       parentRoute: typeof AppSettingsRoute
     }
+    '/api/events/$id': {
+      id: '/api/events/$id'
+      path: '/api/events/$id'
+      fullPath: '/api/events/$id'
+      preLoaderRoute: typeof ApiEventsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/media/$id': {
       id: '/api/media/$id'
       path: '/api/media/$id'
@@ -319,6 +339,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ApiUploadRoute: ApiUploadRoute,
   InviteTokenRoute: InviteTokenRoute,
+  ApiEventsIdRoute: ApiEventsIdRoute,
   ApiMediaIdRoute: ApiMediaIdRoute,
 }
 export const routeTree = rootRouteImport
