@@ -135,3 +135,7 @@ Working directory: /Users/saranatour/workspace/Story-time
 ---
 
 why is the preview-mode at 29k loc, can you fetch master and compare the changes
+
+---
+
+yes, remove worker types and push it to PR #1
