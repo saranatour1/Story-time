@@ -310,3 +310,17 @@ export const markDeleted = mutation({
     return null;
   },
 });
+
+// R2 keys to delete before an experience is removed. Owner only.
+export const listKeysForEvent = query({
+  args: { eventId: v.id("events") },
+  returns: v.array(v.string()),
+  handler: async (ctx, args) => {
+    await requireEventAccess(ctx, args.eventId, "owner");
+    const rows = await ctx.db
+      .query("media")
+      .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+      .take(5000);
+    return rows.filter((m) => m.status !== "deleted").map((m) => m.r2Key);
+  },
+});
