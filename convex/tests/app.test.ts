@@ -66,6 +66,16 @@ describe("moment limit and credits", () => {
     const event = await owner.query(api.events.get, { eventId });
     expect(event?.momentLimit).toBe(15);
   });
+
+  test("archived experiences reject new moments", async () => {
+    const { owner } = await setup();
+    const eventId = await owner.mutation(api.events.createDraft, {});
+    await owner.mutation(api.events.update, { eventId, status: "archived" });
+    await expect(addMoment(owner, eventId)).rejects.toThrow(/ARCHIVED/);
+
+    await owner.mutation(api.events.update, { eventId, status: "active" });
+    await addMoment(owner, eventId);
+  });
 });
 
 describe("change tracking", () => {

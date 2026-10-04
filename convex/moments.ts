@@ -98,6 +98,12 @@ export const create = mutation({
       "contributor",
     );
 
+    if (event.status === "archived") {
+      throw new ConvexError({
+        code: "ARCHIVED",
+        message: "This experience is archived and no longer accepts moments.",
+      });
+    }
     if (event.momentCount >= event.momentLimit) {
       throw new ConvexError({
         code: "MOMENT_LIMIT",
