@@ -11,6 +11,8 @@
     "dev:web": "vp dev --port 3000",
     "convex": "convex dev",
     "generate-routes": "tsr generate",
+    "typegen": "wrangler types",
+    "postinstall": "wrangler types",
     "build": "vp build",
     "lint": "eslint .",
     "preview": "vp preview"
