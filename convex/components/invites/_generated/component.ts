@@ -65,6 +65,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         }>,
         Name
       >;
+      removeForEvent: FunctionReference<
+        "mutation",
+        "internal",
+        { eventId: string },
+        number,
+        Name
+      >;
       sweep: FunctionReference<
         "mutation",
         "internal",
