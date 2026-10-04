@@ -1,0 +1,52 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M43KA5BRA9MYZEQE9PC554D9",
+  "session_id": "0d62b0a9-b62d-4c19-bf98-5e5938e7404e",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-04T13:58:02.613431Z",
+  "branch": "feat/shared-experiences",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "convex/components/email/_generated/api.ts",
+    "convex/components/email/_generated/component.ts",
+    "convex/components/email/_generated/dataModel.ts",
+    "convex/components/email/_generated/server.ts",
+    "convex/components/email/convex.config.ts",
+    "convex/components/email/lib.ts",
+    "convex/components/email/schema.ts",
+    "convex/components/invites/_generated/api.ts",
+    "convex/components/invites/_generated/component.ts",
+    "convex/components/invites/_generated/dataModel.ts",
+    "convex/components/invites/_generated/server.ts",
+    "convex/components/invites/convex.config.ts",
+    "convex/components/invites/lib.ts",
+    "convex/components/invites/schema.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5-5",
+  "turn_id": "a906156fba7c",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 340,
+    "cache_creation_tokens": 454072,
+    "cache_read_tokens": 30712600,
+    "output_tokens": 143568,
+    "api_call_count": 164
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-04T13:58:02.509107Z",
+    "agent_lines": 1040,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1040,
+    "total_lines_changed": 1040,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}

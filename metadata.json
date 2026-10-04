@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M43KA5BRA9MYZEQE9PC554D9",
+  "strategy": "manual-commit",
+  "branch": "feat/shared-experiences",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "convex/components/email/_generated/api.ts",
+    "convex/components/email/_generated/component.ts",
+    "convex/components/email/_generated/dataModel.ts",
+    "convex/components/email/_generated/server.ts",
+    "convex/components/email/convex.config.ts",
+    "convex/components/email/lib.ts",
+    "convex/components/email/schema.ts",
+    "convex/components/invites/_generated/api.ts",
+    "convex/components/invites/_generated/component.ts",
+    "convex/components/invites/_generated/dataModel.ts",
+    "convex/components/invites/_generated/server.ts",
+    "convex/components/invites/convex.config.ts",
+    "convex/components/invites/lib.ts",
+    "convex/components/invites/schema.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 340,
+    "cache_creation_tokens": 454072,
+    "cache_read_tokens": 30712600,
+    "output_tokens": 143568,
+    "api_call_count": 164
+  }
+}
