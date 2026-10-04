@@ -1,10 +1,13 @@
 import { HeadContent, Scripts, createRootRoute, Outlet } from "@tanstack/react-router";
+import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 
-const THEME_INIT_SCRIPT = `(function(){try{var m=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',m);}catch(e){}})();`;
+// Runs before first paint so the chosen theme doesn't flash. next-themes
+// stores "light" | "dark" | "system" under the "theme" key.
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme')||'system';var dark=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);}catch(e){}})();`;
 
 export const Route = createRootRoute({
   head: () => ({
@@ -20,10 +23,12 @@ export const Route = createRootRoute({
   }),
   shellComponent: RootDocument,
   component: () => (
-    <TooltipProvider>
-      <Outlet />
-      <Toaster />
-    </TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <TooltipProvider>
+        <Outlet />
+        <Toaster />
+      </TooltipProvider>
+    </ThemeProvider>
   ),
 });
 
