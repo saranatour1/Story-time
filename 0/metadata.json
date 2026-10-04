@@ -1,0 +1,72 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M44560R2QBWNXTTN6EF1WFXD",
+  "session_id": "0d62b0a9-b62d-4c19-bf98-5e5938e7404e",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-04T19:10:21.349294Z",
+  "branch": "feat/experience-actions",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5-5",
+  "turn_id": "1dfa48df7612",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 826,
+    "cache_creation_tokens": 1587529,
+    "cache_read_tokens": 157946341,
+    "output_tokens": 449503,
+    "api_call_count": 407
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "prompt-skill-claude-code-anthropic-skills:pr-description-2026-10-04T18:32:44.598692Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "anthropic-skills:pr-description"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "b9e60e9fbfa9",
+      "timestamp": "2026-10-04T18:32:44.598692Z",
+      "native": {
+        "command": "/anthropic-skills:pr-description"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/anthropic-skills:pr-description",
+        "default_collapsed": true
+      }
+    },
+    {
+      "id": "prompt-skill-claude-code-writing-plans-2026-10-04T18:36:58.239029Z",
+      "event_type": "prompt_invocation",
+      "skill": {
+        "name": "writing-plans"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "prompt_slash_command",
+        "confidence": "explicit"
+      },
+      "turn_id": "02b99d5c3f1d",
+      "timestamp": "2026-10-04T18:36:58.239029Z",
+      "native": {
+        "command": "/writing-plans"
+      },
+      "collapse": {
+        "target": "user_message",
+        "label": "/writing-plans",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 37
+  }
+}
