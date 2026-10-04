@@ -15,3 +15,7 @@ Execute the selected diff-tab commit-and-push action.
 ---
 
 Execute the selected diff-tab commit-and-push action.
+
+---
+
+Execute the selected diff-tab commit-and-push action.
