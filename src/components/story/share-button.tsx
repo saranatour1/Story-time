@@ -47,7 +47,7 @@ export function ShareButton({ event, label }: { event: EventView; label?: string
       aria-label={isOwner ? "Share by invite link" : "Copy link"}
       onClick={() => void share()}
       disabled={busy}
-      className="text-white hover:bg-white/15 hover:text-white"
+      className="text-white hover:bg-white/10 hover:text-white"
     >
       <Share2Icon />
     </Button>

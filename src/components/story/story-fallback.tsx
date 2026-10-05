@@ -60,11 +60,11 @@ export function StopFallback({ stop }: { stop: Stop }) {
               onClick={() => setFront(i)}
               className={cn(
                 "size-2.5 rounded-full transition-colors",
-                i === front ? "bg-[#3f3a32]" : "bg-[#3f3a32]/25 hover:bg-[#3f3a32]/50",
+                i === front ? "bg-[#f3e9d6]" : "bg-white/30 hover:bg-white/60",
               )}
             />
           ))}
-          <span className="ml-2 text-xs text-[#7a7164]">
+          <span className="ml-2 text-xs text-white/50">
             {front + 1} / {media.length}
           </span>
         </div>

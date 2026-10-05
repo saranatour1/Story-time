@@ -61,8 +61,8 @@ export function CameraScene({
 }: {
   stop: Stop;
   opening: boolean;
-  onBack?: () => void;
-  onNext?: () => void;
+  onBack: () => void;
+  onNext: () => void;
 }) {
   const media = useMemo(() => stop.blocks.filter((b): b is Media => b.type === "photo" || b.type === "video"), [stop]);
   return (
@@ -72,13 +72,12 @@ export function CameraScene({
       camera={{ position: [0, 0.6, 7.5], fov: 38 }}
       gl={{ alpha: true, antialias: true }}
       onPointerMissed={(e) => {
-        if (!onBack && !onNext) return;
         const el = e.target as HTMLElement;
         const { left, width } = el.getBoundingClientRect();
-        if (e.clientX - left < width / 3) onBack?.();
-        else onNext?.();
+        if (e.clientX - left < width / 3) onBack();
+        else onNext();
       }}
-      style={{ touchAction: "pan-y", background: "transparent" }}
+      style={{ touchAction: "pan-y" }}
     >
       <ambientLight intensity={0.55} />
       <directionalLight position={[4, 6, 5]} intensity={1.9} castShadow shadow-mapSize={[1024, 1024]} />
