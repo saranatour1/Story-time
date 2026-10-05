@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { PlayIcon, PlusIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
@@ -91,13 +91,6 @@ function EventPage() {
             {archived && <Badge variant="secondary">Archived</Badge>}
           </div>
           <div className="flex items-center gap-2">
-            {event.momentCount > 0 && (
-              <Button variant="outline" asChild>
-                <Link to="/e/$id/story" params={{ id }} search={{ step: 0 }}>
-                  <PlayIcon /> Play story
-                </Link>
-              </Button>
-            )}
             {canAdd && (
               <Button onClick={() => openPanel("new-moment")}>
                 <PlusIcon /> Add moment
