@@ -7,6 +7,7 @@ import {
   LinkIcon,
   MoreHorizontalIcon,
   PencilIcon,
+  PlayIcon,
   PlusIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -83,6 +84,13 @@ export function EventActionsMenu({
           {onAddMoment && event.role !== "viewer" && !archived && (
             <DropdownMenuItem onSelect={onAddMoment}>
               <PlusIcon /> Add moment
+            </DropdownMenuItem>
+          )}
+          {event.momentCount > 0 && (
+            <DropdownMenuItem
+              onSelect={() => void navigate({ to: "/e/$id/story", params: { id: event._id }, search: { step: 0 } })}
+            >
+              <PlayIcon /> Play story
             </DropdownMenuItem>
           )}
           <DropdownMenuItem onSelect={() => void copyLink()}>
