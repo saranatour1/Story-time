@@ -4,6 +4,7 @@ import auth from "@convex-dev/auth/core/convex.config.js";
 import email from "./components/email/convex.config";
 import invites from "./components/invites/convex.config";
 import oauth from "@convex-dev/auth/providers/oauth/convex.config.js";
+import authAnonymous from "@convex-dev/auth/providers/anonymous/convex.config.js";
 
 const app = defineApp({
   env: {
@@ -11,6 +12,8 @@ const app = defineApp({
     AUTH_JWKS: v.string(),
     ENCRYPTION_MASTER_KEY: v.string(),
     APP_URL: v.optional(v.string()),
+    // Dev only: set to "true" to allow anonymous sign-in. Leave unset in prod.
+    ALLOW_ANONYMOUS_SIGNIN: v.optional(v.string()),
     AUTH_GITHUB_CLIENT_ID: v.string(),
     AUTH_GITHUB_CLIENT_SECRET: v.string(),
     AUTH_GOOGLE_CLIENT_ID: v.string(),
@@ -48,6 +51,8 @@ app.use(oauth, {
     CLIENT_SECRET: app.env.AUTH_GOOGLE_CLIENT_SECRET,
   },
 });
+
+app.use(authAnonymous);
 
 app.use(email, {
   env: {

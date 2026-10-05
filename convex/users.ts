@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
+import { env, internalMutation, mutation, query } from "./_generated/server";
 import { vGithubProfile } from "@convex-dev/auth/providers/oauth/github";
 import { vGoogleProfile } from "@convex-dev/auth/providers/oauth/google";
 import { requireUserId } from "./lib/access";
@@ -37,6 +37,23 @@ export const createGoogleUser = internalMutation({
   },
   returns: v.id("users"),
   handler: async (ctx) => await ctx.db.insert("users", {}),
+});
+
+export const createAnonymousUser = internalMutation({
+  args: {
+    provider: v.object({
+      name: v.literal("anonymous"),
+      accountId: v.string(),
+      profile: v.object({}),
+    }),
+  },
+  returns: v.id("users"),
+  handler: async (ctx) => {
+    if (env.ALLOW_ANONYMOUS_SIGNIN !== "true") {
+      throw new ConvexError("Anonymous sign-in is disabled.");
+    }
+    return await ctx.db.insert("users", {});
+  },
 });
 
 export const getCurrentUser = query({

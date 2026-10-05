@@ -1,57 +1,24 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
-import {
-  useOauth,
-  useSignInWithGithub,
-  useSignInWithGoogle,
-} from "@convex-dev/auth/providers/oauth/react";
-import { api } from "../../convex/_generated/api";
-import { Button } from "@/components/ui/button";
+import { LoginForm } from "@/components/login-form";
+import { Logo } from "@/components/logo";
 
 export const Route = createFileRoute("/")({ component: Landing });
 
 function Landing() {
-  const { isLoading, isAuthenticated } = useConvexAuth();
-  const { signInGithub } = useSignInWithGithub(api.auth);
-  const { signInGoogle } = useSignInWithGoogle(api.auth);
-  const { flowError } = useOauth();
+  const { isAuthenticated } = useConvexAuth();
 
   if (isAuthenticated) return <Navigate to="/home" />;
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-8 px-6">
-      <div className="space-y-3">
-        <h1 className="text-4xl font-bold tracking-tight">Story-time</h1>
-        <p className="text-muted-foreground">
-          Share moments from experiences you had together. You choose what to
-          add, and who can see it.
-        </p>
+    <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="flex items-center gap-2 self-center font-medium">
+          <Logo className="size-6" />
+          Story-time
+        </div>
+        <LoginForm />
       </div>
-      <div className="flex flex-col gap-3">
-        <Button
-          size="lg"
-          disabled={isLoading}
-          onClick={() => void signInGithub().catch(() => {})}
-        >
-          Continue with GitHub
-        </Button>
-        <Button
-          size="lg"
-          variant="outline"
-          disabled={isLoading}
-          onClick={() => void signInGoogle().catch(() => {})}
-        >
-          Continue with Google
-        </Button>
-        {flowError !== null && (
-          <p role="alert" className="text-sm text-destructive">
-            {flowError.message ?? "Sign-in didn't complete. Please try again."}
-          </p>
-        )}
-      </div>
-      <p className="text-xs text-muted-foreground">
-        We don't copy your name, email or photo from your account.
-      </p>
     </main>
   );
 }
