@@ -1,165 +1,182 @@
 import { useQuery } from "convex/react";
+import { useEffect, useMemo, useRef } from "react";
 import { PlusIcon, XIcon } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import { EventDetailsForm } from "@/components/event/event-details-form";
-import { groupAnchor } from "@/components/event/itinerary-tab";
-import { MomentCard } from "@/components/event/moment-card";
 import { MomentForm } from "@/components/event/moment-form";
-import type { EventView, GroupBy, MomentView } from "@/components/event/types";
+import { MomentPreview } from "@/components/event/moment-preview";
+import type { EventView, MomentView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
 
+// "outline" means no editor is open; the others name the open form.
 export type Panel = "outline" | "details" | "new-moment" | "moment";
 
-type Props = {
-  event: EventView;
-  groupBy: GroupBy;
-  panel: Panel;
-  momentId?: string;
-  day?: string;
-  canAdd: boolean;
-  canEditMoment: (authorId: string) => boolean;
-  onNavigate: (next: { panel: Panel; momentId?: string }) => void;
-};
-
-const TITLES: Record<Panel, string> = {
-  outline: "Itinerary",
+const TITLES: Record<Exclude<Panel, "outline">, string> = {
   details: "Experience details",
   "new-moment": "New moment",
-  moment: "Moment",
+  moment: "Edit moment",
 };
 
-// The secondary sidebar beside the itinerary: an outline for jumping around,
-// and the place where details and moments are created and edited.
-// Desktop: a sticky column. Phone: a sheet that opens only while editing.
-export function ItineraryPanel(props: Props) {
-  const isMobile = useIsMobile();
-  const close = () => props.onNavigate({ panel: "outline" });
-
-  if (isMobile) {
-    return (
-      <Sheet open={props.panel !== "outline"} onOpenChange={(open) => !open && close()}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>{TITLES[props.panel]}</SheetTitle>
-            <SheetDescription className="sr-only">{props.event.title}</SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-6">
-            <PanelBody {...props} />
-          </div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  return (
-    <aside
-      aria-label={TITLES[props.panel]}
-      className="sticky top-4 hidden max-h-[calc(100svh-6rem)] w-72 shrink-0 self-start overflow-y-auto border-l pl-6 md:block lg:w-80"
-    >
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{TITLES[props.panel]}</h2>
-        {props.panel !== "outline" && (
-          <Button variant="ghost" size="icon-sm" aria-label="Close panel" onClick={close}>
-            <XIcon />
-          </Button>
-        )}
-      </div>
-      <PanelBody {...props} />
-    </aside>
-  );
-}
-
-function PanelBody({ event, groupBy, panel, momentId, day, canAdd, canEditMoment, onNavigate }: Props) {
-  const moments = useQuery(api.moments.list, { eventId: event._id });
-  const close = () => onNavigate({ panel: "outline" });
-
-  if (panel === "details") return <EventDetailsForm event={event} onDone={close} />;
-  if (panel === "new-moment") {
-    return (
-      // `key` resets the form when another day's "+" is used.
-      <MomentForm key={day ?? "new"} eventId={event._id} day={day} full={event.momentCount >= event.momentLimit} onDone={close} />
-    );
-  }
-  if (panel === "moment") {
-    if (moments === undefined) return <Skeleton className="h-64 w-full" />;
-    const moment = moments.find((m) => m._id === momentId);
-    if (!moment) return <p className="text-sm text-muted-foreground">This moment is no longer here.</p>;
-    return canEditMoment(moment.authorId) ? (
-      // `key` resets the form when another moment is selected.
-      <MomentForm key={moment._id} eventId={event._id} moment={moment} onDone={close} />
-    ) : (
-      <MomentCard moment={moment} />
-    );
-  }
-  return (
-    <Outline event={event} groupBy={groupBy} selectedMomentId={momentId} canAdd={canAdd} onNavigate={onNavigate} />
-  );
-}
-
-function Outline({
+// The form under the itinerary, in the left column: experience details, a new
+// moment, or the selected moment being edited.
+export function EditorPanel({
   event,
-  groupBy,
-  selectedMomentId,
+  panel,
+  momentId,
+  day,
+  canEditMoment,
+  onClose,
+}: {
+  event: EventView;
+  panel: Exclude<Panel, "outline">;
+  momentId?: string;
+  day?: string;
+  canEditMoment: (authorId: string) => boolean;
+  onClose: () => void;
+}) {
+  const moments = useQuery(api.moments.list, { eventId: event._id });
+
+  let body;
+  if (panel === "details") {
+    body = <EventDetailsForm event={event} onDone={onClose} />;
+  } else if (panel === "new-moment") {
+    // `key` resets the form when another day's "+" is used.
+    body = (
+      <MomentForm
+        key={day ?? "new"}
+        eventId={event._id}
+        day={day}
+        full={event.momentCount >= event.momentLimit}
+        onDone={onClose}
+      />
+    );
+  } else if (moments === undefined) {
+    body = <Skeleton className="h-64 w-full" />;
+  } else {
+    const moment = moments.find((m) => m._id === momentId);
+    body = !moment ? (
+      <p className="text-sm text-muted-foreground">This moment is no longer here.</p>
+    ) : canEditMoment(moment.authorId) ? (
+      // `key` resets the form when another moment is selected.
+      <MomentForm key={moment._id} eventId={event._id} moment={moment} onDone={onClose} />
+    ) : (
+      <p className="text-sm text-muted-foreground">Only its author or the owner can edit this moment.</p>
+    );
+  }
+
+  return (
+    <section aria-label={TITLES[panel]} className="space-y-4 rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold">{TITLES[panel]}</h2>
+        <Button variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
+          <XIcon />
+        </Button>
+      </div>
+      {body}
+    </section>
+  );
+}
+
+// The right side: every visible moment as a journey, one per screen, in the
+// table's order. Scrolling snaps moment to moment and reports the one in view;
+// selecting a row jumps here.
+export function MomentFeed({
+  event,
+  order,
+  momentId,
+  meId,
   canAdd,
-  onNavigate,
-}: Pick<Props, "event" | "groupBy" | "canAdd" | "onNavigate"> & { selectedMomentId?: string }) {
-  const groups = useQuery(api.itinerary.grouped, { eventId: event._id, groupBy });
-  if (groups === undefined) return <Skeleton className="h-40 w-full" />;
-  if (groups.length === 0) {
+  canEditMoment,
+  onEdit,
+  onAdd,
+  onActiveChange,
+}: {
+  event: EventView;
+  // Moment ids from the table; null until it has loaded.
+  order: string[] | null;
+  momentId?: string;
+  meId?: string;
+  canAdd: boolean;
+  canEditMoment: (authorId: string) => boolean;
+  onEdit: (momentId: string) => void;
+  onAdd: () => void;
+  onActiveChange: (momentId: string) => void;
+}) {
+  const moments = useQuery(api.moments.list, { eventId: event._id });
+  const feed = useRef<HTMLDivElement>(null);
+  // The moment the feed last reported, so selecting it doesn't scroll again.
+  const reported = useRef<string | undefined>(undefined);
+
+  const byId = useMemo(() => new Map<string, MomentView>((moments ?? []).map((m) => [m._id, m])), [moments]);
+  const list = (order ?? []).flatMap((id) => byId.get(id) ?? []);
+  const ids = list.map((m) => m._id).join(",");
+
+  // Jump to a moment chosen in the table. Instant, so the moments passed on
+  // the way don't each report themselves as active.
+  useEffect(() => {
+    const root = feed.current;
+    if (!root || !momentId || momentId === reported.current) return;
+    const el = root.querySelector<HTMLElement>(`[data-moment-id="${momentId}"]`);
+    if (el) root.scrollTo({ top: el.offsetTop });
+  }, [momentId, ids]);
+
+  // The moment crossing the feed's middle line is the active one; this works
+  // for moments taller than the feed too.
+  useEffect(() => {
+    const root = feed.current;
+    if (!root) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id = entry.target.getAttribute("data-moment-id");
+          if (entry.isIntersecting && id && id !== reported.current) {
+            reported.current = id;
+            onActiveChange(id);
+          }
+        }
+      },
+      { root, rootMargin: "-50% 0px -50% 0px" },
+    );
+    root.querySelectorAll("[data-moment-id]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [ids, onActiveChange]);
+
+  if (moments === undefined || order === null) return <Skeleton className="h-96 w-full" />;
+  if (moments.length === 0) {
     return (
-      <div className="space-y-3 text-sm text-muted-foreground">
-        <p>No moments yet.</p>
+      <div className="space-y-3 rounded-xl border border-dashed p-8 text-center">
+        <p className="text-muted-foreground">Moments you add show up here, stop by stop.</p>
         {canAdd && (
-          <Button size="sm" onClick={() => onNavigate({ panel: "new-moment" })}>
-            <PlusIcon /> Add moment
+          <Button variant="outline" size="sm" onClick={onAdd}>
+            <PlusIcon /> Add the first moment
           </Button>
         )}
       </div>
     );
   }
-
+  if (list.length === 0) {
+    return <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No moments match.</p>;
+  }
   return (
-    <nav aria-label="Itinerary outline" className="space-y-4 text-sm">
-      {groups.map((g) => (
-        <div key={g.key}>
-          <button
-            type="button"
-            className="font-medium hover:underline"
-            onClick={() =>
-              document.getElementById(groupAnchor(g.key))?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-          >
-            {g.label}
-          </button>
-          <ul className="mt-1 ml-1 space-y-0.5 border-l pl-3">
-            {g.moments.map((m) => (
-              <li key={m._id}>
-                <button
-                  type="button"
-                  onClick={() => onNavigate({ panel: "moment", momentId: m._id })}
-                  className={cn(
-                    "w-full truncate rounded-md px-2 py-1 text-left text-muted-foreground hover:bg-accent hover:text-foreground",
-                    m._id === selectedMomentId && "bg-accent text-foreground",
-                  )}
-                >
-                  {new Date(m.startsAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                  {" · "}
-                  {m.place ?? firstLine(m)}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+    <div
+      ref={feed}
+      aria-label="Moments"
+      className="relative h-[calc(100svh-9rem)] snap-y snap-mandatory overflow-y-auto overscroll-contain lg:sticky lg:top-4"
+    >
+      {list.map((moment) => (
+        <section
+          key={moment._id}
+          data-moment-id={moment._id}
+          className="min-h-full snap-start border-b py-4 pr-2 last:border-b-0"
+        >
+          <MomentPreview
+            moment={moment}
+            mine={moment.authorId === meId}
+            onEdit={canEditMoment(moment.authorId) ? () => onEdit(moment._id) : undefined}
+          />
+        </section>
       ))}
-    </nav>
+    </div>
   );
-}
-
-function firstLine(m: MomentView) {
-  const text = m.blocks.find((b) => b.type === "note" || b.type === "feeling");
-  return text && "text" in text ? text.text.split("\n")[0]!.slice(0, 40) : "Moment";
 }

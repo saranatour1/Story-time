@@ -15,6 +15,8 @@ import {
   IMAGE_MIME_TYPES,
   MAX_AVATAR_BYTES,
   MAX_UPLOAD_BYTES,
+  MAX_VIDEO_BYTES,
+  VIDEO_MIME_TYPES,
 } from "./lib/limits";
 
 // Step 1 of an upload: the server route calls this before it streams bytes
@@ -37,18 +39,20 @@ export const reserveUpload = mutation({
     if (!Number.isInteger(args.size) || args.size < 1) {
       throw new ConvexError({ code: "INVALID", field: "size", message: "Empty file" });
     }
-    if (args.size > MAX_UPLOAD_BYTES) {
-      throw new ConvexError({
-        code: "TOO_LARGE",
-        message: "Photos can be at most 5 MB",
-        maxBytes: MAX_UPLOAD_BYTES,
-      });
-    }
-    if (!IMAGE_MIME_TYPES.includes(args.mime)) {
+    const isVideo = VIDEO_MIME_TYPES.includes(args.mime);
+    if (!isVideo && !IMAGE_MIME_TYPES.includes(args.mime)) {
       throw new ConvexError({
         code: "INVALID",
         field: "mime",
         message: "Unsupported file type",
+      });
+    }
+    const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_UPLOAD_BYTES;
+    if (args.size > maxBytes) {
+      throw new ConvexError({
+        code: "TOO_LARGE",
+        message: isVideo ? "Videos can be at most 50 MB" : "Photos can be at most 5 MB",
+        maxBytes,
       });
     }
     // Stops one contributor reserving unlimited objects.

@@ -20,6 +20,7 @@ export const vRole = v.union(v.literal("viewer"), v.literal("contributor"));
 
 export const vBlock = v.union(
   v.object({ type: v.literal("photo"), mediaId: v.id("media") }),
+  v.object({ type: v.literal("video"), mediaId: v.id("media") }),
   v.object({
     type: v.literal("link"),
     url: vEncrypted,
@@ -32,6 +33,26 @@ export const vBlock = v.union(
     mood: v.optional(v.string()),
   }),
 );
+
+// How someone got to a stop. Not sensitive, so stored in the clear.
+export const vTransport = v.union(
+  v.literal("walk"),
+  v.literal("bike"),
+  v.literal("car"),
+  v.literal("bus"),
+  v.literal("train"),
+  v.literal("plane"),
+  v.literal("boat"),
+  v.literal("other"),
+);
+
+// A stop after the first; the moment's own startsAt/place/blocks are stop one.
+export const vStop = v.object({
+  startsAt: v.optional(v.number()),
+  place: v.optional(vEncrypted),
+  transport: v.optional(vTransport),
+  blocks: v.array(vBlock),
+});
 
 export const vChangeEntity = v.union(
   v.literal("event"),
@@ -99,6 +120,10 @@ export default defineSchema({
     startsAt: v.number(),
     place: v.optional(vEncrypted),
     blocks: v.array(vBlock),
+    // How they got to the first stop.
+    transport: v.optional(vTransport),
+    stops: v.optional(v.array(vStop)),
+    labels: v.optional(v.array(vEncrypted)),
   })
     .index("by_event_and_startsAt", ["eventId", "startsAt"])
     .index("by_author", ["authorId"]),

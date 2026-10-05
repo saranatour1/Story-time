@@ -13,7 +13,9 @@ import {
   MapPinIcon,
   PaperclipIcon,
   PlusIcon,
+  RouteIcon,
   SearchIcon,
+  VideoIcon,
   XIcon,
 } from "lucide-react";
 import {
@@ -30,7 +32,7 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { MomentCard } from "@/components/event/moment-card";
@@ -50,6 +52,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  allBlocks,
   type BlockType,
   type MomentFilters,
   isFiltering,
@@ -67,6 +70,7 @@ export const groupAnchor = (key: string) => `group-${key}`;
 
 const BLOCKS: Array<{ type: BlockType; label: string; icon: typeof ImageIcon }> = [
   { type: "photo", label: "Photos", icon: ImageIcon },
+  { type: "video", label: "Videos", icon: VideoIcon },
   { type: "note", label: "Notes", icon: FileTextIcon },
   { type: "link", label: "Links", icon: LinkIcon },
   { type: "feeling", label: "Feelings", icon: HeartIcon },
@@ -142,7 +146,8 @@ const columns = helper.columns([
     id: "glyph",
     meta: { className: "hidden justify-center @3xl:flex" },
     cell: ({ row }) => {
-      const kind = BLOCKS.find((b) => row.original.blocks.some((x) => x.type === b.type));
+      const blocks = allBlocks(row.original);
+      const kind = BLOCKS.find((b) => blocks.some((x) => x.type === b.type));
       const Glyph = kind?.icon ?? FileTextIcon;
       return <Glyph aria-hidden className="size-3.5 text-muted-foreground" />;
     },
@@ -236,6 +241,7 @@ export function ItineraryTab({
   onGroupingChange,
   onViewChange,
   onAddToDay,
+  onOrderChange,
   selectedMomentId,
   onSelectMoment,
   renderActions,
@@ -248,6 +254,8 @@ export function ItineraryTab({
   onViewChange: (v: ItineraryView) => void;
   // Only passed when the viewer may add moments.
   onAddToDay?: (day: string) => void;
+  // The visible moments, in table order (grouping, filters and sort applied).
+  onOrderChange?: (momentIds: string[]) => void;
   selectedMomentId?: string;
   onSelectMoment: (momentId: string) => void;
   renderActions: (moment: MomentView) => ReactNode;
@@ -267,6 +275,10 @@ export function ItineraryTab({
   );
   const places = useMemo(
     () => [...new Set(data.map((m) => m.place ?? NO_PLACE))].sort((a, b) => a.localeCompare(b)),
+    [data],
+  );
+  const labels = useMemo(
+    () => [...new Set(data.flatMap((m) => m.labels))].sort((a, b) => a.localeCompare(b)),
     [data],
   );
   // Everyone with a moment here, you first.
@@ -316,6 +328,10 @@ export function ItineraryTab({
   const count = table.getFilteredRowModel().rows.length;
   const rows = table.getRowModel().rows;
   const leaves = rows.flatMap((r) => (r.getIsGrouped() ? r.subRows : [r]));
+  const order = groups === undefined ? null : leaves.map((r) => r.original._id).join(",");
+  useEffect(() => {
+    if (order !== null) onOrderChange?.(order === "" ? [] : order.split(","));
+  }, [order, onOrderChange]);
   const headers = table.getHeaderGroups()[0]!.headers.filter((h) => h.column.id !== "group");
 
   const row = (r: (typeof rows)[number]) => {
@@ -535,6 +551,7 @@ export function ItineraryTab({
           <FiltersPopover
             filters={filters}
             places={places}
+            labels={labels}
             defaultMonth={data[0] ? new Date(data[0].startsAt) : undefined}
             onChange={setFilters}
           />
@@ -621,12 +638,21 @@ function People({
 }
 
 function Contains({ moment }: { moment: MomentView }) {
-  const counts = BLOCKS.map((b) => ({ ...b, n: moment.blocks.filter((x) => x.type === b.type).length })).filter(
+  const blocks = allBlocks(moment);
+  const counts = BLOCKS.map((b) => ({ ...b, n: blocks.filter((x) => x.type === b.type).length })).filter(
     (b) => b.n > 0,
   );
-  if (counts.length === 0) return null;
+  const stops = moment.stops.length + 1;
+  if (counts.length === 0 && stops === 1) return null;
   return (
     <span className="inline-flex h-6 items-center gap-2.5 rounded-full border px-2 text-[13px] text-muted-foreground">
+      {stops > 1 && (
+        <span className="inline-flex items-center gap-1" title="Stops">
+          <RouteIcon aria-hidden className="size-3.5" />
+          {stops}
+          <span className="sr-only">stops</span>
+        </span>
+      )}
       {counts.map(({ type, label, icon: Icon, n }) => (
         <span key={type} className="inline-flex items-center gap-1" title={label}>
           <Icon aria-hidden className="size-3.5" />
@@ -662,7 +688,7 @@ function placeColor(place: string) {
 }
 
 function firstLine(m: MomentView) {
-  for (const b of m.blocks) {
+  for (const b of allBlocks(m)) {
     if (b.type === "note" || b.type === "feeling") return b.text.split("\n")[0]!.trim() || undefined;
     if (b.type === "link") return b.title ?? b.url;
   }
@@ -672,15 +698,18 @@ function firstLine(m: MomentView) {
 function FiltersPopover({
   filters,
   places,
+  labels,
   defaultMonth,
   onChange,
 }: {
   filters: MomentFilters;
   places: string[];
+  labels: string[];
   defaultMonth?: Date;
   onChange: (f: MomentFilters) => void;
 }) {
-  const active = filters.places.length + filters.contains.length + (filters.from ? 1 : 0);
+  const active =
+    filters.places.length + filters.contains.length + filters.labels.length + (filters.from ? 1 : 0);
   const toggle = <T extends string>(list: T[], value: T) =>
     list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 
@@ -709,6 +738,14 @@ function FiltersPopover({
           selected={filters.contains}
           onToggle={(t) => onChange({ ...filters, contains: toggle(filters.contains, t as BlockType) })}
         />
+        {labels.length > 0 && (
+          <FilterChips
+            label="Labels"
+            options={labels.map((l) => ({ value: l, label: l }))}
+            selected={filters.labels}
+            onToggle={(l) => onChange({ ...filters, labels: toggle(filters.labels, l) })}
+          />
+        )}
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground">
             Dates

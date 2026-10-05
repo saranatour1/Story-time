@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { PlusIcon } from "lucide-react";
+import { useCallback, useState } from "react";
 import { z } from "zod";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ActivityTab } from "@/components/event/activity-tab";
 import { EventActionsMenu } from "@/components/event/event-actions-menu";
-import { ItineraryPanel, type Panel } from "@/components/event/itinerary-panel";
+import { EditorPanel, MomentFeed, type Panel } from "@/components/event/itinerary-panel";
 import { ItineraryTab } from "@/components/event/itinerary-tab";
 import { MomentActionsMenu } from "@/components/event/moment-actions-menu";
 import { SettingsTab } from "@/components/event/settings-tab";
@@ -39,6 +40,16 @@ function EventPage() {
   const eventId = id as Id<"events">;
   const event = useQuery(api.events.get, { eventId });
   const me = useQuery(api.users.getCurrentUser);
+  // The table's visible moments, in its order; the feed follows it.
+  const [order, setOrder] = useState<string[] | null>(null);
+  // Scrolling the feed selects the moment in view, without new history
+  // entries. `resetScroll: false` stops the router restoring the feed's old
+  // scroll position (and the window's) after each of these navigations.
+  const onActiveChange = useCallback(
+    (mid: string) =>
+      void navigate({ search: (s) => ({ ...s, momentId: mid }), replace: true, resetScroll: false }),
+    [navigate],
+  );
 
   if (event === undefined) return <Skeleton className="h-96 w-full" />;
   if (event === null) return <p className="text-muted-foreground">Experience not found.</p>;
@@ -48,11 +59,20 @@ function EventPage() {
   const canAdd = event.role !== "viewer" && !archived;
   const canEditMoment = (authorId: string) => !archived && (isOwner || authorId === me?.id);
 
-  // Every panel sits beside the itinerary, so opening one also shows that tab.
+  // Editors open under the itinerary, so opening one also shows that tab.
+  // `momentId` is the moment in the preview; editing one also selects it.
   const openPanel = (next: Panel, nextMomentId?: string, nextDay?: string) =>
     void navigate({
-      search: (s) => ({ ...s, tab: "itinerary" as const, panel: next, momentId: nextMomentId, day: nextDay }),
+      search: (s) => ({
+        ...s,
+        tab: "itinerary" as const,
+        panel: next,
+        momentId: nextMomentId ?? (next === "outline" ? s.momentId : undefined),
+        day: nextDay,
+      }),
     });
+  const selectMoment = (mid: string) =>
+    void navigate({ search: (s) => ({ ...s, tab: "itinerary" as const, momentId: mid }), resetScroll: false });
 
   return (
     <div className="space-y-6">
@@ -85,8 +105,10 @@ function EventPage() {
         </div>
 
         <TabsContent value="itinerary">
-          <div className="flex gap-6">
-            <div className="min-w-0 flex-1 space-y-4">
+          {/* Left: the itinerary, with any open editor under it. Right: the
+              selected moment, stop by stop. Stacked on narrow screens. */}
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+            <div className="flex w-full min-w-0 flex-col gap-4 lg:w-[28rem] lg:shrink-0">
               <ItineraryTab
                 eventId={eventId}
                 meId={me?.id}
@@ -95,8 +117,9 @@ function EventPage() {
                 onGroupingChange={(g) => void navigate({ search: (s) => ({ ...s, groupBy: g }) })}
                 onViewChange={(v) => void navigate({ search: (s) => ({ ...s, view: v }) })}
                 onAddToDay={canAdd ? (d) => openPanel("new-moment", undefined, d) : undefined}
-                selectedMomentId={panel === "moment" ? momentId : undefined}
-                onSelectMoment={(mid) => openPanel("moment", mid)}
+                onOrderChange={setOrder}
+                selectedMomentId={momentId}
+                onSelectMoment={selectMoment}
                 renderActions={(m) => (
                   <MomentActionsMenu
                     eventId={eventId}
@@ -104,22 +127,37 @@ function EventPage() {
                     canEdit={canEditMoment(m.authorId)}
                     onEdit={() => openPanel("moment", m._id)}
                     onDeleted={() => {
-                      if (panel === "moment" && momentId === m._id) openPanel("outline");
+                      if (momentId === m._id) {
+                        void navigate({ search: (s) => ({ ...s, panel: "outline" as const, momentId: undefined }) });
+                      }
                     }}
                   />
                 )}
               />
+              {panel !== "outline" && (
+                <EditorPanel
+                  event={event}
+                  panel={panel}
+                  momentId={momentId}
+                  day={day}
+                  canEditMoment={canEditMoment}
+                  onClose={() => openPanel("outline")}
+                />
+              )}
             </div>
-            <ItineraryPanel
-              event={event}
-              groupBy={groupBy === "none" ? "day" : groupBy}
-              panel={panel}
-              momentId={momentId}
-              day={day}
-              canAdd={canAdd}
-              canEditMoment={canEditMoment}
-              onNavigate={(next) => openPanel(next.panel, next.momentId)}
-            />
+            <div className="min-w-0 flex-1">
+              <MomentFeed
+                event={event}
+                order={order}
+                momentId={momentId}
+                meId={me?.id}
+                canAdd={canAdd}
+                canEditMoment={canEditMoment}
+                onEdit={(mid) => openPanel("moment", mid)}
+                onAdd={() => openPanel("new-moment")}
+                onActiveChange={onActiveChange}
+              />
+            </div>
           </div>
         </TabsContent>
         {isOwner && <TabsContent value="shared"><SharedTab eventId={eventId} /></TabsContent>}

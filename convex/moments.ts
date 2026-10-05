@@ -2,7 +2,16 @@ import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { assertNotArchived, requireEventAccess } from "./lib/access";
-import { encodeBlocks, encodePlace, invalid, localKeys } from "./lib/blocks";
+import {
+  encodeBlocks,
+  encodeLabels,
+  encodePlace,
+  encodeStops,
+  invalid,
+  localKeys,
+  mediaIdsOf,
+} from "./lib/blocks";
+import { vTransport } from "./schema";
 import { recordChange } from "./lib/changes";
 import { decryptText } from "./lib/crypto";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -11,6 +20,7 @@ import type { QueryCtx } from "./_generated/server";
 // The decrypted shape clients send and receive.
 export const vPlainBlock = v.union(
   v.object({ type: v.literal("photo"), mediaId: v.id("media") }),
+  v.object({ type: v.literal("video"), mediaId: v.id("media") }),
   v.object({
     type: v.literal("link"),
     url: v.string(),
@@ -25,6 +35,15 @@ export const vPlainBlock = v.union(
 );
 export type PlainBlock = Infer<typeof vPlainBlock>;
 
+// A stop after the first, as clients send and receive it.
+export const vPlainStop = v.object({
+  startsAt: v.optional(v.number()),
+  place: v.optional(v.string()),
+  transport: v.optional(vTransport),
+  blocks: v.array(vPlainBlock),
+});
+export type PlainStop = Infer<typeof vPlainStop>;
+
 export const vMomentView = v.object({
   _id: v.id("moments"),
   authorId: v.id("users"),
@@ -33,16 +52,16 @@ export const vMomentView = v.object({
   startsAt: v.number(),
   place: v.optional(v.string()),
   blocks: v.array(vPlainBlock),
+  // How they got to the first stop; `stops` are the ones after it.
+  transport: v.optional(vTransport),
+  stops: v.array(vPlainStop),
+  labels: v.array(v.string()),
 });
 
-export async function viewMoment(
-  ctx: QueryCtx,
-  event: Doc<"events">,
-  moment: Doc<"moments">,
-): Promise<Infer<typeof vMomentView>> {
+async function viewBlocks(event: Doc<"events">, encrypted: Doc<"moments">["blocks"]): Promise<PlainBlock[]> {
   const blocks: PlainBlock[] = [];
-  for (const b of moment.blocks) {
-    if (b.type === "photo") blocks.push(b);
+  for (const b of encrypted) {
+    if (b.type === "photo" || b.type === "video") blocks.push(b);
     else if (b.type === "link") {
       blocks.push({
         type: "link",
@@ -59,6 +78,14 @@ export async function viewMoment(
       });
     }
   }
+  return blocks;
+}
+
+export async function viewMoment(
+  ctx: QueryCtx,
+  event: Doc<"events">,
+  moment: Doc<"moments">,
+): Promise<Infer<typeof vMomentView>> {
   const author = await ctx.db.get("users", moment.authorId);
   return {
     _id: moment._id,
@@ -66,7 +93,17 @@ export async function viewMoment(
     authorName: author?.displayName,
     startsAt: moment.startsAt,
     place: moment.place ? await decryptText(event._id, moment.place) : undefined,
-    blocks,
+    blocks: await viewBlocks(event, moment.blocks),
+    transport: moment.transport,
+    stops: await Promise.all(
+      (moment.stops ?? []).map(async (s) => ({
+        startsAt: s.startsAt,
+        place: s.place ? await decryptText(event._id, s.place) : undefined,
+        transport: s.transport,
+        blocks: await viewBlocks(event, s.blocks),
+      })),
+    ),
+    labels: await Promise.all((moment.labels ?? []).map((l) => decryptText(event._id, l))),
   };
 }
 
@@ -78,6 +115,9 @@ export const create = mutation({
     tzOffsetMinutes: v.optional(v.number()),
     place: v.optional(v.string()),
     blocks: v.array(vPlainBlock),
+    transport: v.optional(vTransport),
+    stops: v.optional(v.array(vPlainStop)),
+    labels: v.optional(v.array(v.string())),
   },
   returns: v.id("moments"),
   handler: async (ctx, args) => {
@@ -97,12 +137,20 @@ export const create = mutation({
     }
     if (!Number.isFinite(args.startsAt)) invalid("startsAt", "Pick a date");
 
-    const { blocks, mediaIds } = await encodeBlocks(ctx, {
+    const first = await encodeBlocks(ctx, {
       event,
       userId,
       blocks: args.blocks,
+      allowEmpty: true,
     });
+    const rest = await encodeStops(ctx, { event, userId, stops: args.stops ?? [] });
+    if (first.blocks.length + rest.stops.reduce((n, s) => n + s.blocks.length, 0) === 0) {
+      invalid("blocks", "Add something to share");
+    }
+    const blocks = first.blocks;
+    const mediaIds = [...first.mediaIds, ...rest.mediaIds];
     const { place, placeKey } = await encodePlace(event, args.place);
+    const labels = await encodeLabels(event, args.labels ?? []);
 
     const momentId = await ctx.db.insert("moments", {
       eventId: args.eventId,
@@ -110,6 +158,9 @@ export const create = mutation({
       startsAt: args.startsAt,
       place,
       blocks,
+      transport: args.transport,
+      stops: rest.stops.length > 0 ? rest.stops : undefined,
+      labels: labels.length > 0 ? labels : undefined,
     });
     for (const mediaId of mediaIds) {
       await ctx.db.patch("media", mediaId, { momentId });
@@ -134,8 +185,8 @@ export const create = mutation({
       entityId: momentId,
       actorId: userId,
       action: "create",
-      fields: ["startsAt", "place", "blocks"],
-      after: { startsAt: args.startsAt, blockCount: blocks.length },
+      fields: ["startsAt", "place", "blocks", "transport", "stops", "labels"],
+      after: { startsAt: args.startsAt, blockCount: blocks.length, stopCount: rest.stops.length + 1 },
     });
     return momentId;
   },
@@ -171,6 +222,11 @@ export const update = mutation({
     tzOffsetMinutes: v.optional(v.number()),
     place: v.optional(v.string()),
     blocks: v.optional(v.array(vPlainBlock)),
+    // null clears it.
+    transport: v.optional(v.union(vTransport, v.null())),
+    // Replace the whole list when passed.
+    stops: v.optional(v.array(vPlainStop)),
+    labels: v.optional(v.array(v.string())),
   },
   returns: v.object({ removedMediaIds: v.array(v.id("media")) }),
   handler: async (ctx, args) => {
@@ -189,7 +245,9 @@ export const update = mutation({
     }
     assertNotArchived(event);
 
-    const patch: Partial<Pick<Doc<"moments">, "startsAt" | "place" | "blocks">> = {};
+    const patch: Partial<
+      Pick<Doc<"moments">, "startsAt" | "place" | "blocks" | "transport" | "stops" | "labels">
+    > = {};
     const fields: string[] = [];
     let placeKey: string | undefined | null = null; // null = unchanged
     let removedMediaIds: Id<"media">[] = [];
@@ -209,22 +267,55 @@ export const update = mutation({
       fields.push("place");
     }
 
-    if (args.blocks !== undefined) {
-      const encoded = await encodeBlocks(ctx, {
-        event,
-        userId,
-        blocks: args.blocks,
-        momentId: moment._id,
-      });
-      patch.blocks = encoded.blocks;
-      fields.push("blocks");
-      const before = moment.blocks.flatMap((b) => (b.type === "photo" ? [b.mediaId] : []));
-      const kept = new Set(encoded.mediaIds);
+    if (args.transport !== undefined) {
+      patch.transport = args.transport ?? undefined;
+      fields.push("transport");
+    }
+
+    if (args.labels !== undefined) {
+      const labels = await encodeLabels(event, args.labels);
+      patch.labels = labels.length > 0 ? labels : undefined;
+      fields.push("labels");
+    }
+
+    if (args.blocks !== undefined || args.stops !== undefined) {
+      if (args.blocks !== undefined) {
+        const encoded = await encodeBlocks(ctx, {
+          event,
+          userId,
+          blocks: args.blocks,
+          momentId: moment._id,
+          allowEmpty: true,
+        });
+        patch.blocks = encoded.blocks;
+        fields.push("blocks");
+      }
+      if (args.stops !== undefined) {
+        const encoded = await encodeStops(ctx, {
+          event,
+          userId,
+          stops: args.stops,
+          momentId: moment._id,
+        });
+        patch.stops = encoded.stops.length > 0 ? encoded.stops : undefined;
+        fields.push("stops");
+      }
+      const after = {
+        blocks: patch.blocks ?? moment.blocks,
+        stops: "stops" in patch ? patch.stops : moment.stops,
+      };
+      if (after.blocks.length + (after.stops ?? []).reduce((n, s) => n + s.blocks.length, 0) === 0) {
+        invalid("blocks", "Add something to share");
+      }
+      // Photos and videos dropped from any stop are detached and returned
+      // for deletion; new ones are attached to this moment.
+      const before = mediaIdsOf(moment);
+      const kept = new Set(mediaIdsOf(after));
       removedMediaIds = before.filter((id) => !kept.has(id));
       for (const id of removedMediaIds) {
         await ctx.db.patch("media", id, { momentId: undefined });
       }
-      for (const id of encoded.mediaIds) {
+      for (const id of kept) {
         if (!before.includes(id)) {
           await ctx.db.patch("media", id, { momentId: moment._id });
         }
@@ -290,9 +381,7 @@ export const remove = mutation({
     }
     assertNotArchived(event);
 
-    const removedMediaIds = moment.blocks.flatMap((b) =>
-      b.type === "photo" ? [b.mediaId] : [],
-    );
+    const removedMediaIds = mediaIdsOf(moment);
     for (const id of removedMediaIds) {
       await ctx.db.patch("media", id, { momentId: undefined });
     }

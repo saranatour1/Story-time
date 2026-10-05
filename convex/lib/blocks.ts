@@ -1,9 +1,15 @@
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import type { PlainBlock } from "../moments";
+import type { PlainBlock, PlainStop } from "../moments";
 import { encryptText, placeKeyFor, type Encrypted } from "./crypto";
-import { MAX_BLOCKS_PER_MOMENT, MAX_TEXT_LENGTH } from "./limits";
+import {
+  MAX_BLOCKS_PER_MOMENT,
+  MAX_LABEL_LENGTH,
+  MAX_LABELS_PER_MOMENT,
+  MAX_STOPS_PER_MOMENT,
+  MAX_TEXT_LENGTH,
+} from "./limits";
 
 export function invalid(field: string, message: string): never {
   throw new ConvexError({ code: "INVALID", field, message });
@@ -39,8 +45,9 @@ export async function encodePlace(
   };
 }
 
-// Validates and encrypts a moment's blocks. When editing, `momentId` is set
-// and photos already on that moment stay allowed, whoever uploaded them.
+// Validates and encrypts one stop's blocks. When editing, `momentId` is set
+// and photos and videos already on that moment stay allowed, whoever
+// uploaded them. Stops after the first may be empty (`allowEmpty`).
 export async function encodeBlocks(
   ctx: MutationCtx,
   args: {
@@ -48,31 +55,37 @@ export async function encodeBlocks(
     userId: Id<"users">;
     blocks: PlainBlock[];
     momentId?: Id<"moments">;
+    allowEmpty?: boolean;
+    fieldPrefix?: string;
   },
 ): Promise<{ blocks: Doc<"moments">["blocks"]; mediaIds: Id<"media">[] }> {
   const { event, userId, momentId } = args;
-  if (args.blocks.length === 0) invalid("blocks", "Add something to share");
+  const prefix = args.fieldPrefix ?? "blocks";
+  if (args.blocks.length === 0 && !args.allowEmpty) invalid(prefix, "Add something to share");
   if (args.blocks.length > MAX_BLOCKS_PER_MOMENT) {
-    invalid("blocks", `At most ${MAX_BLOCKS_PER_MOMENT} items per moment`);
+    invalid(prefix, `At most ${MAX_BLOCKS_PER_MOMENT} items per stop`);
   }
 
   const blocks: Doc<"moments">["blocks"] = [];
   const mediaIds: Id<"media">[] = [];
   for (const [i, b] of args.blocks.entries()) {
-    const field = `blocks.${i}`;
-    if (b.type === "photo") {
+    const field = `${prefix}.${i}`;
+    if (b.type === "photo" || b.type === "video") {
       const media = await ctx.db.get("media", b.mediaId);
       const onThisMoment =
         momentId !== undefined && media?.momentId === momentId;
       const freshUpload =
         media?.momentId === undefined && media?.uploaderId === userId;
+      // A photo block must point at an image, a video block at a video.
+      const rightKind = media?.mime.startsWith(b.type === "photo" ? "image/" : "video/");
       if (
         media === null ||
         media.eventId !== event._id ||
         media.status !== "ready" ||
+        !rightKind ||
         !(onThisMoment || freshUpload)
       ) {
-        invalid(field, "That photo isn't available");
+        invalid(field, `That ${b.type} isn't available`);
       }
       mediaIds.push(media._id);
       blocks.push(b);
@@ -116,4 +129,61 @@ export async function encodeBlocks(
     }
   }
   return { blocks, mediaIds };
+}
+
+// Validates and encrypts the stops after the first. A stop needs a place or
+// something to share.
+export async function encodeStops(
+  ctx: MutationCtx,
+  args: {
+    event: Doc<"events">;
+    userId: Id<"users">;
+    stops: PlainStop[];
+    momentId?: Id<"moments">;
+  },
+): Promise<{ stops: NonNullable<Doc<"moments">["stops"]>; mediaIds: Id<"media">[] }> {
+  if (args.stops.length > MAX_STOPS_PER_MOMENT - 1) {
+    invalid("stops", `At most ${MAX_STOPS_PER_MOMENT} stops per moment`);
+  }
+  const stops: NonNullable<Doc<"moments">["stops"]> = [];
+  const mediaIds: Id<"media">[] = [];
+  for (const [i, s] of args.stops.entries()) {
+    const field = `stops.${i}`;
+    if (s.startsAt !== undefined && !Number.isFinite(s.startsAt)) {
+      invalid(`${field}.startsAt`, "Pick a date");
+    }
+    const { place } = await encodePlace(args.event, s.place);
+    const encoded = await encodeBlocks(ctx, {
+      event: args.event,
+      userId: args.userId,
+      blocks: s.blocks,
+      momentId: args.momentId,
+      allowEmpty: true,
+      fieldPrefix: `${field}.blocks`,
+    });
+    if (place === undefined && encoded.blocks.length === 0) {
+      invalid(field, "Add a place or something to share");
+    }
+    stops.push({ startsAt: s.startsAt, place, transport: s.transport, blocks: encoded.blocks });
+    mediaIds.push(...encoded.mediaIds);
+  }
+  return { stops, mediaIds };
+}
+
+// Free-text labels: trimmed, deduplicated, encrypted like other text.
+export async function encodeLabels(event: Doc<"events">, labels: string[]): Promise<Encrypted[]> {
+  const clean = [...new Set(labels.map((l) => l.trim()).filter(Boolean))];
+  if (clean.length > MAX_LABELS_PER_MOMENT) {
+    invalid("labels", `At most ${MAX_LABELS_PER_MOMENT} labels per moment`);
+  }
+  return Promise.all(
+    clean.map((l) => encryptText(event._id, event.keyVersion, checkText("labels", l, MAX_LABEL_LENGTH))),
+  );
+}
+
+// Every photo and video on a moment, across all its stops.
+export function mediaIdsOf(moment: Pick<Doc<"moments">, "blocks" | "stops">): Id<"media">[] {
+  return [moment.blocks, ...(moment.stops ?? []).map((s) => s.blocks)].flatMap((blocks) =>
+    blocks.flatMap((b) => (b.type === "photo" || b.type === "video" ? [b.mediaId] : [])),
+  );
 }

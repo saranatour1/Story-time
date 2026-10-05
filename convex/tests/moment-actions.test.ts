@@ -243,3 +243,85 @@ describe("deleting experience photos", () => {
     expect(await owner.query(api.media.getForDelete, { mediaId: photo })).toBeNull();
   });
 });
+
+describe("journeys: stops, labels, transport and video", () => {
+  test("stops, labels and transport round-trip, encrypted at rest", async () => {
+    const { t, owner, eventId } = await setup();
+    const momentId = await owner.mutation(api.moments.create, {
+      eventId,
+      startsAt: JUNE_1,
+      place: "Lisbon",
+      transport: "plane",
+      blocks: [{ type: "note", text: "landed" }],
+      stops: [{ place: "Sintra", transport: "train", startsAt: JUNE_3, blocks: [] }],
+      labels: ["food", " food ", "museum"],
+    });
+    const [m] = await owner.query(api.moments.list, { eventId });
+    expect(m?.transport).toBe("plane");
+    expect(m?.stops).toEqual([{ place: "Sintra", transport: "train", startsAt: JUNE_3, blocks: [] }]);
+    expect(m?.labels).toEqual(["food", "museum"]);
+    const raw = await t.run((ctx) => ctx.db.get("moments", momentId));
+    expect(JSON.stringify(raw)).not.toContain("Sintra");
+    expect(JSON.stringify(raw)).not.toContain("museum");
+  });
+
+  test("a stop needs a place or content; a moment needs some content", async () => {
+    const { owner, eventId } = await setup();
+    await expect(
+      owner.mutation(api.moments.create, {
+        eventId,
+        startsAt: JUNE_1,
+        blocks: [{ type: "note", text: "hi" }],
+        stops: [{ blocks: [] }],
+      }),
+    ).rejects.toThrow();
+    await expect(
+      owner.mutation(api.moments.create, {
+        eventId,
+        startsAt: JUNE_1,
+        blocks: [],
+        stops: [{ place: "Sintra", blocks: [] }],
+      }),
+    ).rejects.toThrow();
+  });
+
+  test("media on later stops attaches, and dropping a stop detaches it", async () => {
+    const { t, owner, eventId } = await setup();
+    const photo = await readyPhoto(owner, eventId);
+    const momentId = await owner.mutation(api.moments.create, {
+      eventId,
+      startsAt: JUNE_1,
+      blocks: [{ type: "note", text: "start" }],
+      stops: [{ place: "Sintra", blocks: [{ type: "photo", mediaId: photo }] }],
+    });
+    expect((await t.run((ctx) => ctx.db.get("media", photo)))?.momentId).toBe(momentId);
+    const { removedMediaIds } = await owner.mutation(api.moments.update, { momentId, stops: [] });
+    expect(removedMediaIds).toEqual([photo]);
+    expect((await t.run((ctx) => ctx.db.get("media", photo)))?.momentId).toBeUndefined();
+  });
+
+  test("videos upload up to 50 MB and only fit video blocks", async () => {
+    const { owner, eventId } = await setup();
+    const { mediaId: video } = await owner.mutation(api.media.reserveUpload, {
+      eventId,
+      size: 40 * 1024 * 1024,
+      mime: "video/mp4",
+    });
+    await owner.mutation(api.media.confirmUpload, { mediaId: video });
+    await expect(
+      owner.mutation(api.media.reserveUpload, { eventId, size: 60 * 1024 * 1024, mime: "video/mp4" }),
+    ).rejects.toThrow("50 MB");
+    await expect(
+      owner.mutation(api.moments.create, {
+        eventId,
+        startsAt: JUNE_1,
+        blocks: [{ type: "photo", mediaId: video }],
+      }),
+    ).rejects.toThrow();
+    await owner.mutation(api.moments.create, {
+      eventId,
+      startsAt: JUNE_1,
+      blocks: [{ type: "video", mediaId: video }],
+    });
+  });
+});
