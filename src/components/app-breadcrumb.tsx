@@ -36,7 +36,9 @@ export function AppBreadcrumb() {
           <>
             <BreadcrumbSeparator />
             <BreadcrumbItem className="min-w-0">
-              <BreadcrumbPage className="truncate">{event?.title ?? "…"}</BreadcrumbPage>
+              <BreadcrumbPage className="truncate">
+                {event === undefined ? "…" : event === null ? "Not found" : event.title}
+              </BreadcrumbPage>
             </BreadcrumbItem>
           </>
         )}
