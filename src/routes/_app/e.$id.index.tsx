@@ -93,8 +93,7 @@ function EventPage() {
           <div className="flex items-center gap-2">
             {event.momentCount > 0 && (
               <Button variant="outline" asChild>
-                {/* Starts at the selected moment, if there is one. */}
-                <Link to="/e/$id/story" params={{ id }} search={{ step: 0, momentId }}>
+                <Link to="/e/$id/story" params={{ id }} search={{ step: 0 }}>
                   <PlayIcon /> Play story
                 </Link>
               </Button>

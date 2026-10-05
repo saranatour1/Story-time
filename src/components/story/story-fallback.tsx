@@ -26,15 +26,12 @@ export function StopFallback({ stop }: { stop: Stop }) {
           const offset = i - front;
           const tilt = ((i * 37) % 11) - 5;
           return (
-            <button
+            <div
               key={i}
-              type="button"
-              aria-label={`Show picture ${i + 1} of ${media.length}`}
-              aria-pressed={i === front}
-              onClick={() => setFront(i)}
+              aria-hidden={i !== front}
               className={cn(
                 "absolute inset-0 rounded-sm bg-[#f3e9d6] p-2 pb-8 shadow-2xl transition-transform duration-700 ease-out",
-                i === front ? "z-10 scale-100" : "scale-90",
+                i === front ? "scale-100" : "scale-90",
               )}
               style={{
                 transform: `translate(${offset * 4}%, ${Math.abs(offset) * 2}%) rotate(${i === front ? 0 : tilt}deg)`,
@@ -48,14 +45,29 @@ export function StopFallback({ stop }: { stop: Stop }) {
                   <AuthImage mediaId={b.mediaId} alt={`Picture ${i + 1}`} />
                 ) : null}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
       {media.length > 1 && (
-        <p className="text-xs text-white/50">
-          {front + 1} / {media.length}
-        </p>
+        <div className="flex items-center gap-2" role="group" aria-label="Pictures at this stop">
+          {media.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Show picture ${i + 1} of ${media.length}`}
+              aria-pressed={i === front}
+              onClick={() => setFront(i)}
+              className={cn(
+                "size-2.5 rounded-full transition-colors",
+                i === front ? "bg-[#f3e9d6]" : "bg-white/30 hover:bg-white/60",
+              )}
+            />
+          ))}
+          <span className="ml-2 text-xs text-white/50">
+            {front + 1} / {media.length}
+          </span>
+        </div>
       )}
     </div>
   );

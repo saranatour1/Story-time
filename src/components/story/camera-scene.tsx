@@ -23,7 +23,10 @@ type Layout = {
   thumbScale: number;
 };
 
-function layoutFor(viewportWidth: number): Layout {
+function layoutFor(viewportWidth: number, viewportHeight: number): Layout {
+  // The small prints sit just above the bottom edge of the canvas.
+  const thumbScale = 0.26;
+  const thumbY = -viewportHeight / 2 + (PRINT_HEIGHT + 0.44) * thumbScale * 0.5 + 0.4;
   if (viewportWidth < 6.5) {
     const frontScale = Math.min(1, (viewportWidth * 0.8) / 2.7);
     return {
@@ -31,7 +34,7 @@ function layoutFor(viewportWidth: number): Layout {
       cameraScale: 0.55,
       frontPos: [0.15, 0.55, 2.4],
       frontScale,
-      thumbY: -1.05,
+      thumbY: Math.max(thumbY, -1.1),
       thumbGap: 0.62 * frontScale,
       thumbScale: 0.28,
     };
@@ -41,9 +44,9 @@ function layoutFor(viewportWidth: number): Layout {
     cameraScale: 1,
     frontPos: [1.1, 0.4, 2.4],
     frontScale: 1,
-    thumbY: -1.25,
+    thumbY,
     thumbGap: 0.78,
-    thumbScale: 0.3,
+    thumbScale,
   };
 }
 
@@ -87,7 +90,8 @@ export function CameraScene({
 
 function Scene({ media, opening }: { media: Media[]; opening: boolean }) {
   const viewportWidth = useThree((s) => s.viewport.getCurrentViewport(s.camera, new THREE.Vector3(0, 0, 2.4)).width);
-  const layout = useMemo(() => layoutFor(viewportWidth), [viewportWidth]);
+  const viewportHeight = useThree((s) => s.viewport.getCurrentViewport(s.camera, new THREE.Vector3(0, 0, 2.4)).height);
+  const layout = useMemo(() => layoutFor(viewportWidth, viewportHeight), [viewportWidth, viewportHeight]);
   const [front, setFront] = useState(0);
   // Seconds since this stop appeared; prints emerge on this clock.
   const timeRef = useRef(0);
@@ -271,7 +275,7 @@ function FoldingCamera({
           <cylinderGeometry args={[0.24, 0.24, 0.02, 48]} />
           <meshStandardMaterial color="#0b1b33" metalness={0.3} roughness={0.1} />
         </mesh>
-        <mesh position={[0, 0, 0.26]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh position={[0, 0, 0.26]}>
           <torusGeometry args={[0.27, 0.03, 12, 48]} />
           <meshStandardMaterial color={BRASS} metalness={0.9} roughness={0.25} />
         </mesh>

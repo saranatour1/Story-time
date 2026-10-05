@@ -153,9 +153,12 @@ function LegPath({ d, transport, faint = false }: { d: string; transport: string
 }
 
 function Place({ label, p, visited, active, origin }: { label: string; p: MapPoint; visited: boolean; active: boolean; origin: boolean }) {
-  // Labels above places on the lower half, below on the upper half.
-  const below = p.y < MAP_HEIGHT / 2;
+  // Legs run left to right, so a label beside its place stays clear of
+  // them: on the right, or on the left near the sheet's right edge.
+  const left = p.x > MAP_WIDTH * 0.7;
   const short = label.length > 22 ? `${label.slice(0, 21)}…` : label;
+  // The travelling icon parks on the active place, so its label moves out.
+  const gap = active ? 4.4 : 2.6;
   return (
     <g>
       {active && <circle cx={p.x} cy={p.y} r="2.2" fill={ACCENT} fillOpacity="0.15" />}
@@ -165,9 +168,9 @@ function Place({ label, p, visited, active, origin }: { label: string; p: MapPoi
         <circle cx={p.x} cy={p.y} r="1.1" fill={visited ? (active ? ACCENT : INK) : PAPER} stroke={active ? ACCENT : INK} strokeWidth="0.3" />
       )}
       <text
-        x={p.x}
-        y={below ? p.y + 4.2 : p.y - 2.6}
-        textAnchor="middle"
+        x={left ? p.x - gap : p.x + gap}
+        y={p.y + 0.9}
+        textAnchor={left ? "end" : "start"}
         fontSize="2.6"
         fontFamily="ui-serif, Georgia, serif"
         fontStyle={origin ? "italic" : "normal"}
