@@ -14,7 +14,7 @@ import { MapScene } from "@/components/story/map-scene";
 import { ShareButton } from "@/components/story/share-button";
 import { StopCaption } from "@/components/story/stop-caption";
 import { StopFallback } from "@/components/story/story-fallback";
-import { TitleCard } from "@/components/story/title-card";
+import { TitleCard, typingMs } from "@/components/story/title-card";
 import { Button } from "@/components/ui/button";
 import { legDuration } from "@/lib/story-map";
 import { buildStorySteps, clampStep, placeLabel, type StoryStep } from "@/lib/story-steps";
@@ -26,14 +26,18 @@ const CameraScene = lazy(() =>
 );
 
 const SWIPE_PX = 50;
+// Wheel travel that counts as a scroll to the next scene.
+const WHEEL_PX = 50;
+// Wheel events closer together than this belong to one scroll gesture.
+const WHEEL_GESTURE_MS = 250;
 
-// How long autoplay lingers on each scene.
-function sceneMs(step: StoryStep): number | null {
+// How long autoplay lingers on each scene; the title waits for its typing.
+function sceneMs(step: StoryStep, titleTypingMs: number): number | null {
   switch (step.kind) {
     case "title":
-      return 4000;
+      return titleTypingMs + 2500;
     case "stop":
-      return 6500;
+      return 5000;
     case "travel":
       return legDuration(step.transport) * 1000 + 1500;
     case "end":
@@ -55,7 +59,8 @@ const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // The story as a full-window player: one scene at a time, progress on top,
-// click, keys or swipes to move between them.
+// click, scroll, keys or swipes to move between them. Autoplay is on unless
+// the viewer prefers reduced motion.
 export function StoryPlayer({
   event,
   moments,
@@ -73,11 +78,13 @@ export function StoryPlayer({
   const steps = useMemo(() => buildStorySteps(event.title, moments), [event.title, moments]);
   const current = clampStep(step, steps);
   const scene = steps[current] ?? steps[0]!;
-  const [playing, setPlaying] = useState(false);
   const [reduced] = useState(prefersReducedMotion);
+  const [playing, setPlaying] = useState(!reduced);
   const [webgl] = useState(detectWebGL);
   const use3d = webgl && !reduced;
-  const touchX = useRef<number | null>(null);
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const wheel = useRef({ sum: 0, last: 0, done: false });
+  const titleTypingMs = useMemo(() => (reduced ? 0 : typingMs(event, moments)), [reduced, event, moments]);
 
   const go = useCallback(
     (delta: number, mode: "push" | "replace" = "push") => {
@@ -96,10 +103,10 @@ export function StoryPlayer({
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
-      if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") {
+      if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(e.key)) {
         e.preventDefault();
         go(1);
-      } else if (e.key === "ArrowLeft") {
+      } else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) {
         e.preventDefault();
         go(-1);
       } else if (e.key === "Escape") {
@@ -112,11 +119,11 @@ export function StoryPlayer({
 
   useEffect(() => {
     if (!playing) return;
-    const ms = sceneMs(scene);
+    const ms = sceneMs(scene, titleTypingMs);
     if (ms === null) return;
     const t = setTimeout(() => go(1, "replace"), reduced ? Math.min(ms, 3000) : ms);
     return () => clearTimeout(t);
-  }, [playing, scene, go, reduced]);
+  }, [playing, scene, go, reduced, titleTypingMs]);
 
   // Clicking the stage moves the story: left third back, the rest forward.
   // Buttons and links inside it keep their own behaviour.
@@ -126,16 +133,37 @@ export function StoryPlayer({
     const { left, width } = e.currentTarget.getBoundingClientRect();
     go(e.clientX - left < width / 3 ? -1 : 1);
   };
+  // Swiping left or up moves on; right or down goes back.
   const onTouchStart = (e: React.TouchEvent) => {
-    touchX.current = e.touches[0]?.clientX ?? null;
+    const t = e.touches[0];
+    touch.current = t ? { x: t.clientX, y: t.clientY } : null;
   };
   const onTouchEnd = (e: React.TouchEvent) => {
-    const start = touchX.current;
-    touchX.current = null;
-    const end = e.changedTouches[0]?.clientX;
-    if (start === null || end === undefined) return;
-    if (end - start > SWIPE_PX) go(-1);
-    else if (start - end > SWIPE_PX) go(1);
+    const start = touch.current;
+    touch.current = null;
+    const end = e.changedTouches[0];
+    if (!start || !end) return;
+    const dx = start.x - end.clientX;
+    const dy = start.y - end.clientY;
+    const d = Math.abs(dx) > Math.abs(dy) ? dx : dy;
+    if (d > SWIPE_PX) go(1);
+    else if (d < -SWIPE_PX) go(-1);
+  };
+  // One scene per scroll gesture, however long a trackpad's momentum runs.
+  // A scrollable box under the pointer (a stop's long notes) keeps the wheel.
+  const onWheel = (e: React.WheelEvent) => {
+    if ((e.target as Element).closest("[data-scroll]")) return;
+    const w = wheel.current;
+    if (e.timeStamp - w.last > WHEEL_GESTURE_MS) {
+      w.sum = 0;
+      w.done = false;
+    }
+    w.last = e.timeStamp;
+    if (w.done) return;
+    w.sum += e.deltaY;
+    if (Math.abs(w.sum) < WHEEL_PX) return;
+    w.done = true;
+    go(w.sum > 0 ? 1 : -1);
   };
 
   const isOwner = event.role === "owner";
@@ -155,6 +183,7 @@ export function StoryPlayer({
       style={{ colorScheme: "dark" }}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
+      onWheel={onWheel}
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,228,180,0.08),transparent_60%)]" />
 
@@ -219,14 +248,7 @@ export function StoryPlayer({
         onClick={onStageClick}
       >
         {scene.kind === "title" && (
-          <TitleCard
-            event={event}
-            moments={moments}
-            onPlay={() => {
-              setPlaying(true);
-              go(1);
-            }}
-          />
+          <TitleCard event={event} moments={moments} animate={!reduced} />
         )}
         {scene.kind === "travel" && (
           <MapScene
@@ -261,7 +283,10 @@ export function StoryPlayer({
           <EndCard
             event={event}
             moments={moments}
-            onReplay={() => onStep(0, "push")}
+            onReplay={() => {
+              setPlaying(!reduced);
+              onStep(0, "push");
+            }}
           />
         )}
       </div>
@@ -277,7 +302,7 @@ export function StoryPlayer({
         >
           <ChevronLeftIcon />
         </Button>
-        <p className="text-xs text-white/50">Click, swipe or use the arrow keys</p>
+        <p className="text-xs text-white/50">Scroll, click, swipe or use the arrow keys</p>
         <Button
           variant="ghost"
           size="icon"

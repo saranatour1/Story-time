@@ -48,7 +48,7 @@ export function StopCaption({ scene, meId }: { scene: StopScene; meId: string | 
         </ul>
       )}
       {text.length > 0 && (
-        <div className="mx-auto max-h-32 max-w-xl space-y-1.5 overflow-y-auto text-sm text-white/80" data-no-advance="">
+        <div className="mx-auto max-h-32 max-w-xl space-y-1.5 overflow-y-auto text-sm text-white/80" data-no-advance="" data-scroll="">
           {text.map((b, i) =>
             b.type === "note" ? (
               <p key={i} className="whitespace-pre-wrap">
