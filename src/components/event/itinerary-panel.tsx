@@ -19,6 +19,7 @@ type Props = {
   groupBy: GroupBy;
   panel: Panel;
   momentId?: string;
+  day?: string;
   canAdd: boolean;
   canEditMoment: (authorId: string) => boolean;
   onNavigate: (next: { panel: Panel; momentId?: string }) => void;
@@ -72,14 +73,15 @@ export function ItineraryPanel(props: Props) {
   );
 }
 
-function PanelBody({ event, groupBy, panel, momentId, canAdd, canEditMoment, onNavigate }: Props) {
+function PanelBody({ event, groupBy, panel, momentId, day, canAdd, canEditMoment, onNavigate }: Props) {
   const moments = useQuery(api.moments.list, { eventId: event._id });
   const close = () => onNavigate({ panel: "outline" });
 
   if (panel === "details") return <EventDetailsForm event={event} onDone={close} />;
   if (panel === "new-moment") {
     return (
-      <MomentForm eventId={event._id} full={event.momentCount >= event.momentLimit} onDone={close} />
+      // `key` resets the form when another day's "+" is used.
+      <MomentForm key={day ?? "new"} eventId={event._id} day={day} full={event.momentCount >= event.momentLimit} onDone={close} />
     );
   }
   if (panel === "moment") {

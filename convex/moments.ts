@@ -28,12 +28,15 @@ export type PlainBlock = Infer<typeof vPlainBlock>;
 export const vMomentView = v.object({
   _id: v.id("moments"),
   authorId: v.id("users"),
+  // The author's display name, if they set one. Nothing else from their profile.
+  authorName: v.optional(v.string()),
   startsAt: v.number(),
   place: v.optional(v.string()),
   blocks: v.array(vPlainBlock),
 });
 
 export async function viewMoment(
+  ctx: QueryCtx,
   event: Doc<"events">,
   moment: Doc<"moments">,
 ): Promise<Infer<typeof vMomentView>> {
@@ -56,9 +59,11 @@ export async function viewMoment(
       });
     }
   }
+  const author = await ctx.db.get("users", moment.authorId);
   return {
     _id: moment._id,
     authorId: moment.authorId,
+    authorName: author?.displayName,
     startsAt: moment.startsAt,
     place: moment.place ? await decryptText(event._id, moment.place) : undefined,
     blocks,
@@ -144,7 +149,7 @@ export async function listForEvent(
     .query("moments")
     .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
     .take(500);
-  return Promise.all(moments.map((m) => viewMoment(event, m)));
+  return Promise.all(moments.map((m) => viewMoment(ctx, event, m)));
 }
 
 export const list = query({

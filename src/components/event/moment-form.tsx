@@ -37,15 +37,18 @@ function toLocalInput(ms: number) {
   return new Date(ms - offset * 60_000).toISOString().slice(0, 16);
 }
 
-// Creates a moment, or edits one when `moment` is given.
+// Creates a moment, or edits one when `moment` is given. `day` (YYYY-MM-DD)
+// prefills a new moment's date, at noon.
 export function MomentForm({
   eventId,
   moment,
+  day,
   full = false,
   onDone,
 }: {
   eventId: Id<"events">;
   moment?: MomentView;
+  day?: string;
   full?: boolean;
   onDone?: () => void;
 }) {
@@ -69,7 +72,7 @@ export function MomentForm({
 
   const form = useForm({
     defaultValues: {
-      startsAt: moment ? toLocalInput(moment.startsAt) : "",
+      startsAt: moment ? toLocalInput(moment.startsAt) : day ? `${day}T12:00` : "",
       place: moment?.place ?? "",
       links: linkBlocks.length ? linkBlocks.map((l) => l.url) : [""],
       notes: noteTexts.length ? noteTexts : [""],
