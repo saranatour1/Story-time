@@ -47,7 +47,7 @@ export const grouped = query({
     for (const row of rows) {
       const moment = await ctx.db.get("moments", row.momentId);
       if (moment === null) continue;
-      const view = await viewMoment(event, moment);
+      const view = await viewMoment(ctx, event, moment);
       const key =
         args.groupBy === "day"
           ? row.dayKey
