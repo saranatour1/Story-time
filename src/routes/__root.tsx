@@ -87,12 +87,15 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       {DATABUDDY_ID && (
         // Page views, page speed and errors, without cookies. Trip ids and
         // invite tokens in paths are masked, and the part after # (a share
-        // link's key) is never read. Click and outgoing-link tracking stay
-        // off: they send element labels and link text, which can name a trip.
+        // link's key) is never read. Clicks count only on elements with a
+        // data-track name (src/lib/analytics.ts); general click and
+        // outgoing-link tracking stay off, since they send element labels and
+        // link text, which can name a trip.
         <Databuddy
           clientId={DATABUDDY_ID}
           trackWebVitals
           trackErrors
+          trackAttributes
           trackInteractions={false}
           maskPatterns={["/e/*", "/invite/*"]}
         />

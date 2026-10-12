@@ -62,7 +62,7 @@ const DataSettings = () => {
             <li>
               Databuddy counts visits, page speed and errors on the live site, without cookies. It gets the page's address
               with trip ids and invite codes blanked out, never the part of a share link after the #, and nothing you wrote.
-              It isn't told who you are, and it doesn't record what you click.
+              It isn't told who you are. It counts a few buttons by a fixed name (sign in, add photos, play, share, export, guestbook), never by what they say, and whether each AI request worked, hit the day's limit or failed, never what you asked.
             </li>
           </ul>
         </SettingsBlock>

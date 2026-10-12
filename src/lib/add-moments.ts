@@ -7,6 +7,7 @@ import type { Geo, PhotoPoint } from "./photo-groups";
 import { type PhotoMeta, readPhotoMeta } from "./photo-meta";
 import { thumbnail } from "./thumbs";
 import { isVideoFile, MAX_UPLOAD_BYTES, MAX_VIDEO_BYTES, uploadMedia } from "./upload";
+import { trackAi } from "@/lib/analytics";
 
 // The steps that adding moments from picked files shares: the review sheet and
 // the one-tap add both read, upload, plan and create the same way.
@@ -193,7 +194,7 @@ export const enrichMoment = (
       return jpeg ? [{ mediaId, jpeg }] : [];
     }),
   )
-    .then((made) => enrich({ momentId, thumbs: made.flat(), hint }))
+    .then((made) => trackAi("note", enrich({ momentId, thumbs: made.flat(), hint }), (admitted) => (admitted === false ? "limit" : "ok")))
     .then((admitted) => {
       if (admitted !== false || Date.now() < pausedUntil) return;
       pausedUntil = Date.now() + PAUSE_MS;

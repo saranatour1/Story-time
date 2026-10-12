@@ -23,6 +23,7 @@ import { describeOp, placesToFind, withPins, type PlanOp } from "@/lib/command-p
 import { errorMessage } from "@/lib/errors";
 import { MEDIA_ACCEPT } from "@/lib/upload";
 import { cn } from "@/lib/utils";
+import { track, trackAi } from "@/lib/analytics";
 
 // The geocoder asks for one lookup at a time, spaced out.
 const LOOKUP_GAP_MS = 1100;
@@ -170,12 +171,11 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
         }
         return;
       }
-      const out = await propose({
-        eventId: event._id,
-        text: said,
-        openMomentId,
-        zone: -new Date().getTimezoneOffset(),
-      });
+      const out = await trackAi(
+        "box",
+        propose({ eventId: event._id, text: said, openMomentId, zone: -new Date().getTimezoneOffset() }),
+        (proposal) => proposal.kind,
+      );
       if (out.kind === "new") {
         await addAsMoment(said);
         return;
@@ -195,6 +195,7 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
     setPhase("applying");
     try {
       const done = await apply({ eventId: event._id, ops: plan.ops });
+      track("ai_plan_applied", { changes: plan.ops.length });
       // Photos that went with a stop or a moment are cleared from storage too.
       if (token) await deletePhotos(done.removedMediaIds, token);
       for (const id of done.created) enrichMoment(enrich, id, []);
