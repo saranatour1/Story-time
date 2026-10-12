@@ -3,7 +3,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { ArrowUpIcon, ImagePlusIcon, ImagesIcon, LoaderCircleIcon, PlayIcon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { MAX_COMMAND_CHARS } from "../../../convex/lib/limits";
 import { AuthImage } from "@/components/auth-image";
 import { findPlace, type Geo } from "@/components/event/place-input";

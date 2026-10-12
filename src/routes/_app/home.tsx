@@ -4,7 +4,7 @@ import type { FunctionReturnType } from "convex/server";
 import { PlayIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { AuthImage } from "@/components/auth-image";
 import { EventActionsMenu } from "@/components/event/event-actions-menu";
 import { eventDates } from "@/components/event/event-dates";

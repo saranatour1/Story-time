@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { ArrowLeftIcon, PlayIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { EventActionsMenu } from "@/components/event/event-actions-menu";
 import { eventDates } from "@/components/event/event-dates";
 import { QuickAddButton } from "@/components/event/quick-add";

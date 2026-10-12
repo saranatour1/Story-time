@@ -27,7 +27,7 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 import { ConfirmDialog } from "@/components/confirm-dialog";

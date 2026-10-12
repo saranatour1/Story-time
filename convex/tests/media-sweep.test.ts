@@ -44,7 +44,7 @@ describe("sweepReservedUploads", () => {
     const inFlight = await insert("reserved");
 
     vi.setSystemTime(T0 + 2 * HOUR);
-    expect(await t.mutation(internal.media.sweepReservedUploads, {})).toBe(1);
+    expect(await t.mutation(internal.model.media.sweepReservedUploads, {})).toBe(1);
     expect(await statusOf(abandoned)).toBe("deleted");
     expect(await statusOf(inFlight)).toBe("reserved");
     expect(await statusOf(confirmed)).toBe("ready");
@@ -57,7 +57,7 @@ describe("sweepReservedUploads", () => {
     });
 
     vi.setSystemTime(T0 + 2 * HOUR);
-    expect(await t.mutation(internal.media.sweepReservedUploads, {})).toBe(100);
+    expect(await t.mutation(internal.model.media.sweepReservedUploads, {})).toBe(100);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     const stillReserved = await t.run((ctx) =>

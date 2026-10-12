@@ -2,7 +2,7 @@ import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";

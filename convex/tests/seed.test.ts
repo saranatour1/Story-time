@@ -19,17 +19,17 @@ afterEach(() => vi.useRealTimers());
 test("the Japan trip seeds a whole experience, and its journal follows", async () => {
   const t = convexTest(schema, modules);
   const userId = await t.run((ctx) => ctx.db.insert("users", {}));
-  const eventId = await t.mutation(internal.seed.japan, { userId });
+  const eventId = await t.mutation(internal.model.seed.japan, { userId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
 
   const me = t.withIdentity({ subject: userId });
-  const event = await me.query(api.events.get, { eventId });
+  const event = await me.query(api.api.events.get, { eventId });
   expect(event).toMatchObject({ title: "Spring in Japan", role: "owner", status: "active", momentCount: 12, description: expect.stringContaining("Tokyo") });
-  const moments = await me.query(api.moments.list, { eventId });
+  const moments = await me.query(api.api.moments.list, { eventId });
   expect(moments.map((m) => m.place)).toContain("Fushimi Inari Taisha, Kyoto");
   expect(moments.every((m) => m.tzOffsetMinutes === 540 && m.geo !== undefined)).toBe(true);
   // A cover and a page for every moment, cut without anyone opening the book.
-  const book = await me.query(api.journal.outline, { eventId });
+  const book = await me.query(api.api.journal.outline, { eventId });
   expect(book.pages).toHaveLength(13);
 });
 
@@ -39,20 +39,20 @@ test("seed:japan requires a dev deployment and the account you name", async () =
   const newer = await t.run((ctx) => ctx.db.insert("users", {}));
   const saved = process.env.CONVEX_DEPLOYMENT;
   process.env.CONVEX_DEPLOYMENT = "prod:strong-stoat-772";
-  await expect(t.mutation(internal.seed.japan, { userId: older })).rejects.toThrow(/dev deployment/);
+  await expect(t.mutation(internal.model.seed.japan, { userId: older })).rejects.toThrow(/dev deployment/);
   delete process.env.CONVEX_DEPLOYMENT;
-  await expect(t.mutation(internal.seed.japan, { userId: older })).rejects.toThrow(/dev deployment/);
+  await expect(t.mutation(internal.model.seed.japan, { userId: older })).rejects.toThrow(/dev deployment/);
   process.env.CONVEX_DEPLOYMENT = "dev:test";
   process.env.CONVEX_SITE_URL = "https://strong-stoat-772.convex.site";
-  await expect(t.mutation(internal.seed.japan, { userId: older })).rejects.toThrow(/production/);
+  await expect(t.mutation(internal.model.seed.japan, { userId: older })).rejects.toThrow(/production/);
   delete process.env.CONVEX_SITE_URL;
   const gone = await t.run(async (ctx) => {
     const id = await ctx.db.insert("users", {});
     await ctx.db.delete("users", id);
     return id;
   });
-  await expect(t.mutation(internal.seed.japan, { userId: gone })).rejects.toThrow(/does not exist/);
-  const eventId = await t.mutation(internal.seed.japan, { userId: older });
+  await expect(t.mutation(internal.model.seed.japan, { userId: gone })).rejects.toThrow(/does not exist/);
+  const eventId = await t.mutation(internal.model.seed.japan, { userId: older });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   const ownerId = await t.run(async (ctx) => (await ctx.db.get("events", eventId))?.ownerId);
   expect(ownerId).toBe(older);

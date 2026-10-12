@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { JournalElement } from "../../../convex/lib/journal";
 import { errorMessage } from "@/lib/errors";

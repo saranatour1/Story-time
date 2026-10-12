@@ -1,5 +1,5 @@
 import type { FunctionReturnType } from "convex/server";
-import type { api } from "../../convex/_generated/api";
+import type { api } from "@/lib/api";
 import { transportOf } from "../components/event/transport";
 import type { MomentView } from "@/components/event/types";
 import { formatDateTime, formatDay } from "./local-time";

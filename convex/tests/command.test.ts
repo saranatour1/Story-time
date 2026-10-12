@@ -12,7 +12,7 @@ import {
   resolvePlan,
   type Op,
   type RawPlan,
-} from "../ai/command";
+} from "../model/ai/command";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { rateLimiter } from "../lib/rateLimit";
@@ -37,7 +37,7 @@ async function setup() {
   const [ownerId, helperId, viewerId] = [await make(), await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
   const owner = as(ownerId);
-  const eventId = await owner.mutation(api.events.createDraft, {});
+  const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }),
   );
@@ -45,7 +45,7 @@ async function setup() {
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
   );
   // The flight has a second stop; the helper adds a moment of their own.
-  const flight = await owner.mutation(api.moments.create, {
+  const flight = await owner.mutation(api.api.moments.create, {
     eventId,
     startsAt: FLIGHT,
     tzOffsetMinutes: AMMAN,
@@ -56,14 +56,14 @@ async function setup() {
     labels: ["travel"],
   });
   const helper = as(helperId);
-  const theirs = await helper.mutation(api.moments.create, {
+  const theirs = await helper.mutation(api.api.moments.create, {
     eventId,
     startsAt: FLIGHT + 24 * 3_600_000,
     tzOffsetMinutes: CET,
     place: "Hanover",
     blocks: [{ type: "note", text: "Arrived" }],
   });
-  const list = () => owner.query(api.moments.list, { eventId });
+  const list = () => owner.query(api.api.moments.list, { eventId });
   return { t, eventId, ownerId, helperId, owner, helper, viewer: as(viewerId), flight, theirs, list };
 }
 
@@ -107,7 +107,7 @@ describe("turning a plan into operations", () => {
   const ctxOf = async () => {
     const { owner, eventId, flight, theirs, helperId } = await setup();
     // `read` is what the models see; the test reads it as the owner would.
-    const found = await owner.query(internal.ai.command.read, { eventId, openMomentId: flight });
+    const found = await owner.query(internal.model.ai.command.read, { eventId, openMomentId: flight });
     return { found, flight, theirs, helperId };
   };
   const raw = (ops: RawPlan["ops"]): RawPlan => ({ summary: "x", ops });
@@ -233,17 +233,17 @@ describe("turning a plan into operations", () => {
 describe("who can ask", () => {
   test("a helper sees the owner's moment as not theirs to change; a viewer can't ask", async () => {
     const { helper, viewer, eventId } = await setup();
-    const found = await helper.query(internal.ai.command.read, { eventId });
+    const found = await helper.query(internal.model.ai.command.read, { eventId });
     expect(found.moments.map((m) => [m.place, m.editable])).toEqual([
       ["Queen Alia Airport", false],
       ["Hanover", true],
     ]);
-    await expect(viewer.query(internal.ai.command.read, { eventId })).rejects.toThrow();
+    await expect(viewer.query(internal.model.ai.command.read, { eventId })).rejects.toThrow();
   });
 
   test("a request is refused before any model when it is empty, too long, or the allowance is spent", async () => {
     const { owner, ownerId, eventId, t } = await setup();
-    const ask = (text: string) => owner.action(api.ai.command.propose, { eventId, text, zone: 0 });
+    const ask = (text: string) => owner.action(api.api.ai.command.propose, { eventId, text, zone: 0 });
     await expect(ask("   ")).rejects.toThrow("Say what to add or change");
     await expect(ask("x".repeat(601))).rejects.toThrow("under 600");
     for (let i = 0; i < 60; i++) await t.run((ctx) => rateLimiter.limit(ctx, "command", { key: ownerId }));
@@ -254,7 +254,7 @@ describe("who can ask", () => {
 describe("applying a plan", () => {
   test("add, edit and add a stop land together", async () => {
     const { owner, eventId, flight, list } = await setup();
-    const out = await owner.mutation(api.ai.command.apply, {
+    const out = await owner.mutation(api.api.ai.command.apply, {
       eventId,
       ops: [
         { op: "addStop", momentId: flight, place: "Hanover", transport: "plane", note: "Landed", after: 1 },
@@ -280,7 +280,7 @@ describe("applying a plan", () => {
   test("a stop can be removed, but not the same moment's stops twice in one request", async () => {
     const { owner, eventId, flight, list } = await setup();
     await expect(
-      owner.mutation(api.ai.command.apply, {
+      owner.mutation(api.api.ai.command.apply, {
         eventId,
         ops: [
           { op: "remove", momentId: flight, stop: 2 },
@@ -288,13 +288,13 @@ describe("applying a plan", () => {
         ],
       }),
     ).rejects.toThrow("one set of stops");
-    await owner.mutation(api.ai.command.apply, { eventId, ops: [{ op: "remove", momentId: flight, stop: 2 }] });
+    await owner.mutation(api.api.ai.command.apply, { eventId, ops: [{ op: "remove", momentId: flight, stop: 2 }] });
     expect((await list())[0]!.stops).toEqual([]);
   });
 
   test("a stop's own fields can change, and a new place without a pin drops the old one", async () => {
     const { owner, eventId, flight, list } = await setup();
-    await owner.mutation(api.ai.command.apply, {
+    await owner.mutation(api.api.ai.command.apply, {
       eventId,
       ops: [{ op: "edit", momentId: flight, stop: 2, place: "Sabiha Gökçen", transport: "bus", note: "Waited" }],
     });
@@ -306,9 +306,9 @@ describe("applying a plan", () => {
 
   test("it is all or nothing: one bad operation undoes the others", async () => {
     const { owner, eventId, flight, theirs, list, t } = await setup();
-    await owner.mutation(api.moments.remove, { momentId: theirs });
+    await owner.mutation(api.api.moments.remove, { momentId: theirs });
     await expect(
-      owner.mutation(api.ai.command.apply, {
+      owner.mutation(api.api.ai.command.apply, {
         eventId,
         ops: [
           { op: "edit", momentId: flight, place: "Somewhere else" },
@@ -322,76 +322,76 @@ describe("applying a plan", () => {
 
   test("two new moments in one request both count toward the experience", async () => {
     const { owner, eventId, list } = await setup();
-    const before = (await owner.query(api.events.get, { eventId }))!.momentCount;
-    await owner.mutation(api.ai.command.apply, {
+    const before = (await owner.query(api.api.events.get, { eventId }))!.momentCount;
+    await owner.mutation(api.api.ai.command.apply, {
       eventId,
       ops: [
         { op: "add", note: "One" },
         { op: "add", note: "Two" },
       ],
     });
-    expect((await owner.query(api.events.get, { eventId }))!.momentCount).toBe(before + 2);
+    expect((await owner.query(api.api.events.get, { eventId }))!.momentCount).toBe(before + 2);
     expect(await list()).toHaveLength(4);
   });
 
   test("removing a moment deletes it and counts it out", async () => {
     const { owner, eventId, theirs, list } = await setup();
-    const out = await owner.mutation(api.ai.command.apply, { eventId, ops: [{ op: "remove", momentId: theirs }] });
+    const out = await owner.mutation(api.api.ai.command.apply, { eventId, ops: [{ op: "remove", momentId: theirs }] });
     expect(out.removedMediaIds).toEqual([]);
     expect((await list()).map((m) => m.place)).toEqual(["Queen Alia Airport"]);
-    expect((await owner.query(api.events.get, { eventId }))!.momentCount).toBe(1);
+    expect((await owner.query(api.api.events.get, { eventId }))!.momentCount).toBe(1);
   });
 
   test("a helper may change their own moment but not the owner's", async () => {
     const { helper, eventId, flight, theirs, list } = await setup();
-    await helper.mutation(api.ai.command.apply, { eventId, ops: [{ op: "edit", momentId: theirs, place: "Hannover" }] });
+    await helper.mutation(api.api.ai.command.apply, { eventId, ops: [{ op: "edit", momentId: theirs, place: "Hannover" }] });
     expect((await list())[1]!.place).toBe("Hannover");
     await expect(
-      helper.mutation(api.ai.command.apply, { eventId, ops: [{ op: "edit", momentId: flight, place: "Nope" }] }),
+      helper.mutation(api.api.ai.command.apply, { eventId, ops: [{ op: "edit", momentId: flight, place: "Nope" }] }),
     ).rejects.toThrow("only change moments you added");
     await expect(
-      helper.mutation(api.ai.command.apply, { eventId, ops: [{ op: "remove", momentId: flight }] }),
+      helper.mutation(api.api.ai.command.apply, { eventId, ops: [{ op: "remove", momentId: flight }] }),
     ).rejects.toThrow("only change moments you added");
   });
 
   test("a viewer can't apply anything, and neither can anyone on an archived experience", async () => {
     const { viewer, owner, eventId, flight, t } = await setup();
     await expect(
-      viewer.mutation(api.ai.command.apply, { eventId, ops: [{ op: "add", note: "hi" }] }),
+      viewer.mutation(api.api.ai.command.apply, { eventId, ops: [{ op: "add", note: "hi" }] }),
     ).rejects.toThrow();
     await t.run((ctx) => ctx.db.patch("events", eventId, { status: "archived" }));
     await expect(
-      owner.mutation(api.ai.command.apply, { eventId, ops: [{ op: "edit", momentId: flight, place: "x" }] }),
+      owner.mutation(api.api.ai.command.apply, { eventId, ops: [{ op: "edit", momentId: flight, place: "x" }] }),
     ).rejects.toThrow();
   });
 
   test("a moment from another experience is refused", async () => {
     const { owner, eventId } = await setup();
-    const otherEvent = await owner.mutation(api.events.createDraft, {});
-    const stray = await owner.mutation(api.moments.create, {
+    const otherEvent = await owner.mutation(api.api.events.createDraft, {});
+    const stray = await owner.mutation(api.api.moments.create, {
       eventId: otherEvent,
       startsAt: FLIGHT,
       blocks: [{ type: "note", text: "elsewhere" }],
     });
     await expect(
-      owner.mutation(api.ai.command.apply, { eventId, ops: [{ op: "remove", momentId: stray }] }),
+      owner.mutation(api.api.ai.command.apply, { eventId, ops: [{ op: "remove", momentId: stray }] }),
     ).rejects.toThrow("no longer exists");
   });
 
   test("empty, oversized and contradictory requests are refused", async () => {
     const { owner, eventId, flight } = await setup();
-    await expect(owner.mutation(api.ai.command.apply, { eventId, ops: [] })).rejects.toThrow("nothing to apply");
+    await expect(owner.mutation(api.api.ai.command.apply, { eventId, ops: [] })).rejects.toThrow("nothing to apply");
     await expect(
-      owner.mutation(api.ai.command.apply, { eventId, ops: Array.from({ length: 9 }, () => ({ op: "add" as const, note: "n" })) }),
+      owner.mutation(api.api.ai.command.apply, { eventId, ops: Array.from({ length: 9 }, () => ({ op: "add" as const, note: "n" })) }),
     ).rejects.toThrow("at most 8");
     await expect(
-      owner.mutation(api.ai.command.apply, {
+      owner.mutation(api.api.ai.command.apply, {
         eventId,
         ops: [{ op: "edit", momentId: flight, place: "x" }, { op: "remove", momentId: flight }],
       }),
     ).rejects.toThrow("changed and removed");
     await expect(
-      owner.mutation(api.ai.command.apply, { eventId, ops: [{ op: "add", place: "no words" }] }),
+      owner.mutation(api.api.ai.command.apply, { eventId, ops: [{ op: "add", place: "no words" }] }),
     ).rejects.toThrow();
   });
 });

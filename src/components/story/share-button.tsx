@@ -2,7 +2,7 @@ import { useMutation } from "convex/react";
 import { Share2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { StoryEvent } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

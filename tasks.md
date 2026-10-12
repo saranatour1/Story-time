@@ -29,6 +29,6 @@ After the eight, in this order. Each one stays inside "photos or a sentence in, 
 
 ## Rules that stay
 
-- Private by default. No `any`. pnpm, never npx. Merge commits, not squash.
+- Private by default. No `any`. pnpm, never npx. Squash and merge (`gh pr merge N --squash`).
 - Each PR: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `vp build` green before it opens.
 - Update `progress.md` and this file in every PR.

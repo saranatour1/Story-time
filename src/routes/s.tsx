@@ -4,7 +4,7 @@ import { FileLockIcon, LoaderCircleIcon, PlayIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { download, fileName } from "@/components/journal/export";
 import { Reader } from "@/components/journal/reader";
 import { SignedOutPage } from "@/components/sign-in-screen";

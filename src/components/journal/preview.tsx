@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
 import { useMemo } from "react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { PAGE } from "../../../convex/lib/journal";
 import type { EventView, MomentView } from "@/components/event/types";

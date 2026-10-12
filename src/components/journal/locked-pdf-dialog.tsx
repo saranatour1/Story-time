@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { CopyIcon, LoaderCircleIcon, LockKeyholeIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";

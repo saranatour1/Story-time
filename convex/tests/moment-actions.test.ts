@@ -24,7 +24,7 @@ async function setup() {
   const [ownerId, helperId, viewerId] = [await make(), await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
   const owner = as(ownerId);
-  const eventId = await owner.mutation(api.events.createDraft, {});
+  const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }),
   );
@@ -37,7 +37,7 @@ async function setup() {
 type Caller = Awaited<ReturnType<typeof setup>>["owner"];
 
 function addMoment(who: Caller, eventId: Id<"events">, text = "first") {
-  return who.mutation(api.moments.create, {
+  return who.mutation(api.api.moments.create, {
     eventId,
     startsAt: JUNE_1,
     tzOffsetMinutes: 0,
@@ -47,12 +47,12 @@ function addMoment(who: Caller, eventId: Id<"events">, text = "first") {
 }
 
 async function readyPhoto(who: Caller, eventId: Id<"events">) {
-  const { mediaId } = await who.mutation(api.media.reserveUpload, {
+  const { mediaId } = await who.mutation(api.api.media.reserveUpload, {
     eventId,
     size: 100,
     mime: "image/png",
   });
-  await who.mutation(api.media.confirmUpload, { mediaId });
+  await who.mutation(api.api.media.confirmUpload, { mediaId });
   return mediaId;
 }
 
@@ -64,7 +64,7 @@ describe("moments.update", () => {
   test("the author can change text, place and time", async () => {
     const { owner, eventId } = await setup();
     const momentId = await addMoment(owner, eventId);
-    await owner.mutation(api.moments.update, {
+    await owner.mutation(api.api.moments.update, {
       momentId,
       startsAt: JUNE_3,
       tzOffsetMinutes: 0,
@@ -72,7 +72,7 @@ describe("moments.update", () => {
       blocks: [{ type: "note", text: "edited" }],
     });
 
-    const [moment] = await owner.query(api.moments.list, { eventId });
+    const [moment] = await owner.query(api.api.moments.list, { eventId });
     expect(moment).toMatchObject({
       startsAt: JUNE_3,
       place: "Porto",
@@ -84,15 +84,15 @@ describe("moments.update", () => {
   test("an empty place clears it", async () => {
     const { owner, eventId } = await setup();
     const momentId = await addMoment(owner, eventId);
-    await owner.mutation(api.moments.update, { momentId, place: "" });
-    const [moment] = await owner.query(api.moments.list, { eventId });
+    await owner.mutation(api.api.moments.update, { momentId, place: "" });
+    const [moment] = await owner.query(api.api.moments.list, { eventId });
     expect(moment?.place).toBeUndefined();
   });
 
   test("edits are logged by field name, never by content", async () => {
     const { t, owner, eventId } = await setup();
     const momentId = await addMoment(owner, eventId);
-    await owner.mutation(api.moments.update, {
+    await owner.mutation(api.api.moments.update, {
       momentId,
       place: "Secret Cove",
       blocks: [{ type: "note", text: "secret words" }],
@@ -108,7 +108,7 @@ describe("moments.update", () => {
     const ownersMoment = await addMoment(owner, eventId);
     const helpersMoment = await addMoment(helper, eventId, "helper's");
     const edit = (who: Caller, momentId: Id<"moments">) =>
-      who.mutation(api.moments.update, { momentId, blocks: [{ type: "note", text: "x" }] });
+      who.mutation(api.api.moments.update, { momentId, blocks: [{ type: "note", text: "x" }] });
 
     await expect(edit(viewer, ownersMoment)).rejects.toThrow();
     await expect(edit(helper, ownersMoment)).rejects.toThrow(/own moments/);
@@ -119,21 +119,21 @@ describe("moments.update", () => {
   test("archived experiences can't be edited", async () => {
     const { owner, eventId } = await setup();
     const momentId = await addMoment(owner, eventId);
-    await owner.mutation(api.events.update, { eventId, status: "archived" });
+    await owner.mutation(api.api.events.update, { eventId, status: "archived" });
     await expect(
-      owner.mutation(api.moments.update, { momentId, place: "x" }),
+      owner.mutation(api.api.moments.update, { momentId, place: "x" }),
     ).rejects.toThrow(/ARCHIVED/);
   });
 
   test("dropping a photo detaches it and reports it for deletion", async () => {
     const { t, owner, eventId } = await setup();
     const photo = await readyPhoto(owner, eventId);
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
       blocks: [{ type: "photo", mediaId: photo }, { type: "note", text: "hi" }],
     });
-    const result = await owner.mutation(api.moments.update, {
+    const result = await owner.mutation(api.api.moments.update, {
       momentId,
       blocks: [{ type: "note", text: "hi" }],
     });
@@ -145,12 +145,12 @@ describe("moments.update", () => {
   test("an owner editing a contributor's moment keeps their photo", async () => {
     const { owner, helper, eventId } = await setup();
     const photo = await readyPhoto(helper, eventId);
-    const momentId = await helper.mutation(api.moments.create, {
+    const momentId = await helper.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
       blocks: [{ type: "photo", mediaId: photo }],
     });
-    const result = await owner.mutation(api.moments.update, {
+    const result = await owner.mutation(api.api.moments.update, {
       momentId,
       blocks: [{ type: "photo", mediaId: photo }, { type: "note", text: "caption" }],
     });
@@ -167,10 +167,10 @@ describe("moments.remove", () => {
     for (let i = 0; i < 10; i++) await addMoment(owner, eventId, `m${i}`);
     await expect(addMoment(owner, eventId)).rejects.toThrow(/MOMENT_LIMIT/);
 
-    const [first] = await owner.query(api.moments.list, { eventId });
-    await owner.mutation(api.moments.remove, { momentId: first!._id });
+    const [first] = await owner.query(api.api.moments.list, { eventId });
+    await owner.mutation(api.api.moments.remove, { momentId: first!._id });
 
-    expect((await owner.query(api.events.get, { eventId }))?.momentCount).toBe(MOMENT_LIMIT - 1);
+    expect((await owner.query(api.api.events.get, { eventId }))?.momentCount).toBe(MOMENT_LIMIT - 1);
     await addMoment(owner, eventId, "fits again");
   });
 
@@ -180,19 +180,19 @@ describe("moments.remove", () => {
       for (let i = 0; i <= MOMENT_LIMIT; i++) await ctx.db.insert("moments", { eventId, authorId: ownerId, startsAt: i, blocks: [] });
       await ctx.db.patch("events", eventId, { momentCount: MOMENT_LIMIT + 1 });
     });
-    expect(await owner.query(api.moments.list, { eventId })).toHaveLength(MOMENT_LIMIT + 1);
+    expect(await owner.query(api.api.moments.list, { eventId })).toHaveLength(MOMENT_LIMIT + 1);
     await expect(addMoment(owner, eventId)).rejects.toThrow(/MOMENT_LIMIT/);
   });
 
   test("returns the moment's photos and detaches them", async () => {
     const { t, owner, eventId } = await setup();
     const photo = await readyPhoto(owner, eventId);
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
       blocks: [{ type: "photo", mediaId: photo }],
     });
-    const result = await owner.mutation(api.moments.remove, { momentId });
+    const result = await owner.mutation(api.api.moments.remove, { momentId });
     expect(result.removedMediaIds).toEqual([photo]);
     expect((await t.run((ctx) => ctx.db.get("media", photo)))?.momentId).toBeUndefined();
   });
@@ -201,21 +201,21 @@ describe("moments.remove", () => {
     const { owner, helper, viewer, eventId } = await setup();
     const ownersMoment = await addMoment(owner, eventId);
     const helpersMoment = await addMoment(helper, eventId);
-    await expect(viewer.mutation(api.moments.remove, { momentId: helpersMoment })).rejects.toThrow();
-    await expect(helper.mutation(api.moments.remove, { momentId: ownersMoment })).rejects.toThrow(/own moments/);
-    await helper.mutation(api.moments.remove, { momentId: helpersMoment });
+    await expect(viewer.mutation(api.api.moments.remove, { momentId: helpersMoment })).rejects.toThrow();
+    await expect(helper.mutation(api.api.moments.remove, { momentId: ownersMoment })).rejects.toThrow(/own moments/);
+    await helper.mutation(api.api.moments.remove, { momentId: helpersMoment });
   });
 
   test("removal is logged and blocked on archived experiences", async () => {
     const { t, owner, eventId } = await setup();
     const a = await addMoment(owner, eventId);
     const b = await addMoment(owner, eventId);
-    await owner.mutation(api.moments.remove, { momentId: a });
+    await owner.mutation(api.api.moments.remove, { momentId: a });
     const rows = await t.run((ctx) => ctx.db.query("changes").collect());
     expect(rows.some((r) => r.entity === "moment" && r.action === "delete" && r.entityId === a)).toBe(true);
 
-    await owner.mutation(api.events.update, { eventId, status: "archived" });
-    await expect(owner.mutation(api.moments.remove, { momentId: b })).rejects.toThrow(/ARCHIVED/);
+    await owner.mutation(api.api.events.update, { eventId, status: "archived" });
+    await expect(owner.mutation(api.api.moments.remove, { momentId: b })).rejects.toThrow(/ARCHIVED/);
   });
 });
 
@@ -223,54 +223,54 @@ describe("deleting experience photos", () => {
   test("an unattached photo can be deleted by its uploader or the owner", async () => {
     const { owner, helper, viewer, eventId } = await setup();
     const photo = await readyPhoto(helper, eventId);
-    expect(await helper.query(api.media.getForDelete, { mediaId: photo })).not.toBeNull();
-    expect(await owner.query(api.media.getForDelete, { mediaId: photo })).not.toBeNull();
-    expect(await viewer.query(api.media.getForDelete, { mediaId: photo })).toBeNull();
+    expect(await helper.query(api.api.media.getForDelete, { mediaId: photo })).not.toBeNull();
+    expect(await owner.query(api.api.media.getForDelete, { mediaId: photo })).not.toBeNull();
+    expect(await viewer.query(api.api.media.getForDelete, { mediaId: photo })).toBeNull();
   });
 
   test("a photo still on a moment can't be deleted", async () => {
     const { owner, eventId } = await setup();
     const photo = await readyPhoto(owner, eventId);
-    await owner.mutation(api.moments.create, {
+    await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
       blocks: [{ type: "photo", mediaId: photo }],
     });
-    expect(await owner.query(api.media.getForDelete, { mediaId: photo })).toBeNull();
-    await expect(owner.mutation(api.media.markDeleted, { mediaId: photo })).rejects.toThrow();
+    expect(await owner.query(api.api.media.getForDelete, { mediaId: photo })).toBeNull();
+    await expect(owner.mutation(api.api.media.markDeleted, { mediaId: photo })).rejects.toThrow();
   });
 
   test("taking someone else's photo off a moment doesn't make it yours to delete", async () => {
     const { owner, helper, eventId } = await setup();
     const momentId = await addMoment(helper, eventId);
     const photo = await readyPhoto(owner, eventId);
-    await owner.mutation(api.moments.update, {
+    await owner.mutation(api.api.moments.update, {
       momentId,
       blocks: [{ type: "note", text: "first" }, { type: "photo", mediaId: photo }],
     });
-    const { removedMediaIds } = await helper.mutation(api.moments.update, {
+    const { removedMediaIds } = await helper.mutation(api.api.moments.update, {
       momentId,
       blocks: [{ type: "note", text: "first" }],
     });
     expect(removedMediaIds).toEqual([photo]);
     // Only the uploader, or the experience owner, may delete it.
-    expect(await helper.query(api.media.getForDelete, { mediaId: photo })).toBeNull();
-    expect(await owner.query(api.media.getForDelete, { mediaId: photo })).not.toBeNull();
+    expect(await helper.query(api.api.media.getForDelete, { mediaId: photo })).toBeNull();
+    expect(await owner.query(api.api.media.getForDelete, { mediaId: photo })).not.toBeNull();
   });
 
   test("whoever uploaded a photo can delete it once it is off their moment", async () => {
     const { helper, eventId } = await setup();
     const momentId = await addMoment(helper, eventId);
     const photo = await readyPhoto(helper, eventId);
-    await helper.mutation(api.moments.update, {
+    await helper.mutation(api.api.moments.update, {
       momentId,
       blocks: [{ type: "note", text: "first" }, { type: "photo", mediaId: photo }],
     });
-    await helper.mutation(api.moments.update, {
+    await helper.mutation(api.api.moments.update, {
       momentId,
       blocks: [{ type: "note", text: "first" }],
     });
-    expect(await helper.query(api.media.getForDelete, { mediaId: photo })).not.toBeNull();
+    expect(await helper.query(api.api.media.getForDelete, { mediaId: photo })).not.toBeNull();
   });
 
   test("losing contributor access ends the right to delete an unattached photo", async () => {
@@ -282,25 +282,25 @@ describe("deleting experience photos", () => {
         .withIndex("by_event_and_user", (q) => q.eq("eventId", eventId).eq("userId", helperId))
         .unique(),
     );
-    await owner.mutation(api.sessions.revoke, { sessionId: session!._id });
-    expect(await helper.query(api.media.getForDelete, { mediaId: photo })).toBeNull();
-    await expect(helper.mutation(api.media.markDeleted, { mediaId: photo })).rejects.toThrow();
+    await owner.mutation(api.api.sessions.revoke, { sessionId: session!._id });
+    expect(await helper.query(api.api.media.getForDelete, { mediaId: photo })).toBeNull();
+    await expect(helper.mutation(api.api.media.markDeleted, { mediaId: photo })).rejects.toThrow();
   });
 
   test("after markDeleted the photo is gone for everyone", async () => {
     const { owner, helper, viewer, eventId } = await setup();
     const photo = await readyPhoto(helper, eventId);
-    await expect(viewer.mutation(api.media.markDeleted, { mediaId: photo })).rejects.toThrow();
-    await owner.mutation(api.media.markDeleted, { mediaId: photo });
-    expect(await helper.query(api.media.getForDownload, { mediaId: photo })).toBeNull();
-    expect(await owner.query(api.media.getForDelete, { mediaId: photo })).toBeNull();
+    await expect(viewer.mutation(api.api.media.markDeleted, { mediaId: photo })).rejects.toThrow();
+    await owner.mutation(api.api.media.markDeleted, { mediaId: photo });
+    expect(await helper.query(api.api.media.getForDownload, { mediaId: photo })).toBeNull();
+    expect(await owner.query(api.api.media.getForDelete, { mediaId: photo })).toBeNull();
   });
 });
 
 describe("journeys: stops, labels, transport and video", () => {
   test("stops, labels and transport round-trip, encrypted at rest", async () => {
     const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
       place: "Lisbon",
@@ -309,7 +309,7 @@ describe("journeys: stops, labels, transport and video", () => {
       stops: [{ place: "Sintra", transport: "train", startsAt: JUNE_3, blocks: [] }],
       labels: ["food", " food ", "museum"],
     });
-    const [m] = await owner.query(api.moments.list, { eventId });
+    const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.transport).toBe("plane");
     expect(m?.stops).toEqual([{ place: "Sintra", transport: "train", startsAt: JUNE_3, blocks: [] }]);
     expect(m?.labels).toEqual(["food", "museum"]);
@@ -321,7 +321,7 @@ describe("journeys: stops, labels, transport and video", () => {
   test("a stop needs a place or content; a moment needs some content", async () => {
     const { owner, eventId } = await setup();
     await expect(
-      owner.mutation(api.moments.create, {
+      owner.mutation(api.api.moments.create, {
         eventId,
         startsAt: JUNE_1,
         blocks: [{ type: "note", text: "hi" }],
@@ -329,7 +329,7 @@ describe("journeys: stops, labels, transport and video", () => {
       }),
     ).rejects.toThrow();
     await expect(
-      owner.mutation(api.moments.create, {
+      owner.mutation(api.api.moments.create, {
         eventId,
         startsAt: JUNE_1,
         blocks: [],
@@ -341,37 +341,37 @@ describe("journeys: stops, labels, transport and video", () => {
   test("media on later stops attaches, and dropping a stop detaches it", async () => {
     const { t, owner, eventId } = await setup();
     const photo = await readyPhoto(owner, eventId);
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
       blocks: [{ type: "note", text: "start" }],
       stops: [{ place: "Sintra", blocks: [{ type: "photo", mediaId: photo }] }],
     });
     expect((await t.run((ctx) => ctx.db.get("media", photo)))?.momentId).toBe(momentId);
-    const { removedMediaIds } = await owner.mutation(api.moments.update, { momentId, stops: [] });
+    const { removedMediaIds } = await owner.mutation(api.api.moments.update, { momentId, stops: [] });
     expect(removedMediaIds).toEqual([photo]);
     expect((await t.run((ctx) => ctx.db.get("media", photo)))?.momentId).toBeUndefined();
   });
 
   test("videos upload up to 50 MB and only fit video blocks", async () => {
     const { owner, eventId } = await setup();
-    const { mediaId: video } = await owner.mutation(api.media.reserveUpload, {
+    const { mediaId: video } = await owner.mutation(api.api.media.reserveUpload, {
       eventId,
       size: 40 * 1024 * 1024,
       mime: "video/mp4",
     });
-    await owner.mutation(api.media.confirmUpload, { mediaId: video });
+    await owner.mutation(api.api.media.confirmUpload, { mediaId: video });
     await expect(
-      owner.mutation(api.media.reserveUpload, { eventId, size: 60 * 1024 * 1024, mime: "video/mp4" }),
+      owner.mutation(api.api.media.reserveUpload, { eventId, size: 60 * 1024 * 1024, mime: "video/mp4" }),
     ).rejects.toThrow("50 MB");
     await expect(
-      owner.mutation(api.moments.create, {
+      owner.mutation(api.api.moments.create, {
         eventId,
         startsAt: JUNE_1,
         blocks: [{ type: "photo", mediaId: video }],
       }),
     ).rejects.toThrow();
-    await owner.mutation(api.moments.create, {
+    await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
       blocks: [{ type: "video", mediaId: video }],
@@ -384,7 +384,7 @@ describe("map coordinates", () => {
   const SINTRA = { lat: 38.8029, lng: -9.3817 };
 
   function addPinned(who: Caller, eventId: Id<"events">) {
-    return who.mutation(api.moments.create, {
+    return who.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
       place: "Lisbon",
@@ -397,7 +397,7 @@ describe("map coordinates", () => {
   test("each stop's coordinates round-trip, encrypted at rest and in the log", async () => {
     const { t, owner, eventId } = await setup();
     const momentId = await addPinned(owner, eventId);
-    const [m] = await owner.query(api.moments.list, { eventId });
+    const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.geo).toEqual(LISBON);
     expect(m?.stops.map((s) => s.geo)).toEqual([SINTRA]);
 
@@ -416,30 +416,30 @@ describe("map coordinates", () => {
     const momentId = await addPinned(owner, eventId);
 
     // `geo` without `place` is ignored.
-    await owner.mutation(api.moments.update, { momentId, startsAt: JUNE_3, geo: SINTRA });
-    let [m] = await owner.query(api.moments.list, { eventId });
+    await owner.mutation(api.api.moments.update, { momentId, startsAt: JUNE_3, geo: SINTRA });
+    let [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.geo).toEqual(LISBON);
 
-    await owner.mutation(api.moments.update, { momentId, place: "Porto", geo: SINTRA });
-    [m] = await owner.query(api.moments.list, { eventId });
+    await owner.mutation(api.api.moments.update, { momentId, place: "Porto", geo: SINTRA });
+    [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.geo).toEqual(SINTRA);
 
-    await owner.mutation(api.moments.update, { momentId, place: "Somewhere else" });
-    [m] = await owner.query(api.moments.list, { eventId });
+    await owner.mutation(api.api.moments.update, { momentId, place: "Somewhere else" });
+    [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m).toMatchObject({ place: "Somewhere else" });
     expect(m?.geo).toBeUndefined();
     expect(m?.stops[0]?.geo).toEqual(SINTRA);
 
     // Stops are replaced wholesale, coordinates and all.
-    await owner.mutation(api.moments.update, { momentId, stops: [{ place: "Sintra", blocks: [] }] });
-    [m] = await owner.query(api.moments.list, { eventId });
+    await owner.mutation(api.api.moments.update, { momentId, stops: [{ place: "Sintra", blocks: [] }] });
+    [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.stops[0]?.geo).toBeUndefined();
   });
 
   test("coordinates must be on the map and come with a place", async () => {
     const { owner, eventId } = await setup();
     const create = (geo: { lat: number; lng: number }, place?: string) =>
-      owner.mutation(api.moments.create, {
+      owner.mutation(api.api.moments.create, {
         eventId,
         startsAt: JUNE_1,
         place,
@@ -452,7 +452,7 @@ describe("map coordinates", () => {
     await expect(create(LISBON)).rejects.toThrow(/"field":"geo"/);
     await expect(create(LISBON, "  ")).rejects.toThrow(/"field":"geo"/);
     await expect(
-      owner.mutation(api.moments.create, {
+      owner.mutation(api.api.moments.create, {
         eventId,
         startsAt: JUNE_1,
         blocks: [{ type: "note", text: "x" }],
@@ -462,10 +462,10 @@ describe("map coordinates", () => {
 
     const momentId = await create({ lat: -90, lng: 180 }, "Edge of the world");
     await expect(
-      owner.mutation(api.moments.update, { momentId, place: "Porto", geo: { lat: 100, lng: 0 } }),
+      owner.mutation(api.api.moments.update, { momentId, place: "Porto", geo: { lat: 100, lng: 0 } }),
     ).rejects.toThrow(/"field":"geo"/);
     await expect(
-      owner.mutation(api.moments.update, { momentId, place: "", geo: LISBON }),
+      owner.mutation(api.api.moments.update, { momentId, place: "", geo: LISBON }),
     ).rejects.toThrow(/"field":"geo"/);
   });
 });
@@ -476,14 +476,14 @@ describe("the zone a moment happened in", () => {
 
   test("is kept with the moment, and its day follows it", async () => {
     const { owner, eventId } = await setup();
-    await owner.mutation(api.moments.create, {
+    await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: KYOTO_MORNING,
       tzOffsetMinutes: 540,
       place: "Kyoto",
       blocks: [{ type: "note", text: "Fushimi Inari" }],
     });
-    const [moment] = await owner.query(api.moments.list, { eventId });
+    const [moment] = await owner.query(api.api.moments.list, { eventId });
     expect(moment?.tzOffsetMinutes).toBe(540);
     expect(dayOf(moment!)).toBe("2025-11-09");
   });
@@ -491,34 +491,34 @@ describe("the zone a moment happened in", () => {
   test("an edit can set a new offset; the day follows", async () => {
     const { owner, eventId } = await setup();
     const momentId = await addMoment(owner, eventId);
-    await owner.mutation(api.moments.update, {
+    await owner.mutation(api.api.moments.update, {
       momentId,
       startsAt: KYOTO_MORNING,
       tzOffsetMinutes: 540,
     });
-    const [moment] = await owner.query(api.moments.list, { eventId });
+    const [moment] = await owner.query(api.api.moments.list, { eventId });
     expect(moment?.tzOffsetMinutes).toBe(540);
     expect(dayOf(moment!)).toBe("2025-11-09");
   });
 
   test("moving a time without an offset keeps the one the moment has", async () => {
     const { owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: KYOTO_MORNING,
       tzOffsetMinutes: 540,
       blocks: [{ type: "note", text: "Fushimi Inari" }],
     });
     // An hour earlier is 21:15 UTC on the 8th, still the 9th in Japan.
-    await owner.mutation(api.moments.update, { momentId, startsAt: KYOTO_MORNING - 3_600_000 });
-    const [moment] = await owner.query(api.moments.list, { eventId });
+    await owner.mutation(api.api.moments.update, { momentId, startsAt: KYOTO_MORNING - 3_600_000 });
+    const [moment] = await owner.query(api.api.moments.list, { eventId });
     expect(moment?.tzOffsetMinutes).toBe(540);
     expect(dayOf(moment!)).toBe("2025-11-09");
   });
 
   test("an offset alone is stored with no edit mark and no change log row", async () => {
     const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: KYOTO_MORNING,
       tzOffsetMinutes: 0,
@@ -527,10 +527,10 @@ describe("the zone a moment happened in", () => {
     // Pages are cut after the moment, and each one is its own activity row.
     await t.finishAllScheduledFunctions(() => undefined);
     const logBefore = (await t.run((ctx) => ctx.db.query("changes").take(500))).length;
-    expect(dayOf((await owner.query(api.moments.list, { eventId }))[0]!)).toBe("2025-11-08");
+    expect(dayOf((await owner.query(api.api.moments.list, { eventId }))[0]!)).toBe("2025-11-08");
 
-    await owner.mutation(api.moments.update, { momentId, startsAt: KYOTO_MORNING, tzOffsetMinutes: 540 });
-    const [moment] = await owner.query(api.moments.list, { eventId });
+    await owner.mutation(api.api.moments.update, { momentId, startsAt: KYOTO_MORNING, tzOffsetMinutes: 540 });
+    const [moment] = await owner.query(api.api.moments.list, { eventId });
     expect(moment).toMatchObject({ startsAt: KYOTO_MORNING, tzOffsetMinutes: 540 });
     expect(moment?.editedAt).toBeUndefined();
     const logAfter = (await t.run((ctx) => ctx.db.query("changes").take(500))).length;
@@ -543,7 +543,7 @@ describe("the zone a moment happened in", () => {
     const momentId = await addMoment(owner, eventId);
     for (const tzOffsetMinutes of [841, -721, NaN]) {
       await expect(
-        owner.mutation(api.moments.create, {
+        owner.mutation(api.api.moments.create, {
           eventId,
           startsAt: JUNE_1,
           tzOffsetMinutes,
@@ -551,12 +551,12 @@ describe("the zone a moment happened in", () => {
         }),
       ).rejects.toThrow(/"field":"tzOffsetMinutes"/);
       await expect(
-        owner.mutation(api.moments.update, { momentId, tzOffsetMinutes }),
+        owner.mutation(api.api.moments.update, { momentId, tzOffsetMinutes }),
       ).rejects.toThrow(/"field":"tzOffsetMinutes"/);
     }
     // Both ends of the range are real clocks.
     for (const tzOffsetMinutes of [840, -720]) {
-      await owner.mutation(api.moments.create, {
+      await owner.mutation(api.api.moments.create, {
         eventId,
         startsAt: JUNE_1,
         tzOffsetMinutes,

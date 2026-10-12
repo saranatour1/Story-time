@@ -1,6 +1,6 @@
 import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
-import type { api } from "../../convex/_generated/api";
+import type { api } from "@/lib/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { MOMENT_LIMIT } from "../../convex/lib/limits";
 import { reversePlace } from "@/components/event/place-input";

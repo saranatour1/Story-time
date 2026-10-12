@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { ChevronsUpDownIcon, LogOutIcon, SettingsIcon } from "lucide-react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/lib/api";
 import {
   DropdownMenu,
   DropdownMenuContent,

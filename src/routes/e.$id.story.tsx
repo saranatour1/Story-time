@@ -3,7 +3,7 @@ import { useConvexAuth, useQuery } from "convex/react";
 import { PlayIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { z } from "zod";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { pageForPlay, playSurface } from "@/components/journal/play";
 import { Reader } from "@/components/journal/reader";

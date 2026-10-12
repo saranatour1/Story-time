@@ -17,15 +17,15 @@ const allowedRedirectOrigins = appOrigins();
 export const { startSignInGithub, completeSignInGithub } = setupGithub(core, {
   component: components.oauthGithub,
   allowedRedirectOrigins,
-}).attachUserCallbacks({ createUser: internal.users.createGithubUser });
+}).attachUserCallbacks({ createUser: internal.model.users.createGithubUser });
 
 export const { startSignInGoogle, completeSignInGoogle } = setupGoogle(core, {
   component: components.oauthGoogle,
   allowedRedirectOrigins,
-}).attachUserCallbacks({ createUser: internal.users.createGoogleUser });
+}).attachUserCallbacks({ createUser: internal.model.users.createGoogleUser });
 
 // Dev only: users.createAnonymousUser rejects unless ALLOW_ANONYMOUS_SIGNIN
 // is "true" on the deployment, and the button only renders in dev builds.
 export const { signInAnonymous } = setupAnonymous(core, {
   component: components.authAnonymous,
-}).attachUserCallbacks({ createUser: internal.users.createAnonymousUser });
+}).attachUserCallbacks({ createUser: internal.model.users.createAnonymousUser });

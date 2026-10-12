@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { useId } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";

@@ -3,7 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import { useId } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";

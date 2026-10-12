@@ -2,7 +2,7 @@ import { useMutation, usePaginatedQuery } from "convex/react";
 import { format, formatDistanceToNow, isThisYear, isToday, isYesterday } from "date-fns";
 import { BotIcon, CogIcon, UserRoundIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ActorBadge } from "@/components/event/actor-badge";
 import { Button } from "@/components/ui/button";

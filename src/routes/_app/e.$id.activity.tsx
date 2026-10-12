@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { ActivityTab } from "@/components/event/activity-tab";
 import { ExperienceShell } from "@/components/event/experience-shell";
 

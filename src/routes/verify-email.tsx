@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useConvexAuth, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { LoginForm } from "@/components/login-form";
 import { SignedOutPage } from "@/components/sign-in-screen";
 import { Button } from "@/components/ui/button";

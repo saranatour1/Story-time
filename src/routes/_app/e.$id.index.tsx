@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { BookOpenIcon, PencilIcon, PlayIcon } from "lucide-react";
 import { z } from "zod";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { CommandBar } from "@/components/event/command-bar";
 import { ExperienceShell } from "@/components/event/experience-shell";
 import { EditorPanel, type Panel } from "@/components/event/itinerary-panel";

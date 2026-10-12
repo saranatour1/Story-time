@@ -7,7 +7,7 @@ import {
   type OauthFlowErrorCode,
 } from "@convex-dev/auth/providers/oauth/react";
 import { useAnonymousAuth } from "@convex-dev/auth/providers/anonymous/react";
-import { api } from "../../convex/_generated/api";
+import { authApi } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -76,8 +76,8 @@ export function SignInButtons({
 }) {
   const options = returnTo === undefined ? undefined : { redirectTo: returnTo };
   const { isLoading } = useConvexAuth();
-  const { signInGithub } = useSignInWithGithub(api.auth);
-  const { signInGoogle } = useSignInWithGoogle(api.auth);
+  const { signInGithub } = useSignInWithGithub(authApi);
+  const { signInGoogle } = useSignInWithGoogle(authApi);
   const { flowError } = useOauth();
   const size = prominent ? "h-11 px-5 text-[0.9375rem]" : undefined;
 
@@ -132,7 +132,7 @@ export function SignInButtons({
 // Dev only: anonymous sign-in for local testing. The backend also rejects it
 // unless ALLOW_ANONYMOUS_SIGNIN is "true" on the deployment.
 function DevAnonymousSignIn({ className }: { className?: string }) {
-  const { signInAnonymous } = useAnonymousAuth(api.auth.signInAnonymous);
+  const { signInAnonymous } = useAnonymousAuth(authApi.signInAnonymous);
   return (
     <button
       type="button"

@@ -2,7 +2,7 @@ import { useAction } from "convex/react";
 import { MicIcon, SquareIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { MAX_VOICE_BYTES, MAX_VOICE_SECONDS } from "../../../convex/lib/limits";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";

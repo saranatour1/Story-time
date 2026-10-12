@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { SearchIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { ActorBadge } from "@/components/event/actor-badge";
 import { QuickAddButton } from "@/components/event/quick-add";
 import type { EventView, MomentView } from "@/components/event/types";

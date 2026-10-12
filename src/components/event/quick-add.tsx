@@ -2,7 +2,7 @@ import { useAuthToken } from "@convex-dev/auth/react";
 import { useAction, useMutation } from "convex/react";
 import { ImagePlusIcon } from "lucide-react";
 import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { addPhotos } from "@/lib/add-photos";

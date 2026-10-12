@@ -1,7 +1,7 @@
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
-import type { PlainBlock, PlainStop } from "../moments";
+import type { PlainBlock, PlainStop } from "../model/moments";
 import { encryptGeo, encryptText, type Encrypted, type Geo } from "./crypto";
 import {
   MAX_BLOCKS_PER_MOMENT,

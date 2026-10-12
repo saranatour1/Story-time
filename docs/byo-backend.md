@@ -67,7 +67,7 @@ Three homes for photos, picked per deployment:
 
 Rules:
 
-- **A storage interface sits behind `convex/media.ts`**: reserve, confirm, read, delete. Rows get an optional `backend` field (`"hosted-r2"` when absent, `"convex"`, `"s3"`). Existing rows are valid as they are. The backend's opaque key is stored in `r2Key` for now (rule 3).
+- **A storage interface sits behind `convex/model/media.ts`**: reserve, confirm, read, delete. Rows get an optional `backend` field (`"hosted-r2"` when absent, `"convex"`, `"s3"`). Existing rows are valid as they are. The backend's opaque key is stored in `r2Key` for now (rule 3).
 - **In BYO the Worker touches no bytes and no keys.** Today the Worker holds `ENCRYPTION_MASTER_KEY` to apply SSE-C. In BYO that key lives only in the person's Convex env. Photos are encrypted in the browser (AES-GCM) with a per-experience key that the person's Convex hands to signed-in members and to holders of a valid share link. Viewers decrypt in the browser.
 - **Same limits as now.** 5 MB photos, 50 MB videos, 2 MB profile images, the per-person caps in `convex/lib/limits.ts`. Convex re-checks size and type before any bytes move, as `reserveUpload` does today.
 - **EXIF stripping stays client-side and stays before encryption.**

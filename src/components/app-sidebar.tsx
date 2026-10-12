@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { BookHeartIcon, ChevronRightIcon, HistoryIcon, HomeIcon, ListIcon, UsersIcon } from "lucide-react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";

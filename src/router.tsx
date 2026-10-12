@@ -1,7 +1,7 @@
 import { createRouter, Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { api } from "../convex/_generated/api";
+import { authApi } from "@/lib/api";
 import { routeTree } from "./routeTree.gen";
 import { Logo, LogoSplash } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ export function getRouter() {
     defaultNotFoundComponent: NotFound,
     defaultErrorComponent: RouteError,
     Wrap: ({ children }) => (
-      <ConvexAuthProvider client={convex} api={api.auth}>
+      <ConvexAuthProvider client={convex} api={authApi}>
         {children}
       </ConvexAuthProvider>
     ),

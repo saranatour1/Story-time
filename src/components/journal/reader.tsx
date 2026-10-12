@@ -2,7 +2,7 @@ import { useQuery } from "convex/react";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { PAGE } from "../../../convex/lib/journal";
 import type { StoryMoment } from "@/components/event/types";

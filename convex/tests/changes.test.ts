@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { requireEventAccessFor } from "../lib/access";
-import { createMoment } from "../moments";
+import { createMoment } from "../model/moments";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
@@ -29,7 +29,7 @@ async function setup() {
   ];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
   const owner = as(ownerId);
-  const eventId = await owner.mutation(api.events.createDraft, {});
+  const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }),
   );
@@ -42,15 +42,15 @@ async function setup() {
 describe("the log names who made each change", () => {
   test("a person's edit shows their name", async () => {
     const { owner, helper, eventId } = await setup();
-    const momentId = await helper.mutation(api.moments.create, {
+    const momentId = await helper.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       place: "Lisbon",
       blocks: [{ type: "note", text: "Landed" }],
     });
-    await owner.mutation(api.moments.update, { momentId, place: "Lisbon, Alfama" });
+    await owner.mutation(api.api.moments.update, { momentId, place: "Lisbon, Alfama" });
 
-    const { page } = await owner.query(api.changes.listForEvent, {
+    const { page } = await owner.query(api.api.changes.listForEvent, {
       eventId,
       paginationOpts: { numItems: 50, cursor: null },
     });
@@ -65,15 +65,15 @@ describe("the log names who made each change", () => {
 
   test("Scribe's edit names the agent and no person", async () => {
     const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       place: "Lisbon",
       blocks: [{ type: "link", url: "https://example.com/tram" }],
     });
-    await t.mutation(internal.ai.apply.apply, { momentId, note: "We rode the tram", labels: ["tram"] });
+    await t.mutation(internal.model.ai.apply.apply, { momentId, note: "We rode the tram", labels: ["tram"] });
 
-    const { page } = await owner.query(api.changes.listForEvent, {
+    const { page } = await owner.query(api.api.changes.listForEvent, {
       eventId,
       paginationOpts: { numItems: 50, cursor: null },
     });
@@ -95,7 +95,7 @@ describe("the log names who made each change", () => {
       });
     });
 
-    const { page } = await owner.query(api.changes.listForEvent, {
+    const { page } = await owner.query(api.api.changes.listForEvent, {
       eventId,
       paginationOpts: { numItems: 50, cursor: null },
     });
@@ -107,7 +107,7 @@ describe("only the owner reads the log", () => {
   test("a contributor, a viewer and a stranger are turned away", async () => {
     const { owner, helper, viewer, stranger, eventId } = await setup();
     const read = (who: typeof owner) =>
-      who.query(api.changes.listForEvent, { eventId, paginationOpts: { numItems: 5, cursor: null } });
+      who.query(api.api.changes.listForEvent, { eventId, paginationOpts: { numItems: 5, cursor: null } });
     await expect(read(helper)).rejects.toThrow("Event not found");
     await expect(read(viewer)).rejects.toThrow("Event not found");
     await expect(read(stranger)).rejects.toThrow("Event not found");

@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test, vi } from "vitest";
-import { readDecisions, transportFromSpeed, withDistance } from "../ai/decide";
-import { titleFromHtml } from "../ai/unfurl";
+import { readDecisions, transportFromSpeed, withDistance } from "../model/ai/decide";
+import { titleFromHtml } from "../model/ai/unfurl";
 import { rateLimiter } from "../lib/rateLimit";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { api, internal } from "../_generated/api";
@@ -31,7 +31,7 @@ async function setup() {
   const [ownerId, helperId, viewerId] = [await make(), await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
   const owner = as(ownerId);
-  const eventId = await owner.mutation(api.events.createDraft, {});
+  const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }),
   );
@@ -44,7 +44,7 @@ async function setup() {
 describe("decide: the legs of a journey", () => {
   test("each stop after the first is a leg; distance and speed only where both ends allow", async () => {
     const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       tzOffsetMinutes: 0,
@@ -58,7 +58,7 @@ describe("decide: the legs of a journey", () => {
       labels: ["day trip"],
     });
 
-    const { labels, legs, route } = await t.query(internal.ai.decide.legsOf, { momentId });
+    const { labels, legs, route } = await t.query(internal.model.ai.decide.legsOf, { momentId });
     expect(route).toEqual(["Lisbon", "Sintra", "Cascais"]);
     expect(labels).toEqual(["day trip"]);
     expect(legs).toHaveLength(2);
@@ -86,7 +86,7 @@ describe("decide: the legs of a journey", () => {
 
   test("the first stop is a leg from the moment just before it, within 12 hours", async () => {
     const { t, owner, eventId } = await setup();
-    await owner.mutation(api.moments.create, {
+    await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0 - 2 * HOUR,
       tzOffsetMinutes: 0,
@@ -94,7 +94,7 @@ describe("decide: the legs of a journey", () => {
       geo: PORTO,
       blocks: [{ type: "note", text: "earlier" }],
     });
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       tzOffsetMinutes: 0,
@@ -103,7 +103,7 @@ describe("decide: the legs of a journey", () => {
       blocks: [{ type: "note", text: "now" }],
     });
 
-    const { legs } = await t.query(internal.ai.decide.legsOf, { momentId });
+    const { legs } = await t.query(internal.model.ai.decide.legsOf, { momentId });
     expect(legs).toHaveLength(1);
     expect(legs[0]).toMatchObject({ id: "0", stopIndex: 0, fromPlace: "Porto", toPlace: "Lisbon", minutes: 120 });
     expect(legs[0]?.km).toBeGreaterThan(200);
@@ -111,7 +111,7 @@ describe("decide: the legs of a journey", () => {
 
   test("a moment more than 12 hours earlier does not link", async () => {
     const { t, owner, eventId } = await setup();
-    await owner.mutation(api.moments.create, {
+    await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0 - 13 * HOUR,
       tzOffsetMinutes: 0,
@@ -119,7 +119,7 @@ describe("decide: the legs of a journey", () => {
       geo: FARO,
       blocks: [{ type: "note", text: "earlier" }],
     });
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       tzOffsetMinutes: 0,
@@ -128,7 +128,7 @@ describe("decide: the legs of a journey", () => {
       blocks: [{ type: "note", text: "now" }],
     });
 
-    const { legs } = await t.query(internal.ai.decide.legsOf, { momentId });
+    const { legs } = await t.query(internal.model.ai.decide.legsOf, { momentId });
     expect(legs).toEqual([]);
   });
 });
@@ -187,7 +187,7 @@ describe("decideTransport: without Jev, speed decides", () => {
   test("a stop's transport comes from its speed, and the decision is saved", async () => {
     const { t, owner, eventId } = await setup();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       tzOffsetMinutes: 0,
@@ -201,10 +201,10 @@ describe("decideTransport: without Jev, speed decides", () => {
     });
 
     // The gateway can't mint a token under convex-test, so the call fails fast.
-    const decided = await t.action(internal.ai.decide.decideTransport, { momentId });
+    const decided = await t.action(internal.model.ai.decide.decideTransport, { momentId });
     expect(decided).toEqual({ transports: { "1": "bike" } });
 
-    const [m] = await owner.query(api.moments.list, { eventId });
+    const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.stops[0]?.transport).toBe("bike");
     expect(m?.stops[1]?.transport).toBeUndefined();
     expect(warn).toHaveBeenCalledTimes(1);
@@ -215,7 +215,7 @@ describe("decideTransport: without Jev, speed decides", () => {
   test("a day between an airport and a city 3,000 km away is a flight, not a drive", async () => {
     const { t, owner, eventId } = await setup();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       tzOffsetMinutes: 0,
@@ -225,7 +225,7 @@ describe("decideTransport: without Jev, speed decides", () => {
       stops: [{ place: "Hanover", geo: { lat: 52.3759, lng: 9.732 }, startsAt: T0 + 24 * HOUR, blocks: [] }],
     });
 
-    const decided = await t.action(internal.ai.decide.decideTransport, { momentId });
+    const decided = await t.action(internal.model.ai.decide.decideTransport, { momentId });
     expect(decided).toEqual({ transports: { "1": "plane" } });
     warn.mockRestore();
   });
@@ -265,7 +265,7 @@ describe("unfurl: page titles", () => {
 describe("apply: AI fill-ins only fill gaps", () => {
   test("fills an empty moment and logs the change as the agent Scribe, with no person", async () => {
     const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       tzOffsetMinutes: 0,
@@ -274,14 +274,14 @@ describe("apply: AI fill-ins only fill gaps", () => {
       stops: [{ place: "Sintra", blocks: [] }],
     });
 
-    await t.mutation(internal.ai.apply.apply, {
+    await t.mutation(internal.model.ai.apply.apply, {
       momentId,
       note: "We rode the tram up to the castle",
       labels: ["castle"],
       transports: { "0": "walk", "1": "train" },
     });
 
-    const [m] = await owner.query(api.moments.list, { eventId });
+    const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.blocks).toEqual([
       { type: "link", url: "https://example.com/tram" },
       { type: "note", text: "We rode the tram up to the castle" },
@@ -300,7 +300,7 @@ describe("apply: AI fill-ins only fill gaps", () => {
 
   test("leaves what people wrote alone, and writes nothing when there is nothing to fill", async () => {
     const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       tzOffsetMinutes: 0,
@@ -314,7 +314,7 @@ describe("apply: AI fill-ins only fill gaps", () => {
     await t.finishAllScheduledFunctions(() => undefined);
     const before = await t.run((ctx) => ctx.db.query("changes").collect());
 
-    await t.mutation(internal.ai.apply.apply, {
+    await t.mutation(internal.model.ai.apply.apply, {
       momentId,
       note: "AI words",
       mood: "😊",
@@ -322,7 +322,7 @@ describe("apply: AI fill-ins only fill gaps", () => {
       transports: { "0": "car", "1": "bus" },
     });
 
-    const [m] = await owner.query(api.moments.list, { eventId });
+    const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m).toMatchObject({
       blocks: [{ type: "note", text: "my words" }],
       labels: ["food"],
@@ -335,23 +335,23 @@ describe("apply: AI fill-ins only fill gaps", () => {
 
   test("link titles fill only links that have none", async () => {
     const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       tzOffsetMinutes: 0,
       blocks: [{ type: "link", url: "https://example.com/castle" }],
     });
 
-    await t.mutation(internal.ai.apply.apply, {
+    await t.mutation(internal.model.ai.apply.apply, {
       momentId,
       linkTitles: [{ stopIndex: 0, blockIndex: 0, title: "The castle" }],
     });
-    await t.mutation(internal.ai.apply.apply, {
+    await t.mutation(internal.model.ai.apply.apply, {
       momentId,
       linkTitles: [{ stopIndex: 0, blockIndex: 0, title: "Something else" }],
     });
 
-    const [m] = await owner.query(api.moments.list, { eventId });
+    const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.blocks).toEqual([{ type: "link", url: "https://example.com/castle", title: "The castle" }]);
   });
 });
@@ -359,29 +359,29 @@ describe("apply: AI fill-ins only fill gaps", () => {
 describe("enrich: who may ask", () => {
   test("a contributor can't enrich someone else's moment, and a viewer can't enrich at all", async () => {
     const { owner, helper, viewer, eventId } = await setup();
-    const ownersMoment = await owner.mutation(api.moments.create, {
+    const ownersMoment = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       blocks: [{ type: "note", text: "owner's" }],
     });
-    const helpersMoment = await helper.mutation(api.moments.create, {
+    const helpersMoment = await helper.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       blocks: [{ type: "note", text: "helper's" }],
     });
 
     await expect(
-      helper.action(api.ai.enrich.enrich, { momentId: ownersMoment }),
+      helper.action(api.api.ai.enrich.enrich, { momentId: ownersMoment }),
     ).rejects.toThrow(/own moments/);
     await expect(
-      viewer.action(api.ai.enrich.enrich, { momentId: helpersMoment }),
+      viewer.action(api.api.ai.enrich.enrich, { momentId: helpersMoment }),
     ).rejects.toThrow(/Event not found/);
   });
 
   test("once the person's allowance is spent, enrich says no and does nothing", async () => {
     const { t, ownerId, owner, eventId } = await setup();
     rateLimiterTest.register(t);
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       blocks: [{ type: "note", text: "one too many" }],
@@ -389,7 +389,7 @@ describe("enrich: who may ask", () => {
     for (let i = 0; i < 120; i++) await t.run((ctx) => rateLimiter.limit(ctx, "enrich", { key: ownerId }));
     // Past the limit it returns before captions or the workflow (which isn't
     // registered here, so going on would throw).
-    expect(await owner.action(api.ai.enrich.enrich, { momentId })).toBe(false);
+    expect(await owner.action(api.api.ai.enrich.enrich, { momentId })).toBe(false);
   });
 });
 
@@ -398,14 +398,14 @@ describe("scribe: what it is told about a moment", () => {
     const { t, owner, eventId } = await setup();
     // 22:15 UTC on 8 November: 07:15 on the 9th in Japan.
     const startsAt = Date.UTC(2025, 10, 8, 22, 15);
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt,
       tzOffsetMinutes: 540,
       place: "Kyoto",
       blocks: [{ type: "note", text: "Fushimi Inari" }],
     });
-    const context = await t.query(internal.ai.scribe.context, { momentId });
+    const context = await t.query(internal.model.ai.scribe.context, { momentId });
     expect(context).toMatchObject({ startsAt, tzOffsetMinutes: 540 });
   });
 });

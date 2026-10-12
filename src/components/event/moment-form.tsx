@@ -5,7 +5,7 @@ import { ArrowDownIcon, ArrowUpIcon, ImageIcon, PlusIcon, Trash2Icon, VideoIcon,
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { AuthImage } from "@/components/auth-image";
 import { ConfirmDialog } from "@/components/confirm-dialog";

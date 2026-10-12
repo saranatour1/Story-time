@@ -1,6 +1,6 @@
 import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
-import type { api } from "../../convex/_generated/api";
+import type { api } from "@/lib/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { IMAGE_MIME_TYPES } from "../../convex/lib/limits";
 import type { Geo, PhotoPoint } from "./photo-groups";
@@ -13,7 +13,7 @@ import { isVideoFile, MAX_UPLOAD_BYTES, MAX_VIDEO_BYTES, uploadMedia } from "./u
 
 const UPLOADS_AT_ONCE = 3;
 // Thumbnails sent per moment: as many as the server reads (MAX_THUMBS in
-// convex/ai/scribe.ts), so keep the two in step.
+// convex/model/ai/scribe.ts), so keep the two in step.
 export const THUMBS_PER_MOMENT = 4;
 
 export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;

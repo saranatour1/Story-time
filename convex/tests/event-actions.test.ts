@@ -28,7 +28,7 @@ async function setup() {
   const [ownerId, friendId] = [await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
   const owner = as(ownerId);
-  const eventId = await owner.mutation(api.events.createDraft, {});
+  const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: friendId, grantedBy: ownerId, role: "viewer" }),
   );
@@ -36,18 +36,18 @@ async function setup() {
 }
 
 async function fill(owner: Awaited<ReturnType<typeof setup>>["owner"], eventId: Id<"events">) {
-  const { mediaId, r2Key } = await owner.mutation(api.media.reserveUpload, {
+  const { mediaId, r2Key } = await owner.mutation(api.api.media.reserveUpload, {
     eventId,
     size: 100,
     mime: "image/png",
   });
-  await owner.mutation(api.media.confirmUpload, { mediaId });
-  await owner.mutation(api.moments.create, {
+  await owner.mutation(api.api.media.confirmUpload, { mediaId });
+  await owner.mutation(api.api.moments.create, {
     eventId,
     startsAt: Date.UTC(2026, 5, 1, 12),
     blocks: [{ type: "photo", mediaId }, { type: "note", text: "hi" }],
   });
-  await owner.mutation(api.invites.create, { eventId, role: "viewer" });
+  await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
   return r2Key;
 }
 
@@ -72,9 +72,9 @@ describe("events.remove", () => {
     const { t, owner, friend, eventId } = await setup();
     await fill(owner, eventId);
 
-    await expect(friend.mutation(api.events.remove, { eventId })).rejects.toThrow();
-    await owner.mutation(api.events.remove, { eventId });
-    expect(await friend.query(api.events.get, { eventId })).toBeNull();
+    await expect(friend.mutation(api.api.events.remove, { eventId })).rejects.toThrow();
+    await owner.mutation(api.api.events.remove, { eventId });
+    expect(await friend.query(api.api.events.get, { eventId })).toBeNull();
 
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(await leftovers(t, eventId)).toEqual(EMPTY);
@@ -83,18 +83,18 @@ describe("events.remove", () => {
 
   test("an archived experience can still be deleted", async () => {
     const { t, owner, eventId } = await setup();
-    await owner.mutation(api.events.update, { eventId, status: "archived" });
-    await owner.mutation(api.events.remove, { eventId });
+    await owner.mutation(api.api.events.update, { eventId, status: "archived" });
+    await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect((await leftovers(t, eventId)).event).toBeNull();
   });
 
   test("guestbook notes and Activity read marks go with the experience", async () => {
     const { t, owner, ownerId, friend, eventId } = await setup();
-    await owner.mutation(api.events.update, { eventId, status: "active" });
-    await friend.mutation(api.guestNotes.leave, { eventId, text: "What a trip!" });
+    await owner.mutation(api.api.events.update, { eventId, status: "active" });
+    await friend.mutation(api.api.guestNotes.leave, { eventId, text: "What a trip!" });
     await t.run((ctx) => ctx.db.insert("activityReads", { userId: ownerId, eventId, readAt: 1 }));
-    await owner.mutation(api.events.remove, { eventId });
+    await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const left = await t.run(async (ctx) => [(await ctx.db.query("guestNotes").collect()).length, (await ctx.db.query("activityReads").collect()).length]);
     expect(left).toEqual([0, 0]);
@@ -109,7 +109,7 @@ describe("events.remove", () => {
       const canvasId = await ctx.db.insert("canvases", { eventId, desk: "cork" });
       await ctx.db.insert("canvasNodes", { canvasId, eventId, kind: "frame", x: 0, y: 0, w: 1, h: 1, rotation: 0, z: 0 });
     });
-    await owner.mutation(api.events.remove, { eventId });
+    await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const left = await t.run(async (ctx) =>
       Promise.all((["itinerary", "quotaRequests", "canvases", "canvasNodes"] as const).map(async (table) => (await ctx.db.query(table).collect()).length)),
@@ -137,7 +137,7 @@ describe("events.remove", () => {
       });
       return [scoped, account];
     });
-    await owner.mutation(api.events.remove, { eventId });
+    await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const left = await t.run(async (ctx) => ({
       scoped: await ctx.db.get("agentTokens", scoped),
@@ -162,7 +162,7 @@ describe("events.remove", () => {
         });
       }
     });
-    await owner.mutation(api.events.remove, { eventId });
+    await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect((await leftovers(t, eventId)).changes).toBe(0);
   });
@@ -172,8 +172,8 @@ describe("media.listKeysForEvent", () => {
   test("lists the stored objects, for the owner only", async () => {
     const { owner, friend, eventId } = await setup();
     const key = await fill(owner, eventId);
-    expect(await owner.query(api.media.listKeysForEvent, { eventId })).toEqual([key]);
-    await expect(friend.query(api.media.listKeysForEvent, { eventId })).rejects.toThrow();
+    expect(await owner.query(api.api.media.listKeysForEvent, { eventId })).toEqual([key]);
+    await expect(friend.query(api.api.media.listKeysForEvent, { eventId })).rejects.toThrow();
   });
 
   test("live objects are listed even behind thousands of deleted uploads", async () => {
@@ -192,7 +192,7 @@ describe("media.listKeysForEvent", () => {
         });
       }
     });
-    const keys = await owner.query(api.media.listKeysForEvent, { eventId });
+    const keys = await owner.query(api.api.media.listKeysForEvent, { eventId });
     expect(keys).toContain(live);
     // Deleted objects are listed too, since they may not be gone from R2 yet.
     expect(keys).toHaveLength(5051);
@@ -202,46 +202,46 @@ describe("media.listKeysForEvent", () => {
 describe("events.createDraft", () => {
   test("an owner can have 20 experiences; deleting one frees its slot", async () => {
     const { t, owner, eventId } = await setup();
-    for (let i = 1; i < 20; i++) await owner.mutation(api.events.createDraft, {});
-    await expect(owner.mutation(api.events.createDraft, {})).rejects.toThrow(/EVENT_LIMIT/);
-    await owner.mutation(api.events.remove, { eventId });
+    for (let i = 1; i < 20; i++) await owner.mutation(api.api.events.createDraft, {});
+    await expect(owner.mutation(api.api.events.createDraft, {})).rejects.toThrow(/EVENT_LIMIT/);
+    await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    await expect(owner.mutation(api.events.createDraft, {})).resolves.toBeTruthy();
+    await expect(owner.mutation(api.api.events.createDraft, {})).resolves.toBeTruthy();
   });
 });
 
 describe("events.listMine, get and update", () => {
   test("cards use the first photo (not video) as the cover, for owner and guests", async () => {
     const { owner, friend, eventId } = await setup();
-    expect((await owner.query(api.events.listMine, {}))[0]?.coverMediaId).toBeUndefined();
+    expect((await owner.query(api.api.events.listMine, {}))[0]?.coverMediaId).toBeUndefined();
     const upload = async (mime: string) => {
-      const { mediaId } = await owner.mutation(api.media.reserveUpload, { eventId, size: 100, mime });
-      await owner.mutation(api.media.confirmUpload, { mediaId });
+      const { mediaId } = await owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime });
+      await owner.mutation(api.api.media.confirmUpload, { mediaId });
       return mediaId;
     };
     const video = await upload("video/mp4");
     const photo = await upload("image/png");
-    await owner.mutation(api.moments.create, {
+    await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: Date.UTC(2026, 5, 1, 12),
       blocks: [{ type: "video", mediaId: video }],
       stops: [{ place: "Porto", blocks: [{ type: "photo", mediaId: photo }] }],
     });
-    expect((await owner.query(api.events.listMine, {}))[0]?.coverMediaId).toBe(photo);
-    expect((await friend.query(api.events.listMine, {}))[0]?.coverMediaId).toBe(photo);
+    expect((await owner.query(api.api.events.listMine, {}))[0]?.coverMediaId).toBe(photo);
+    expect((await friend.query(api.api.events.listMine, {}))[0]?.coverMediaId).toBe(photo);
   });
 
   test("a malformed id reads as not found", async () => {
     const { owner } = await setup();
-    expect(await owner.query(api.events.get, { eventId: "not-an-id" })).toBeNull();
+    expect(await owner.query(api.api.events.get, { eventId: "not-an-id" })).toBeNull();
   });
 
   test("null clears a date, and the change is logged as null", async () => {
     const { t, owner, eventId } = await setup();
     const at = Date.UTC(2026, 5, 1);
-    await owner.mutation(api.events.update, { eventId, startsAt: at, endsAt: at + 1000 });
-    await owner.mutation(api.events.update, { eventId, startsAt: null });
-    const event = await owner.query(api.events.get, { eventId });
+    await owner.mutation(api.api.events.update, { eventId, startsAt: at, endsAt: at + 1000 });
+    await owner.mutation(api.api.events.update, { eventId, startsAt: null });
+    const event = await owner.query(api.api.events.get, { eventId });
     expect(event?.startsAt).toBeUndefined();
     expect(event?.endsAt).toBe(at + 1000);
     const last = await t.run((ctx) =>

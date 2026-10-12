@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";

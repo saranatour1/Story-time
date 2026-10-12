@@ -55,7 +55,7 @@ export function convexAs(token: string): ConvexHttpClient {
 }
 
 // No caller at all, for share links: the token is the only credential, and
-// convex/share.ts checks it.
+// convex/model/share.ts checks it.
 export function convexAnonymous(): ConvexHttpClient {
   return new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL);
 }

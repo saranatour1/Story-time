@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
 import { XIcon } from "lucide-react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { EventDetailsForm } from "@/components/event/event-details-form";
 import { MomentForm } from "@/components/event/moment-form";
 import type { EventView } from "@/components/event/types";

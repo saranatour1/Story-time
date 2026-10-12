@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { AvatarField } from "@/components/avatar-field";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { SettingsBlock, SettingsPage } from "@/components/settings/section";

@@ -2,8 +2,8 @@
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
-import { isFormat, readTranscript, toBase64 } from "../ai/voice";
-import { promptFor } from "../ai/scribe";
+import { isFormat, readTranscript, toBase64 } from "../model/ai/voice";
+import { promptFor } from "../model/ai/scribe";
 import { api } from "../_generated/api";
 import { MAX_VOICE_BYTES } from "../lib/limits";
 import { rateLimiter } from "../lib/rateLimit";
@@ -57,20 +57,20 @@ describe("encoding", () => {
 describe("transcribe is refused before anything is sent", () => {
   test("when nobody is signed in", async () => {
     const { t } = await setup();
-    await expect(t.action(api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("Sign in");
+    await expect(t.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("Sign in");
   });
 
   test("for a format it can't read, an empty clip or one that's too long", async () => {
     const { person } = await setup();
-    await expect(person.action(api.ai.voice.transcribe, { audio: clip(10), format: "exe" })).rejects.toThrow("format");
-    await expect(person.action(api.ai.voice.transcribe, { audio: clip(0), format: "webm" })).rejects.toThrow("empty");
-    await expect(person.action(api.ai.voice.transcribe, { audio: clip(MAX_VOICE_BYTES + 1), format: "webm" })).rejects.toThrow("too long");
+    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "exe" })).rejects.toThrow("format");
+    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(0), format: "webm" })).rejects.toThrow("empty");
+    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(MAX_VOICE_BYTES + 1), format: "webm" })).rejects.toThrow("too long");
   });
 
   test("once the person's allowance is spent", async () => {
     const { t, userId, person } = await setup();
     for (let i = 0; i < 40; i++) await t.run((ctx) => rateLimiter.limit(ctx, "voice", { key: userId }));
-    await expect(person.action(api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("a lot of recordings");
+    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("a lot of recordings");
   });
 });
 

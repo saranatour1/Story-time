@@ -2,7 +2,7 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { CopyIcon, Link2Icon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
