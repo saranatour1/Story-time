@@ -154,7 +154,6 @@ const downloadPdf = async (token: string, mediaId: string, title: string, busy: 
 // engines are kept out. Play opens the film; the book is the page.
 export const Route = createFileRoute("/s")({
   validateSearch: search,
-  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
   // The link is the key, so these don't wait for sign-in.
   loader: ({ context: { queryClient } }) => {
     const token = readToken();

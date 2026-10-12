@@ -2,6 +2,12 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-10-13
+
+- Search and link previews. Every page now has its own title, description and 1200×630 preview card for X, Reddit, Discord, Slack, iMessage and WhatsApp: the site, a shared trip, and an invite. Cards are drawn by `scripts/og-images.mjs`, in the style of a dark card with hairline frame. A shared trip's card never names the trip. Only the home page is indexed: the rest answer `noindex` in a tag and an `X-Robots-Tag` header. There's a sitemap, and `robots.txt` adds content signals (search and AI answers yes, training no).
+- For AI agents: `/llms.txt` says what Story-time is, what's private and what agents should leave alone, and the home page answers `Accept: text/markdown` with the same text.
+- The home page's first screen comes in the HTML, so it shows before the script loads (server rendering is still off); someone already signed in doesn't see it on the way to /home. Grey text on the landing page is lighter, for contrast. Lighthouse on mobile: accessibility 96 → 100, SEO and best practices 100.
+
 ## 2026-10-12
 
 - The app reads Convex through TanStack Query (`@convex-dev/react-query`). `src/lib/queries.ts` has one factory per feature (`queries.moments.list({ eventId })`), and the experience, journal, story and share routes prefetch theirs in a `loader`, so hovering a link starts its data and the page and loader share one live cache entry. Prefetching waits until sign-in is known. Errors still reach the error screen. Lint rejects `useQuery` from `convex/react`. Writes still use Convex's `useMutation`, and the two paginated lists keep `usePaginatedQuery`.
