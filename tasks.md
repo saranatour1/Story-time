@@ -13,7 +13,7 @@ What is next, in order. Done items move to `progress.md`.
 
 After the eight, in this order. Each one stays inside "photos or a sentence in, a book out": no feed, no like counts, no public profiles.
 
-1. **Guestbook page** (medium). The last page of the book is a guestbook: people you invited leave a short note or a stamp; the owner sees them in Activity and can hide one. A `guestNotes` table (words encrypted), a viewer-role mutation, one extra page in the reader. Open: invited people only (suggested) or share-link readers too?
+1. **Guestbook** (medium). Built, as its own section (Guestbook in the sidebar), not the last page of the book. Still open: hiding a note (owner), and whether share-link readers may leave one.
 2. **On this day** (small). Home shows "A year ago today: Porto" with that day's journal page. The email is in: opt-in in Settings, a daily note that a memory is waiting, with a link and no note text. Open: the home card.
 3. **Home as a bookshelf** (small). Each experience's journal cover as a book on a shelf, opening in read mode, beside an "Everywhere we've been" mapcn map with a pin per trip. The events list returns each cover page (at most 20).
 4. **The book as a video** (large). "Make a video": a day or the whole trip, square or 9:16, pages turning and the map drawing its route, as an MP4 for the phone's share sheet. Render the reader frame by frame (modern-screenshot, as the PDF does), encode with WebCodecs in a worker plus a small MP4 muxer, MediaRecorder where WebCodecs is missing. Risks: older Safari, memory on long trips, map tiles from other sites. Open: 9:16, square, or both?

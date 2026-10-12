@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BookHeartIcon, ChevronRightIcon, HistoryIcon, HomeIcon, ListIcon, UsersIcon } from "lucide-react";
+import { BookHeartIcon, ChevronRightIcon, HistoryIcon, HomeIcon, ListIcon, MessageSquareHeartIcon, UsersIcon } from "lucide-react";
 import { queries } from "@/lib/queries";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -29,6 +29,7 @@ import {
 const SECTIONS = [
   { to: "/e/$id", label: "Moments", icon: ListIcon, path: "", owner: false },
   { to: "/e/$id/journal", label: "Journal", icon: BookHeartIcon, path: "/journal", owner: false },
+  { to: "/e/$id/guestbook", label: "Guestbook", icon: MessageSquareHeartIcon, path: "/guestbook", owner: false },
   { to: "/e/$id/shared", label: "Shared", icon: UsersIcon, path: "/shared", owner: true },
   { to: "/e/$id/activity", label: "Activity", icon: HistoryIcon, path: "/activity", owner: true },
 ] as const;

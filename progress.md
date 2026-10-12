@@ -2,6 +2,10 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-10-13
+
+- The guestbook moved out of the journal into its own section, Guestbook, in the experience's sidebar between Journal and Shared. The journal is only the book now.
+
 ## 2026-10-12
 
 - The app reads Convex through TanStack Query (`@convex-dev/react-query`). `src/lib/queries.ts` has one factory per feature (`queries.moments.list({ eventId })`), and the experience, journal, story and share routes prefetch theirs in a `loader`, so hovering a link starts its data and the page and loader share one live cache entry. Prefetching waits until sign-in is known. Errors still reach the error screen. Lint rejects `useQuery` from `convex/react`. Writes still use Convex's `useMutation`, and the two paginated lists keep `usePaginatedQuery`.
