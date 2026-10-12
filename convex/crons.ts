@@ -18,4 +18,8 @@ crons.interval("sweep reserved uploads", { hours: 1 }, internal.media.sweepReser
 // catches a trip nobody has opened. Minute 23, off the hour.
 crons.cron("backfill journal pages", "23 4 * * *", internal.journal.backfillWaiting, {});
 
+// A memory from a past year, if the owner asked to hear about it.
+// Minute 17, like the invite sweep, so it isn't on the hour.
+crons.cron("on this day", "17 15 * * *", internal.onThisDay.prepare, {});
+
 export default crons;

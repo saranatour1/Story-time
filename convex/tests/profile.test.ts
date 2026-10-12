@@ -1,11 +1,16 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
+
+beforeAll(() => {
+  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
+  process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
+});
 
 async function setup() {
   const t = convexTest(schema, modules);
@@ -23,7 +28,8 @@ describe("profile fields", () => {
       email: " Sara@Example.COM ",
     });
     const me = await a.query(api.users.getCurrentUser, {});
-    expect(me).toMatchObject({ username: "sara_01", email: "sara@example.com" });
+    expect(me).toMatchObject({ username: "sara_01", pendingEmail: "sara@example.com", emailVerified: false });
+    expect(me?.email).toBeUndefined();
   });
 
   test("rejects bad usernames and emails with a field", async () => {
@@ -60,6 +66,7 @@ describe("profile fields", () => {
     const me = await a.query(api.users.getCurrentUser, {});
     expect(me).toMatchObject({ displayName: "Sara", username: "sara" });
     expect(me?.email).toBeUndefined();
+    expect(me?.pendingEmail).toBeUndefined();
     await a.mutation(api.users.updateSettings, { displayName: "" });
     expect((await a.query(api.users.getCurrentUser, {}))?.displayName).toBeUndefined();
   });
@@ -243,7 +250,7 @@ describe("oauth contact email", () => {
       },
     });
     const github = await t.run((ctx) => ctx.db.get("users", githubId));
-    expect(github).toMatchObject({ email: "sara@example.com" });
+    expect(github).toMatchObject({ email: "sara@example.com", emailVerified: true });
     expect(github?.displayName).toBeUndefined();
     expect(github?.imageMediaId).toBeUndefined();
 
@@ -261,7 +268,7 @@ describe("oauth contact email", () => {
       },
     });
     const google = await t.run((ctx) => ctx.db.get("users", googleId));
-    expect(google).toMatchObject({ email: "ada@example.com" });
+    expect(google).toMatchObject({ email: "ada@example.com", emailVerified: true });
     expect(google?.displayName).toBeUndefined();
   });
 

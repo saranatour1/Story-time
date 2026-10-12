@@ -14,6 +14,7 @@ const MAX_ATTEMPTS = 5;
 export const send = mutation({
   args: {
     to: v.string(),
+    replyTo: v.optional(v.string()),
     subject: v.string(),
     html: v.string(),
     text: v.optional(v.string()),
@@ -22,6 +23,12 @@ export const send = mutation({
   handler: async (ctx, args) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(args.to) || args.to.length > 254) {
       throw new Error("Invalid recipient");
+    }
+    if (
+      args.replyTo !== undefined &&
+      (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(args.replyTo) || args.replyTo.length > 254)
+    ) {
+      throw new Error("Invalid reply-to");
     }
     const id = await ctx.db.insert("outbox", {
       ...args,
@@ -77,6 +84,7 @@ export const finish = internalMutation({
         attempts,
         messageId: args.messageId,
         to: undefined,
+        replyTo: undefined,
         subject: undefined,
         html: undefined,
         text: undefined,
@@ -87,6 +95,7 @@ export const finish = internalMutation({
         attempts,
         error: args.error,
         to: undefined,
+        replyTo: undefined,
         subject: undefined,
         html: undefined,
         text: undefined,
@@ -135,6 +144,7 @@ export const deliver = internalAction({
           body: JSON.stringify({
             to: row.to,
             from: EMAIL_FROM,
+            reply_to: row.replyTo,
             subject: row.subject,
             html: row.html,
             text: row.text,

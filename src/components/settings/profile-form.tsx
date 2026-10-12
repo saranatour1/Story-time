@@ -19,28 +19,47 @@ const schema = z.object({
     .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()), "Enter a valid email address"),
 });
 
+function emailHint(user: { email?: string; pendingEmail?: string; emailVerified: boolean }): string {
+  if (user.pendingEmail) {
+    return user.emailVerified
+      ? "Check your inbox to confirm this address. Until then, the confirmed one stays in use."
+      : "Check your inbox. This address isn't used until you confirm it.";
+  }
+  if (user.emailVerified) {
+    return "Confirmed. Replies to mail you send come here, and a memory reminder can too. Never used to sign you in.";
+  }
+  return "Not used until you confirm it. Never used to sign you in.";
+}
+
 export function ProfileForm({
   user,
 }: {
-  user: { displayName?: string; username?: string; email?: string };
+  user: { displayName?: string; username?: string; email?: string; pendingEmail?: string; emailVerified: boolean };
 }) {
   const update = useMutation(api.users.updateSettings);
+  const resend = useMutation(api.users.resendEmailVerification);
   // Unique ids, so labels stay tied to their inputs wherever this renders.
   const id = useId();
   const form = useForm({
     defaultValues: {
       displayName: user.displayName ?? "",
       username: user.username ?? "",
-      email: user.email ?? "",
+      email: user.pendingEmail ?? user.email ?? "",
     },
     validators: { onChange: schema },
     onSubmit: async ({ value, formApi }) => {
       try {
         // Empty strings are sent as-is: the server treats "" as "clear".
-        await update(value);
+        const saved = await update(value);
         // The saved values become the new baseline, so Save disables again.
         formApi.reset(value);
-        toast.success("Profile saved");
+        toast.success(
+          saved.emailStatus === "sent"
+            ? "Check your inbox to confirm that address"
+            : saved.emailStatus === "waiting"
+              ? "Saved. Email isn't set up, so that address isn't confirmed yet"
+              : "Profile saved",
+        );
       } catch (e) {
         toast.error(errorMessage(e));
       }
@@ -81,7 +100,7 @@ export function ProfileForm({
             <Field data-invalid={field.state.meta.errors.length > 0}>
               <FieldLabel htmlFor={`${id}-email`}>Email (optional)</FieldLabel>
               <Input id={`${id}-email`} type="email" autoComplete="email" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
-              <FieldDescription>Not verified and never used to sign you in. Leave empty to share nothing.</FieldDescription>
+              <FieldDescription>{emailHint(user)}</FieldDescription>
               <FieldError errors={field.state.meta.errors} />
             </Field>
           )}
@@ -96,6 +115,21 @@ export function ProfileForm({
             {isDirty && !isSubmitting && (
               <Button type="button" variant="ghost" onClick={() => form.reset()}>
                 Reset
+              </Button>
+            )}
+            {user.pendingEmail && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  void resend({})
+                    .then((r) => {
+                      toast.success(r.emailed ? "Confirmation sent" : "Email isn't set up, so nothing was sent");
+                    })
+                    .catch((e: unknown) => toast.error(errorMessage(e)));
+                }}
+              >
+                Send the confirmation again
               </Button>
             )}
           </div>

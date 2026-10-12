@@ -151,3 +151,24 @@ export async function shareKeyFor(token: string): Promise<string> {
   return toB64(new Uint8Array(sig)).slice(0, 22);
 }
 
+// A confirmation link, hashed the same way as a share link but with its own
+// key, so one token cannot stand in for the other.
+export async function emailKeyFor(token: string): Promise<string> {
+  const key = await cached("email", async () =>
+    crypto.subtle.deriveKey(
+      {
+        name: "HKDF",
+        hash: "SHA-256",
+        salt: enc.encode("storytime/email"),
+        info: enc.encode("email"),
+      },
+      await masterKey(),
+      { name: "HMAC", hash: "SHA-256", length: 256 },
+      false,
+      ["sign"],
+    ),
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(token));
+  return toB64(new Uint8Array(sig)).slice(0, 22);
+}
+

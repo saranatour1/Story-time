@@ -6,6 +6,7 @@ export default defineSchema({
   // permanently failed); then they are cleared and only the status remains.
   outbox: defineTable({
     to: v.optional(v.string()),
+    replyTo: v.optional(v.string()),
     subject: v.optional(v.string()),
     html: v.optional(v.string()),
     text: v.optional(v.string()),

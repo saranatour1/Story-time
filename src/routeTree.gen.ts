@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as SRouteImport } from './routes/s'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
@@ -41,6 +42,11 @@ const AppRoute = AppRouteImport.update({
 const SRoute = SRouteImport.update({
   id: '/s',
   path: '/s',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppHomeRoute = AppHomeRouteImport.update({
@@ -127,6 +133,7 @@ const AppEIdSharedRoute = AppEIdSharedRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/s': typeof SRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/home': typeof AppHomeRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/api/upload': typeof ApiUploadRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/s': typeof SRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/home': typeof AppHomeRoute
   '/api/upload': typeof ApiUploadRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/s': typeof SRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/api/upload': typeof ApiUploadRoute
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/s'
+    | '/verify-email'
     | '/home'
     | '/settings'
     | '/api/upload'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/s'
+    | '/verify-email'
     | '/home'
     | '/api/upload'
     | '/invite/$token'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/s'
+    | '/verify-email'
     | '/_app/home'
     | '/_app/settings'
     | '/api/upload'
@@ -252,6 +264,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   SRoute: typeof SRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   ApiUploadRoute: typeof ApiUploadRoute
   InviteTokenRoute: typeof InviteTokenRoute
   InviteIndexRoute: typeof InviteIndexRoute
@@ -281,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/s'
       fullPath: '/s'
       preLoaderRoute: typeof SRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/home': {
@@ -440,6 +460,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   SRoute: SRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   ApiUploadRoute: ApiUploadRoute,
   InviteTokenRoute: InviteTokenRoute,
   InviteIndexRoute: InviteIndexRoute,

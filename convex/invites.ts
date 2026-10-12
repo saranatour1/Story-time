@@ -2,7 +2,6 @@ import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import {
-  env,
   internalMutation,
   mutation,
   query,
@@ -10,6 +9,7 @@ import {
 } from "./_generated/server";
 import { assertNotArchived, requireEventAccess, requireUserId } from "./lib/access";
 import { appOrigin } from "./lib/appUrl";
+import { emailConfigured, replyAddress } from "./lib/emailAddress";
 import { recordChange } from "./lib/changes";
 import { vRole } from "./schema";
 
@@ -89,10 +89,7 @@ export const create = mutation({
       });
     }
     // Unconfigured, the email component could only mark the send failed.
-    const canEmail = Boolean(
-      env.CF_ACCOUNT_ID && env.CF_EMAIL_TOKEN && env.EMAIL_FROM,
-    );
-    const emailed = sendTo !== "" && canEmail;
+    const emailed = sendTo !== "" && emailConfigured();
     if (emailed) await chargeInviteEmail(ctx, userId);
     const ttlDays = Math.min(Math.max(args.ttlDays ?? 7, 1), 14);
     const { token, expiresAt, inviteId } = await ctx.runMutation(
@@ -108,8 +105,10 @@ export const create = mutation({
     const link = `${appOrigin()}/invite#${token}`;
 
     if (emailed) {
+      const replyTo = await replyAddress(ctx, userId);
       await ctx.runMutation(components.email.lib.send, {
         to: sendTo,
+        ...(replyTo === undefined ? {} : { replyTo }),
         subject: `You're invited to "${event.title}"`,
         html: `<p>You've been invited to a shared experience on Story-time.</p><p><a href="${link}">Open the invite</a></p><p>The link works for the first person who opens it and expires on ${new Date(expiresAt).toUTCString()}.</p>`,
         text: `You've been invited to "${event.title}" on Story-time.\n${link}\nThe link works for the first person who opens it and expires on ${new Date(expiresAt).toUTCString()}.`,

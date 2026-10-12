@@ -4,6 +4,8 @@ import { vGithubProfile } from "@convex-dev/auth/providers/oauth/github";
 import { vGoogleProfile } from "@convex-dev/auth/providers/oauth/google";
 import { requireUserId } from "./lib/access";
 import { appOrigins } from "./lib/appUrl";
+import { emailKeyFor } from "./lib/crypto";
+import { emailConfigured, issueEmailCheck } from "./lib/emailAddress";
 import {
   EMAIL_PATTERN,
   MAX_DISPLAY_NAME,
@@ -35,7 +37,7 @@ export const createGithubUser = internalMutation({
   returns: v.id("users"),
   handler: async (ctx, args) => {
     const email = oauthEmail(args.provider.profile);
-    return await ctx.db.insert("users", email === undefined ? {} : { email });
+    return await ctx.db.insert("users", email === undefined ? {} : { email, emailVerified: true });
   },
 });
 
@@ -50,7 +52,7 @@ export const createGoogleUser = internalMutation({
   returns: v.id("users"),
   handler: async (ctx, args) => {
     const email = oauthEmail(args.provider.profile);
-    return await ctx.db.insert("users", email === undefined ? {} : { email });
+    return await ctx.db.insert("users", email === undefined ? {} : { email, emailVerified: true });
   },
 });
 
@@ -86,6 +88,9 @@ export const getCurrentUser = query({
       displayName: v.optional(v.string()),
       username: v.optional(v.string()),
       email: v.optional(v.string()),
+      pendingEmail: v.optional(v.string()),
+      emailVerified: v.boolean(),
+      onThisDay: v.boolean(),
       imageMediaId: v.optional(v.id("media")),
       locale: v.optional(v.string()),
     }),
@@ -97,11 +102,17 @@ export const getCurrentUser = query({
     if (userId === null) return null;
     const user = await ctx.db.get("users", userId);
     if (user === null) return null;
+    const verified = user.emailVerified === true;
     return {
       id: user._id,
       displayName: user.displayName,
       username: user.username,
-      email: user.email,
+      // Only a confirmed address is the one we send to.
+      email: verified ? user.email : undefined,
+      // A typed address, or an older one that was saved before confirmation existed.
+      pendingEmail: user.pendingEmail ?? (verified ? undefined : user.email),
+      emailVerified: verified,
+      onThisDay: user.onThisDay === true,
       imageMediaId: user.imageMediaId,
       locale: user.locale,
     };
@@ -112,7 +123,10 @@ function invalid(field: string, message: string): never {
   throw new ConvexError({ code: "INVALID", field, message });
 }
 
+type EmailStatus = "unchanged" | "cleared" | "sent" | "waiting";
+
 // Only fields that are passed change. An empty string clears a text field.
+// A typed email is not trusted until its confirmation link is opened.
 export const updateSettings = mutation({
   args: {
     displayName: v.optional(v.string()),
@@ -120,15 +134,30 @@ export const updateSettings = mutation({
     email: v.optional(v.string()),
     locale: v.optional(v.string()),
   },
-  returns: v.null(),
+  returns: v.object({
+    emailStatus: v.union(
+      v.literal("unchanged"),
+      v.literal("cleared"),
+      v.literal("sent"),
+      v.literal("waiting"),
+    ),
+  }),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
+    const user = await ctx.db.get("users", userId);
+    if (user === null) throw new Error("User not found");
     const patch: {
       displayName?: string;
       username?: string;
       email?: string;
+      emailVerified?: boolean;
+      pendingEmail?: string;
+      emailVerifyKey?: string;
+      emailVerifyExpires?: number;
       locale?: string;
     } = {};
+    let emailStatus: EmailStatus = "unchanged";
+    let confirm: string | undefined;
 
     if (args.displayName !== undefined) {
       const name = args.displayName.trim();
@@ -166,13 +195,97 @@ export const updateSettings = mutation({
       ) {
         invalid("email", "Enter a valid email address");
       }
-      patch.email = email;
+      if (email === undefined) {
+        patch.email = undefined;
+        patch.emailVerified = undefined;
+        patch.pendingEmail = undefined;
+        patch.emailVerifyKey = undefined;
+        patch.emailVerifyExpires = undefined;
+        emailStatus = "cleared";
+      } else if (user.emailVerified === true && email === user.email) {
+        patch.pendingEmail = undefined;
+        patch.emailVerifyKey = undefined;
+        patch.emailVerifyExpires = undefined;
+      } else if (email === user.pendingEmail || (user.emailVerified !== true && email === user.email)) {
+        // Already waiting, or an older unconfirmed address. Resend is separate.
+      } else {
+        confirm = email;
+      }
     }
 
     if (args.locale !== undefined) patch.locale = args.locale;
 
-    if (Object.keys(patch).length === 0) return null;
-    await ctx.db.patch("users", userId, patch);
+    if (Object.keys(patch).length > 0) await ctx.db.patch("users", userId, patch);
+    if (confirm !== undefined) emailStatus = await issueEmailCheck(ctx, userId, confirm);
+    return { emailStatus };
+  },
+});
+
+const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,64}$/;
+
+// Opens the confirmation link. The signed-in person must be the one it was sent to.
+export const verifyEmail = mutation({
+  args: { token: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    if (!TOKEN_SHAPE.test(args.token)) {
+      throw new ConvexError("That confirmation link doesn't work.");
+    }
+    const emailVerifyKey = await emailKeyFor(args.token);
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_emailVerifyKey", (q) => q.eq("emailVerifyKey", emailVerifyKey))
+      .unique();
+    if (user === null || user.pendingEmail === undefined) {
+      throw new ConvexError("That confirmation link doesn't work.");
+    }
+    if (user._id !== userId) {
+      throw new ConvexError("Sign in as the person this link was sent to.");
+    }
+    if (user.emailVerifyExpires === undefined || user.emailVerifyExpires < Date.now()) {
+      throw new ConvexError("That link has expired. Send a new one from Settings.");
+    }
+    await ctx.db.patch("users", user._id, {
+      email: user.pendingEmail,
+      emailVerified: true,
+      pendingEmail: undefined,
+      emailVerifyKey: undefined,
+      emailVerifyExpires: undefined,
+    });
+    return null;
+  },
+});
+
+// Sends the confirmation again for an address that is still waiting.
+export const resendEmailVerification = mutation({
+  args: {},
+  returns: v.object({ emailed: v.boolean() }),
+  handler: async (ctx) => {
+    const userId = await requireUserId(ctx);
+    const user = await ctx.db.get("users", userId);
+    if (user === null) throw new Error("User not found");
+    const to = user.pendingEmail ?? (user.emailVerified === true ? undefined : user.email);
+    if (to === undefined) throw new ConvexError("There's no address waiting to be confirmed.");
+    if (!emailConfigured()) return { emailed: false };
+    const status = await issueEmailCheck(ctx, userId, to);
+    return { emailed: status === "sent" };
+  },
+});
+
+// The daily memory note. It needs a confirmed address, and the mail says only
+// that a memory is waiting.
+export const setOnThisDay = mutation({
+  args: { on: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx);
+    const user = await ctx.db.get("users", userId);
+    if (user === null) throw new Error("User not found");
+    if (args.on && user.emailVerified !== true) {
+      throw new ConvexError("Confirm your email address first.");
+    }
+    await ctx.db.patch("users", userId, { onThisDay: args.on ? true : undefined });
     return null;
   },
 });

@@ -19,6 +19,7 @@ import { vGeo, vTransport } from "./schema";
 import { recordChange } from "./lib/changes";
 import { datesBefore } from "./lib/cover";
 import { decryptGeo, decryptText } from "./lib/crypto";
+import { monthDayOf } from "./lib/monthDay";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 
@@ -214,6 +215,7 @@ export async function createMoment(
     authorAgent: actor.kind === "agent" ? actor.name : undefined,
     startsAt: input.startsAt,
     tzOffsetMinutes,
+    monthDay: monthDayOf(input.startsAt, tzOffsetMinutes),
     place,
     geo,
     blocks,
@@ -346,7 +348,16 @@ export async function writeMomentUpdate(
   const docPatch: Partial<
     Pick<
       Doc<"moments">,
-      "startsAt" | "tzOffsetMinutes" | "place" | "geo" | "blocks" | "transport" | "stops" | "labels" | "lastEdit"
+      | "startsAt"
+      | "tzOffsetMinutes"
+      | "monthDay"
+      | "place"
+      | "geo"
+      | "blocks"
+      | "transport"
+      | "stops"
+      | "labels"
+      | "lastEdit"
     >
   > = {};
   const fields: string[] = [];
@@ -361,6 +372,12 @@ export async function writeMomentUpdate(
       docPatch.startsAt = patch.startsAt;
       fields.push("startsAt");
     }
+  }
+
+  if (patch.startsAt !== undefined || tzOffsetMinutes !== undefined) {
+    const nextStarts = docPatch.startsAt ?? moment.startsAt;
+    const nextOffset = tzOffsetMinutes !== undefined ? tzOffsetMinutes : moment.tzOffsetMinutes;
+    docPatch.monthDay = monthDayOf(nextStarts, nextOffset);
   }
 
   if (patch.place !== undefined) {

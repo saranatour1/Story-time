@@ -2,7 +2,6 @@ import { ConvexError, v, type Infer } from "convex/values";
 import { components } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
-  env,
   mutation,
   query,
   type MutationCtx,
@@ -10,6 +9,7 @@ import {
 } from "./_generated/server";
 import { assertNotArchived, requireEventAccess } from "./lib/access";
 import { appOrigin } from "./lib/appUrl";
+import { emailConfigured, replyAddress } from "./lib/emailAddress";
 import { recordChange } from "./lib/changes";
 import { decryptText, encryptText, readText, shareKeyFor } from "./lib/crypto";
 import { contentsOf, pageInEvent, vOutlinePage, vPageView } from "./journal";
@@ -274,13 +274,14 @@ export const emailLink = mutation({
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || to.length > 254) {
       throw new ConvexError({ code: "INVALID", field: "to", message: "Enter a valid email address" });
     }
-    const canEmail = Boolean(env.CF_ACCOUNT_ID && env.CF_EMAIL_TOKEN && env.EMAIL_FROM);
-    if (!canEmail) return { emailed: false };
+    if (!emailConfigured()) return { emailed: false };
     await chargeShareEmail(ctx, userId);
     const link = linkFor(token);
     const title = escapeHtml(event.title);
+    const replyTo = await replyAddress(ctx, userId);
     await ctx.runMutation(components.email.lib.send, {
       to,
+      ...(replyTo === undefined ? {} : { replyTo }),
       subject: `A story to read: "${event.title}"`,
       html: `<p>Someone shared a story with you on Story-time: ${title}.</p><p><a href="${link}">Open the story</a></p><p>Anyone with this link can watch it. No account is needed.</p>`,
       text: `Someone shared "${event.title}" with you on Story-time.\n${link}\nAnyone with this link can watch it. No account is needed.`,
