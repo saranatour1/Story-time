@@ -11,17 +11,17 @@ import { errorMessage } from "@/lib/errors";
 // comes back to /invite without the "#" part, so the token never travels with it.
 export const INVITE_STASH = "storytime:invite";
 
-function forgetStash() {
+const forgetStash = () => {
   try {
     sessionStorage.removeItem(INVITE_STASH);
   } catch {
     // Storage blocked: there was nothing kept to forget.
   }
-}
+};
 
 // Opens an invite: sign in if needed, then use the token once and go to the
 // experience. Used by /invite#<token> and by older /invite/<token> links.
-export function InvitePage({ token, returnTo }: { token: string; returnTo?: string }) {
+export const InvitePage = ({ token, returnTo }: { token: string; returnTo?: string }) => {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const accept = useMutation(api.invites.accept);
   const navigate = useNavigate();
@@ -70,4 +70,4 @@ export function InvitePage({ token, returnTo }: { token: string; returnTo?: stri
       </div>
     </SignedOutPage>
   );
-}
+};

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 const SCENES = ["Title page", "The route", "A stop", "The end"] as const;
 const SCENE_MS = [5600, 4600, 5200, 4200];
 
-export function FilmDemo() {
+export const FilmDemo = () => {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
   const [scene, setScene] = useState(0);
@@ -104,9 +104,9 @@ export function FilmDemo() {
       </div>
     </div>
   );
-}
+};
 
-function Scene({ active, children }: { active: boolean; children: React.ReactNode }) {
+const Scene = ({ active, children }: { active: boolean; children: React.ReactNode }) => {
   return (
     <div
       aria-hidden={!active}
@@ -116,14 +116,14 @@ function Scene({ active, children }: { active: boolean; children: React.ReactNod
       {children}
     </div>
   );
-}
+};
 
 // Porto to Lisbon by train on a dark street map, the way story mode draws a
 // leg: the line fills in and the train rides it.
 const RAIL = "M74 16 C80 30 79 44 70 57 S59 70 58 74";
 const LAND = "#1b1b1b";
 
-function Leg({ play }: { play: boolean }) {
+const Leg = ({ play }: { play: boolean }) => {
   return (
     <div className="relative size-full">
       <svg aria-hidden viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 size-full">
@@ -181,7 +181,7 @@ function Leg({ play }: { play: boolean }) {
       </div>
     </div>
   );
-}
+};
 
 // A stop's photos dealt out as prints, the last one face up, with the caption
 // story mode puts under them.
@@ -191,7 +191,7 @@ const DEALT = [
   { kind: "ferry" as const, rest: "-rotate-1" },
 ];
 
-function Deck({ dealt, reduced }: { dealt: boolean; reduced: boolean }) {
+const Deck = ({ dealt, reduced }: { dealt: boolean; reduced: boolean }) => {
   const ferry = PHOTOS[0]!;
   return (
     <div className="flex size-full flex-col items-center justify-center gap-5 px-6 sm:gap-6">
@@ -222,9 +222,9 @@ function Deck({ dealt, reduced }: { dealt: boolean; reduced: boolean }) {
       </div>
     </div>
   );
-}
+};
 
-function ContactSheet({ onReplay }: { onReplay: () => void }) {
+const ContactSheet = ({ onReplay }: { onReplay: () => void }) => {
   return (
     <div className="flex size-full flex-col items-center justify-center gap-6 px-6">
       <div className="grid w-[min(85%,30rem)] grid-cols-3 gap-2 sm:gap-3">
@@ -247,4 +247,4 @@ function ContactSheet({ onReplay }: { onReplay: () => void }) {
       </button>
     </div>
   );
-}
+};

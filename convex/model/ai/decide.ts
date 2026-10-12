@@ -70,27 +70,27 @@ type Decided = Infer<typeof vDecided>;
 
 type Point = { place?: string; geo?: Geo; time?: number };
 
-async function pointOf(
+const pointOf = async (
   eventId: Id<"events">,
   stop: { place?: Encrypted; geo?: Encrypted; startsAt?: number },
-): Promise<Point> {
+): Promise<Point> => {
   return {
     place: stop.place ? await decryptText(eventId, stop.place) : undefined,
     geo: stop.geo ? await decryptGeo(eventId, stop.geo) : undefined,
     time: stop.startsAt,
   };
-}
+};
 
 // A moment's stops in journey order: its own first stop, then `stops`.
-async function pointsOf(eventId: Id<"events">, moment: Doc<"moments">): Promise<Point[]> {
+const pointsOf = async (eventId: Id<"events">, moment: Doc<"moments">): Promise<Point[]> => {
   return Promise.all([
     pointOf(eventId, moment),
     ...(moment.stops ?? []).map((stop) => pointOf(eventId, stop)),
   ]);
-}
+};
 
 // Distances and times only when both ends have them, so nothing is guessed.
-function legBetween(stopIndex: number, from: Point, to: Point): Leg {
+const legBetween = (stopIndex: number, from: Point, to: Point): Leg => {
   const leg: Leg = { id: String(stopIndex), stopIndex };
   if (from.place !== undefined) leg.fromPlace = from.place;
   if (to.place !== undefined) leg.toPlace = to.place;
@@ -103,7 +103,7 @@ function legBetween(stopIndex: number, from: Point, to: Point): Leg {
     if (leg.km !== undefined) leg.kmh = Math.round(leg.km / (minutes / 60));
   }
   return leg;
-}
+};
 
 export const legsOf = internalQuery({
   args: { momentId: v.id("moments") },
@@ -149,31 +149,31 @@ export const legsOf = internalQuery({
   },
 });
 
-function isTransport(value: string): value is Transport {
+const isTransport = (value: string): value is Transport => {
   return TRANSPORTS.some((t) => t === value);
-}
+};
 
 // Raises a guess that the distance rules out, since speeds only ever read low:
 // a road or foot leg over FLIGHT_KM is a flight, a walk or ride over ROAD_KM a
 // drive. Trains, boats, planes and "other" stand as they are.
-export function withDistance(transport: Transport, km: number | undefined): Transport {
+export const withDistance = (transport: Transport, km: number | undefined): Transport => {
   if (km === undefined) return transport;
   const ground = transport === "walk" || transport === "bike" || transport === "car" || transport === "bus";
   if (ground && km > FLIGHT_KM) return "plane";
   if ((transport === "walk" || transport === "bike") && km > ROAD_KM) return "car";
   return transport;
-}
+};
 
 // ponytail: speed alone is a rough guess (it can't tell a bus from a car), so this
 // only answers when Jev can't.
-export function transportFromSpeed(kmh: number): Transport {
+export const transportFromSpeed = (kmh: number): Transport => {
   if (kmh < 7) return "walk";
   if (kmh < 25) return "bike";
   if (kmh < 160) return "car";
   return "plane";
-}
+};
 
-function heuristic(legs: Leg[]): Decided {
+const heuristic = (legs: Leg[]): Decided => {
   const transports: Record<string, Transport> = {};
   for (const leg of legs) {
     const key = String(leg.stopIndex);
@@ -182,10 +182,10 @@ function heuristic(legs: Leg[]): Decided {
     else if (leg.km !== undefined && leg.km > FLIGHT_KM) transports[key] = "plane";
   }
   return { transports };
-}
+};
 
 // The state is plain JSON, so unknown values are left out, never set to undefined.
-function legState(leg: Leg): Record<string, string | number> {
+const legState = (leg: Leg): Record<string, string | number> => {
   return {
     id: leg.id,
     stopIndex: leg.stopIndex,
@@ -195,20 +195,20 @@ function legState(leg: Leg): Record<string, string | number> {
     ...(leg.minutes !== undefined && { minutes: leg.minutes }),
     ...(leg.kmh !== undefined && { kmh: leg.kmh }),
   };
-}
+};
 
 // The chosen option, if Jev gives it at least even odds.
-function choiceOf(
+const choiceOf = (
   answer: Experimental_DecisionAnswer<Experimental_DecisionQuestion> | undefined,
-): string | undefined {
+): string | undefined => {
   if (answer?.type !== "choice") return undefined;
   return (answer.probabilities?.[answer.choice] ?? 0) >= 0.5 ? answer.choice : undefined;
-}
+};
 
-export function readDecisions(
+export const readDecisions = (
   found: LegsOf,
   answers: Record<string, Experimental_DecisionAnswer<Experimental_DecisionQuestion>>,
-): Decided {
+): Decided => {
   const transports: Record<string, Transport> = {};
   for (const leg of found.legs) {
     const choice = choiceOf(answers[`transport_${leg.id}`]);
@@ -222,7 +222,7 @@ export function readDecisions(
     transports,
     label: label !== undefined && label !== "none" && found.labels.includes(label) ? label : undefined,
   };
-}
+};
 
 export const decideTransport = internalAction({
   args: { momentId: v.id("moments") },

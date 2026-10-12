@@ -4,6 +4,7 @@ What has landed, newest first. One line per change; the PR has the detail.
 
 ## 2026-10-12
 
+- Functions are arrow functions everywhere: `const name = () => {}`, never `function name() {}`. 661 declarations were converted, and lint (`func-style`) now fails on a new one. The 17 route files define `Route` last, after the components it names.
 - **convex/ reorganized** (after ianmacartney/code-organization-pattern). Functions are written in `convex/model/` and leave a file only inside its `…Api` object; `convex/api/` holds one-line re-exports, which is the API the app calls (`api.moments.list`, from `@/lib/api`). Helpers stay in `convex/lib/`. `convex/README.md` maps every file for people and agents, and `convex/tests/layout.test.ts` fails if the layout or the map drifts. Internal functions are `internal.model.*`; the seed is `model/seed:japan`.
 - Lists and thumbnails fetch a stored 480px JPEG, and only once the picture is near the screen. The open page still fetches the original for the photos you can see. A photo from before this falls back to the original.
 - Printing a journal writes one page at a time into the file, on one canvas, at a lower scale and JPEG quality. The button shows how far it has got, and Cancel stops the rest.

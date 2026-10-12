@@ -11,7 +11,7 @@ import { canRecord, formatOfMime, micProblem, pickMime } from "@/lib/voice";
 // Speech for the box above the moments. Press to record, press again to stop;
 // the clip goes to the server, comes back as text and lands in the box, where
 // it can be fixed before it's sent. The clip is not kept anywhere.
-export function VoiceButton({ onText, disabled, quiet = false }: { onText: (text: string) => void; disabled?: boolean; quiet?: boolean }) {
+export const VoiceButton = ({ onText, disabled, quiet = false }: { onText: (text: string) => void; disabled?: boolean; quiet?: boolean }) => {
   const transcribe = useAction(api.ai.voice.transcribe);
   const [phase, setPhase] = useState<"idle" | "recording" | "sending">("idle");
   const [seconds, setSeconds] = useState(0);
@@ -19,7 +19,7 @@ export function VoiceButton({ onText, disabled, quiet = false }: { onText: (text
   const timer = useRef<number | undefined>(undefined);
   const supported = canRecord();
 
-  function release() {
+  const release = () => {
     window.clearInterval(timer.current);
     const rec = recorder.current;
     recorder.current = null;
@@ -27,11 +27,11 @@ export function VoiceButton({ onText, disabled, quiet = false }: { onText: (text
     rec.onstop = null; // a recording thrown away isn't sent
     if (rec.state !== "inactive") rec.stop();
     rec.stream.getTracks().forEach((track) => track.stop());
-  }
+  };
   // Leaving the page lets go of the microphone.
   useEffect(() => release, []);
 
-  async function send(clip: Blob, mime: string) {
+  const send = async (clip: Blob, mime: string) => {
     const format = formatOfMime(mime);
     if (format === undefined) {
       toast.error("This browser recorded in a format I can't read. Type it instead.");
@@ -49,9 +49,9 @@ export function VoiceButton({ onText, disabled, quiet = false }: { onText: (text
     } finally {
       setPhase("idle");
     }
-  }
+  };
 
-  async function start() {
+  const start = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mime = pickMime();
@@ -75,7 +75,7 @@ export function VoiceButton({ onText, disabled, quiet = false }: { onText: (text
       release();
       toast.error(micProblem(error));
     }
-  }
+  };
 
   // A minute is the longest a request holds.
   useEffect(() => {
@@ -103,4 +103,4 @@ export function VoiceButton({ onText, disabled, quiet = false }: { onText: (text
       )}
     </Button>
   );
-}
+};

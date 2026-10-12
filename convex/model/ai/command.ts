@@ -165,16 +165,16 @@ const INTENTS = {
 } as const;
 type Intent = keyof typeof INTENTS;
 
-function isIntent(value: string): value is Intent {
+const isIntent = (value: string): value is Intent => {
   return value in INTENTS;
-}
+};
 
 export type Verdict = { intent: Intent | undefined; removes: number | undefined };
 
 type Answers = Record<string, Experimental_DecisionAnswer<Experimental_DecisionQuestion>>;
 
 // A choice counts when Jev gives it at least even odds, as in decide.ts.
-export function readVerdict(answers: Answers): Verdict {
+export const readVerdict = (answers: Answers): Verdict => {
   const intent = answers.intent;
   const removes = answers.removes;
   return {
@@ -184,9 +184,9 @@ export function readVerdict(answers: Answers): Verdict {
         : undefined,
     removes: removes?.type === "boolean" ? removes.probability : undefined,
   };
-}
+};
 
-async function judge(text: string, open: boolean): Promise<Verdict> {
+const judge = async (text: string, open: boolean): Promise<Verdict> => {
   try {
     const { answers } = await experimental_decide({
       model: jevModel(),
@@ -209,16 +209,16 @@ async function judge(text: string, open: boolean): Promise<Verdict> {
     console.warn("Jev skipped the intent check:", skipReason(error));
     return { intent: undefined, removes: undefined };
   }
-}
+};
 
 const REMOVAL_WORDS = /\b(delete|remove|drop|erase|cancel|get rid of|take out|scrap)\b/i;
 
 // A removal Haiku proposes is kept only when Jev, asked separately, agrees the
 // sentence asks for one. Without Jev's answer the plain words decide.
-export function allowsRemoval(verdict: Verdict, text: string): boolean {
+export const allowsRemoval = (verdict: Verdict, text: string): boolean => {
   if (verdict.removes !== undefined) return verdict.removes >= 0.5;
   return verdict.intent === "remove" || REMOVAL_WORDS.test(text);
-}
+};
 
 // ---- Haiku: the plan ----------------------------------------------------------
 
@@ -271,24 +271,24 @@ const planner = new Agent(components.agent, {
 const pad = (n: number) => String(n).padStart(2, "0");
 
 // The clock where it happened: "2025-02-20T17:29".
-export function localOf(ms: number, offset: number): string {
+export const localOf = (ms: number, offset: number): string => {
   const d = new Date(ms + offset * 60_000);
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
-}
+};
 
 // The instant a local time names at `offset`. A bare date keeps `clock`
 // (HH:mm). Undefined for a date that doesn't exist, like the 31st of February.
-export function fromLocal(when: string, offset: number, clock: string): number | undefined {
+export const fromLocal = (when: string, offset: number, clock: string): number | undefined => {
   const full = when.length === 10 ? `${when}T${clock}` : when;
   const at = Date.parse(`${full}:00Z`);
   if (!Number.isFinite(at) || new Date(at).toISOString().slice(0, 16) !== full) return undefined;
   return at - offset * 60_000;
-}
+};
 
 // Notes and labels are other people's words, so they are data in the prompt,
 // never instructions: a removal in the plan still needs Jev's separate yes
 // about what the person themselves typed, and the person approves the plan.
-function describeLine(line: Line, n: number, zone: number): string {
+const describeLine = (line: Line, n: number, zone: number): string => {
   const offset = line.tzOffsetMinutes ?? zone;
   const route = [
     `${line.place ?? "no place"}${line.transport ? ` (by ${line.transport})` : ""}`,
@@ -299,9 +299,9 @@ function describeLine(line: Line, n: number, zone: number): string {
   const labels = line.labels.length > 0 ? ` labels: ${line.labels.join(", ")};` : "";
   const note = line.note === undefined ? "" : ` note: "${line.note}"`;
   return `${n}. ${localOf(line.startsAt, offset).replace("T", " ")} · stops ${route};${labels}${note}${line.editable ? "" : " (not yours to change)"}`;
-}
+};
 
-export function promptFor(c: Context, text: string, now: number, zone: number): string {
+export const promptFor = (c: Context, text: string, now: number, zone: number): string => {
   const shown = c.total > c.moments.length ? ` (the ${c.moments.length} nearest the open one, of ${c.total})` : "";
   return [
     `Experience: ${c.title}`,
@@ -311,7 +311,7 @@ export function promptFor(c: Context, text: string, now: number, zone: number): 
     c.open === undefined ? "Open on screen: nothing" : `Open on screen: moment ${c.open + 1}`,
     `The person says: ${text}`,
   ].join("\n");
-}
+};
 
 const trimmed = (s: string | undefined) => {
   const t = s?.trim();
@@ -321,18 +321,18 @@ const trimmed = (s: string | undefined) => {
 // How far down a plan an operation goes: new moments first, whole moments last,
 // so a stop's number still means what it did when the plan was read.
 const rank = (op: Op) => (op.op === "add" ? 0 : op.op === "edit" ? 1 : op.op === "addStop" ? 2 : op.stop !== undefined ? 3 : 4);
-export function orderOps(ops: Op[]): Op[] {
+export const orderOps = (ops: Op[]): Op[] => {
   return ops.map((op, i) => ({ op, i })).sort((a, b) => rank(a.op) - rank(b.op) || a.i - b.i).map(({ op }) => op);
-}
+};
 
 // Checks the model's plan against what exists, and turns numbers into ids and
 // local times into instants. Anything that doesn't hold up is dropped and
 // explained in `needs`, so a wrong guess never reaches Apply.
-export function resolvePlan(
+export const resolvePlan = (
   raw: RawPlan,
   c: Context,
   o: { removesOk: boolean; zone: number },
-): { ops: Op[]; needs?: string } {
+): { ops: Op[]; needs?: string } => {
   const said: string[] = [];
   const ops: Op[] = [];
   const removed = new Set<string>();
@@ -461,7 +461,7 @@ export function resolvePlan(
   const kept = ops.filter((op) => op.op === "remove" || op.momentId === undefined || !removed.has(op.momentId));
   const needs = trimmed([raw.needs, ...new Set(said)].filter(Boolean).join(" "))?.slice(0, 300);
   return { ops: orderOps(kept), needs };
-}
+};
 
 const propose = action({
   args: {
@@ -538,13 +538,13 @@ const propose = action({
 
 const human = (userId: Id<"users">) => ({ kind: "human" as const, userId });
 
-async function changeableMoment(
+const changeableMoment = async (
   ctx: MutationCtx,
   eventId: Id<"events">,
   momentId: Id<"moments"> | undefined,
   userId: Id<"users">,
   role: string,
-): Promise<Doc<"moments">> {
+): Promise<Doc<"moments">> => {
   const moment = momentId === undefined ? null : await ctx.db.get("moments", momentId);
   if (moment === null || moment.eventId !== eventId) {
     throw new ConvexError({ code: "NOT_FOUND", message: "A moment in this change no longer exists." });
@@ -554,16 +554,16 @@ async function changeableMoment(
     throw new ConvexError({ code: "FORBIDDEN", message: "You can only change moments you added yourself." });
   }
   return moment;
-}
+};
 
 const noMore = (what: string) => new ConvexError({ code: "FULL", message: `That moment can't take any more ${what}.` });
 
 // One op's writes. The experience is read fresh each time: an earlier op may
 // have changed its moment count.
-async function runOp(
+const runOp = async (
   ctx: MutationCtx,
   args: { eventId: Id<"events">; userId: Id<"users">; role: string; op: Op },
-): Promise<{ created?: Id<"moments">; removed: Id<"media">[] }> {
+): Promise<{ created?: Id<"moments">; removed: Id<"media">[] }> => {
   const { eventId, userId, role, op } = args;
   const event = await ctx.db.get("events", eventId);
   if (event === null) throw new ConvexError({ code: "NOT_FOUND", message: "Experience not found" });
@@ -648,9 +648,9 @@ async function runOp(
 
   const { removedMediaIds } = await writeMomentUpdate(ctx, { event, moment, userId, actor: human(userId), patch });
   return { removed: removedMediaIds };
-}
+};
 
-function summaryOf(ops: Op[]): string {
+const summaryOf = (ops: Op[]): string => {
   const count = (pick: (op: Op) => boolean) => ops.filter(pick).length;
   const parts = [
     [count((o) => o.op === "add"), "added"],
@@ -661,7 +661,7 @@ function summaryOf(ops: Op[]): string {
     .filter(([n]) => n > 0)
     .map(([n, what]) => `${n} ${what}`)
     .join(", ");
-}
+};
 
 // Applies a plan the person approved. One transaction: if any operation is
 // refused (a moment gone, a stop that isn't there, a limit), nothing changes.

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { assembleJournalPdf, jpegSize, PdfCancelled, PDF_QUALITY, PDF_SCALE, reuseCanvas } from "./pdf-book";
 
-function tinyJpeg(width: number, height: number, tag: number): Uint8Array {
+const tinyJpeg = (width: number, height: number, tag: number): Uint8Array => {
   const sof = [
     0xff, 0xc0, 0x00, 0x11, 0x08,
     (height >> 8) & 255, height & 255,
@@ -9,7 +9,7 @@ function tinyJpeg(width: number, height: number, tag: number): Uint8Array {
     0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x00, 0x03, 0x11, 0x00,
   ];
   return Uint8Array.from([0xff, 0xd8, 0xff, 0xfe, 0x00, 0x03, tag, ...sof, 0xff, 0xd9]);
-}
+};
 
 describe("a journal PDF", () => {
   test("prints below the old scale and quality", () => {

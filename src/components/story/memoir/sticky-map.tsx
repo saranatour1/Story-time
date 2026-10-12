@@ -36,20 +36,20 @@ const FRAME_PADDING = { top: 32, bottom: 32, left: 32, right: 64 };
 
 // The stops joined in story order: each leg along its streets or tracks once
 // they have come back, bowed the way the film bows it until then.
-function routeThrough(stops: MapStop[], paths: Array<Path | undefined>): Point[] {
+const routeThrough = (stops: MapStop[], paths: Array<Path | undefined>): Point[] => {
   return stops.flatMap((s, i): Point[] => {
     const here: Point = [s.lng, s.lat];
     const prev = stops[i - 1];
     if (!prev) return [here];
     return (paths[i] ?? curve([prev.lng, prev.lat], here, bend(s.transport ?? "walk"))).slice(1);
   });
-}
+};
 
 // The story's stops on a map, numbered as their cards are and joined in story
 // order. The stop in focus is marked, the leg into it draws itself, and the
 // camera frames it; stops still to come are dimmed. The viewer scrolls the
 // story, so the map itself doesn't take touches (it would hold the page).
-export function StickyMap({
+export const StickyMap = ({
   stops,
   focus,
   leg,
@@ -70,7 +70,7 @@ export function StickyMap({
   light?: boolean;
   // Drawn so it can be photographed into a PDF, with no zoom buttons.
   printable?: boolean;
-}) {
+}) => {
   const { resolvedTheme: appTheme } = useTheme();
   const resolvedTheme = light ? "light" : appTheme;
   // MapLibre needs the browser, so nothing draws until this has mounted.
@@ -163,12 +163,12 @@ export function StickyMap({
       </MapView>
     </section>
   );
-}
+};
 
 // Frames the stop in focus, or every stop. The first framing is at once; later
 // ones fly, unless the viewer prefers no motion. A theme change reloads the
 // basemap, which mustn't reset the view, so a framing is applied only once.
-function Camera({ framing, framingKey, reduced }: { framing: Point[]; framingKey: string; reduced: boolean }) {
+const Camera = ({ framing, framingKey, reduced }: { framing: Point[]; framingKey: string; reduced: boolean }) => {
   const { map, isLoaded } = useMap();
   const framed = useRef<string | null>(null);
   useEffect(() => {
@@ -184,12 +184,12 @@ function Camera({ framing, framingKey, reduced }: { framing: Point[]; framingKey
     map.fitBounds(box, { padding: FRAME_PADDING, maxZoom: 14, duration });
   }, [isLoaded, map, framing, framingKey, reduced]);
   return null;
-}
+};
 
 // The leg into the stop in focus: faint along its length, then drawn over
 // LEG_MS with the transport riding its end. Mounted once per stop, so each
 // leg starts over when the story reaches it.
-function LegRoute({
+const LegRoute = ({
   id,
   coordinates,
   transport,
@@ -201,7 +201,7 @@ function LegRoute({
   transport: Transport;
   color: string;
   reduced: boolean;
-}) {
+}) => {
   const [progress, setProgress] = useState(reduced ? 1 : 0);
   useEffect(() => {
     if (reduced) return;
@@ -236,4 +236,4 @@ function LegRoute({
       </RouteMarker>
     </MapRoute>
   );
-}
+};

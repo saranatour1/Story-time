@@ -6,15 +6,15 @@ import { Button } from "@/components/ui/button";
 import { stopsOf } from "@/lib/story-steps";
 
 // The story's first photo in time order: the picture on the cover.
-function firstPhoto(moments: StoryMoment[]): string | undefined {
+const firstPhoto = (moments: StoryMoment[]): string | undefined => {
   const blocks = [...moments].sort((a, b) => a.startsAt - b.startsAt).flatMap((m) => stopsOf(m).flatMap((s) => s.blocks));
   const photo = blocks.find((b) => b.type === "photo");
   return photo?.type === "photo" ? photo.mediaId : undefined;
-}
+};
 
 // The top of the memoir: what the story is, when, and a first picture. The
 // film is one tap away from here, too.
-export function Cover({
+export const Cover = ({
   event,
   moments,
   days,
@@ -26,7 +26,7 @@ export function Cover({
   days: number;
   stops: number;
   onPlayFilm: () => void;
-}) {
+}) => {
   const range = dateRange(event, moments);
   const photo = firstPhoto(moments);
   const counts =
@@ -56,4 +56,4 @@ export function Cover({
       </div>
     </section>
   );
-}
+};

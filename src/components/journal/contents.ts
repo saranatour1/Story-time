@@ -18,7 +18,7 @@ const DAY = { weekday: "short", month: "short", day: "numeric" } as const;
 
 // The strip, in book order, gathered the way the moments list is: the cover,
 // then each day. A page with no moment stays with the group before it.
-export function contentsByDay(pages: ContentsPage[], moments: ReadonlyMap<string, DayMoment>, today?: string): ContentsGroup[] {
+export const contentsByDay = (pages: ContentsPage[], moments: ReadonlyMap<string, DayMoment>, today?: string): ContentsGroup[] => {
   const groups: ContentsGroup[] = [];
   const byKey = new Map<string, ContentsGroup>();
   const push = (key: string, label: string, index: number) => {
@@ -45,4 +45,4 @@ export function contentsByDay(pages: ContentsPage[], moments: ReadonlyMap<string
     else push(`loose-${page._id}`, "Added", index);
   });
   return groups;
-}
+};

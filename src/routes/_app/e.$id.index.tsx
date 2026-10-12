@@ -25,18 +25,7 @@ const search = z.object({
   editId: z.string().optional().catch(undefined),
 });
 
-export const Route = createFileRoute("/_app/e/$id/")({
-  // Old edit links name the moment in `momentId` only.
-  validateSearch: search.transform((s) => (s.panel === "moment" && !s.editId && s.momentId ? { ...s, editId: s.momentId } : s)),
-  beforeLoad: ({ search: s, params }) => {
-    if (s.tab === "shared") throw redirect({ to: "/e/$id/shared", params });
-    if (s.tab === "activity") throw redirect({ to: "/e/$id/activity", params });
-    if (s.tab === "canvas" || s.tab === "journal") throw redirect({ to: "/e/$id/journal", params });
-  },
-  component: EventPage,
-});
-
-function EventPage() {
+const EventPage = () => {
   const { id } = Route.useParams();
   const { panel, momentId, editId } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -87,11 +76,11 @@ function EventPage() {
       }}
     </ExperienceShell>
   );
-}
+};
 
 // Beside the list on a wide screen: the picked moment's journal page with ways
 // on from it, or the cover when nothing is picked.
-function PickedPage({ event, momentId, canEditMoment, onEdit }: { event: EventView; momentId?: string; canEditMoment: (authorId: string) => boolean; onEdit: (id: Id<"moments">) => void }) {
+const PickedPage = ({ event, momentId, canEditMoment, onEdit }: { event: EventView; momentId?: string; canEditMoment: (authorId: string) => boolean; onEdit: (id: Id<"moments">) => void }) => {
   const moments = useQuery(api.moments.list, { eventId: event._id });
   const moment = moments?.find((m) => m._id === momentId);
   // The aside is hidden below `lg`. Mounting it there would still subscribe
@@ -130,4 +119,16 @@ function PickedPage({ event, momentId, canEditMoment, onEdit }: { event: EventVi
       {!moment && event.momentCount > 0 && <p className="text-sm text-muted-foreground">Pick a moment to see its page.</p>}
     </aside>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app/e/$id/")({
+  // Old edit links name the moment in `momentId` only.
+  validateSearch: search.transform((s) => (s.panel === "moment" && !s.editId && s.momentId ? { ...s, editId: s.momentId } : s)),
+  beforeLoad: ({ search: s, params }) => {
+    if (s.tab === "shared") throw redirect({ to: "/e/$id/shared", params });
+    if (s.tab === "activity") throw redirect({ to: "/e/$id/activity", params });
+    if (s.tab === "canvas" || s.tab === "journal") throw redirect({ to: "/e/$id/journal", params });
+  },
+  component: EventPage,
+});

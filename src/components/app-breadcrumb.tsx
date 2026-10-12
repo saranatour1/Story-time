@@ -13,7 +13,7 @@ import {
 const SECTION_NAMES: Record<string, string> = { "/journal": "Journal", "/shared": "Shared", "/activity": "Activity" };
 
 // Navbar trail for the experiences side: Experiences › <experience> › <section>.
-export function AppBreadcrumb() {
+export const AppBreadcrumb = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const open = /^\/e\/([^/]+)(\/[a-z]+)?\/?$/.exec(pathname);
   const eventId = open?.[1];
@@ -62,4 +62,4 @@ export function AppBreadcrumb() {
       </BreadcrumbList>
     </Breadcrumb>
   );
-}
+};

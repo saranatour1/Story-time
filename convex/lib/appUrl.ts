@@ -7,7 +7,7 @@ const DEV_ORIGIN = "http://localhost:3000";
 // Convex gives no dev/prod signal to tell the two apart (both sites use
 // *.convex.site), so the fallback itself stays.
 let warnedFallback = false;
-function fallbackOrigins(): string[] {
+const fallbackOrigins = (): string[] => {
   if (!warnedFallback) {
     warnedFallback = true;
     console.warn(
@@ -15,14 +15,14 @@ function fallbackOrigins(): string[] {
     );
   }
   return [DEV_ORIGIN];
-}
+};
 
 // The web app's origins, from APP_URL: one URL, or several separated by
 // commas (say the apex, www and the workers.dev address). Each may carry a
 // trailing slash or a path; OAuth redirect checks and invite links only want
 // the bare origin. A malformed entry is skipped with a log line rather than
 // breaking every sign-in.
-export function appOrigins(): string[] {
+export const appOrigins = (): string[] => {
   const configured = env.APP_URL?.trim() ?? "";
   if (configured === "") return fallbackOrigins();
   const origins = configured.split(",").flatMap((raw) => {
@@ -36,9 +36,9 @@ export function appOrigins(): string[] {
     }
   });
   return origins.length > 0 ? origins : fallbackOrigins();
-}
+};
 
 // The first origin is the one invite links point at.
-export function appOrigin(): string {
+export const appOrigin = (): string => {
   return appOrigins()[0]!;
-}
+};

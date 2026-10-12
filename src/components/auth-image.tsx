@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 // states (e.g. a square thumbnail). Lists ask for the stored thumbnail and
 // wait until the tile is near the viewport; the fetch itself cannot be deferred
 // by loading=lazy, because the bytes are not a public URL.
-export function AuthImage({
+export const AuthImage = ({
   mediaId,
   alt,
   className,
@@ -22,7 +22,7 @@ export function AuthImage({
   width?: number;
   height?: number;
   sizes?: string;
-}) {
+}) => {
   const [ref, seen] = useWhenSeen();
   const { url, failed } = useMediaUrl(seen ? mediaId : undefined, variant);
 
@@ -47,12 +47,12 @@ export function AuthImage({
       )}
     </div>
   );
-}
+};
 
 // Videos load the same way. ponytail: the whole file is fetched before it
 // plays (no range requests); fine at the 50 MB cap, stream via signed URLs
 // if longer videos are ever allowed.
-export function AuthVideo({ mediaId, label }: { mediaId: string; label: string }) {
+export const AuthVideo = ({ mediaId, label }: { mediaId: string; label: string }) => {
   const { url, failed } = useMediaUrl(mediaId);
 
   if (failed) {
@@ -64,4 +64,4 @@ export function AuthVideo({ mediaId, label }: { mediaId: string; label: string }
   }
   if (!url) return <div className="aspect-video animate-pulse rounded-md bg-muted" />;
   return <video src={url} controls preload="metadata" aria-label={label} className="aspect-video w-full rounded-md bg-black" />;
-}
+};

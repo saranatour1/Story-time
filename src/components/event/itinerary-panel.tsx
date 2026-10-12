@@ -17,7 +17,7 @@ const TITLES: Record<Exclude<Panel, "outline">, string> = {
 
 // The form beside the moments: the experience's details, or a moment being
 // edited (`momentId`).
-export function EditorPanel({
+export const EditorPanel = ({
   event,
   panel,
   momentId,
@@ -29,7 +29,7 @@ export function EditorPanel({
   momentId?: string;
   canEditMoment: (authorId: string) => boolean;
   onClose: () => void;
-}) {
+}) => {
   const moments = useQuery(api.moments.list, { eventId: event._id });
 
   let body;
@@ -60,4 +60,4 @@ export function EditorPanel({
       {body}
     </section>
   );
-}
+};

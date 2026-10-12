@@ -12,7 +12,7 @@ beforeAll(() => {
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, viewerId, otherId] = [await make(), await make(), await make()];
@@ -29,7 +29,7 @@ async function setup() {
     return mediaId;
   };
   return { t, owner, viewer: as(viewerId), other: as(otherId), eventId, token, upload };
-}
+};
 
 test("the owner puts a locked PDF on the link; its password stays theirs", async () => {
   const { t, owner, viewer, eventId, token, upload } = await setup();

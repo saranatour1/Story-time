@@ -18,7 +18,7 @@ beforeAll(() => {
 
 const T0 = Date.UTC(2026, 5, 1, 12);
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const make = (displayName?: string) => t.run((ctx) => ctx.db.insert("users", { displayName }));
   const [ownerId, helperId, viewerId, strangerId] = [
@@ -37,7 +37,7 @@ async function setup() {
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
   );
   return { t, eventId, ownerId, helperId, viewerId, strangerId, owner, helper: as(helperId) };
-}
+};
 
 describe("people are people", () => {
   test("a person's moment and edit carry no agent, and the edit names them", async () => {

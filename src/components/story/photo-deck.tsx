@@ -32,10 +32,10 @@ export type PhotoDeckHandle = {
 };
 
 // The top card lies square; the two behind it peek out, smaller and tilted.
-function restPose(offset: number, tilt: number, reduced: boolean): string {
+const restPose = (offset: number, tilt: number, reduced: boolean): string => {
   if (offset < 1) return REST;
   return `translate3d(0px, ${offset * 3}%, 0px) scale(${offset === 1 ? 0.95 : 0.9}) rotate(${reduced ? 0 : tilt}deg)`;
-}
+};
 
 // The pictures of a stop as a deck of prints. Swipe, drag, tap or press to turn
 // them; past the last or before the first, the story takes the move.

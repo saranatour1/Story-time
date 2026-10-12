@@ -12,7 +12,7 @@ beforeAll(() => {
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, helperId, viewerId] = [await make(), await make(), await make()];
@@ -22,15 +22,15 @@ async function setup() {
   await t.run((ctx) => ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }));
   await t.run((ctx) => ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }));
   return { t, eventId, owner, helper: as(helperId), viewer: as(viewerId) };
-}
+};
 
 type Caller = Awaited<ReturnType<typeof setup>>["owner"];
 
-async function ready(who: Caller, eventId: Id<"events">, mime = "image/jpeg") {
+const ready = async (who: Caller, eventId: Id<"events">, mime = "image/jpeg") => {
   const { mediaId } = await who.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime });
   await who.mutation(api.api.media.confirmUpload, { mediaId });
   return mediaId;
-}
+};
 
 describe("media.unattached", () => {
   test("a contributor sees their own loose photos, newest first, and not a sticker or a photo already on a moment", async () => {

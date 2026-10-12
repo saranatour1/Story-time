@@ -12,7 +12,7 @@ const GRAIN = `url("data:image/svg+xml;utf8,${encodeURIComponent(
 )}")`;
 
 // Paper fibre over whatever is under it.
-export function Grain({ strength = 0.3 }: { strength?: number }) {
+export const Grain = ({ strength = 0.3 }: { strength?: number }) => {
   return (
     <div
       aria-hidden
@@ -20,7 +20,7 @@ export function Grain({ strength = 0.3 }: { strength?: number }) {
       style={{ backgroundImage: GRAIN, mixBlendMode: "multiply", opacity: strength }}
     />
   );
-}
+};
 
 // A shadow that follows a cut-out shape (box-shadow would stay a rectangle).
 export const LIFT: CSSProperties = { filter: "drop-shadow(1px 2px 0 rgba(40,28,10,.16)) drop-shadow(0 5px 7px rgba(40,28,10,.14))" };
@@ -29,7 +29,7 @@ const LIGHT_LIFT: CSSProperties = { filter: "drop-shadow(0 1px 1px rgba(40,28,10
 // ---- Pages ---------------------------------------------------------------------
 
 // A page: its colour and one loud shape, with what is on it as children.
-export function FrameBoard({ look, children }: { look: FrameLook; children?: ReactNode }) {
+export const FrameBoard = ({ look, children }: { look: FrameLook; children?: ReactNode }) => {
   return (
     <div className="relative size-full overflow-hidden" style={{ background: look.page, boxShadow: "0 1px 0 rgba(0,0,0,.08), 0 12px 30px rgba(40,28,10,.22)" }}>
       <div
@@ -41,11 +41,11 @@ export function FrameBoard({ look, children }: { look: FrameLook; children?: Rea
       {children}
     </div>
   );
-}
+};
 
 // ---- Scraps ---------------------------------------------------------------------
 
-export function Scrap({ id, w, h, look, text }: { id: string; w: number; h: number; look?: string; text?: string }) {
+export const Scrap = ({ id, w, h, look, text }: { id: string; w: number; h: number; look?: string; text?: string }) => {
   const paper = paperLook(look);
   const size = Math.max(16, Math.min(h * 0.24, w * 0.115));
   return (
@@ -69,11 +69,11 @@ export function Scrap({ id, w, h, look, text }: { id: string; w: number; h: numb
       </div>
     </div>
   );
-}
+};
 
 // ---- Prints ---------------------------------------------------------------------
 
-function Picture({ mediaId, w, h, className, style }: { mediaId: string; w: number; h: number; className?: string; style?: CSSProperties }) {
+const Picture = ({ mediaId, w, h, className, style }: { mediaId: string; w: number; h: number; className?: string; style?: CSSProperties }) => {
   const [ref, seen] = useWhenSeen();
   const { url, failed } = useMediaUrl(seen ? mediaId : undefined, "thumb");
   return (
@@ -94,9 +94,9 @@ function Picture({ mediaId, w, h, className, style }: { mediaId: string; w: numb
       {failed && <span className="grid size-full place-items-center text-[0.7em] text-stone-600">Photo unavailable</span>}
     </div>
   );
-}
+};
 
-export function Print({ id, w, h, look, mediaId }: { id: string; w: number; h: number; look?: string; mediaId: string }) {
+export const Print = ({ id, w, h, look, mediaId }: { id: string; w: number; h: number; look?: string; mediaId: string }) => {
   const style = printLook(look);
   if (style === "torn") {
     return (
@@ -128,11 +128,11 @@ export function Print({ id, w, h, look, mediaId }: { id: string; w: number; h: n
       <Picture mediaId={mediaId} w={w} h={h} />
     </div>
   );
-}
+};
 
 // ---- Tape ------------------------------------------------------------------------
 
-export function Tape({ look }: { look?: string }) {
+export const Tape = ({ look }: { look?: string }) => {
   const tape = tapeLook(look);
   return (
     <div className="size-full" style={LIGHT_LIFT}>
@@ -146,4 +146,4 @@ export function Tape({ look }: { look?: string }) {
       />
     </div>
   );
-}
+};

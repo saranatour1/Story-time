@@ -29,7 +29,7 @@ const schema = z
 const toDate = (s: string) => (s ? new Date(`${s}T00:00:00`).getTime() : null);
 const fromDate = (ms?: number) => (ms ? format(new Date(ms), "yyyy-MM-dd") : "");
 
-export function EventDetailsForm({ event, onDone }: { event: EventView; onDone?: () => void }) {
+export const EventDetailsForm = ({ event, onDone }: { event: EventView; onDone?: () => void }) => {
   const update = useMutation(api.events.update);
   // Unique ids, so labels stay tied to their inputs wherever this renders.
   const id = useId();
@@ -112,4 +112,4 @@ export function EventDetailsForm({ event, onDone }: { event: EventView; onDone?:
       </Button>
     </form>
   );
-}
+};

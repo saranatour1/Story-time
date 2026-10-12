@@ -25,7 +25,7 @@ const SINTRA = { lat: 38.8029, lng: -9.3817 };
 const PORTO = { lat: 41.1579, lng: -8.6291 };
 const FARO = { lat: 37.0194, lng: -7.9322 };
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, helperId, viewerId] = [await make(), await make(), await make()];
@@ -39,7 +39,7 @@ async function setup() {
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
   );
   return { t, eventId, ownerId, owner, helper: as(helperId), viewer: as(viewerId) };
-}
+};
 
 describe("decide: the legs of a journey", () => {
   test("each stop after the first is a leg; distance and speed only where both ends allow", async () => {

@@ -36,9 +36,7 @@ import { cn } from "@/lib/utils";
 // MapLibre is heavy, so the globe arrives only when its band comes near.
 const LiveGlobe = lazy(() => import("@/components/landing/live-globe").then((m) => ({ default: m.LiveGlobe })));
 
-export const Route = createFileRoute("/")({ component: Landing });
-
-function Landing() {
+const Landing = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
 
   if (isAuthenticated) return <Navigate to="/home" replace />;
@@ -62,7 +60,7 @@ function Landing() {
       <Footer />
     </div>
   );
-}
+};
 
 // The page's frame: thin rails either side of the column, a rule between
 // bands, and a small cross where they meet.
@@ -78,27 +76,27 @@ const SECTIONS: Array<{ id: string; label: string; short: [string, string]; icon
   { id: "privacy", label: "Privacy", short: ["Private", "by default"], icon: LockIcon },
 ];
 
-function SectionLink({ id, className, children }: { id: string; className?: string; children: ReactNode }) {
+const SectionLink = ({ id, className, children }: { id: string; className?: string; children: ReactNode }) => {
   const reduced = useReducedMotion();
   return (
     <Link to="/" hash={id} hashScrollIntoView={reduced ? true : { behavior: "smooth" }} className={className}>
       {children}
     </Link>
   );
-}
+};
 
 // "Sign in" brings the hero's buttons into view and focuses the first,
 // rather than going anywhere.
-function goToSignIn(e: React.MouseEvent<HTMLAnchorElement>) {
+const goToSignIn = (e: React.MouseEvent<HTMLAnchorElement>) => {
   const target = document.getElementById("sign-in");
   if (!target) return;
   e.preventDefault();
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   target.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
   target.querySelector("button")?.focus({ preventScroll: true });
-}
+};
 
-function Nav() {
+const Nav = () => {
   return (
     <header className="absolute inset-x-0 top-0 z-20">
       <div className={cn(CONTAINER, "flex h-16 items-center gap-4")}>
@@ -128,14 +126,14 @@ function Nav() {
       </div>
     </header>
   );
-}
+};
 
 // Short single words: the first line never changes how it wraps.
 const WORDS = ["sunset", "photo", "detour", "picnic", "ferry", "toast"];
 
 // The headline's changing word, in italics. Its box eases to each word's
 // width, so the line closes up around short words instead of leaving gaps.
-function Rotating({ words }: { words: string[] }) {
+const Rotating = ({ words }: { words: string[] }) => {
   const reduced = useReducedMotion();
   const [shown, setShown] = useState(0);
   const sizes = useRef<Array<HTMLSpanElement | null>>([]);
@@ -179,9 +177,9 @@ function Rotating({ words }: { words: string[] }) {
       ))}
     </span>
   );
-}
+};
 
-function Hero() {
+const Hero = () => {
   const ref = useRef<HTMLElement>(null);
   useScrollDepth(ref);
   return (
@@ -253,19 +251,19 @@ function Hero() {
       </div>
     </section>
   );
-}
+};
 
-function Cross({ className }: { className: string }) {
+const Cross = ({ className }: { className: string }) => {
   return (
     <span aria-hidden className={cn("pointer-events-none absolute hidden size-[11px] sm:block", className)}>
       <span className="absolute top-1/2 left-0 h-px w-full -translate-y-1/2 bg-white/40" />
       <span className="absolute top-0 left-1/2 h-full w-px -translate-x-1/2 bg-white/40" />
     </span>
   );
-}
+};
 
 // Fades a band's heading up the first time it scrolls into view.
-function Reveal({ className, children }: { className?: string; children: ReactNode }) {
+const Reveal = ({ className, children }: { className?: string; children: ReactNode }) => {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
   return (
@@ -273,10 +271,10 @@ function Reveal({ className, children }: { className?: string; children: ReactNo
       {children}
     </div>
   );
-}
+};
 
 // One band of the page: a small label, a heading and a line, then what it shows.
-function Band({ id, eyebrow, title, lead, children }: { id: string; eyebrow: string; title: string; lead: string; children: ReactNode }) {
+const Band = ({ id, eyebrow, title, lead, children }: { id: string; eyebrow: string; title: string; lead: string; children: ReactNode }) => {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-4 border-t border-white/10">
       <div className={cn(RAILS, "py-20 sm:py-28")}>
@@ -293,14 +291,14 @@ function Band({ id, eyebrow, title, lead, children }: { id: string; eyebrow: str
       </div>
     </section>
   );
-}
+};
 
 // Side-by-side panels split by a rule, each with a title and a line under it.
-function Split({ children }: { children: ReactNode }) {
+const Split = ({ children }: { children: ReactNode }) => {
   return <div className="grid border-y border-white/10 md:grid-cols-2 md:divide-x md:divide-white/10">{children}</div>;
-}
+};
 
-function Panel({ title, text, children }: { title: string; text: string; children: ReactNode }) {
+const Panel = ({ title, text, children }: { title: string; text: string; children: ReactNode }) => {
   return (
     <figure className="flex flex-col gap-8 border-b border-white/10 px-1 py-10 last:border-b-0 sm:px-10 md:border-b-0">
       <div className="flex flex-1 items-center justify-center">{children}</div>
@@ -310,7 +308,7 @@ function Panel({ title, text, children }: { title: string; text: string; childre
       </figcaption>
     </figure>
   );
-}
+};
 
 const FACTS: Array<[string, string]> = [
   ["When", "From the photo itself, in the time zone where you took it."],
@@ -318,7 +316,7 @@ const FACTS: Array<[string, string]> = [
   ["What", "A first line, drafted for you. It never overwrites what you wrote."],
 ];
 
-function Photos() {
+const Photos = () => {
   return (
     <Band
       id="photos"
@@ -347,7 +345,7 @@ function Photos() {
       </dl>
     </Band>
   );
-}
+};
 
 // The globe's trip, leg by leg (live-globe.tsx draws the same stops).
 const LEGS = [
@@ -359,7 +357,7 @@ const LEGS = [
 ];
 
 // Asks for a context and gives it straight back: browsers allow only a few.
-function supportsWebGL(): boolean {
+const supportsWebGL = (): boolean => {
   try {
     const canvas = document.createElement("canvas");
     const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
@@ -368,11 +366,11 @@ function supportsWebGL(): boolean {
   } catch {
     return false;
   }
-}
+};
 
 // The live globe once the band is near, turning only while it's on screen.
 // Without WebGL, the drawn map stands in.
-function Globe() {
+const Globe = () => {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
@@ -410,9 +408,9 @@ function Globe() {
       )}
     </div>
   );
-}
+};
 
-function Maps() {
+const Maps = () => {
   return (
     <Band
       id="maps"
@@ -448,7 +446,7 @@ function Maps() {
       </div>
     </Band>
   );
-}
+};
 
 const FILM = [
   { icon: TypeIcon, title: "A title page, typed out", text: "The name, the dates and a line about the trip, on paper." },
@@ -457,7 +455,7 @@ const FILM = [
   { icon: PlayIcon, title: "Or let it play", text: "Leave it and it moves on by itself. The arrow keys step through it." },
 ];
 
-function StoryMode() {
+const StoryMode = () => {
   return (
     <Band
       id="story-mode"
@@ -482,7 +480,7 @@ function StoryMode() {
       </div>
     </Band>
   );
-}
+};
 
 // Each line checked against the code: access checks, invites, encryption,
 // media serving, archive and delete.
@@ -497,7 +495,7 @@ const PROMISES = [
   "Deleting an experience removes its moments and everyone's access along with it.",
 ];
 
-function Privacy() {
+const Privacy = () => {
   return (
     <Band
       id="privacy"
@@ -530,11 +528,9 @@ function Privacy() {
       </ul>
     </Band>
   );
-}
+};
 
-
-
-function Closing() {
+const Closing = () => {
   return (
     <section aria-labelledby="closing-title" className="relative isolate overflow-hidden border-t border-white/10">
       <div
@@ -555,9 +551,9 @@ function Closing() {
       </div>
     </section>
   );
-}
+};
 
-function Footer() {
+const Footer = () => {
   return (
     <footer className="border-t border-white/10">
       <div className={cn(RAILS, "grid gap-10 py-14 sm:grid-cols-[minmax(0,1fr)_auto]")}>
@@ -597,4 +593,7 @@ function Footer() {
       </div>
     </footer>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/")({ component: Landing });

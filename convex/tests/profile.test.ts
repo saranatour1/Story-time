@@ -12,13 +12,13 @@ beforeAll(() => {
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [aId, bId] = [await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
   return { t, a: as(aId), b: as(bId), aId };
-}
+};
 
 describe("profile fields", () => {
   test("username and email are optional and stored normalised", async () => {
@@ -99,14 +99,14 @@ describe("profile fields", () => {
 describe("profile images", () => {
   const MB = 1024 * 1024;
 
-  async function avatar(who: Awaited<ReturnType<typeof setup>>["a"]) {
+  const avatar = async (who: Awaited<ReturnType<typeof setup>>["a"]) => {
     const r = await who.mutation(api.api.media.reserveAvatarUpload, {
       size: 1000,
       mime: "image/png",
     });
     await who.mutation(api.api.media.confirmUpload, { mediaId: r.mediaId });
     return r.mediaId;
-  }
+  };
 
   test("over 2 MB and unsupported types are rejected", async () => {
     const { a } = await setup();

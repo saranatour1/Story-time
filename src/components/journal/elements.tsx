@@ -20,20 +20,20 @@ import { DIE_CUT, DISTRESS, DRAW_WIDTH, FONTS, GRAIN, INK, LIFT, MUSTARD, NAVY, 
 
 // The biggest type that fits `text` on `lines` lines in a w×h box, for a font
 // whose letters are about `perChar` of the size wide.
-function fitSize(text: string, w: number, h: number, perChar: number, lineHeight = 1.15, maxLines = 3) {
+const fitSize = (text: string, w: number, h: number, perChar: number, lineHeight = 1.15, maxLines = 3) => {
   const len = Math.max(1, [...text].length);
   let best = 8;
   for (let lines = 1; lines <= maxLines; lines++) {
     best = Math.max(best, Math.min(h / (lines * lineHeight), (w * lines) / (len * perChar)));
   }
   return Math.min(best, h * 0.9);
-}
+};
 
 // Type for a paragraph that fills a box about `fill` full.
-function paragraphSize(text: string, w: number, h: number, perChar: number, lineHeight: number, min = 12, max = 42) {
+const paragraphSize = (text: string, w: number, h: number, perChar: number, lineHeight: number, min = 12, max = 42) => {
   const len = Math.max(20, text.length);
   return Math.max(min, Math.min(max, Math.sqrt((w * h * 0.62) / (len * perChar * lineHeight))));
-}
+};
 
 // ---- Titles ----------------------------------------------------------------------------
 
@@ -49,7 +49,7 @@ const LETTERS: LetterPaper[] = [
   { bg: ROSE, fg: "#2c1419", font: FONTS.typewriter, weight: 400, caps: true },
 ];
 
-function Ransom({ id, text, w, h }: { id: string; text: string; w: number; h: number }) {
+const Ransom = ({ id, text, w, h }: { id: string; text: string; w: number; h: number }) => {
   const size = fitSize(text, w, h, 0.86, 1.25);
   let i = 0;
   return (
@@ -87,9 +87,9 @@ function Ransom({ id, text, w, h }: { id: string; text: string; w: number; h: nu
       ))}
     </div>
   );
-}
+};
 
-function Typewriter({ id, text, w, h }: { id: string; text: string; w: number; h: number }) {
+const Typewriter = ({ id, text, w, h }: { id: string; text: string; w: number; h: number }) => {
   const size = fitSize(text, w, h, 0.66, 1.6);
   return (
     <div className="flex size-full flex-wrap content-center items-center justify-center" style={{ gap: `${size * 0.22}px ${size * 0.18}px` }}>
@@ -115,10 +115,10 @@ function Typewriter({ id, text, w, h }: { id: string; text: string; w: number; h
       })}
     </div>
   );
-}
+};
 
 // Letters of two sizes, as on a Dada letterhead: MoUvEmEnT.
-function Dada({ id, text, w, h, ink }: { id: string; text: string; w: number; h: number; ink: string }) {
+const Dada = ({ id, text, w, h, ink }: { id: string; text: string; w: number; h: number; ink: string }) => {
   const size = fitSize(text, w, h, 0.5, 1.05);
   const rnd = seeded(id);
   return (
@@ -137,17 +137,17 @@ function Dada({ id, text, w, h, ink }: { id: string; text: string; w: number; h:
       ))}
     </div>
   );
-}
+};
 
-function Plain({ text, w, h, style, perChar, lineHeight = 1.1 }: { text: string; w: number; h: number; style: CSSProperties; perChar: number; lineHeight?: number }) {
+const Plain = ({ text, w, h, style, perChar, lineHeight = 1.1 }: { text: string; w: number; h: number; style: CSSProperties; perChar: number; lineHeight?: number }) => {
   return (
     <div className="grid size-full place-items-center text-center" style={{ fontSize: fitSize(text, w, h, perChar, lineHeight), lineHeight, ...style }}>
       <span className="text-balance">{text}</span>
     </div>
   );
-}
+};
 
-function Label({ text, w, h }: { text: string; w: number; h: number }) {
+const Label = ({ text, w, h }: { text: string; w: number; h: number }) => {
   const size = Math.min(h * 0.5, w / (Math.max(1, text.length) * 0.78));
   return (
     <div className="grid size-full place-items-center" style={{ padding: `${h * 0.12}px 0` }}>
@@ -168,9 +168,9 @@ function Label({ text, w, h }: { text: string; w: number; h: number }) {
       </div>
     </div>
   );
-}
+};
 
-function Stamp({ text, w, h }: { text: string; w: number; h: number }) {
+const Stamp = ({ text, w, h }: { text: string; w: number; h: number }) => {
   const size = fitSize(text, w * 0.86, h * 0.62, 0.62, 1.05, 2);
   return (
     <div
@@ -191,9 +191,9 @@ function Stamp({ text, w, h }: { text: string; w: number; h: number }) {
       {text}
     </div>
   );
-}
+};
 
-export function Title({ e, ink }: { e: JournalElement; ink: string }) {
+export const Title = ({ e, ink }: { e: JournalElement; ink: string }) => {
   const text = e.text?.trim() || "Your title";
   const { w, h } = e;
   switch (e.style) {
@@ -212,11 +212,11 @@ export function Title({ e, ink }: { e: JournalElement; ink: string }) {
     default:
       return <Typewriter id={e.id} text={text} w={w} h={h} />;
   }
-}
+};
 
 // ---- Notes -------------------------------------------------------------------------------
 
-export function Note({ e }: { e: JournalElement }) {
+export const Note = ({ e }: { e: JournalElement }) => {
   const text = e.text?.trim() || "Write something here…";
   const { w, h } = e;
   const style = e.style ?? "typed";
@@ -261,11 +261,11 @@ export function Note({ e }: { e: JournalElement }) {
       </div>
     </div>
   );
-}
+};
 
 // ---- Photos and stickers ----------------------------------------------------------------
 
-function Picture({
+const Picture = ({
   mediaId,
   tone,
   contain = false,
@@ -281,7 +281,7 @@ function Picture({
   style?: CSSProperties;
   width?: number;
   height?: number;
-}) {
+}) => {
   const [ref, seen] = useWhenSeen();
   const { url, failed } = useMediaUrl(seen ? mediaId : undefined);
   return (
@@ -304,10 +304,10 @@ function Picture({
       )}
     </div>
   );
-}
+};
 
 // A regular wavy edge, like a photo's deckle-cut border.
-function deckle(steps = 18, depth = 1.4) {
+const deckle = (steps = 18, depth = 1.4) => {
   const pts: string[] = [];
   const at = (t: number) => (t % 2 === 0 ? 0 : depth);
   for (let i = 0; i <= steps; i++) pts.push(`${(i / steps) * 100}% ${at(i)}%`);
@@ -315,11 +315,11 @@ function deckle(steps = 18, depth = 1.4) {
   for (let i = steps - 1; i >= 0; i--) pts.push(`${(i / steps) * 100}% ${100 - at(i)}%`);
   for (let i = steps - 1; i >= 1; i--) pts.push(`${at(i)}% ${(i / steps) * 100}%`);
   return `polygon(${pts.join(", ")})`;
-}
+};
 const DECKLE = deckle();
 
 // The heart, for a heart-cut photo (see HeartClip).
-export function HeartClip() {
+export const HeartClip = () => {
   return (
     <svg aria-hidden width="0" height="0" className="absolute">
       <defs>
@@ -329,9 +329,9 @@ export function HeartClip() {
       </defs>
     </svg>
   );
-}
+};
 
-export function Photo({ e }: { e: JournalElement }) {
+export const Photo = ({ e }: { e: JournalElement }) => {
   if (e.mediaId === undefined) return null;
   const { w, h } = e;
   const tone = e.tone;
@@ -424,12 +424,12 @@ export function Photo({ e }: { e: JournalElement }) {
       );
     }
   }
-}
+};
 
-export function Sticker({ e }: { e: JournalElement }) {
+export const Sticker = ({ e }: { e: JournalElement }) => {
   if (e.mediaId === undefined) return null;
   return <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={e.tone} contain style={DIE_CUT} />;
-}
+};
 
 // ---- Bits of ephemera ---------------------------------------------------------------------
 
@@ -441,7 +441,7 @@ const TAPE_COLORS: Record<string, { color: string; pattern?: string }> = {
   "tape-gingham": { color: "rgba(250,244,232,.85)", pattern: GINGHAM },
 };
 
-function Ticket({ e }: { e: JournalElement }) {
+const Ticket = ({ e }: { e: JournalElement }) => {
   const { w, h } = e;
   const words = e.text?.trim() || "ADMIT ONE";
   const notch = h * 0.16;
@@ -472,9 +472,9 @@ function Ticket({ e }: { e: JournalElement }) {
       </div>
     </div>
   );
-}
+};
 
-function Postmark({ e }: { e: JournalElement }) {
+const Postmark = ({ e }: { e: JournalElement }) => {
   const words = e.text?.trim() || "STORY-TIME";
   return (
     <svg viewBox="0 0 200 200" className="size-full overflow-visible" style={{ mixBlendMode: "multiply", opacity: 0.8 }}>
@@ -495,11 +495,11 @@ function Postmark({ e }: { e: JournalElement }) {
       </text>
     </svg>
   );
-}
+};
 
 const SHAPES = new Set(["circle-teal", "circle-mustard", "circle-rust", "triangles", "dots", "star", "flower", "butterfly", "arrow"]);
 
-function Shape({ name }: { name: string }) {
+const Shape = ({ name }: { name: string }) => {
   switch (name) {
     case "circle-teal":
     case "circle-mustard":
@@ -564,9 +564,9 @@ function Shape({ name }: { name: string }) {
     default:
       return null;
   }
-}
+};
 
-export function Deco({ e }: { e: JournalElement }) {
+export const Deco = ({ e }: { e: JournalElement }) => {
   const name = e.style ?? "tape";
   const tape = TAPE_COLORS[name];
   if (tape) {
@@ -579,7 +579,7 @@ export function Deco({ e }: { e: JournalElement }) {
   if (name === "ticket") return <Ticket e={e} />;
   if (name === "postmark") return <Postmark e={e} />;
   return SHAPES.has(name) ? <Shape name={name} /> : <MoreSticker e={e} />;
-}
+};
 
 // ---- A moment's stops on a map -------------------------------------------------------------
 
@@ -587,7 +587,7 @@ const STEP_MS = 1700;
 
 // The stops of a moment, numbered, on a light map in a postcard frame. Play
 // walks it stop by stop, the way the story does.
-export function MapCard({ e, moment, interactive }: { e: JournalElement; moment: StoryMoment | undefined; interactive: boolean }) {
+export const MapCard = ({ e, moment, interactive }: { e: JournalElement; moment: StoryMoment | undefined; interactive: boolean }) => {
   const stops = useMemo<MapStop[]>(() => {
     if (moment === undefined) return [];
     return stopsOf(moment).flatMap((s, i) =>
@@ -654,7 +654,7 @@ export function MapCard({ e, moment, interactive }: { e: JournalElement; moment:
       )}
     </div>
   );
-}
+};
 
 // ---- Drawings ---------------------------------------------------------------------------
 
@@ -664,7 +664,7 @@ export function MapCard({ e, moment, interactive }: { e: JournalElement; moment:
 export type Stroke = { style: string; color: string; d: string };
 export type DrawingData = { x: number; y: number; w: number; h: number; strokes: Stroke[] };
 
-export function readDrawing(text: string | undefined): DrawingData | undefined {
+export const readDrawing = (text: string | undefined): DrawingData | undefined => {
   const [head, ...lines] = (text ?? "").split("\n");
   const nums = (head ?? "").split(" ").map(Number);
   const [x, y, w, h] = nums.length >= 4 ? nums : [0, 0, nums[0], nums[1]];
@@ -674,13 +674,13 @@ export function readDrawing(text: string | undefined): DrawingData | undefined {
     return style && color && rest.length > 0 ? [{ style, color, d: rest.join(" ") }] : [];
   });
   return { x: x!, y: y!, w, h, strokes };
-}
+};
 
 export const writeDrawing = ({ x, y, w, h, strokes }: DrawingData) =>
   [`${Math.round(x)} ${Math.round(y)} ${Math.round(w)} ${Math.round(h)}`, ...strokes.map((s) => `${s.style} ${s.color} ${s.d}`)].join("\n");
 
 // A smooth path through points, rounded to tenths.
-export function pathThrough(points: Array<{ x: number; y: number }>): string {
+export const pathThrough = (points: Array<{ x: number; y: number }>): string => {
   const r = (n: number) => Math.round(n * 10) / 10;
   const [first, ...rest] = points;
   if (!first) return "";
@@ -693,9 +693,9 @@ export function pathThrough(points: Array<{ x: number; y: number }>): string {
   }
   const last = rest.at(-1)!;
   return `${d}L${r(last.x)} ${r(last.y)}`;
-}
+};
 
-export function StrokePath({ stroke }: { stroke: Stroke }) {
+export const StrokePath = ({ stroke }: { stroke: Stroke }) => {
   const look = DRAW_WIDTH[stroke.style] ?? DRAW_WIDTH.pen!;
   return (
     <path
@@ -709,9 +709,9 @@ export function StrokePath({ stroke }: { stroke: Stroke }) {
       style={stroke.style === "highlighter" ? { mixBlendMode: "multiply" } : undefined}
     />
   );
-}
+};
 
-export function Drawing({ e }: { e: JournalElement }) {
+export const Drawing = ({ e }: { e: JournalElement }) => {
   const drawing = readDrawing(e.text);
   if (!drawing) return null;
   return (
@@ -721,13 +721,13 @@ export function Drawing({ e }: { e: JournalElement }) {
       ))}
     </svg>
   );
-}
+};
 
 // ---- Links ------------------------------------------------------------------------------
 
 // A link as a little card: its picture, its title in Caslon, a line about it,
 // and where it is from, typed. Opens in a new tab when the journal is read.
-export function LinkCard({ e, open }: { e: JournalElement; open: boolean }) {
+export const LinkCard = ({ e, open }: { e: JournalElement; open: boolean }) => {
   const link = readLink(e.text);
   if (!link) return null;
   const { w, h } = e;
@@ -783,11 +783,11 @@ export function LinkCard({ e, open }: { e: JournalElement; open: boolean }) {
   ) : (
     body
   );
-}
+};
 
 // ---- One element, whatever it is --------------------------------------------------------
 
-export function ElementView({ e, ink, moment, interactive = false }: { e: JournalElement; ink: string; moment?: StoryMoment; interactive?: boolean }): ReactNode {
+export const ElementView = ({ e, ink, moment, interactive = false }: { e: JournalElement; ink: string; moment?: StoryMoment; interactive?: boolean }): ReactNode => {
   switch (e.kind) {
     case "photo":
       return <Photo e={e} />;
@@ -806,7 +806,7 @@ export function ElementView({ e, ink, moment, interactive = false }: { e: Journa
     default:
       return <Deco e={e} />;
   }
-}
+};
 
 // Where an element sits: moved and turned by one transform, so the editor's
 // handles can change both while it is dragged.

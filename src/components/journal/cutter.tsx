@@ -25,7 +25,7 @@ const MAX_SIDE = 900;
 type Segmenter = import("@mediapipe/tasks-vision").InteractiveSegmenterLegacy;
 let loading: Promise<Segmenter> | null = null;
 
-function segmenter(): Promise<Segmenter> {
+const segmenter = (): Promise<Segmenter> => {
   loading ??= (async () => {
     const [{ InteractiveSegmenterLegacy }, loader, binary] = await Promise.all([
       import("@mediapipe/tasks-vision"),
@@ -41,10 +41,10 @@ function segmenter(): Promise<Segmenter> {
     throw e;
   });
   return loading;
-}
+};
 
 // The picked thing as a transparent PNG, cropped to it, its edge softened.
-function cutOut(img: HTMLImageElement, mask: Float32Array, mw: number, mh: number): Promise<Blob> {
+const cutOut = (img: HTMLImageElement, mask: Float32Array, mw: number, mh: number): Promise<Blob> => {
   const ratio = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
   const w = Math.round(img.naturalWidth * ratio);
   const h = Math.round(img.naturalHeight * ratio);
@@ -77,9 +77,9 @@ function cutOut(img: HTMLImageElement, mask: Float32Array, mw: number, mh: numbe
   crop.height = y1 - y0 + pad * 2;
   crop.getContext("2d")!.drawImage(canvas, x0 - pad, y0 - pad, crop.width, crop.height, 0, 0, crop.width, crop.height);
   return new Promise((resolve, reject) => crop.toBlob((b) => (b ? resolve(b) : reject(new Error("The sticker couldn't be made."))), "image/png"));
-}
+};
 
-export function StickerCutter({
+export const StickerCutter = ({
   eventId,
   photos,
   start,
@@ -94,7 +94,7 @@ export function StickerCutter({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onMade: (mediaId: string) => void;
-}) {
+}) => {
   const [photo, setPhoto] = useState<string | undefined>(start);
   const [point, setPoint] = useState({ x: 0.5, y: 0.5 });
   useEffect(() => {
@@ -126,7 +126,7 @@ export function StickerCutter({
       });
   }, [open]);
 
-  async function cutAt(at: { x: number; y: number }) {
+  const cutAt = async (at: { x: number; y: number }) => {
     const el = img.current;
     if (!el || phase !== "idle") return;
     setPhase("cutting");
@@ -150,18 +150,18 @@ export function StickerCutter({
     } finally {
       setPhase("idle");
     }
-  }
+  };
 
-  function tap(ev: React.PointerEvent<HTMLImageElement>) {
+  const tap = (ev: React.PointerEvent<HTMLImageElement>) => {
     const el = img.current;
     if (!el || phase !== "idle") return;
     const r = el.getBoundingClientRect();
     const at = { x: clamp((ev.clientX - r.left) / r.width), y: clamp((ev.clientY - r.top) / r.height) };
     setPoint(at);
     void cutAt(at);
-  }
+  };
 
-  function nudge(ev: React.KeyboardEvent<HTMLImageElement>) {
+  const nudge = (ev: React.KeyboardEvent<HTMLImageElement>) => {
     const step = ev.shiftKey ? 0.08 : 0.02;
     const move: Record<string, [number, number]> = {
       ArrowLeft: [-step, 0],
@@ -179,9 +179,9 @@ export function StickerCutter({
       ev.preventDefault();
       void cutAt(point);
     }
-  }
+  };
 
-  async function save() {
+  const save = async () => {
     if (!preview || !token) return;
     setPhase("saving");
     try {
@@ -196,7 +196,7 @@ export function StickerCutter({
     } finally {
       setPhase("idle");
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -281,9 +281,9 @@ export function StickerCutter({
       </DialogContent>
     </Dialog>
   );
-}
+};
 
-function ThumbOf({ id }: { id: string }) {
+const ThumbOf = ({ id }: { id: string }) => {
   const [ref, seen] = useWhenSeen();
   const { url } = useMediaUrl(seen ? id : undefined, "thumb");
   return (
@@ -291,7 +291,7 @@ function ThumbOf({ id }: { id: string }) {
       {url && <img src={url} alt="" width={56} height={56} sizes="56px" loading="lazy" decoding="async" className="size-full object-cover" />}
     </span>
   );
-}
+};
 
 const clamp = (n: number) => Math.min(0.98, Math.max(0.02, n));
 

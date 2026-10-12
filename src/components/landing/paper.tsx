@@ -12,14 +12,14 @@ const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Read once: a page that starts still stays still.
-export function useReducedMotion() {
+export const useReducedMotion = () => {
   const [reduced] = useState(prefersReducedMotion);
   return reduced;
-}
+};
 
 // True once the element has scrolled into view, so a frame's motion starts
 // where someone can see it.
-export function useInView<T extends Element>() {
+export const useInView = <T extends Element>() => {
   const ref = useRef<T>(null);
   const [inView, setInView] = useState(false);
   useEffect(() => {
@@ -32,7 +32,7 @@ export function useInView<T extends Element>() {
     return () => io.disconnect();
   }, [inView]);
   return [ref, inView] as const;
-}
+};
 
 // The sample experience every frame on the page shows.
 export const SAMPLE = {
@@ -48,7 +48,7 @@ const LINE_GAP = 8;
 
 // Story mode's title page: dates, title, a line about it and the counts,
 // typed out on paper when `animate` is on.
-export function TitlePage({ animate, size, className }: { animate: boolean; size: "sm" | "lg"; className?: string }) {
+export const TitlePage = ({ animate, size, className }: { animate: boolean; size: "sm" | "lg"; className?: string }) => {
   const lines = [SAMPLE.dates, SAMPLE.title, SAMPLE.description, SAMPLE.counts];
   const starts: number[] = [];
   let total = 0;
@@ -106,11 +106,11 @@ export function TitlePage({ animate, size, className }: { animate: boolean; size
       <p className={cn("text-stone-600", lg ? "mt-5 text-[0.6875rem] sm:text-xs" : "mt-4 text-[0.625rem]")}>{line(3)}</p>
     </div>
   );
-}
+};
 
 // A made-up photo, drawn: the sun going down behind the bridge, seen from
 // the ferry. In a 60×60 box.
-export function SunsetPhoto() {
+export const SunsetPhoto = () => {
   const uid = useId().replace(/:/g, "");
   return (
     <g>
@@ -138,4 +138,4 @@ export function SunsetPhoto() {
       </g>
     </g>
   );
-}
+};

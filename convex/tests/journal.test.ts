@@ -25,7 +25,7 @@ afterEach(() => vi.useRealTimers());
 
 const JUNE_1 = Date.UTC(2026, 5, 1, 12);
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   t.registerComponent("invites", invitesSchema, invitesModules);
   t.registerComponent("email", emailSchema, emailModules);
@@ -50,7 +50,7 @@ async function setup() {
       blocks: [...(mediaId ? [{ type: "photo" as const, mediaId }] : []), { type: "note", text }],
     });
   return { t, owner, viewer: as(viewerId), other: as(otherId), eventId, photo, moment };
-}
+};
 
 type ElementArg = FunctionArgs<typeof api.api.journal.savePage>["elements"][number];
 const element = (over: Partial<ElementArg> = {}): ElementArg => ({

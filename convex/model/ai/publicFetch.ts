@@ -8,10 +8,10 @@ import { v } from "convex/values";
 import { internalAction } from "../../_generated/server";
 import { connectLookup, readPublicPage, type WebFetch, type WebResponse } from "../../lib/publicWeb";
 
-function headerValue(value: string | string[] | undefined): string | null {
+const headerValue = (value: string | string[] | undefined): string | null => {
   if (value === undefined) return null;
   return Array.isArray(value) ? (value[0] ?? null) : value;
-}
+};
 
 // Opens `url` with a lookup that can return only the addresses already checked.
 // A pin that cannot be built refuses the connection.

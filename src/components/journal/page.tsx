@@ -9,7 +9,7 @@ import { FONTS, paperLook } from "./look";
 
 // Caveat, Special Elite, Libre Caslon and Oswald are only needed once a page
 // is on screen. The landing keeps Manrope and Newsreader.
-function useJournalFonts() {
+const useJournalFonts = () => {
   useEffect(() => {
     const id = "journal-fonts";
     if (document.getElementById(id)) return;
@@ -19,7 +19,7 @@ function useJournalFonts() {
     link.href = journalFonts;
     document.head.appendChild(link);
   }, []);
-}
+};
 
 export type PageData = { _id: string; paper: string; locked: boolean; momentId?: string; elements: JournalElement[] };
 
@@ -79,7 +79,7 @@ export const JournalPage = forwardRef<
 });
 
 // Place names in the postcard frame, for a thumbnail or a printed page.
-function MapNames({ moment }: { moment: StoryMoment | undefined }) {
+const MapNames = ({ moment }: { moment: StoryMoment | undefined }) => {
   const names = moment === undefined ? [] : stopsOf(moment).map((stop, i) => placeLabel(stop, i)).filter((name) => name !== "");
   return (
     <div className="size-full bg-[#fffdf6] p-2">
@@ -88,4 +88,4 @@ function MapNames({ moment }: { moment: StoryMoment | undefined }) {
       </div>
     </div>
   );
-}
+};

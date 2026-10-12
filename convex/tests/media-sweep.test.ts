@@ -27,13 +27,13 @@ const row = (uploaderId: Id<"users">, status: "reserved" | "ready") => ({
   status,
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const uploaderId = await t.run((ctx) => ctx.db.insert("users", {}));
   const insert = (status: "reserved" | "ready") => t.run((ctx) => ctx.db.insert("media", row(uploaderId, status)));
   const statusOf = (id: Id<"media">) => t.run(async (ctx) => (await ctx.db.get("media", id))?.status);
   return { t, uploaderId, insert, statusOf };
-}
+};
 
 describe("sweepReservedUploads", () => {
   test("marks reservations older than an hour deleted; fresh and confirmed uploads stay", async () => {

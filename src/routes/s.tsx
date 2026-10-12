@@ -24,21 +24,12 @@ const search = z.object({
   mode: z.enum(["book", "read", "film"]).default("book").catch("book"),
 });
 
-// A book anyone can turn with its link, so there's no sign-in gate. The token
-// is the URL's fragment, which browsers never send to a server, and search
-// engines are kept out. Play opens the film; the book is the page.
-export const Route = createFileRoute("/s")({
-  validateSearch: search,
-  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
-  component: SharedStoryPage,
-});
-
 // Client only (the page isn't server-rendered), but nothing here assumes it.
-function readToken(): string {
+const readToken = (): string => {
   return typeof window === "undefined" ? "" : window.location.hash.slice(1);
-}
+};
 
-function SharedStoryPage() {
+const SharedStoryPage = () => {
   const { step, page, mode } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [token] = useState(readToken);
@@ -123,10 +114,10 @@ function SharedStoryPage() {
       )}
     </MediaAuthContext.Provider>
   );
-}
+};
 
 // Off, switched off, replaced, or never real: the same page for all of them.
-function NotShared() {
+const NotShared = () => {
   return (
     <SignedOutPage className="items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm space-y-4">
@@ -140,11 +131,11 @@ function NotShared() {
       </div>
     </SignedOutPage>
   );
-}
+};
 
 // The locked PDF, fetched with the link's token the way its pictures are, and
 // saved. It opens with the password its owner sends separately.
-async function downloadPdf(token: string, mediaId: string, title: string, busy: (on: boolean) => void) {
+const downloadPdf = async (token: string, mediaId: string, title: string, busy: (on: boolean) => void) => {
   busy(true);
   try {
     const res = await fetch(`/api/media/${mediaId}`, { headers: { Authorization: `Share ${token}` } });
@@ -156,4 +147,13 @@ async function downloadPdf(token: string, mediaId: string, title: string, busy: 
   } finally {
     busy(false);
   }
-}
+};
+
+// A book anyone can turn with its link, so there's no sign-in gate. The token
+// is the URL's fragment, which browsers never send to a server, and search
+// engines are kept out. Play opens the film; the book is the page.
+export const Route = createFileRoute("/s")({
+  validateSearch: search,
+  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
+  component: SharedStoryPage,
+});

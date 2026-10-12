@@ -16,32 +16,32 @@ beforeAll(() => {
   );
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, friendId] = [await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
   return { t, ownerId, friendId, owner: as(ownerId), friend: as(friendId) };
-}
+};
 
 const note = (text: string) => [{ type: "note" as const, text }];
 
-async function addMoment(
+const addMoment = async (
   who: Awaited<ReturnType<typeof setup>>["owner"],
   eventId: Id<"events">,
   text = "hello",
-) {
+) => {
   return who.mutation(api.api.moments.create, {
     eventId,
     startsAt: Date.UTC(2026, 5, 1, 12),
     blocks: note(text),
   });
-}
+};
 
-async function changeCount(
+const changeCount = async (
   t: Awaited<ReturnType<typeof setup>>["t"],
   eventId: Id<"events">,
-) {
+) => {
   return (
     await t.run((ctx) =>
       ctx.db
@@ -50,7 +50,7 @@ async function changeCount(
         .collect(),
     )
   ).length;
-}
+};
 
 describe("the moment limit", () => {
   test("one more than the limit is rejected", async () => {

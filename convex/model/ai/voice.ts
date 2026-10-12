@@ -16,27 +16,27 @@ const GATEWAY = "https://ai-gateway.convex.dev/v1/audio/transcriptions";
 export const FORMATS = ["webm", "ogg", "m4a", "mp3", "wav"] as const;
 export type Format = (typeof FORMATS)[number];
 
-export function isFormat(value: string): value is Format {
+export const isFormat = (value: string): value is Format => {
   return FORMATS.some((f) => f === value);
-}
+};
 
 // Base64 without the stack-size limit of one big String.fromCharCode call.
-export function toBase64(bytes: Uint8Array): string {
+export const toBase64 = (bytes: Uint8Array): string => {
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   }
   return btoa(binary);
-}
+};
 
 const reply = z.object({ text: z.string() });
 
 // The words in the gateway's reply, tidied, or undefined when it isn't one.
-export function readTranscript(body: unknown): string | undefined {
+export const readTranscript = (body: unknown): string | undefined => {
   const parsed = reply.safeParse(body);
   if (!parsed.success) return undefined;
   return parsed.data.text.replace(/\s+/g, " ").trim().slice(0, MAX_COMMAND_CHARS);
-}
+};
 
 const transcribe = action({
   args: { audio: v.bytes(), format: v.string() },

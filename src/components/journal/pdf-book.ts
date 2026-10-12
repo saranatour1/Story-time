@@ -15,7 +15,7 @@ export class PdfCancelled extends Error {
   }
 }
 
-export function jpegSize(bytes: Uint8Array): { width: number; height: number } {
+export const jpegSize = (bytes: Uint8Array): { width: number; height: number } => {
   if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) throw new Error("The page wasn't a JPEG.");
   let i = 2;
   while (i + 8 < bytes.length) {
@@ -44,26 +44,26 @@ export function jpegSize(bytes: Uint8Array): { width: number; height: number } {
     i += 2 + length;
   }
   throw new Error("The page wasn't a JPEG.");
-}
+};
 
 // Same canvas while every page is the same size. A different size allocates once.
-export function reuseCanvas<T extends { width: number; height: number }>(
+export const reuseCanvas = <T extends { width: number; height: number }>(
   current: T | null,
   width: number,
   height: number,
   make: (width: number, height: number) => T,
-): { current: T; created: boolean } {
+): { current: T; created: boolean } => {
   if (current && current.width === width && current.height === height) return { current, created: false };
   return { current: make(width, height), created: true };
-}
+};
 
 type Part = string | Uint8Array;
 
-export async function assembleJournalPdf(
+export const assembleJournalPdf = async (
   count: number,
   jpegFor: (index: number) => Promise<Uint8Array>,
   opts: { signal?: AbortSignal; onProgress?: (done: number) => void } = {},
-): Promise<Uint8Array> {
+): Promise<Uint8Array> => {
   if (!Number.isInteger(count) || count < 1) throw new Error("Nothing to print.");
   const parts: Part[] = [];
   let at = 0;
@@ -126,4 +126,4 @@ export async function assembleJournalPdf(
     }
   }
   return out;
-}
+};

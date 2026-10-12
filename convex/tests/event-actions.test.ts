@@ -20,7 +20,7 @@ beforeAll(() => {
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   t.registerComponent("invites", invitesSchema, invitesModules);
   t.registerComponent("email", emailSchema, emailModules);
@@ -33,9 +33,9 @@ async function setup() {
     ctx.db.insert("sessions", { eventId, userId: friendId, grantedBy: ownerId, role: "viewer" }),
   );
   return { t, owner, ownerId, friend: as(friendId), eventId };
-}
+};
 
-async function fill(owner: Awaited<ReturnType<typeof setup>>["owner"], eventId: Id<"events">) {
+const fill = async (owner: Awaited<ReturnType<typeof setup>>["owner"], eventId: Id<"events">) => {
   const { mediaId, r2Key } = await owner.mutation(api.api.media.reserveUpload, {
     eventId,
     size: 100,
@@ -49,9 +49,9 @@ async function fill(owner: Awaited<ReturnType<typeof setup>>["owner"], eventId: 
   });
   await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
   return r2Key;
-}
+};
 
-async function leftovers(t: Awaited<ReturnType<typeof setup>>["t"], eventId: Id<"events">) {
+const leftovers = async (t: Awaited<ReturnType<typeof setup>>["t"], eventId: Id<"events">) => {
   return t.run(async (ctx) => {
     const count = (rows: Array<{ eventId?: unknown }>) =>
       rows.filter((r) => r.eventId === eventId).length;
@@ -63,7 +63,7 @@ async function leftovers(t: Awaited<ReturnType<typeof setup>>["t"], eventId: Id<
       changes: count(await ctx.db.query("changes").collect()),
     };
   });
-}
+};
 
 const EMPTY = { event: null, moments: 0, media: 0, sessions: 0, changes: 0 };
 

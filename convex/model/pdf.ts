@@ -18,12 +18,12 @@ import { assertUploadBudget } from "./media";
 
 const PDF_MIME = "application/pdf";
 
-async function journalOf(ctx: MutationCtx, eventId: Id<"events">) {
+const journalOf = async (ctx: MutationCtx, eventId: Id<"events">) => {
   return ctx.db
     .query("journals")
     .withIndex("by_event", (q) => q.eq("eventId", eventId))
     .unique();
-}
+};
 
 // Step 1 of the upload, called by the server route before it streams bytes.
 const reserve = mutation({

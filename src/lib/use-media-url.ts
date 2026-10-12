@@ -15,12 +15,12 @@ export type MediaAuth = { kind: "bearer" | "share"; token: string };
 // fetched with the signed-in viewer's session.
 export const MediaAuthContext = createContext<MediaAuth | null>(null);
 
-function useMediaAuth(): MediaAuth | null {
+const useMediaAuth = (): MediaAuth | null => {
   const shared = useContext(MediaAuthContext);
   const token = useAuthToken();
   if (shared) return shared;
   return token ? { kind: "bearer", token } : null;
-}
+};
 
 const IDLE: MediaState = { url: null, failed: false };
 
@@ -33,11 +33,11 @@ const IDLE: MediaState = { url: null, failed: false };
 const MAX = 40;
 const cache = new Map<string, Entry>();
 
-function cacheKey(mediaId: string, variant: MediaVariant): string {
+const cacheKey = (mediaId: string, variant: MediaVariant): string => {
   return `${mediaId}:${variant}`;
-}
+};
 
-function load(mediaId: string, auth: MediaAuth | null, variant: MediaVariant): Entry | undefined {
+const load = (mediaId: string, auth: MediaAuth | null, variant: MediaVariant): Entry | undefined => {
   const key = cacheKey(mediaId, variant);
   const hit = cache.get(key);
   cache.delete(key);
@@ -62,10 +62,10 @@ function load(mediaId: string, auth: MediaAuth | null, variant: MediaVariant): E
     })
     .catch(() => settle({ url: null, failed: true }));
   return entry;
-}
+};
 
 // Drops the oldest entries nobody is showing; one still on screen keeps its URL.
-function evict() {
+const evict = () => {
   evictUnused(
     cache,
     MAX,
@@ -75,11 +75,11 @@ function evict() {
       if (entry.state.url) URL.revokeObjectURL(entry.state.url);
     },
   );
-}
+};
 
 // On sign-out: every picture leaves memory, so the next person at this browser
 // can't see the last one's. Pictures on screen fall back to the placeholder.
-export function clearMediaCache() {
+export const clearMediaCache = () => {
   for (const [id, entry] of cache) {
     cache.delete(id);
     entry.abort.abort();
@@ -87,11 +87,11 @@ export function clearMediaCache() {
     entry.state = IDLE;
     for (const notify of entry.users) notify();
   }
-}
+};
 
 // Private media can't use a plain <img src>, so fetch it with the viewer's
 // token and hand back a blob URL. `failed` is set when it can't be shown.
-export function useMediaUrl(mediaId: string | undefined, variant: MediaVariant = "full"): MediaState {
+export const useMediaUrl = (mediaId: string | undefined, variant: MediaVariant = "full"): MediaState => {
   const auth = useMediaAuth();
   const authRef = useRef(auth);
   authRef.current = auth;
@@ -112,12 +112,12 @@ export function useMediaUrl(mediaId: string | undefined, variant: MediaVariant =
   );
   const key = mediaId ? cacheKey(mediaId, variant) : "";
   return useSyncExternalStore(subscribe, () => (key && cache.get(key)?.state) || IDLE, () => IDLE);
-}
+};
 
 // True once `node` has intersected the viewport (with a margin), or immediately
 // where the browser has no IntersectionObserver. The fetch waits on this, because
 // loading=lazy cannot defer a blob URL we create ourselves.
-export function useWhenSeen(): [RefCallback<Element>, boolean] {
+export const useWhenSeen = (): [RefCallback<Element>, boolean] => {
   const [seen, setSeen] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
   const ref = useCallback<RefCallback<Element>>((node) => {
@@ -140,10 +140,10 @@ export function useWhenSeen(): [RefCallback<Element>, boolean] {
     observer.current = next;
   }, [seen]);
   return [ref, seen];
-}
+};
 
 // Starts loading pictures that are about to be shown.
-export function usePrefetchMedia(mediaIds: string[]) {
+export const usePrefetchMedia = (mediaIds: string[]) => {
   const auth = useMediaAuth();
   const ids = mediaIds.join(" ");
   // Taken apart, so the effect reruns for a new token rather than a new object.
@@ -154,4 +154,4 @@ export function usePrefetchMedia(mediaIds: string[]) {
     for (const id of ids.split(" ")) load(id, { kind, token }, "full");
     evict();
   }, [ids, kind, token]);
-}
+};

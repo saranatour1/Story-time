@@ -32,12 +32,12 @@ export const prepare = internalMutation({
   },
 });
 
-function utcDay(now: number): string {
+const utcDay = (now: number): string => {
   const d = new Date(now);
   const month = String(d.getUTCMonth() + 1).padStart(2, "0");
   const day = String(d.getUTCDate()).padStart(2, "0");
   return `${d.getUTCFullYear()}-${month}-${day}`;
-}
+};
 
 // One note per owner per UTC day, and only when a past year has this date.
 // The message names nothing about the memory.

@@ -3,12 +3,12 @@ import { evictUnused, imageWorkAfter, imageWorkBefore, ORIGINAL_BYTES, THUMB_BYT
 
 // A zoomed journal page has 8 photos and 3 of them are in the viewport.
 // The moments shelf holds 24 photos (its cap). At 640px, 10 tiles fit.
-function fixture(): MountedImage[] {
+const fixture = (): MountedImage[] => {
   const shown = visibleTiles(640);
   const page = Array.from({ length: 8 }, (_, i) => ({ id: `page-${i}`, role: "page" as const, visible: i < 3 }));
   const shelf = Array.from({ length: 24 }, (_, i) => ({ id: `shelf-${i}`, role: "list" as const, visible: i < shown }));
   return [...page, ...shelf];
-}
+};
 
 describe("image fetches", () => {
   test("a 640px shelf shows 10 of 24 tiles", () => {

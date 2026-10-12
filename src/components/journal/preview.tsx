@@ -8,7 +8,7 @@ import { JournalPage } from "./page";
 
 // One saved page, small: the picked moment's, else the cover. A page that was
 // taken out is not drawn from the moment again.
-export function JournalPreview({ event, momentId, scale }: { event: EventView; momentId?: string; scale: number }) {
+export const JournalPreview = ({ event, momentId, scale }: { event: EventView; momentId?: string; scale: number }) => {
   const page = useQuery(api.journal.pageForMoment, {
     eventId: event._id,
     momentId: momentId as Id<"moments"> | undefined,
@@ -25,4 +25,4 @@ export function JournalPreview({ event, momentId, scale }: { event: EventView; m
     );
   }
   return <JournalPage page={page} moments={byId} scale={scale} live={false} className="shadow-[0_14px_36px_rgba(40,28,10,.28)]" />;
-}
+};

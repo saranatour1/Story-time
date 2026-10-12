@@ -52,7 +52,7 @@ const DAYS: Array<{ day: string; moments: Moment[] }> = [
   },
 ];
 
-function Avatar({ by, agent }: { by: string; agent?: boolean }) {
+const Avatar = ({ by, agent }: { by: string; agent?: boolean }) => {
   return (
     <span
       className={cn(
@@ -63,10 +63,10 @@ function Avatar({ by, agent }: { by: string; agent?: boolean }) {
       {agent ? <BotIcon className="size-3.5" /> : by}
     </span>
   );
-}
+};
 
 // The itinerary: search, then each day's moments with the stops they passed.
-export function MomentsFragment() {
+export const MomentsFragment = () => {
   return (
     <div aria-hidden className="overflow-hidden rounded-xl border bg-card text-sm text-card-foreground shadow-2xl shadow-black/40">
       <div className="flex items-center gap-2 border-b p-3">
@@ -110,10 +110,10 @@ export function MomentsFragment() {
       ))}
     </div>
   );
-}
+};
 
 // The Shared tab: a one-time invite, and who has access.
-export function InviteFragment() {
+export const InviteFragment = () => {
   return (
     <div aria-hidden className="space-y-4 rounded-xl border bg-card p-4 text-sm text-card-foreground">
       <p className="font-semibold">Invite someone</p>
@@ -138,10 +138,10 @@ export function InviteFragment() {
       </ul>
     </div>
   );
-}
+};
 
 // The Shared tab's link: on, with the address to copy.
-export function LinkFragment() {
+export const LinkFragment = () => {
   return (
     <div aria-hidden className="space-y-4 rounded-xl border bg-card p-4 text-sm text-card-foreground">
       <div className="flex items-start gap-3">
@@ -165,13 +165,13 @@ export function LinkFragment() {
       <p className="text-xs text-muted-foreground">Switch it off and the link stops working.</p>
     </div>
   );
-}
+};
 
 // The camera roll as photos are picked: the picks tick on one by one, and
 // the first shows the time and place read from it.
 const PICKED = new Set(["ferry", "tram", "tiles", "palace"]);
 
-export function CameraRollFragment() {
+export const CameraRollFragment = () => {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
   const on = inView || reduced;
@@ -206,4 +206,4 @@ export function CameraRollFragment() {
       </div>
     </div>
   );
-}
+};

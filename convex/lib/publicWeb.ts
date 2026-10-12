@@ -9,38 +9,38 @@ const LOCAL_SUFFIXES = [".localhost", ".local", ".localdomain", ".internal", ".h
 
 // The hostname a URL will actually be asked for: lower case, no brackets, no
 // zone id, no trailing dots. `localhost.` and `[::1]` become `localhost` and `::1`.
-export function bareHost(host: string): string {
+export const bareHost = (host: string): string => {
   let name = host.trim().toLowerCase();
   if (name.startsWith("[") && name.endsWith("]")) name = name.slice(1, -1);
   const zone = name.indexOf("%");
   if (zone >= 0) name = name.slice(0, zone);
   while (name.endsWith(".")) name = name.slice(0, -1);
   return name;
-}
+};
 
-function hostOf(url: URL): string {
+const hostOf = (url: URL): string => {
   return bareHost(url.hostname);
-}
+};
 
 // A single label that is only digits, or a hex number (`0x7f`). Octal-looking
 // labels (`0177`) are digits too, so they are caught here without being decoded.
-function isNumericLabel(label: string): boolean {
+const isNumericLabel = (label: string): boolean => {
   return /^\d+$/.test(label) || /^0x[0-9a-f]+$/i.test(label);
-}
+};
 
 // An address written as a number rather than a name: IPv6, a dotted quad, a
 // short form (`127.1`), a single integer, or hex labels. All of them are
 // refused, public ranges included. The fetch never opens a literal.
-export function isLiteralAddress(host: string): boolean {
+export const isLiteralAddress = (host: string): boolean => {
   const name = bareHost(host);
   if (name === "") return false;
   if (name.includes(":")) return true;
   const labels = name.split(".");
   return labels.length > 0 && labels.every(isNumericLabel);
-}
+};
 
 // Web addresses only. Local names and numeric hosts are refused before DNS.
-export function isPublicWebUrl(url: URL): boolean {
+export const isPublicWebUrl = (url: URL): boolean => {
   if (url.protocol !== "http:" && url.protocol !== "https:") return false;
   if (url.username !== "" || url.password !== "") return false;
   const host = hostOf(url);
@@ -48,20 +48,20 @@ export function isPublicWebUrl(url: URL): boolean {
   if (LOCAL_SUFFIXES.some((suffix) => host.endsWith(suffix))) return false;
   if (isLiteralAddress(host)) return false;
   return true;
-}
+};
 
 // Where a redirect would send the next fetch, or nothing if that address is
 // not one this server should open. The next hop is still looked up before use.
-export function publicRedirect(base: string, location: string): string | undefined {
+export const publicRedirect = (base: string, location: string): string | undefined => {
   try {
     const next = new URL(location, base);
     return isPublicWebUrl(next) ? next.href : undefined;
   } catch {
     return undefined;
   }
-}
+};
 
-function parseV4(host: string): [number, number, number, number] | undefined {
+const parseV4 = (host: string): [number, number, number, number] | undefined => {
   const parts = host.split(".");
   if (parts.length !== 4) return undefined;
   const nums: number[] = [];
@@ -72,9 +72,9 @@ function parseV4(host: string): [number, number, number, number] | undefined {
     nums.push(n);
   }
   return nums as [number, number, number, number];
-}
+};
 
-function v4Private(octets: [number, number, number, number]): boolean {
+const v4Private = (octets: [number, number, number, number]): boolean => {
   const [a, b, c] = octets;
   if (a === 0 || a === 10 || a === 127) return true;
   if (a === 169 && b === 254) return true;
@@ -87,11 +87,11 @@ function v4Private(octets: [number, number, number, number]): boolean {
   if (a === 203 && b === 0 && c === 113) return true;
   if (a >= 224) return true;
   return false;
-}
+};
 
 // Eight groups, or undefined when the text is not an IPv6 address. A dotted
 // IPv4 tail (`::ffff:127.0.0.1`) is folded into the last two groups first.
-function expandV6(host: string): number[] | undefined {
+const expandV6 = (host: string): number[] | undefined => {
   let text = bareHost(host);
   const tail = /(\d{1,3}(?:\.\d{1,3}){3})$/.exec(text);
   if (tail?.[1] !== undefined && tail.index !== undefined) {
@@ -116,13 +116,13 @@ function expandV6(host: string): number[] | undefined {
     nums.push(Number.parseInt(group, 16));
   }
   return nums;
-}
+};
 
-function v4FromGroups(hi: number, lo: number): [number, number, number, number] {
+const v4FromGroups = (hi: number, lo: number): [number, number, number, number] => {
   return [(hi >> 8) & 255, hi & 255, (lo >> 8) & 255, lo & 255];
-}
+};
 
-function v6Private(groups: readonly number[]): boolean {
+const v6Private = (groups: readonly number[]): boolean => {
   const [g0, g1, g2, g3, g4, g5, g6, g7] = groups as [number, number, number, number, number, number, number, number];
   const restZero = g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0 && g6 === 0;
   if (g0 === 0 && restZero) return true;
@@ -136,11 +136,11 @@ function v6Private(groups: readonly number[]): boolean {
   // NAT64 well-known prefix 64:ff9b::/96.
   if (g0 === 0x0064 && g1 === 0xff9b && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0) return v4Private(v4FromGroups(g6, g7));
   return false;
-}
+};
 
 // True for loopback, link-local, private, documentation, multicast, and anything
 // that is not a readable address. An unknown string fails closed.
-export function isPrivateIp(address: string): boolean {
+export const isPrivateIp = (address: string): boolean => {
   const host = bareHost(address);
   if (host === "") return true;
   if (host.includes(":")) {
@@ -149,7 +149,7 @@ export function isPrivateIp(address: string): boolean {
   }
   const v4 = parseV4(host);
   return v4 === undefined ? true : v4Private(v4);
-}
+};
 
 export type WebLookup = (host: string) => Promise<readonly string[]>;
 
@@ -170,7 +170,7 @@ export type PinnedAddress = { address: string; family: 4 | 6 };
 
 // The addresses a connection may use. Empty, mixed, or private answers pin
 // nothing: the caller must fail closed instead of looking the name up again.
-export function addressesToPin(addresses: readonly string[]): readonly PinnedAddress[] | undefined {
+export const addressesToPin = (addresses: readonly string[]): readonly PinnedAddress[] | undefined => {
   if (addresses.length === 0) return undefined;
   const pinned: PinnedAddress[] = [];
   for (const address of addresses) {
@@ -178,10 +178,10 @@ export function addressesToPin(addresses: readonly string[]): readonly PinnedAdd
     pinned.push({ address, family: address.includes(":") ? 6 : 4 });
   }
   return pinned;
-}
+};
 
 // A DNS callback that can only return `addresses`. It never asks the network.
-export function connectLookup(
+export const connectLookup = (
   addresses: readonly string[],
 ):
   | ((
@@ -189,7 +189,7 @@ export function connectLookup(
       options: { all?: boolean },
       callback: (err: Error | null, address: string | readonly PinnedAddress[], family?: number) => void,
     ) => void)
-  | undefined {
+  | undefined => {
   const pinned = addressesToPin(addresses);
   if (pinned === undefined) return undefined;
   return (hostname, options, callback) => {
@@ -205,11 +205,11 @@ export function connectLookup(
     }
     callback(null, first.address, first.family);
   };
-}
+};
 
 // Every address the name resolves to must be a public one. A lookup that fails
 // or returns nothing is treated as private: the page is not fetched.
-async function publicAddresses(url: URL, resolve: WebLookup): Promise<readonly string[] | undefined> {
+const publicAddresses = async (url: URL, resolve: WebLookup): Promise<readonly string[] | undefined> => {
   if (!isPublicWebUrl(url)) return undefined;
   let addresses: readonly string[];
   try {
@@ -219,17 +219,17 @@ async function publicAddresses(url: URL, resolve: WebLookup): Promise<readonly s
   }
   if (addressesToPin(addresses) === undefined) return undefined;
   return addresses;
-}
+};
 
 // Fetches a public page, following redirects by hand. Each hop is looked up,
 // and the connection is given only those addresses so a later DNS answer
 // cannot point it somewhere else. The address the response says it landed on
 // is checked the same way.
-export async function readPublicPage(
+export const readPublicPage = async (
   raw: string,
   limit: number,
   deps: { resolve: WebLookup; fetch: WebFetch },
-): Promise<{ html: string; url: string } | null> {
+): Promise<{ html: string; url: string } | null> => {
   let current: URL;
   try {
     current = new URL(raw);
@@ -270,10 +270,10 @@ export async function readPublicPage(
     return { html: await readHead(response.body, limit), url: landed.href };
   }
   return null;
-}
+};
 
 // Reads up to `limit` bytes, then stops the download.
-export async function readHead(body: ReadableStream<Uint8Array>, limit: number): Promise<string> {
+export const readHead = async (body: ReadableStream<Uint8Array>, limit: number): Promise<string> => {
   const reader = body.getReader();
   const buffer = new Uint8Array(limit);
   let filled = 0;
@@ -286,4 +286,4 @@ export async function readHead(body: ReadableStream<Uint8Array>, limit: number):
   }
   await reader.cancel();
   return new TextDecoder().decode(buffer.subarray(0, filled));
-}
+};

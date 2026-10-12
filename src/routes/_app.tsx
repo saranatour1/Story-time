@@ -8,9 +8,7 @@ import { SignInScreen } from "@/components/sign-in-screen";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
-export const Route = createFileRoute("/_app")({ component: AppLayout });
-
-function AppLayout() {
+const AppLayout = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const [wasSignedIn, setWasSignedIn] = useState(false);
   useEffect(() => {
@@ -39,4 +37,7 @@ function AppLayout() {
       </SidebarInset>
     </SidebarProvider>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app")({ component: AppLayout });

@@ -7,7 +7,7 @@ import { Logo, LogoSplash } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 
-export function getRouter() {
+export const getRouter = () => {
   const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 
   return createRouter({
@@ -25,10 +25,10 @@ export function getRouter() {
       </ConvexAuthProvider>
     ),
   });
-}
+};
 
 // Fills the page at the root, and the content area inside the app's layout.
-function Message({ title, children }: { title: string; children: React.ReactNode }) {
+const Message = ({ title, children }: { title: string; children: React.ReactNode }) => {
   return (
     <main className="mx-auto flex min-h-[calc(100svh-6rem)] max-w-md flex-col items-center justify-center gap-4 px-6 py-12 text-center">
       <Logo className="size-10" />
@@ -36,9 +36,9 @@ function Message({ title, children }: { title: string; children: React.ReactNode
       {children}
     </main>
   );
-}
+};
 
-function NotFound() {
+const NotFound = () => {
   return (
     <Message title="This page doesn't exist">
       <p className="text-muted-foreground">The link may be mistyped, or the page has moved.</p>
@@ -47,11 +47,11 @@ function NotFound() {
       </Button>
     </Message>
   );
-}
+};
 
 // Render errors land here too, like a malformed id in a link (Convex's
 // validator throws inside useQuery).
-function RouteError({ error, reset }: ErrorComponentProps) {
+const RouteError = ({ error, reset }: ErrorComponentProps) => {
   const router = useRouter();
   return (
     <Message title="Something went wrong">
@@ -71,7 +71,7 @@ function RouteError({ error, reset }: ErrorComponentProps) {
       </div>
     </Message>
   );
-}
+};
 
 declare module "@tanstack/react-router" {
   interface Register {

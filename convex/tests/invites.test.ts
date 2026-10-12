@@ -26,7 +26,7 @@ beforeAll(() => {
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   t.registerComponent("invites", invitesSchema, invitesModules);
   t.registerComponent("email", emailSchema, emailModules);
@@ -36,7 +36,7 @@ async function setup() {
   const owner = as(ownerId);
   const eventId = await owner.mutation(api.api.events.createDraft, {});
   return { t, owner, guest: as(guestId), guestId, eventId };
-}
+};
 
 const tokenOf = (link: string) => link.split("/invite#")[1]!;
 const firstPage = { numItems: 25, cursor: null };

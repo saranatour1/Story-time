@@ -33,7 +33,7 @@ const SECTIONS = [
   { to: "/e/$id/activity", label: "Activity", icon: HistoryIcon, path: "/activity", owner: true },
 ] as const;
 
-export function AppSidebar() {
+export const AppSidebar = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   // The experience open, if one is, and which of its sections.
   const open = /^\/e\/([^/]+)(\/[a-z]+)?\/?$/.exec(pathname);
@@ -133,4 +133,4 @@ export function AppSidebar() {
       <SidebarRail />
     </Sidebar>
   );
-}
+};

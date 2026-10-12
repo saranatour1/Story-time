@@ -18,7 +18,7 @@ beforeAll(() => {
 const JUNE_1 = Date.UTC(2026, 5, 1, 12);
 const JUNE_3 = Date.UTC(2026, 5, 3, 12);
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, helperId, viewerId] = [await make(), await make(), await make()];
@@ -32,11 +32,11 @@ async function setup() {
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
   );
   return { t, eventId, owner, ownerId, helper: as(helperId), helperId, viewer: as(viewerId) };
-}
+};
 
 type Caller = Awaited<ReturnType<typeof setup>>["owner"];
 
-function addMoment(who: Caller, eventId: Id<"events">, text = "first") {
+const addMoment = (who: Caller, eventId: Id<"events">, text = "first") => {
   return who.mutation(api.api.moments.create, {
     eventId,
     startsAt: JUNE_1,
@@ -44,9 +44,9 @@ function addMoment(who: Caller, eventId: Id<"events">, text = "first") {
     place: "Lisbon",
     blocks: [{ type: "note", text }],
   });
-}
+};
 
-async function readyPhoto(who: Caller, eventId: Id<"events">) {
+const readyPhoto = async (who: Caller, eventId: Id<"events">) => {
   const { mediaId } = await who.mutation(api.api.media.reserveUpload, {
     eventId,
     size: 100,
@@ -54,7 +54,7 @@ async function readyPhoto(who: Caller, eventId: Id<"events">) {
   });
   await who.mutation(api.api.media.confirmUpload, { mediaId });
   return mediaId;
-}
+};
 
 // The day a moment happened, in the zone it happened in.
 const dayOf = (m: { startsAt: number; tzOffsetMinutes?: number }) =>
@@ -383,7 +383,7 @@ describe("map coordinates", () => {
   const LISBON = { lat: 38.7223, lng: -9.1393 };
   const SINTRA = { lat: 38.8029, lng: -9.3817 };
 
-  function addPinned(who: Caller, eventId: Id<"events">) {
+  const addPinned = (who: Caller, eventId: Id<"events">) => {
     return who.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
@@ -392,7 +392,7 @@ describe("map coordinates", () => {
       blocks: [{ type: "note", text: "landed" }],
       stops: [{ place: "Sintra", geo: SINTRA, blocks: [] }],
     });
-  }
+  };
 
   test("each stop's coordinates round-trip, encrypted at rest and in the log", async () => {
     const { t, owner, eventId } = await setup();

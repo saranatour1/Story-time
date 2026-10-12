@@ -33,7 +33,7 @@ const BUDGET_SCAN = 5000;
 // One person's live bytes across every experience, so one account can't fill
 // the bucket. Profile images count too. Deleted uploads don't, so removing
 // frees room.
-export async function assertUploadBudget(ctx: MutationCtx, userId: Id<"users">, size: number) {
+export const assertUploadBudget = async (ctx: MutationCtx, userId: Id<"users">, size: number) => {
   let liveBytes = 0;
   let uncounted = false;
   for (const status of ["ready", "reserved"] as const) {
@@ -51,7 +51,7 @@ export async function assertUploadBudget(ctx: MutationCtx, userId: Id<"users">, 
         "You've reached your upload limit across all experiences. Delete some photos or videos to make room.",
     });
   }
-}
+};
 
 // Step 1 of an upload: the server route calls this before it streams bytes
 // to R2, so size, type and per-event caps are enforced here.
@@ -242,11 +242,11 @@ const attachThumb = mutation({
   },
 });
 
-function delivered(
+const delivered = (
   media: Doc<"media">,
   variant: "full" | "thumb" | undefined,
   keyScope: string,
-) {
+) => {
   const thumbKey = variant === "thumb" ? media.thumbR2Key : undefined;
   return {
     r2Key: thumbKey ?? media.r2Key,
@@ -254,7 +254,7 @@ function delivered(
     keyVersion: media.keyVersion,
     keyScope,
   };
-}
+};
 
 // Used by the download route. Null for anyone without an active grant.
 const getForDownload = query({
@@ -378,11 +378,11 @@ const clearAvatar = mutation({
 // once it's no longer their current image. Experience photos: once no
 // moment uses them, the experience owner, or the uploader (or the detacher,
 // which is only ever the uploader; see moments.ts) while they still contribute.
-async function deletableBy(
+const deletableBy = async (
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
   media: Doc<"media">,
-): Promise<boolean> {
+): Promise<boolean> => {
   if (media.status === "deleted") return false;
   if (media.purpose === "avatar") {
     if (media.uploaderId !== userId) return false;
@@ -401,7 +401,7 @@ async function deletableBy(
   if (access === null || access.role === "viewer") return false;
   if (access.role === "owner") return true;
   return media.uploaderId === userId || media.detachedBy === userId;
-}
+};
 
 // For the delete route.
 const getForDelete = query({

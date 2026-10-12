@@ -17,17 +17,17 @@ import { createMoment, type MomentCreate } from "./moments";
 
 const PROD_DEPLOYMENT = "strong-stoat-772";
 
-function readEnv(name: string): string | undefined {
+const readEnv = (name: string): string | undefined => {
   // CONVEX_SITE_URL and CONVEX_CLOUD_URL are set by Convex itself and can't be
   // declared in convex.config.ts; this dev-only guard reads them directly.
   // eslint-disable-next-line @convex-dev/no-process-env -- system variables, see above
   const value = (process.env as Record<string, string | undefined>)[name];
   return typeof value === "string" && value !== "" ? value : undefined;
-}
+};
 
 // Refuses unless this is a dev deployment that said so, and not production
 // even if that variable was copied onto it.
-function assertDevDeployment(): void {
+const assertDevDeployment = (): void => {
   const site = readEnv("CONVEX_SITE_URL") ?? "";
   const cloud = readEnv("CONVEX_CLOUD_URL") ?? "";
   if (site.includes(PROD_DEPLOYMENT) || cloud.includes(PROD_DEPLOYMENT)) {
@@ -37,7 +37,7 @@ function assertDevDeployment(): void {
   if (deployment === undefined || !deployment.startsWith("dev:")) {
     throw new Error("seed:japan only runs on a dev deployment. Set CONVEX_DEPLOYMENT to dev:<name> there, and pass userId.");
   }
-}
+};
 
 // Japan is UTC+9 all year.
 const JST = 9 * 60;

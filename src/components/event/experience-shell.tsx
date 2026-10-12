@@ -15,7 +15,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 // An experience, loaded once for whichever of its sections is open (moments,
 // journal, sharing, activity): the not-found and loading states, and, unless
 // `bare`, the header with its name and its Play, Add and More.
-export function ExperienceShell({
+export const ExperienceShell = ({
   id,
   section,
   bare = false,
@@ -25,7 +25,7 @@ export function ExperienceShell({
   section?: string;
   bare?: boolean;
   children: (event: EventView) => ReactNode;
-}) {
+}) => {
   const navigate = useNavigate();
   const event = useQuery(api.events.get, { eventId: id });
   useDocumentTitle(event ? `${section ? `${section} · ` : ""}${event.title} · Story-time` : undefined);
@@ -89,4 +89,4 @@ export function ExperienceShell({
       {children(event)}
     </div>
   );
-}
+};

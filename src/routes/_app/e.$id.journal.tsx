@@ -4,14 +4,8 @@ import { ExperienceShell } from "@/components/event/experience-shell";
 import { Guestbook } from "@/components/event/guestbook";
 import { JournalBook } from "@/components/journal/book";
 
-export const Route = createFileRoute("/_app/e/$id/journal")({
-  // Opens on this moment's page.
-  validateSearch: z.object({ momentId: z.string().optional().catch(undefined) }),
-  component: JournalPage,
-});
-
 // The experience as a journal of A4 pages, full width: the page is the point.
-function JournalPage() {
+const JournalPage = () => {
   const { id } = Route.useParams();
   const { momentId } = Route.useSearch();
   return (
@@ -24,4 +18,11 @@ function JournalPage() {
       )}
     </ExperienceShell>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app/e/$id/journal")({
+  // Opens on this moment's page.
+  validateSearch: z.object({ momentId: z.string().optional().catch(undefined) }),
+  component: JournalPage,
+});

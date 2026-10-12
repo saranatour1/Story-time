@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { addressesToPin, connectLookup, isPrivateIp, isPublicWebUrl, readPublicPage, type WebFetch, type WebResponse } from "../lib/publicWeb";
 
-function page(html: string, status = 200, headers?: HeadersInit, url = ""): WebResponse {
+const page = (html: string, status = 200, headers?: HeadersInit, url = ""): WebResponse => {
   const response = new Response(html, { status, headers });
   return {
     status: response.status,
@@ -10,7 +10,7 @@ function page(html: string, status = 200, headers?: HeadersInit, url = ""): WebR
     headers: response.headers,
     body: response.body,
   };
-}
+};
 
 describe("isPrivateIp", () => {
   test("private, local, and unreadable addresses are refused, and public ones are not", () => {

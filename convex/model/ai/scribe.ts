@@ -94,19 +94,19 @@ export const context = internalQuery({
 });
 
 // The text of every note and feeling across a moment's stops.
-function writtenText(lists: PlainBlock[][]): string[] {
+const writtenText = (lists: PlainBlock[][]): string[] => {
   return lists.flat().flatMap((b) => (b.type === "note" || b.type === "feeling" ? [b.text] : []));
-}
+};
 
 // "UTC+09:00", or plain "UTC" when there is no offset or it is zero.
-function zoneLabel(offset: number | undefined): string {
+const zoneLabel = (offset: number | undefined): string => {
   if (offset === undefined || offset === 0) return "UTC";
   const hours = String(Math.trunc(Math.abs(offset) / 60)).padStart(2, "0");
   const minutes = String(Math.abs(offset) % 60).padStart(2, "0");
   return `UTC${offset < 0 ? "-" : "+"}${hours}:${minutes}`;
-}
+};
 
-export function promptFor(c: ScribeContext, hint?: string): string {
+export const promptFor = (c: ScribeContext, hint?: string): string => {
   // The clock where it happened, in the zone it happened in.
   const when = new Date(c.startsAt + (c.tzOffsetMinutes ?? 0) * 60_000).toISOString().slice(0, 16).replace("T", " ");
   const lines: Array<string | undefined> = [
@@ -124,25 +124,25 @@ export function promptFor(c: ScribeContext, hint?: string): string {
     "The photos are this moment.",
   ];
   return lines.filter((line): line is string => line !== undefined).join("\n");
-}
+};
 
-function writeCaption(ctx: ActionCtx, threadId: string, messages: ModelMessage[]): Promise<Caption> {
+const writeCaption = (ctx: ActionCtx, threadId: string, messages: ModelMessage[]): Promise<Caption> => {
   return generateStructured(ctx, scribe, threadId, {
     schema: captionSchema,
     messages,
     jsonInstructions: JSON_INSTRUCTIONS,
     maxOutputTokens: MAX_OUTPUT_TOKENS,
   });
-}
+};
 
 // Writes the diary line and labels from the photos, then hands them to `apply`,
 // which keeps anything a person already wrote. `enrich` calls this directly
 // rather than through the `caption` action: an action calling an action is only
 // worth it across runtimes.
-export async function captionMoment(
+export const captionMoment = async (
   ctx: ActionCtx,
   args: { momentId: Id<"moments">; thumbs: Array<{ mediaId: Id<"media">; jpeg: string }>; hint?: string },
-): Promise<void> {
+): Promise<void> => {
   const found: ScribeContext = await ctx.runQuery(internal.model.ai.scribe.context, { momentId: args.momentId });
   // Nothing left to fill, so no model call.
   if (found.notes.length > 0 && found.labels.length > 0) return;
@@ -172,5 +172,5 @@ export async function captionMoment(
     mood: draft.mood,
     labels: draft.labels,
   });
-}
+};
 

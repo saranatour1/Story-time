@@ -12,12 +12,12 @@ const NOTABLE = ["moment", "page", "guestNote"] as const;
 // other kinds are not in the index range and cannot crowd a note out.
 const UNREAD_SCAN = 1000;
 
-async function countCreates(
+const countCreates = async (
   ctx: QueryCtx,
   eventId: Id<"events">,
   entity: (typeof NOTABLE)[number],
   since: number,
-): Promise<number> {
+): Promise<number> => {
   const rows = await ctx.db
     .query("changes")
     .withIndex("by_event_entity_action_at", (q) =>
@@ -25,7 +25,7 @@ async function countCreates(
     )
     .take(UNREAD_SCAN);
   return rows.length;
-}
+};
 
 // How many new moments, pages and guestbook notes the owner has not opened
 // Activity for. Zero until something notable is created after the last look.

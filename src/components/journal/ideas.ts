@@ -136,7 +136,7 @@ export const IDEAS: Idea[] = [
 
 // "What we did that day": the day's moments in order as a list on lined
 // paper, a few of its photos down the side, and the day's postmark.
-export function dayIdea(day: Day): Idea {
+export const dayIdea = (day: Day): Idea => {
   const first = day.moments[0]!;
   const list = day.moments.map((m) => `${formatTime(m.startsAt, m.tzOffsetMinutes)}  ${firstLine(m) ?? "…"}`).join("\n");
   const photos = day.moments.flatMap((m) => allBlocks(m).flatMap((b) => (b.type === "photo" ? [b.mediaId] : []))).slice(0, 3);
@@ -156,7 +156,7 @@ export function dayIdea(day: Day): Idea {
         { kind: "deco", style: "postmark", text: postmarkDate(first.startsAt, first.tzOffsetMinutes), x: 580, y: 950, w: 150, h: 150, rotation: 10 },
       ]),
   };
-}
+};
 
 // A tier list: rows S to F, and below them what's still to rank (places as
 // label-maker strips, moments as their first photo) to drag up into a row.
@@ -165,7 +165,7 @@ export type TierItem = { text: string; mediaId?: string };
 
 const TIER_BOTTOM = PAGE.h - 12;
 
-function packTier(items: readonly TierItem[], startY: number): { placed: Part[]; rest: TierItem[] } {
+const packTier = (items: readonly TierItem[], startY: number): { placed: Part[]; rest: TierItem[] } => {
   const placed: Part[] = [];
   let x = 40;
   let y = startY;
@@ -189,9 +189,9 @@ function packTier(items: readonly TierItem[], startY: number): { placed: Part[];
     tallest = Math.max(tallest, h);
   }
   return { placed, rest: [] };
-}
+};
 
-function tierFollowUps(items: readonly TierItem[]): JournalElement[][] {
+const tierFollowUps = (items: readonly TierItem[]): JournalElement[][] => {
   const pages: JournalElement[][] = [];
   let rest = [...items];
   while (rest.length > 0 && pages.length < 8) {
@@ -201,9 +201,9 @@ function tierFollowUps(items: readonly TierItem[]): JournalElement[][] {
     rest = packed.rest;
   }
   return pages;
-}
+};
 
-export function tierIdea(id: string, hint: string, items: TierItem[]): Idea {
+export const tierIdea = (id: string, hint: string, items: TierItem[]): Idea => {
   const first = () => packTier(items, 788);
   return {
     id: `tier-${id}`,
@@ -220,4 +220,4 @@ export function tierIdea(id: string, hint: string, items: TierItem[]): Idea {
       ]),
     more: () => tierFollowUps(first().rest),
   };
-}
+};

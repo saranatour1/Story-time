@@ -12,7 +12,7 @@ beforeAll(() => {
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, viewerId, strangerId] = [await make(), await make(), await make()];
@@ -23,7 +23,7 @@ async function setup() {
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
   );
   return { t, owner, viewer: as(viewerId), stranger: as(strangerId), eventId };
-}
+};
 
 describe("activity badge", () => {
   test("counts new moments, pages and guestbook notes, then clears when opened", async () => {

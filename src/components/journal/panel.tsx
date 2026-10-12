@@ -19,16 +19,16 @@ import { DECO_NAMES, FONTS, INK, NOTE_NAMES, PAPER_LOOKS, PRINT_NAMES, TITLE_NAM
 
 const SECTION = "font-mono text-[11px] tracking-[0.14em] text-stone-500 uppercase";
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+const Section = ({ title, children }: { title: string; children: ReactNode }) => {
   return (
     <section className="space-y-2 border-b border-stone-300/70 px-3 py-3 last:border-b-0">
       <h3 className={SECTION}>{title}</h3>
       {children}
     </section>
   );
-}
+};
 
-function Thumb({ mediaId, className }: { mediaId: string; className?: string }) {
+const Thumb = ({ mediaId, className }: { mediaId: string; className?: string }) => {
   const [ref, seen] = useWhenSeen();
   const { url } = useMediaUrl(seen ? mediaId : undefined, "thumb");
   return (
@@ -36,10 +36,10 @@ function Thumb({ mediaId, className }: { mediaId: string; className?: string }) 
       {url && <img src={url} alt="" width={96} height={96} sizes="96px" loading="lazy" decoding="async" draggable={false} className="size-full object-cover" />}
     </span>
   );
-}
+};
 
 // A small drawing of a style, to pick it by sight.
-function Sample({ children, label, on, onClick }: { children: ReactNode; label: string; on?: boolean; onClick: () => void }) {
+const Sample = ({ children, label, on, onClick }: { children: ReactNode; label: string; on?: boolean; onClick: () => void }) => {
   return (
     <button
       type="button"
@@ -55,13 +55,13 @@ function Sample({ children, label, on, onClick }: { children: ReactNode; label: 
       {children}
     </button>
   );
-}
+};
 
 const sample = (kind: JournalElement["kind"], style: string, text?: string): JournalElement => ({ id: `sample-${kind}-${style}`, kind, style, text, x: 0, y: 0, w: 120, h: 50, rotation: 0, z: 0 });
 
 // Draws a title, note or bit at a small size inside a sample.
 // `room` is how wide the sample is.
-function Mini({ e, w, h, room = 118 }: { e: JournalElement; w: number; h: number; room?: number }) {
+const Mini = ({ e, w, h, room = 118 }: { e: JournalElement; w: number; h: number; room?: number }) => {
   const scale = Math.min(room / w, 56 / h);
   return (
     <div style={{ width: w * scale, height: h * scale }}>
@@ -70,13 +70,13 @@ function Mini({ e, w, h, room = 118 }: { e: JournalElement; w: number; h: number
       </div>
     </div>
   );
-}
+};
 
 // ---- What to add -----------------------------------------------------------------------
 
 const photosOf = (m: MomentView): string[] => [m.blocks, ...m.stops.map((s) => s.blocks)].flat().flatMap((b) => (b.type === "photo" ? [b.mediaId] : []));
 
-export function AddTray({
+export const AddTray = ({
   moments,
   stickers,
   paper,
@@ -100,7 +100,7 @@ export function AddTray({
   onUpload: () => void;
   onLink: (url: string) => void;
   onDraw: () => void;
-}) {
+}) => {
   const [url, setUrl] = useState("");
   const days = groupByDay(moments);
   // What can be ranked: every place, every moment, or one moment's stops.
@@ -306,13 +306,13 @@ export function AddTray({
       </Section>
     </div>
   );
-}
+};
 
 // ---- What to do with the picked thing ------------------------------------------------------
 
 const NAMES: Record<JournalElement["kind"], string> = { photo: "Photo", sticker: "Sticker", title: "Title", note: "Note", deco: "Decoration", map: "Map", drawing: "Drawing", link: "Link" };
 
-export function Inspector({
+export const Inspector = ({
   e,
   onChange,
   onWrite,
@@ -331,7 +331,7 @@ export function Inspector({
   onCut: () => void;
   // Another title for a moment's page, from its moment. Absent elsewhere.
   onSuggest?: () => Promise<string>;
-}) {
+}) => {
   const name = e.kind === "deco" ? (DECO_NAMES[e.style ?? ""] ?? NAMES.deco) : NAMES[e.kind];
   return (
     <div>
@@ -473,11 +473,11 @@ export function Inspector({
       </div>
     </div>
   );
-}
+};
 
 // "Try another": a title from the moment, offered under the one there now.
 // Nothing changes until "Use it".
-function TryAnother({ ask, onUse }: { ask: () => Promise<string>; onUse: (text: string) => void }) {
+const TryAnother = ({ ask, onUse }: { ask: () => Promise<string>; onUse: (text: string) => void }) => {
   const [idea, setIdea] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const more = async () => {
@@ -509,4 +509,4 @@ function TryAnother({ ask, onUse }: { ask: () => Promise<string>; onUse: (text: 
       </div>
     </Section>
   );
-}
+};

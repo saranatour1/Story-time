@@ -65,7 +65,7 @@ let clipboard: JournalElement | null = null;
 
 // A picture's size, and whether it has see-through parts (then it is a
 // sticker, not a photo).
-async function measure(file: File): Promise<{ w: number; h: number; clear: boolean }> {
+const measure = async (file: File): Promise<{ w: number; h: number; clear: boolean }> => {
   const bitmap = await createImageBitmap(file);
   const { width: w, height: h } = bitmap;
   let clear = false;
@@ -85,7 +85,7 @@ async function measure(file: File): Promise<{ w: number; h: number; clear: boole
   }
   bitmap.close();
   return { w, h, clear };
-}
+};
 
 const isUrl = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
 
@@ -95,7 +95,7 @@ const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isConte
 // middle, and what to add (or what to do with the picked thing) on the right.
 // Read turns it into a book; the menu prints it, saves it as a file, or brings
 // one back.
-export function JournalBook({ event, momentId }: { event: EventView; momentId?: string }) {
+export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: string }) => {
   const [index, setIndex] = useState(0);
   const journal = useJournal(event._id, index);
   const convex = useConvex();
@@ -471,7 +471,7 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
 
   const offstage = useRef<HTMLDivElement>(null);
   // Pages that share the open page's day. A page with no moment exports alone.
-  function pagesForDay(): PageId[] {
+  const pagesForDay = (): PageId[] => {
     if (!summary) return [];
     const moment = summary.momentId ? momentById.get(summary.momentId) : undefined;
     if (!moment) return [summary._id as PageId];
@@ -480,16 +480,16 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
       const onDay = p.momentId ? momentById.get(p.momentId) : undefined;
       return onDay && dayKey(onDay.startsAt, onDay.tzOffsetMinutes) === key ? [p._id as PageId] : [];
     });
-  }
-  async function drawPage(pageId: PageId) {
+  };
+  const drawPage = async (pageId: PageId) => {
     const loaded = await convex.query(api.journal.page, { pageId });
     if (!loaded) throw new Error("The page couldn't be drawn.");
     setSheetPage(loaded as PageData);
     const node = await waitForPage(() => offstage.current, loaded._id);
     return { node, hasMap: false, paper: paperLook(loaded.paper).color };
-  }
+  };
   // Pages drawn one at a time offstage into one PDF, with the count shown.
-  async function makePdf(ids: PageId[]): Promise<Blob> {
+  const makePdf = async (ids: PageId[]): Promise<Blob> => {
     const job = new AbortController();
     printJob.current = job;
     setPrinting({ done: 0, total: ids.length });
@@ -508,8 +508,8 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
       setPrinting(null);
       setSheetPage(null);
     }
-  }
-  async function printPdf(ids: PageId[], done: string) {
+  };
+  const printPdf = async (ids: PageId[], done: string) => {
     if (ids.length === 0) return;
     try {
       download(await makePdf(ids), `${fileName(event.title)}.pdf`);
@@ -518,8 +518,8 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
       if (e instanceof PdfCancelled) return;
       toast.error(errorMessage(e));
     }
-  }
-  async function printPage() {
+  };
+  const printPage = async () => {
     if (!page) return;
     setPrinting({ done: 0, total: 1 });
     try {
@@ -532,8 +532,8 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
       setPrinting(null);
       setSheetPage(null);
     }
-  }
-  async function bringBack(file: File | undefined) {
+  };
+  const bringBack = async (file: File | undefined) => {
     if (!file) return;
     try {
       const list = await readJournalFile(file);
@@ -544,7 +544,7 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
     } catch (e) {
       toast.error(errorMessage(e));
     }
-  }
+  };
 
   // ---- The page -------------------------------------------------------------------
 
@@ -1055,13 +1055,13 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
         )}
     </div>
   );
-}
+};
 
 const THUMB = 96 / PAGE.w;
 
 // The open page and the one on either side are drawn. Every other contents
 // entry stays the paper colour and its label.
-function StripFace({
+const StripFace = ({
   pageId,
   paper,
   label,
@@ -1073,7 +1073,7 @@ function StripFace({
   label: string;
   draw: boolean;
   moments: ReadonlyMap<string, MomentView>;
-}) {
+}) => {
   const loaded = useQuery(api.journal.page, draw ? { pageId: pageId as PageId } : "skip");
   if (draw && loaded) return <JournalPage page={loaded} moments={moments} scale={THUMB} live={false} />;
   return (
@@ -1084,4 +1084,4 @@ function StripFace({
       {label}
     </span>
   );
-}
+};

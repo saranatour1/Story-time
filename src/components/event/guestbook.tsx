@@ -8,13 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { errorMessage } from "@/lib/errors";
 
 // A short note from someone invited. The owner sees it on Activity as well.
-export function Guestbook({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) {
+export const Guestbook = ({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) => {
   const notes = useQuery(api.guestNotes.list, { eventId });
   const leave = useMutation(api.guestNotes.leave);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
-  async function submit(e: { preventDefault(): void }) {
+  const submit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
     setSending(true);
     try {
@@ -26,7 +26,7 @@ export function Guestbook({ eventId, archived }: { eventId: Id<"events">; archiv
     } finally {
       setSending(false);
     }
-  }
+  };
 
   return (
     <section aria-label="Guestbook" className="mx-auto w-full max-w-xl space-y-3 px-4 pb-10">
@@ -55,4 +55,4 @@ export function Guestbook({ eventId, archived }: { eventId: Id<"events">; archiv
       )}
     </section>
   );
-}
+};

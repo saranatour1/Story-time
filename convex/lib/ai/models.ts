@@ -13,13 +13,13 @@ export const TRANSCRIPTION_MODEL = "openai/whisper-large-v3-turbo";
 // The gateway types its evaluation models as `any`, so the one place that
 // calls it gives the result a type here. If the gateway rejects this id,
 // "typesafe/jev-router" is the alias in its model list.
-export function jevModel(): DecisionModel {
+export const jevModel = (): DecisionModel => {
   const gateway: { evaluationModel(modelId: string): DecisionModel } = convexGateway;
   return gateway.evaluationModel("typesafe/jev-1.13");
-}
+};
 
 // Only the message. Gateway errors carry the request body, and that holds
 // the photos and places, so it never goes into the logs.
-export function skipReason(error: unknown): string {
+export const skipReason = (error: unknown): string => {
   return error instanceof Error ? error.message : "unknown error";
-}
+};

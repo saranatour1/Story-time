@@ -9,11 +9,11 @@ type ShelfBlock =
 
 // One moment's blocks for photos already in the trip: each picked file, then
 // the words as a note when there are any. A video stays a video.
-export function blocksForShelf(picked: readonly ShelfItem[], note: string): ShelfBlock[] {
+export const blocksForShelf = (picked: readonly ShelfItem[], note: string): ShelfBlock[] => {
   const media: ShelfBlock[] = picked.map((item) => ({
     type: item.mime.startsWith("video/") ? "video" : "photo",
     mediaId: item.mediaId,
   }));
   const text = note.trim();
   return text === "" ? media : [...media, { type: "note", text }];
-}
+};

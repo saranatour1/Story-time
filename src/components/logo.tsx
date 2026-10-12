@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 // A tilted photo print with the sun going down in it: the last photo of the
 // day. Fixed brand colours, so it looks the same in light and dark mode;
 // public/favicon.svg is the same drawing.
-export function Logo({ className }: { className?: string }) {
+export const Logo = ({ className }: { className?: string }) => {
   return (
     <svg viewBox="0 0 64 64" aria-hidden className={cn("size-8", className)}>
       <rect width="64" height="64" rx="16" fill="#141210" />
@@ -16,10 +16,10 @@ export function Logo({ className }: { className?: string }) {
       </g>
     </svg>
   );
-}
+};
 
 // The first paint, and the moment before we know whether someone is signed
 // in: an empty screen, so nothing flashes or spins before the page is ready.
-export function LogoSplash({ className }: { className?: string }) {
+export const LogoSplash = ({ className }: { className?: string }) => {
   return <div role="status" aria-label="Loading" className={cn("min-h-svh", className)} />;
-}
+};

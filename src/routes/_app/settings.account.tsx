@@ -5,9 +5,7 @@ import { SettingsBlock, SettingsPage } from "@/components/settings/section";
 import { Button } from "@/components/ui/button";
 import { clearMediaCache } from "@/lib/use-media-url";
 
-export const Route = createFileRoute("/_app/settings/account")({ component: Account });
-
-function Account() {
+const Account = () => {
   const { signOut } = useAuthActions();
 
   return (
@@ -30,4 +28,7 @@ function Account() {
       </div>
     </SettingsPage>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app/settings/account")({ component: Account });

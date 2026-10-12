@@ -14,20 +14,20 @@ export const coverTitle = (event: Doc<"events">) => (event.title || "Our trip").
 
 // The date line the cover is given: the trip's dates, or its first moment to
 // its last when it has none. At most two reads, one at each end of the index.
-export async function coverDates(ctx: QueryCtx, event: Doc<"events">): Promise<string | undefined> {
+export const coverDates = async (ctx: QueryCtx, event: Doc<"events">): Promise<string | undefined> => {
   const moments = () => ctx.db.query("moments").withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id));
   const first = event.startsAt === undefined ? ((await moments().first()) ?? undefined) : undefined;
   const last = event.endsAt === undefined ? ((await moments().order("desc").first()) ?? undefined) : undefined;
   return tripDates(event, first, last);
-}
+};
 
-export async function coverWords(ctx: QueryCtx, event: Doc<"events">): Promise<CoverWords> {
+export const coverWords = async (ctx: QueryCtx, event: Doc<"events">): Promise<CoverWords> => {
   return { title: coverTitle(event), dates: await coverDates(ctx, event) };
-}
+};
 
 // Until the owner retypes the cover, its name and dates follow the trip. A
 // line that no longer says what was last written is theirs, and stays.
-export async function followCover(ctx: MutationCtx, event: Doc<"events">, before: CoverWords, after: CoverWords): Promise<void> {
+export const followCover = async (ctx: MutationCtx, event: Doc<"events">, before: CoverWords, after: CoverWords): Promise<void> => {
   if (before.title === after.title && before.dates === after.dates) return;
   const journal = await ctx.db
     .query("journals")
@@ -63,13 +63,13 @@ export async function followCover(ctx: MutationCtx, event: Doc<"events">, before
     }
     if (changed) await ctx.db.patch("journalPages", page._id, { elements });
   }
-}
+};
 
 // Around a write that may move a dateless trip's first or last moment: the
 // cover's date line before it, then `after()` to follow it. A trip with both
 // dates set never changes this way, so it costs nothing there.
-export async function datesBefore(ctx: QueryCtx, event: Doc<"events">): Promise<(ctx: MutationCtx) => Promise<void>> {
+export const datesBefore = async (ctx: QueryCtx, event: Doc<"events">): Promise<(ctx: MutationCtx) => Promise<void>> => {
   if (event.startsAt !== undefined && event.endsAt !== undefined) return async () => undefined;
   const before = await coverWords(ctx, event);
   return async (mctx) => followCover(mctx, event, before, { title: before.title, dates: await coverDates(mctx, event) });
-}
+};

@@ -57,11 +57,11 @@ const SIZES: Record<string, { w: number; h: number }> = {
   drawing: { w: 200, h: 200 },
 };
 
-export function sizeOf(kind: JournalElement["kind"], style?: string): { w: number; h: number } {
+export const sizeOf = (kind: JournalElement["kind"], style?: string): { w: number; h: number } => {
   if (kind !== "deco") return SIZES[kind] ?? SIZES.note!;
   const family = style?.startsWith("tape") ? "tape" : style?.startsWith("circle") ? "circle" : style ?? "tape";
   return SIZES[family] ?? SIZES.tape!;
-}
+};
 
 // What the stickers with words on them say when they are first put down.
 export const WORDED: Record<string, string> = { ticket: "ADMIT ONE", postmark: "HELLO", "luggage-tag": "BON VOYAGE", ribbon: "HAPPY DAYS", speech: "Wish you were here!", tier: "S" };
@@ -72,7 +72,7 @@ export const behind = (thing: Pick<JournalElement, "kind" | "style">) =>
 
 let fan = 0;
 
-export function placed(thing: NewThing, on: JournalElement[], id: string): JournalElement {
+export const placed = (thing: NewThing, on: JournalElement[], id: string): JournalElement => {
   const { w, h } = { ...sizeOf(thing.kind, thing.style), ...("w" in thing && thing.w ? { w: thing.w, h: thing.h } : {}) };
   const k = (fan++ % 7) - 3;
   const zs = on.map((e) => e.z);
@@ -87,7 +87,7 @@ export function placed(thing: NewThing, on: JournalElement[], id: string): Journ
     rotation: thing.kind === "title" || thing.kind === "map" ? 0 : k * 2,
     z,
   };
-}
+};
 
 // An id for something new on a page.
 export const newId = () => Math.random().toString(36).slice(2, 10);
@@ -97,7 +97,7 @@ const CARRIES = new Set<JournalElement["kind"]>(["photo", "sticker", "note", "ma
 
 // The strips of tape lying across `e`: more than a third of each strip over it,
 // and above it. They move with it, the way tape would.
-export function tapedTo(e: JournalElement, all: JournalElement[]): JournalElement[] {
+export const tapedTo = (e: JournalElement, all: JournalElement[]): JournalElement[] => {
   if (!CARRIES.has(e.kind)) return [];
   return all.filter((t) => {
     if (t.kind !== "deco" || !t.style?.startsWith("tape") || t.z < e.z || t.locked) return false;
@@ -105,4 +105,4 @@ export function tapedTo(e: JournalElement, all: JournalElement[]): JournalElemen
     const h = Math.max(0, Math.min(t.y + t.h, e.y + e.h + 20) - Math.max(t.y, e.y - 20));
     return w * h > (t.w * t.h) / 3;
   });
-}
+};

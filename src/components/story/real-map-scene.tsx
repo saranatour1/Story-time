@@ -48,7 +48,7 @@ const CAPTION_PAD = 6;
 // on every place and flies in on the destination, where the transport parks.
 // Earlier legs stay faint; every located place of the story is marked.
 // Mounted ahead of view, it waits on the departure until `active`.
-export function RealMapScene({
+export const RealMapScene = ({
   leg,
   from,
   to,
@@ -70,7 +70,7 @@ export function RealMapScene({
   active: boolean;
   // Shown instead when the basemap doesn't arrive (tiles blocked, offline).
   fallback: ReactNode;
-}) {
+}) => {
   const seconds = legDuration(leg.transport);
   const transport = transportOf(leg.transport);
   const Icon = transport?.icon;
@@ -175,11 +175,11 @@ export function RealMapScene({
       </div>
     </section>
   );
-}
+};
 
 // The transport, riding the route or parked on an arrival. Its halo pulses
 // gently while the scene plays.
-function Badge({ Icon, pulse = false }: { Icon?: LucideIcon; pulse?: boolean }) {
+const Badge = ({ Icon, pulse = false }: { Icon?: LucideIcon; pulse?: boolean }) => {
   return (
     <span className="relative grid size-9 place-items-center">
       {pulse && <span aria-hidden className="absolute -inset-1.5 animate-pulse rounded-full border-2 border-[#c2410c]/40" />}
@@ -188,12 +188,12 @@ function Badge({ Icon, pulse = false }: { Icon?: LucideIcon; pulse?: boolean }) 
       </span>
     </span>
   );
-}
+};
 
 // Every located place is marked, but a name shows only where it fits clear of
 // the others. The destination's name comes first, then where the leg set off
 // from, then the places already visited; the rest give way.
-function PlaceMarkers({ places, from, to, visited }: { places: Placed[]; from: string; to: string; visited: Set<string> }) {
+const PlaceMarkers = ({ places, from, to, visited }: { places: Placed[]; from: string; to: string; visited: Set<string> }) => {
   const { map, isLoaded } = useMap();
   const [named, setNamed] = useState<Set<string>>(() => new Set());
   useEffect(() => {
@@ -239,11 +239,11 @@ function PlaceMarkers({ places, from, to, visited }: { places: Placed[]; from: s
       })}
     </>
   );
-}
+};
 
 // The names that fit clear of one another where the map is now. A place off
 // the screen has no name to place; its dot is simply not on the map.
-function namesThatFit(map: MapLibre, places: Placed[], from: string, to: string, visited: Set<string>): Set<string> {
+const namesThatFit = (map: MapLibre, places: Placed[], from: string, to: string, visited: Set<string>): Set<string> => {
   const { clientWidth: w, clientHeight: h } = map.getContainer();
   const boxes: LabelBox[] = [];
   for (const p of places) {
@@ -261,28 +261,28 @@ function namesThatFit(map: MapLibre, places: Placed[], from: string, to: string,
     });
   }
   return thinLabels(boxes, CAPTION_PAD);
-}
+};
 
-function Loaded({ onLoad }: { onLoad: (loaded: boolean) => void }) {
+const Loaded = ({ onLoad }: { onLoad: (loaded: boolean) => void }) => {
   const { isLoaded } = useMap();
   useEffect(() => {
     if (isLoaded) onLoad(true);
   }, [isLoaded, onLoad]);
   return null;
-}
+};
 
 // Room for the caption over the top of the map. The sides keep clear of
 // labels, which hang up to ~110px either side of a point on narrow phones.
-function framePadding(map: MapLibre) {
+const framePadding = (map: MapLibre) => {
   const { clientWidth: w, clientHeight: h } = map.getContainer();
   const side = Math.max(w * 0.14, 110);
   return { top: h * 0.3, bottom: h * 0.14, left: side, right: side };
-}
+};
 
 // Starts close on the departure, then (once active) eases out to frame the
 // whole route below the caption, wherever it bends. Two spots in the same place
 // just centre at street level. It waits for the route to be known (`ready`).
-function Camera({
+const Camera = ({
   from,
   to,
   route,
@@ -298,7 +298,7 @@ function Camera({
   animate: boolean;
   active: boolean;
   ready: boolean;
-}) {
+}) => {
   const { map } = useMap();
   useEffect(() => {
     if (!map || !ready) return;
@@ -314,12 +314,12 @@ function Camera({
     // Keyed on the leg's ends and its route, not their objects, so a data refresh doesn't restart it.
   }, [map, from.lat, from.lng, to.lat, to.lng, route, animate, active, ready]);
   return null;
-}
+};
 
 // Only the destination is known, so the camera opens wide on every place of
 // the story, then (once active) flies in on the destination over the leg's
 // time. Without motion it goes straight to the destination.
-function Arrival({
+const Arrival = ({
   to,
   places,
   seconds,
@@ -331,7 +331,7 @@ function Arrival({
   seconds: number;
   animate: boolean;
   active: boolean;
-}) {
+}) => {
   const { map } = useMap();
   // Keyed on the spots, not their objects, so a data refresh doesn't restart it.
   const spots = places.map((p) => `${p.geo.lng},${p.geo.lat}`).join(";");
@@ -353,4 +353,4 @@ function Arrival({
     if (active) map.flyTo({ center: destination, zoom: ARRIVE_ZOOM, padding, duration: seconds * 1000, essential: true });
   }, [map, to.lat, to.lng, spots, seconds, animate, active]);
   return null;
-}
+};

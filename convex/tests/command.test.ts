@@ -30,7 +30,7 @@ const CET = 60;
 const AMMAN = 3 * 60;
 const FLIGHT = Date.UTC(2025, 1, 20, 14, 29);
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
@@ -65,7 +65,7 @@ async function setup() {
   });
   const list = () => owner.query(api.api.moments.list, { eventId });
   return { t, eventId, ownerId, helperId, owner, helper, viewer: as(viewerId), flight, theirs, list };
-}
+};
 
 describe("reading a local time", () => {
   test("a bare date keeps the clock, and the zone decides the instant", () => {

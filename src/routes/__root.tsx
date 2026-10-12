@@ -18,6 +18,26 @@ const DESCRIPTION =
 // know the site's origin.
 const APP_URL: string = import.meta.env.VITE_APP_URL ?? "";
 
+const RootDocument = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Emitted once by the server, then removes itself before hydration. */}
+        <ScriptOnce>{THEME_INIT_SCRIPT}</ScriptOnce>
+        {/* HeadContent keeps one meta per name, so the light/dark pair lives here. */}
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+};
+
+// Last, so the components it names are defined above it.
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -62,22 +82,3 @@ export const Route = createRootRoute({
     </ThemeProvider>
   ),
 });
-
-function RootDocument({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Emitted once by the server, then removes itself before hydration. */}
-        <ScriptOnce>{THEME_INIT_SCRIPT}</ScriptOnce>
-        {/* HeadContent keeps one meta per name, so the light/dark pair lives here. */}
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}

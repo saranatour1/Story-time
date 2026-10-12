@@ -8,7 +8,7 @@ import { dayKey } from "./photo-groups";
 
 export type Day = { day: string; label: string; today: boolean; moments: MomentView[] };
 
-export function groupByDay(moments: MomentView[], today?: string): Day[] {
+export const groupByDay = (moments: MomentView[], today?: string): Day[] => {
   const days = new Map<string, Day>();
   for (const m of [...moments].sort((a, b) => a.startsAt - b.startsAt)) {
     const key = dayKey(m.startsAt, m.tzOffsetMinutes);
@@ -22,14 +22,14 @@ export function groupByDay(moments: MomentView[], today?: string): Day[] {
     days.set(key, day);
   }
   return [...days.values()];
-}
+};
 
 // The line a moment is listed by: its first words, else a link, else its
 // first named place.
-export function firstLine(m: MomentView): string | undefined {
+export const firstLine = (m: MomentView): string | undefined => {
   for (const b of allBlocks(m)) {
     if (b.type === "note" || b.type === "feeling") return b.text.split("\n")[0]!.trim() || undefined;
     if (b.type === "link") return b.title ?? b.url;
   }
   return m.place ?? m.stops.find((s) => s.place)?.place;
-}
+};

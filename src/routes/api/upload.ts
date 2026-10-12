@@ -87,7 +87,7 @@ export const Route = createFileRoute("/api/upload")({
 
 // The small JPEG for lists. The original is already stored; a failed thumb
 // leaves that original in place and lists fall back to it.
-async function storeThumb(convex: ReturnType<typeof convexAs>, request: Request, size: number, mime: string) {
+const storeThumb = async (convex: ReturnType<typeof convexAs>, request: Request, size: number, mime: string) => {
   const mediaId = request.headers.get("X-Media-Id");
   const width = Number(request.headers.get("X-Image-Width"));
   const height = Number(request.headers.get("X-Image-Height"));
@@ -121,4 +121,4 @@ async function storeThumb(convex: ReturnType<typeof convexAs>, request: Request,
     console.error("[upload] thumb failed", e);
     return json({ error: "Upload failed" }, 500);
   }
-}
+};

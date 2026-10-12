@@ -9,9 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { errorMessage } from "@/lib/errors";
 
-export const Route = createFileRoute("/_app/settings/profile")({ component: Profile });
-
-function Profile() {
+const Profile = () => {
   const user = useQuery(api.users.getCurrentUser);
 
   return (
@@ -39,9 +37,9 @@ function Profile() {
       )}
     </SettingsPage>
   );
-}
+};
 
-function OnThisDay({ emailVerified, on }: { emailVerified: boolean; on: boolean }) {
+const OnThisDay = ({ emailVerified, on }: { emailVerified: boolean; on: boolean }) => {
   const set = useMutation(api.users.setOnThisDay);
   return (
     <SettingsBlock
@@ -61,4 +59,7 @@ function OnThisDay({ emailVerified, on }: { emailVerified: boolean; on: boolean 
       </div>
     </SettingsBlock>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app/settings/profile")({ component: Profile });

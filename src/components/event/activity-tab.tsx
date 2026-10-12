@@ -20,28 +20,28 @@ const FILTERS: { value: Filter; label: string }[] = [
 ];
 
 // The system's changes have no person or agent behind them, so they only show under Everyone.
-function matches(filter: Filter, actor: ActorView): boolean {
+const matches = (filter: Filter, actor: ActorView): boolean => {
   if (filter === "agents") return actor.kind === "agent";
   if (filter === "people") return actor.kind === "human";
   return true;
-}
+};
 
 // The full date, for the tooltip on the relative one.
 const fullDate = (ms: number) => new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 // "Today", "Yesterday", then the day itself.
-function dayLabel(ms: number): string {
+const dayLabel = (ms: number): string => {
   if (isToday(ms)) return "Today";
   if (isYesterday(ms)) return "Yesterday";
   return format(ms, isThisYear(ms) ? "EEEE, MMM d" : "EEEE, MMM d, yyyy");
-}
+};
 
 // "Added a moment" reads "added a moment" after a name.
 const asPredicate = (phrase: string) => phrase.charAt(0).toLowerCase() + phrase.slice(1);
 
 // Every change to the experience, newest first, grouped by day: who did it (a
 // person, an agent for a person, or Story-time itself) and what, in a sentence.
-export function ActivityTab({ eventId, meId }: { eventId: Id<"events">; meId?: string }) {
+export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: string }) => {
   const { results, status, loadMore } = usePaginatedQuery(
     api.changes.listForEvent,
     { eventId },
@@ -142,11 +142,11 @@ export function ActivityTab({ eventId, meId }: { eventId: Id<"events">; meId?: s
       )}
     </div>
   );
-}
+};
 
 // A round mark at the start of each line: a person, an agent (violet, as on
 // its badge) or Story-time's own cog.
-function Avatar({ actor }: { actor: ActorView }) {
+const Avatar = ({ actor }: { actor: ActorView }) => {
   const Icon = actor.kind === "agent" ? BotIcon : actor.kind === "system" ? CogIcon : UserRoundIcon;
   return (
     <span
@@ -161,12 +161,12 @@ function Avatar({ actor }: { actor: ActorView }) {
       <Icon className="size-4" />
     </span>
   );
-}
+};
 
 // The doer, as the sentence's subject: a person by name ("You" for yourself),
 // an agent as its badge, the system as Story-time.
-function Who({ actor, you }: { actor: ActorView; you: boolean }) {
+const Who = ({ actor, you }: { actor: ActorView; you: boolean }) => {
   if (actor.kind === "agent") return <ActorBadge actor={actor} className="align-[1px]" />;
   if (actor.kind === "system") return <span className="font-medium text-foreground">Story-time</span>;
   return <span className="font-medium text-foreground">{you ? "You" : (actor.name ?? "Someone")}</span>;
-}
+};

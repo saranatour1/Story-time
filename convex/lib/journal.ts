@@ -137,32 +137,32 @@ const pick = <T>(rnd: () => number, list: readonly T[]): T => list[Math.floor(rn
 const tilt = (rnd: () => number, max: number) => Math.round((rnd() - 0.5) * 2 * max);
 
 // The clock where it happened, so a page's date is the day it was there.
-function localDate(ms: number, offset = 0) {
+const localDate = (ms: number, offset = 0) => {
   return new Date(ms + offset * 60_000);
-}
+};
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 // "Wed 3 Jun", as a page's date reads.
-export function dayLabel(ms: number, offset?: number): string {
+export const dayLabel = (ms: number, offset?: number): string => {
   const d = localDate(ms, offset);
   return `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
-}
+};
 
 // "3 JUN 2026", as a postmark stamps it.
-export function postmarkDate(ms: number, offset?: number): string {
+export const postmarkDate = (ms: number, offset?: number): string => {
   const d = localDate(ms, offset);
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]!.toUpperCase()} ${d.getUTCFullYear()}`;
-}
+};
 
 // "3 Jun – 9 Jun 2026", or one day alone.
-export function rangeLabel(from: number, to: number): string {
+export const rangeLabel = (from: number, to: number): string => {
   const a = new Date(from);
   const b = new Date(to);
   const day = (d: Date) => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
   if (a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10)) return `${day(a)} ${a.getUTCFullYear()}`;
   return `${day(a)} – ${day(b)} ${b.getUTCFullYear()}`;
-}
+};
 
 type Dated = { startsAt: number; tzOffsetMinutes?: number };
 
@@ -172,7 +172,7 @@ type Dated = { startsAt: number; tzOffsetMinutes?: number };
 // UTC+12:45), so the day is the UTC midnight within 13 hours after it.
 // Hawaii (UTC−10) stays on its own day. A moment's day is the day where it
 // happened, in its own zone.
-export function tripDates(trip: { startsAt?: number; endsAt?: number }, first?: Dated, last?: Dated): string | undefined {
+export const tripDates = (trip: { startsAt?: number; endsAt?: number }, first?: Dated, last?: Dated): string | undefined => {
   const day = 86_400_000;
   const thirteenHours = 13 * 3_600_000;
   const tripDay = (ms: number) => {
@@ -185,12 +185,12 @@ export function tripDates(trip: { startsAt?: number; endsAt?: number }, first?: 
   if (from === undefined) return undefined;
   const to = trip.endsAt !== undefined ? tripDay(trip.endsAt) : last !== undefined ? momentDay(last) : from;
   return rangeLabel(from, to);
-}
+};
 
 const shortPlace = (place: string | undefined) => place?.split(",")[0]?.trim() || undefined;
 
 // The photos, words and places of a moment, from every stop.
-function contentOf(m: LayoutMoment) {
+const contentOf = (m: LayoutMoment) => {
   const blocks = [m.blocks, ...m.stops.map((s) => s.blocks)].flat();
   const photos = blocks.flatMap((b) => (b.type === "photo" && b.mediaId !== undefined ? [b.mediaId] : []));
   const words = blocks.flatMap((b) => ((b.type === "note" || b.type === "feeling") && b.text ? [b.text] : []));
@@ -198,10 +198,10 @@ function contentOf(m: LayoutMoment) {
   const pinned = (m.geo ? 1 : 0) + m.stops.filter((s) => s.geo).length;
   const transport = m.stops.find((s) => s.transport)?.transport ?? m.transport;
   return { photos, words, places: [...new Set(places)], pinned, transport };
-}
+};
 
 // Where up to four photos sit on a page, as boxes with a tilt.
-function photoBoxes(n: number, rnd: () => number, top: number, bottom: number): Array<Omit<JournalElement, "id" | "kind" | "z">> {
+const photoBoxes = (n: number, rnd: () => number, top: number, bottom: number): Array<Omit<JournalElement, "id" | "kind" | "z">> => {
   const room = bottom - top;
   const box = (x: number, y: number, w: number, h: number, max: number) => ({ x, y, w, h, rotation: tilt(rnd, max) });
   if (n === 0) return [];
@@ -217,13 +217,13 @@ function photoBoxes(n: number, rnd: () => number, top: number, bottom: number): 
   const w = 320;
   const h = Math.min(330, room / 2 - 20);
   return [box(70, top + 10, w, h, 4), box(404, top + 30, w, h, 4), box(84, top + h + 40, w, h, 4), box(390, top + h + 60, w, h, 4)];
-}
+};
 
 // A moment's page: a fun title, its date as a postmark, its photos taped down,
 // its first words typed out, its stops on a map, and a shape or two behind.
 // Everything is picked from the moment's id, so the page comes out the same
 // every time it is made.
-export function momentPage(m: LayoutMoment, index: number): PageSpec {
+export const momentPage = (m: LayoutMoment, index: number): PageSpec => {
   const rnd = seeded(m._id);
   const { photos, words, places, pinned, transport } = contentOf(m);
   const elements: JournalElement[] = [];
@@ -283,26 +283,26 @@ export function momentPage(m: LayoutMoment, index: number): PageSpec {
   }
 
   return { paper: LIGHT_PAPERS[(index + Math.floor(rnd() * LIGHT_PAPERS.length)) % LIGHT_PAPERS.length]!, momentId: m._id, elements };
-}
+};
 
 // Ids the layout still owns. Anything else on the page was added by the owner.
-export function layoutPrefix(momentId: string): string {
+export const layoutPrefix = (momentId: string): string => {
   return `${momentId.slice(-6)}-`;
-}
+};
 
 // A fresh layout, plus whatever the owner put on the page themselves. The
 // layout's own pieces (its prints, its note, its title) are replaced, except
 // one whose words the owner changed, and one locked in place: those stay.
-export function catchUpElements<T extends { id: string; locked?: boolean; own?: boolean }>(existing: readonly T[], fresh: readonly T[], momentId: string): T[] {
+export const catchUpElements = <T extends { id: string; locked?: boolean; own?: boolean }>(existing: readonly T[], fresh: readonly T[], momentId: string): T[] => {
   const prefix = layoutPrefix(momentId);
   const kept = existing.filter((e) => e.locked === true || e.own === true || !e.id.startsWith(prefix));
   const keptIds = new Set(kept.map((e) => e.id));
   return [...fresh.filter((e) => !keptIds.has(e.id)), ...kept];
-}
+};
 
 // The cover: the trip's name cut from letters, its dates typed, the first
 // photo as a polaroid, and shapes behind.
-export function coverPage(trip: { id: string; title: string; dates?: string; photo?: string }): PageSpec {
+export const coverPage = (trip: { id: string; title: string; dates?: string; photo?: string }): PageSpec => {
   const rnd = seeded(trip.id);
   const elements: JournalElement[] = [];
   let n = 0;
@@ -318,7 +318,7 @@ export function coverPage(trip: { id: string; title: string; dates?: string; pho
   }
   add({ kind: "deco", style: "postmark", text: "STORY-TIME", x: 590, y: 40, w: 150, h: 150, rotation: 10, z: 22 });
   return { paper: "cream", elements };
-}
+};
 
 // ---- Checking what a page holds -------------------------------------------------------
 
@@ -330,7 +330,7 @@ export type LinkCard = { url: string; title?: string; description?: string; imag
 
 // A link's text is its address and what the page says about itself, as JSON.
 // Only web addresses open, and only https pictures load.
-export function readLink(text: string | undefined): LinkCard | undefined {
+export const readLink = (text: string | undefined): LinkCard | undefined => {
   try {
     const p: unknown = JSON.parse(text ?? "");
     if (typeof p !== "object" || p === null) return undefined;
@@ -345,4 +345,4 @@ export function readLink(text: string | undefined): LinkCard | undefined {
   } catch {
     return undefined;
   }
-}
+};

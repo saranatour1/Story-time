@@ -8,17 +8,17 @@ import { Button } from "@/components/ui/button";
 import { stopsOf } from "@/lib/story-steps";
 
 // Up to nine of the trip's photos, spread evenly through it in time order.
-export function contactSheet(moments: StoryMoment[]): string[] {
+export const contactSheet = (moments: StoryMoment[]): string[] => {
   const all = [...moments]
     .sort((a, b) => a.startsAt - b.startsAt)
     .flatMap((m) => stopsOf(m).flatMap((s) => s.blocks.flatMap((b) => (b.type === "photo" ? [b.mediaId] : []))));
   const n = Math.min(9, all.length);
   return Array.from({ length: n }, (_, i) => all[Math.floor((i * all.length) / n)]!);
-}
+};
 
 // The closing card: the trip's prints scattered on the table, a few
 // numbers, then replay, share or go back.
-export function EndCard({
+export const EndCard = ({
   event,
   moments,
   onReplay,
@@ -26,7 +26,7 @@ export function EndCard({
   event: StoryEvent;
   moments: StoryMoment[];
   onReplay: () => void;
-}) {
+}) => {
   const stops = countStops(moments);
   const photos = moments.reduce(
     (n, m) => n + stopsOf(m).reduce((k, s) => k + s.blocks.filter((b) => b.type === "photo" || b.type === "video").length, 0),
@@ -74,4 +74,4 @@ export function EndCard({
       </div>
     </section>
   );
-}
+};

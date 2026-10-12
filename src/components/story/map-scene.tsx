@@ -11,7 +11,7 @@ const PAPER = "#f3e9d6";
 
 const PORTRAIT = "(orientation: portrait)";
 // A phone held upright gets a tall sheet, so the map fills its screen.
-function useOrientation(): Orientation {
+const useOrientation = (): Orientation => {
   const portrait = useSyncExternalStore(
     (onChange) => {
       const m = window.matchMedia(PORTRAIT);
@@ -22,13 +22,13 @@ function useOrientation(): Orientation {
     () => false,
   );
   return portrait ? "portrait" : "landscape";
-}
+};
 
 // A drawn map of the trip. Every place sits at a fixed spot; legs already
 // travelled are faint, and the current one draws itself while its transport
 // crosses it. `idle` is the scene waiting further down the page: nothing
 // travelled yet, the transport parked at the start.
-export function MapScene({
+export const MapScene = ({
   places,
   legs,
   current,
@@ -40,7 +40,7 @@ export function MapScene({
   current: number;
   animate: boolean;
   idle?: boolean;
-}) {
+}) => {
   const leg = legs[current];
   const orientation = useOrientation();
   const { w, h } = sheetSize(orientation);
@@ -149,10 +149,10 @@ export function MapScene({
       </svg>
     </section>
   );
-}
+};
 
 // The leg itself, styled by how it was travelled.
-function LegPath({ d, transport, faint = false }: { d: string; transport: string; faint?: boolean }) {
+const LegPath = ({ d, transport, faint = false }: { d: string; transport: string; faint?: boolean }) => {
   const opacity = faint ? 0.25 : 0.7;
   switch (transport) {
     case "walk":
@@ -181,10 +181,10 @@ function LegPath({ d, transport, faint = false }: { d: string; transport: string
     default:
       return <path d={d} fill="none" stroke={INK} strokeOpacity={opacity} strokeWidth="0.4" strokeDasharray="1 1" />;
   }
-}
+};
 
 // A place's dot, and its name where the sheet has room for it (see placeNames).
-function Place({
+const Place = ({
   p,
   name,
   visited,
@@ -196,7 +196,7 @@ function Place({
   visited: boolean;
   active: boolean;
   origin: boolean;
-}) {
+}) => {
   return (
     <g>
       {active && <circle cx={p.x} cy={p.y} r="2.2" fill={ACCENT} fillOpacity="0.15" />}
@@ -222,9 +222,9 @@ function Place({
       )}
     </g>
   );
-}
+};
 
-function Compass({ x, y }: { x: number; y: number }) {
+const Compass = ({ x, y }: { x: number; y: number }) => {
   return (
     <g stroke={INK} strokeOpacity="0.5" fill="none" strokeWidth="0.25">
       <circle cx={x} cy={y} r="3.5" />
@@ -234,4 +234,4 @@ function Compass({ x, y }: { x: number; y: number }) {
       </text>
     </g>
   );
-}
+};

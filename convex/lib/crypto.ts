@@ -9,18 +9,18 @@ export type Geo = Infer<typeof vGeo>;
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-function toB64(bytes: Uint8Array): string {
+const toB64 = (bytes: Uint8Array): string => {
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s);
-}
+};
 
-function fromB64(s: string): Uint8Array<ArrayBuffer> {
+const fromB64 = (s: string): Uint8Array<ArrayBuffer> => {
   const bin = atob(s);
   const out = new Uint8Array(new ArrayBuffer(bin.length));
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
-}
+};
 
 // Derivation is deterministic, so each key is derived once per isolate
 // instead of on every encrypt/decrypt. Resolved keys only (not promises), and
@@ -28,10 +28,10 @@ function fromB64(s: string): Uint8Array<ArrayBuffer> {
 const keys = new Map<string, CryptoKey>();
 let keysFor: string | undefined;
 
-async function cached(
+const cached = async (
   id: string,
   derive: () => Promise<CryptoKey>,
-): Promise<CryptoKey> {
+): Promise<CryptoKey> => {
   if (keysFor !== env.ENCRYPTION_MASTER_KEY) {
     keys.clear();
     keysFor = env.ENCRYPTION_MASTER_KEY;
@@ -42,9 +42,9 @@ async function cached(
     keys.set(id, key);
   }
   return key;
-}
+};
 
-async function masterKey(): Promise<CryptoKey> {
+const masterKey = async (): Promise<CryptoKey> => {
   return cached("master", () =>
     crypto.subtle.importKey(
       "raw",
@@ -54,11 +54,11 @@ async function masterKey(): Promise<CryptoKey> {
       ["deriveKey"],
     ),
   );
-}
+};
 
 // One AES-GCM key per (event, key version), derived from the master key, so
 // no per-event key is ever stored. Bump `events.keyVersion` to rotate.
-async function eventKey(eventId: string, version: number): Promise<CryptoKey> {
+const eventKey = async (eventId: string, version: number): Promise<CryptoKey> => {
   return cached(`event:${eventId}:${version}`, async () =>
     crypto.subtle.deriveKey(
       {
@@ -73,13 +73,13 @@ async function eventKey(eventId: string, version: number): Promise<CryptoKey> {
       ["encrypt", "decrypt"],
     ),
   );
-}
+};
 
-export async function encryptText(
+export const encryptText = async (
   eventId: string,
   version: number,
   plaintext: string,
-): Promise<Encrypted> {
+): Promise<Encrypted> => {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
@@ -87,52 +87,52 @@ export async function encryptText(
     enc.encode(plaintext),
   );
   return { iv: toB64(iv), ct: toB64(new Uint8Array(ct)), v: version };
-}
+};
 
-export async function decryptText(
+export const decryptText = async (
   eventId: string,
   value: Encrypted,
-): Promise<string> {
+): Promise<string> => {
   const pt = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: fromB64(value.iv) },
     await eventKey(eventId, value.v),
     fromB64(value.ct),
   );
   return dec.decode(pt);
-}
+};
 
 // Free text that newer rows keep under the event key and older ones still hold
 // as plain text: reads either way.
-export async function readText(
+export const readText = async (
   eventId: Id<"events">,
   value: string | Encrypted | undefined,
-): Promise<string | undefined> {
+): Promise<string | undefined> => {
   if (value === undefined || typeof value === "string") return value;
   return decryptText(eventId, value);
-}
+};
 
 // Coordinates are stored as "lat,lng" text under the event key, like the
 // place they pin. A malformed value reads as no pin.
-export async function encryptGeo(
+export const encryptGeo = async (
   eventId: string,
   version: number,
   geo: Geo,
-): Promise<Encrypted> {
+): Promise<Encrypted> => {
   return encryptText(eventId, version, `${geo.lat},${geo.lng}`);
-}
+};
 
-export async function decryptGeo(
+export const decryptGeo = async (
   eventId: string,
   value: Encrypted,
-): Promise<Geo | undefined> {
+): Promise<Geo | undefined> => {
   const [lat, lng] = (await decryptText(eventId, value)).split(",").map(Number);
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : undefined;
-}
+};
 
 // Finds an experience from its share link without keeping the token: a keyed
 // hash of it. Derived from the master key alone, since the experience isn't
 // known yet when a link is opened.
-export async function shareKeyFor(token: string): Promise<string> {
+export const shareKeyFor = async (token: string): Promise<string> => {
   const key = await cached("share", async () =>
     crypto.subtle.deriveKey(
       {
@@ -149,11 +149,11 @@ export async function shareKeyFor(token: string): Promise<string> {
   );
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(token));
   return toB64(new Uint8Array(sig)).slice(0, 22);
-}
+};
 
 // A confirmation link, hashed the same way as a share link but with its own
 // key, so one token cannot stand in for the other.
-export async function emailKeyFor(token: string): Promise<string> {
+export const emailKeyFor = async (token: string): Promise<string> => {
   const key = await cached("email", async () =>
     crypto.subtle.deriveKey(
       {
@@ -170,5 +170,5 @@ export async function emailKeyFor(token: string): Promise<string> {
   );
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(token));
   return toB64(new Uint8Array(sig)).slice(0, 22);
-}
+};
 

@@ -28,7 +28,7 @@ const FLOW_ERRORS: Record<OauthFlowErrorCode, string> = {
 };
 
 // shadcn login-03, trimmed to the OAuth providers the backend supports.
-export function LoginForm({
+export const LoginForm = ({
   className,
   heading = "Welcome",
   description = "Share moments from experiences you had together. You choose what to add, and who can see it.",
@@ -38,7 +38,7 @@ export function LoginForm({
   heading?: React.ReactNode;
   description?: React.ReactNode;
   returnTo?: string;
-}) {
+}) => {
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -52,7 +52,7 @@ export function LoginForm({
       </Card>
     </div>
   );
-}
+};
 
 // The provider buttons on their own, for pages that don't want a card.
 // OAuth comes back to the page it started on, so deep links survive sign-in;
@@ -61,7 +61,7 @@ export function LoginForm({
 // `prominent` makes them page-sized buttons on paper, `groupClassName` lays
 // them out, and `showError` lets a second set on a page leave the error to
 // the first.
-export function SignInButtons({
+export const SignInButtons = ({
   className,
   groupClassName,
   prominent = false,
@@ -73,7 +73,7 @@ export function SignInButtons({
   prominent?: boolean;
   showError?: boolean;
   returnTo?: string;
-}) {
+}) => {
   const options = returnTo === undefined ? undefined : { redirectTo: returnTo };
   const { isLoading } = useConvexAuth();
   const { signInGithub } = useSignInWithGithub(authApi);
@@ -127,11 +127,11 @@ export function SignInButtons({
       )}
     </div>
   );
-}
+};
 
 // Dev only: anonymous sign-in for local testing. The backend also rejects it
 // unless ALLOW_ANONYMOUS_SIGNIN is "true" on the deployment.
-function DevAnonymousSignIn({ className }: { className?: string }) {
+const DevAnonymousSignIn = ({ className }: { className?: string }) => {
   const { signInAnonymous } = useAnonymousAuth(authApi.signInAnonymous);
   return (
     <button
@@ -145,4 +145,4 @@ function DevAnonymousSignIn({ className }: { className?: string }) {
       Continue anonymously (dev only)
     </button>
   );
-}
+};

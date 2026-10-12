@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SettingsBlock, SettingsPage } from "@/components/settings/section";
 
-export const Route = createFileRoute("/_app/settings/data")({ component: DataSettings });
-
-function DataSettings() {
+const DataSettings = () => {
   return (
     <SettingsPage title="Data & privacy" description="What we keep, and what leaves your browser to make the app work.">
       <div className="space-y-10">
@@ -66,4 +64,7 @@ function DataSettings() {
       </div>
     </SettingsPage>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app/settings/data")({ component: DataSettings });

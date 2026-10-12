@@ -16,7 +16,7 @@ export const PHOTOS: Array<{ kind: PhotoKind; place: string; time: string; note:
   { kind: "coast", place: "Cabo da Roca", time: "6:05 PM", note: "The end of Europe, and very windy." },
 ];
 
-export function DrawnPhoto({ kind, className }: { kind: PhotoKind; className?: string }) {
+export const DrawnPhoto = ({ kind, className }: { kind: PhotoKind; className?: string }) => {
   return (
     <svg
       aria-hidden
@@ -32,9 +32,9 @@ export function DrawnPhoto({ kind, className }: { kind: PhotoKind; className?: s
       {kind === "coast" && <Coast />}
     </svg>
   );
-}
+};
 
-function Tram() {
+const Tram = () => {
   return (
     <g>
       <rect width="60" height="45" fill="#bfe0ef" />
@@ -69,9 +69,9 @@ function Tram() {
       </g>
     </g>
   );
-}
+};
 
-function Tiles() {
+const Tiles = () => {
   const uid = useId().replace(/:/g, "");
   return (
     <g>
@@ -93,9 +93,9 @@ function Tiles() {
       <rect width="60" height="45" fill="#fff" fillOpacity="0.06" />
     </g>
   );
-}
+};
 
-function Palace() {
+const Palace = () => {
   const uid = useId().replace(/:/g, "");
   return (
     <g>
@@ -126,9 +126,9 @@ function Palace() {
       </g>
     </g>
   );
-}
+};
 
-function Pastries() {
+const Pastries = () => {
   const tarts = [
     { x: 23, y: 17 },
     { x: 37, y: 18 },
@@ -159,9 +159,9 @@ function Pastries() {
       </g>
     </g>
   );
-}
+};
 
-function Coast() {
+const Coast = () => {
   const uid = useId().replace(/:/g, "");
   return (
     <g>
@@ -182,4 +182,4 @@ function Coast() {
       <path d="M46.6 8 L48.5 6 L50.4 8 Z" fill="#c0392b" />
     </g>
   );
-}
+};

@@ -70,22 +70,22 @@ export const unfurlLinks = internalAction({
 });
 
 // The page's <title>: entities decoded, whitespace collapsed, at most 200 characters.
-export function titleFromHtml(html: string): string | undefined {
+export const titleFromHtml = (html: string): string | undefined => {
   const match = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
   const title = decodeEntities(match?.[1] ?? "").replace(/\s+/g, " ").trim().slice(0, TITLE_CHARS);
   return title === "" ? undefined : title;
-}
+};
 
 // The page is read by the node action, which looks the hostname up and refuses
 // a private address. A failure of any kind leaves the link untitled.
-async function titleOf(ctx: ActionCtx, raw: string): Promise<string | undefined> {
+const titleOf = async (ctx: ActionCtx, raw: string): Promise<string | undefined> => {
   try {
     const read = await ctx.runAction(internal.model.ai.publicFetch.fetchPage, { url: raw, limit: HEAD_BYTES });
     return read === null ? undefined : titleFromHtml(read.html);
   } catch {
     return undefined;
   }
-}
+};
 
 const NAMED_ENTITIES: Record<string, string> = {
   amp: "&",
@@ -96,7 +96,7 @@ const NAMED_ENTITIES: Record<string, string> = {
   nbsp: " ",
 };
 
-export function decodeEntities(text: string): string {
+export const decodeEntities = (text: string): string => {
   return text.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (match, body: string) => {
     if (body.startsWith("#")) {
       const hex = body[1] === "x" || body[1] === "X";
@@ -105,14 +105,14 @@ export function decodeEntities(text: string): string {
     }
     return NAMED_ENTITIES[body.toLowerCase()] ?? match;
   });
-}
+};
 
 export type LinkPreview = { url: string; title?: string; description?: string; image?: string; site?: string };
 
 // What a page says about itself for a preview: its Open Graph (or Twitter)
 // title, description, picture and site, falling back to <title> and the
 // meta description. A picture must be a public https address.
-export function previewFromHtml(html: string, url: string): LinkPreview {
+export const previewFromHtml = (html: string, url: string): LinkPreview => {
   const meta = (names: string[]) => {
     for (const name of names) {
       const tag = new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*>`, "i").exec(html)?.[0];
@@ -136,4 +136,4 @@ export function previewFromHtml(html: string, url: string): LinkPreview {
     image: image && image.length <= 600 ? image : undefined,
     site: clip(meta(["og:site_name"]) ?? new URL(url).hostname.replace(/^www\./, ""), 60),
   };
-}
+};

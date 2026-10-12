@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 // The moments of an experience, by day, with a search box. Picking one hands
 // it to the page, which edits it or opens it in the story.
-export function Timeline({
+export const Timeline = ({
   event,
   meId,
   selectedMomentId,
@@ -26,7 +26,7 @@ export function Timeline({
   meId?: string;
   selectedMomentId?: string;
   onPick: (moment: MomentView) => void;
-}) {
+}) => {
   const moments = useQuery(api.moments.list, { eventId: event._id });
   const leftOut = useQuery(api.journal.unpaged, { eventId: event._id });
   const unpaged = new Set(leftOut?.full ? leftOut.momentIds : []);
@@ -144,9 +144,9 @@ export function Timeline({
       ))}
     </div>
   );
-}
+};
 
-function Empty({ event }: { event: EventView }) {
+const Empty = ({ event }: { event: EventView }) => {
   return (
     <div className="space-y-3 rounded-xl border border-dashed border-amber-900/15 bg-[#f3e9d6]/40 p-8 text-center dark:border-amber-100/10 dark:bg-amber-100/[0.03]">
       <p className="font-serif text-lg">The story starts with a moment.</p>
@@ -154,9 +154,9 @@ function Empty({ event }: { event: EventView }) {
       <QuickAddButton event={event} variant="outline" size="sm" />
     </div>
   );
-}
+};
 
-function PlaceChip({ place }: { place?: string }) {
+const PlaceChip = ({ place }: { place?: string }) => {
   if (!place) return null;
   return (
     <span className="hidden h-6 max-w-40 min-w-0 items-center gap-1.5 rounded-full border px-2 text-[13px] text-muted-foreground sm:inline-flex">
@@ -164,16 +164,16 @@ function PlaceChip({ place }: { place?: string }) {
       <span className="truncate">{place.split(",")[0]}</span>
     </span>
   );
-}
+};
 
 // A stable colour per place, so the same place reads the same everywhere.
-function placeColor(place: string) {
+const placeColor = (place: string) => {
   let hue = 0;
   for (const ch of place.toLowerCase()) hue = (hue * 31 + ch.charCodeAt(0)) % 360;
   return `oklch(0.65 0.16 ${hue})`;
-}
+};
 
 // Keys typed into a field belong to the field, not to the page's shortcuts.
-function isTyping(target: EventTarget | null) {
+const isTyping = (target: EventTarget | null) => {
   return target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select") !== null);
-}
+};

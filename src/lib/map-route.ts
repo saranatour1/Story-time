@@ -11,7 +11,7 @@ export const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) *
 
 // The same bow MapArc draws, so the leg on its way matches the ones behind
 // it: a quadratic curve, the far end unwrapped to cross the shorter way.
-export function curve(from: Point, to: Point, k: number, samples = 64): Point[] {
+export const curve = (from: Point, to: Point, k: number, samples = 64): Point[] => {
   const [x0, y0] = from;
   const x2 = to[0] - from[0] > 180 ? to[0] - 360 : to[0] - from[0] < -180 ? to[0] + 360 : to[0];
   const y2 = to[1];
@@ -24,4 +24,4 @@ export function curve(from: Point, to: Point, k: number, samples = 64): Point[] 
     const u = 1 - t;
     return [u * u * x0 + 2 * u * t * cx + t * t * x2, u * u * y0 + 2 * u * t * cy + t * t * y2];
   });
-}
+};

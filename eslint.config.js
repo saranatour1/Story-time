@@ -23,5 +23,12 @@ export default defineConfig([
     files: ["**/*.{ts,tsx}"],
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
+  {
+    files: ["**/*.{ts,tsx}"],
+    // Functions are arrow functions: `const name = () => {}`, never
+    // `function name() {}`. A rare exception (a generator, an overload, an
+    // assertion function) says why on an eslint-disable line.
+    rules: { "func-style": ["error", "expression"] },
+  },
   ...convexPlugin.configs.recommended,
 ]);

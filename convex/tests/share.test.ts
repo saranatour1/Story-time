@@ -19,7 +19,7 @@ beforeAll(() => {
   );
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   t.registerComponent("email", emailSchema, emailModules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
@@ -28,12 +28,12 @@ async function setup() {
   const owner = as(ownerId);
   const eventId = await owner.mutation(api.api.events.createDraft, {});
   return { t, ownerId, owner, guest: as(guestId), eventId };
-}
+};
 
 type Owner = Awaited<ReturnType<typeof setup>>["owner"];
 
 // A photo attached to a moment of `eventId`, the way the app makes one.
-async function momentWithPhoto(owner: Owner, eventId: Id<"events">) {
+const momentWithPhoto = async (owner: Owner, eventId: Id<"events">) => {
   const { mediaId } = await owner.mutation(api.api.media.reserveUpload, {
     eventId,
     size: 100,
@@ -47,7 +47,7 @@ async function momentWithPhoto(owner: Owner, eventId: Id<"events">) {
     blocks: [{ type: "photo", mediaId }, { type: "note", text: "Tram 28" }],
   });
   return mediaId;
-}
+};
 
 // The link is `<origin>/s#<token>`: the token is the fragment.
 const tokenOf = (link: string) => link.slice(link.indexOf("#") + 1);

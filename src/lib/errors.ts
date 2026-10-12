@@ -1,7 +1,7 @@
 import { ConvexError } from "convex/values";
 
 // Server validation errors carry { code, field?, message }.
-export function errorMessage(error: unknown): string {
+export const errorMessage = (error: unknown): string => {
   if (error instanceof ConvexError) {
     const data: unknown = error.data;
     if (typeof data === "string") return data;
@@ -10,4 +10,4 @@ export function errorMessage(error: unknown): string {
     }
   }
   return "Something went wrong. Please try again.";
-}
+};

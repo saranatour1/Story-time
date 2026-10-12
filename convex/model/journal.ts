@@ -95,30 +95,30 @@ const TONE_SET = new Set<string>(TONES);
 
 const notFound = () => new ConvexError({ code: "NOT_FOUND", message: "That page isn't here any more." });
 
-async function journalOf(ctx: QueryCtx, eventId: Id<"events">) {
+const journalOf = async (ctx: QueryCtx, eventId: Id<"events">) => {
   return ctx.db
     .query("journals")
     .withIndex("by_event", (q) => q.eq("eventId", eventId))
     .unique();
-}
+};
 
-async function pagesOf(ctx: QueryCtx, eventId: Id<"events">) {
+const pagesOf = async (ctx: QueryCtx, eventId: Id<"events">) => {
   return ctx.db
     .query("journalPages")
     .withIndex("by_event_and_order", (q) => q.eq("eventId", eventId))
     .take(MAX_JOURNAL_PAGES + 1);
-}
+};
 
 // A sticker (or any picture) is still on a page of this experience.
-export async function mediaOnAPage(ctx: QueryCtx, eventId: Id<"events">, mediaId: Id<"media">) {
+export const mediaOnAPage = async (ctx: QueryCtx, eventId: Id<"events">, mediaId: Id<"media">) => {
   const pages = await pagesOf(ctx, eventId);
   return pages.some((page) => page.elements.some((element) => element.mediaId === mediaId));
-}
+};
 
 // A page to change, with the experience it is in. Only the owner, never on an
 // archived experience, and never while the page or the journal is locked
 // (`unlocking` lets the lock itself be taken off).
-async function editablePage(ctx: MutationCtx, pageId: Id<"journalPages">, unlocking = false) {
+const editablePage = async (ctx: MutationCtx, pageId: Id<"journalPages">, unlocking = false) => {
   const page = await ctx.db.get("journalPages", pageId);
   if (page === null) throw notFound();
   const { event } = await requireEventAccess(ctx, page.eventId, "owner");
@@ -127,17 +127,17 @@ async function editablePage(ctx: MutationCtx, pageId: Id<"journalPages">, unlock
   if (journal?.locked) throw new ConvexError({ code: "LOCKED", message: "This journal is locked. Unlock it to change it." });
   if (page.locked && !unlocking) throw new ConvexError({ code: "LOCKED", message: "This page is locked. Unlock it to change it." });
   return { page, event };
-}
+};
 
 // Checks what a page holds and encrypts its words. With `drop`, anything that
 // doesn't belong (a photo from another experience, an unknown style) is left
 // out instead of refused: that is how an imported journal comes in.
-async function encodeElements(
+const encodeElements = async (
   ctx: QueryCtx,
   event: Doc<"events">,
   elements: ElementIn[],
   drop = false,
-): Promise<Doc<"journalPages">["elements"]> {
+): Promise<Doc<"journalPages">["elements"]> => {
   if (elements.length > MAX_PAGE_ELEMENTS) invalid("elements", `A page holds up to ${MAX_PAGE_ELEMENTS} things.`);
   const media = new Map<string, Doc<"media"> | null>();
   const moments = new Map<string, Doc<"moments"> | null>();
@@ -151,19 +151,7 @@ async function encodeElements(
   };
   const seen = new Set<string>();
   const out: Doc<"journalPages">["elements"] = [];
-  for (const e of elements) {
-    const problem = await problemWith(e);
-    if (problem !== undefined) {
-      if (drop) continue;
-      invalid("elements", problem);
-    }
-    seen.add(e.id);
-    const text = e.text === undefined || e.text.trim() === "" ? undefined : await encryptText(event._id, event.keyVersion, e.text);
-    out.push({ ...e, rotation: e.rotation % 360, text });
-  }
-  return out;
-
-  async function problemWith(e: ElementIn): Promise<string | undefined> {
+  const problemWith = async (e: ElementIn): Promise<string | undefined> => {
     if (e.id.length === 0 || e.id.length > 40 || seen.has(e.id)) return "Each thing on a page needs its own id.";
     if (![e.x, e.y, e.w, e.h, e.z].every(onPage) || !Number.isFinite(e.rotation)) return "That doesn't fit on a page.";
     if (e.w < 4 || e.h < 4) return "That is too small to see.";
@@ -193,23 +181,34 @@ async function encodeElements(
       if (m === null || m.eventId !== event._id) return "That moment isn't in this experience.";
     }
     return undefined;
+  };
+  for (const e of elements) {
+    const problem = await problemWith(e);
+    if (problem !== undefined) {
+      if (drop) continue;
+      invalid("elements", problem);
+    }
+    seen.add(e.id);
+    const text = e.text === undefined || e.text.trim() === "" ? undefined : await encryptText(event._id, event.keyVersion, e.text);
+    out.push({ ...e, rotation: e.rotation % 360, text });
   }
-}
+  return out;
+};
 
 // Whether this page still matches the moment it was laid out from. Comparing
 // stored times, never the clock, so a query can say so.
-async function catchUpState(ctx: QueryCtx, page: Doc<"journalPages">) {
+const catchUpState = async (ctx: QueryCtx, page: Doc<"journalPages">) => {
   const edited = page.edited ?? false;
   if (page.momentId === undefined) return { edited, stale: false, gone: false };
   const moment = await ctx.db.get("moments", page.momentId);
   if (moment === null) return { edited, stale: false, gone: true };
   const stamp = moment.lastEdit?.at ?? moment._creationTime;
   return { edited, stale: page.builtFrom !== undefined && page.builtFrom !== stamp, gone: false };
-}
+};
 
 // A link card's picture, whatever scheme it uses. `readLink` only reports
 // https pictures, so an http URL would otherwise stay in the JSON.
-function withoutLinkImage(text: string): string {
+const withoutLinkImage = (text: string): string => {
   try {
     const parsed: unknown = JSON.parse(text);
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed) || !("image" in parsed)) return text;
@@ -221,12 +220,12 @@ function withoutLinkImage(text: string): string {
   } catch {
     return text;
   }
-}
+};
 
 // A share link that hides photos drops every picture and sticker, and the
 // preview image on a link card, before anything is returned. The address of
 // the link stays; the picture URL does not.
-function withoutPictures(elements: Infer<typeof vElement>[]): Infer<typeof vElement>[] {
+const withoutPictures = (elements: Infer<typeof vElement>[]): Infer<typeof vElement>[] => {
   const kept: Infer<typeof vElement>[] = [];
   for (const element of elements) {
     if (element.kind === "photo" || element.kind === "sticker" || element.mediaId !== undefined) continue;
@@ -237,9 +236,9 @@ function withoutPictures(elements: Infer<typeof vElement>[]): Infer<typeof vElem
     kept.push(element);
   }
   return kept;
-}
+};
 
-async function viewPage(ctx: QueryCtx, event: Doc<"events">, page: Doc<"journalPages">, redact = false) {
+const viewPage = async (ctx: QueryCtx, event: Doc<"events">, page: Doc<"journalPages">, redact = false) => {
   const elements = await Promise.all(
     page.elements.map(async (e) => ({ ...e, text: e.text === undefined ? undefined : await decryptText(event._id, e.text) })),
   );
@@ -252,11 +251,11 @@ async function viewPage(ctx: QueryCtx, event: Doc<"events">, page: Doc<"journalP
     ...(await catchUpState(ctx, page)),
     elements: redact ? withoutPictures(elements) : elements,
   };
-}
+};
 
 // How many moments still need a page. A journal that does not exist yet still
 // owes its cover, so the count is at least 1.
-async function pendingOf(ctx: QueryCtx, event: Doc<"events">, journal: Doc<"journals"> | null) {
+const pendingOf = async (ctx: QueryCtx, event: Doc<"events">, journal: Doc<"journals"> | null) => {
   const moments = await ctx.db
     .query("moments")
     .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
@@ -264,14 +263,14 @@ async function pendingOf(ctx: QueryCtx, event: Doc<"events">, journal: Doc<"jour
   let pending = moments.filter((m) => journal?.filledAt === undefined || m._creationTime > journal.filledAt).length;
   if (journal === null) pending = Math.max(pending, 1);
   return pending;
-}
+};
 
 // A short line for the page strip: the first title or note, not the drawing.
-async function labelOf(event: Doc<"events">, page: Doc<"journalPages">) {
+const labelOf = async (event: Doc<"events">, page: Doc<"journalPages">) => {
   const text = page.elements.find((e) => (e.kind === "title" || e.kind === "note") && e.text !== undefined)?.text;
   if (text === undefined) return "";
   return (await decryptText(event._id, text)).replace(/\s+/g, " ").trim().slice(0, 80);
-}
+};
 
 export const vOutlinePage = v.object({
   _id: v.id("journalPages"),
@@ -301,7 +300,7 @@ const outline = query({
 
 // The contents of a book: one short label per page, not every word. The share
 // link uses this too, after the token has already picked the experience.
-export async function contentsOf(ctx: QueryCtx, event: Doc<"events">) {
+export const contentsOf = async (ctx: QueryCtx, event: Doc<"events">) => {
   return Promise.all(
     (await pagesOf(ctx, event._id)).slice(0, MAX_JOURNAL_PAGES).map(async (page) => ({
       _id: page._id,
@@ -313,20 +312,20 @@ export async function contentsOf(ctx: QueryCtx, event: Doc<"events">) {
       ...(await catchUpState(ctx, page)),
     })),
   );
-}
+};
 
 // One page of this experience, decrypted. Null when the page is missing or
 // belongs to another experience, so a share token cannot name its way in.
-export async function pageInEvent(
+export const pageInEvent = async (
   ctx: QueryCtx,
   event: Doc<"events">,
   pageId: Id<"journalPages">,
   redact = false,
-) {
+) => {
   const row = await ctx.db.get("journalPages", pageId);
   if (row === null || row.eventId !== event._id) return null;
   return await viewPage(ctx, event, row, redact);
-}
+};
 
 // One page, decrypted. The open page, a neighbour, or a page being printed.
 const page = query({
@@ -376,7 +375,7 @@ const get = query({
 // (the cover and a handful of moments); the rest is scheduled.
 const PAGE_BATCH = 20;
 
-async function insertPage(
+const insertPage = async (
   ctx: MutationCtx,
   eventId: Id<"events">,
   page: {
@@ -387,7 +386,7 @@ async function insertPage(
     builtFrom?: number;
   },
   actorId?: Id<"users">,
-) {
+) => {
   const pageId = await ctx.db.insert("journalPages", { eventId, ...page });
   await recordChange(ctx, {
     eventId,
@@ -398,13 +397,13 @@ async function insertPage(
     fields: ["order"],
   });
   return pageId;
-}
+};
 
 // Pages for moments made since `filledAt`, and the cover when the journal is
 // new. One batch per call. `more` means another batch should run: the book
 // still has room and a moment is still waiting. A locked journal changes
 // nothing, so `filledAt` does not step over a page that was never made.
-async function makePageBatch(ctx: MutationCtx, event: Doc<"events">): Promise<{ made: number; more: boolean }> {
+const makePageBatch = async (ctx: MutationCtx, event: Doc<"events">): Promise<{ made: number; more: boolean }> => {
   const existing = await journalOf(ctx, event._id);
   if (existing?.locked) return { made: 0, more: false };
   const rows = await ctx.db
@@ -473,7 +472,7 @@ async function makePageBatch(ctx: MutationCtx, event: Doc<"events">): Promise<{ 
     await ctx.db.patch("journals", journal._id, { filledAt: watermark });
   }
   return { made, more };
-}
+};
 
 // The next batch of pages for an experience. Scheduled from the moment write,
 // and again from here until the fresh moments are paged or the book is full.
@@ -542,14 +541,14 @@ const unpaged = query({
   },
 });
 
-function wordsOf(text: string | undefined): string | undefined {
+const wordsOf = (text: string | undefined): string | undefined => {
   if (text === undefined || text.trim() === "") return undefined;
   return text;
-}
+};
 
 // A thing locked in place may be unlocked, and nothing else about it may change.
 // Taking it off the page, or moving it in the same save as the unlock, is refused.
-async function lockedStay(event: Doc<"events">, stored: Doc<"journalPages">["elements"], incoming: ElementIn[]) {
+const lockedStay = async (event: Doc<"events">, stored: Doc<"journalPages">["elements"], incoming: ElementIn[]) => {
   const byId = new Map(incoming.map((e) => [e.id, e]));
   for (const old of stored) {
     if (old.locked !== true) continue;
@@ -572,12 +571,12 @@ async function lockedStay(event: Doc<"events">, stored: Doc<"journalPages">["ele
       wordsOf(next.text) === storedText;
     if (!same) throw new ConvexError({ code: "LOCKED", message: "That is locked in place." });
   }
-}
+};
 
 // A layout piece whose words this save changes becomes the owner's (`own`),
 // so a later "Update this page" keeps it. Only the layout's pieces are
 // checked, and each only until it is theirs.
-async function markRetyped(event: Doc<"events">, page: Doc<"journalPages">, elements: ElementIn[]): Promise<ElementIn[]> {
+const markRetyped = async (event: Doc<"events">, page: Doc<"journalPages">, elements: ElementIn[]): Promise<ElementIn[]> => {
   if (page.momentId === undefined) return elements;
   const prefix = layoutPrefix(page.momentId);
   const before = new Map(page.elements.map((e) => [e.id, e]));
@@ -590,7 +589,7 @@ async function markRetyped(event: Doc<"events">, page: Doc<"journalPages">, elem
       return was !== (e.text ?? "") ? { ...e, own: true } : e;
     }),
   );
-}
+};
 
 // Saves what is on a page (all of it: a page is small), and its paper.
 const savePage = mutation({
@@ -612,7 +611,7 @@ const savePage = mutation({
 // page is replaced. A page the owner has saved keeps what they added and
 // replaces the layout's own pieces, and only when `force` (they asked).
 // A deleted moment is left on the page. Returns whether the page changed.
-async function refreshOne(ctx: MutationCtx, event: Doc<"events">, page: Doc<"journalPages">, force: boolean): Promise<boolean> {
+const refreshOne = async (ctx: MutationCtx, event: Doc<"events">, page: Doc<"journalPages">, force: boolean): Promise<boolean> => {
   if (page.momentId === undefined || page.locked) return false;
   if (page.edited && !force) return false;
   const moment = await ctx.db.get("moments", page.momentId);
@@ -634,10 +633,10 @@ async function refreshOne(ctx: MutationCtx, event: Doc<"events">, page: Doc<"jou
     builtFrom: stamp,
   });
   return true;
-}
+};
 
 // Untouched stale pages, one batch. `more` means another batch should run.
-async function refreshBatch(ctx: MutationCtx, event: Doc<"events">): Promise<{ made: number; more: boolean }> {
+const refreshBatch = async (ctx: MutationCtx, event: Doc<"events">): Promise<{ made: number; more: boolean }> => {
   if ((await journalOf(ctx, event._id))?.locked) return { made: 0, more: false };
   const pages = await pagesOf(ctx, event._id);
   let made = 0;
@@ -651,7 +650,7 @@ async function refreshBatch(ctx: MutationCtx, event: Doc<"events">): Promise<{ m
     if (await refreshOne(ctx, event, page, false)) made++;
   }
   return { made, more };
-}
+};
 
 // Brings pages up to their moments. With a page, that page, even if the owner
 // has saved it. Without one, every untouched stale page, and the rest follows.

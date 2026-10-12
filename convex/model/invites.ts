@@ -18,7 +18,7 @@ const EMAILS_PER_DAY = 20;
 
 // Counts invite emails per sender over a rolling day, so the form can't be
 // used to mail arbitrary addresses in bulk.
-async function chargeInviteEmail(ctx: MutationCtx, userId: Id<"users">) {
+const chargeInviteEmail = async (ctx: MutationCtx, userId: Id<"users">) => {
   const since = Date.now() - DAY_MS;
   const recent = await ctx.db
     .query("inviteEmails")
@@ -41,7 +41,7 @@ async function chargeInviteEmail(ctx: MutationCtx, userId: Id<"users">) {
     .take(EMAILS_PER_DAY);
   for (const row of stale) await ctx.db.delete("inviteEmails", row._id);
   await ctx.db.insert("inviteEmails", { userId });
-}
+};
 
 // Invites waiting to be opened, per experience. The list shows them all.
 const MAX_WAITING_INVITES = 50;

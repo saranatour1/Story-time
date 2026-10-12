@@ -18,7 +18,7 @@ import { clearMediaCache } from "@/lib/use-media-url";
 
 // Footer card: shows who you are and opens a menu to the side with
 // Settings and Sign out.
-export function UserMenu() {
+export const UserMenu = () => {
   const user = useQuery(api.users.getCurrentUser);
   const { signOut } = useAuthActions();
   const { isMobile } = useSidebar();
@@ -72,4 +72,4 @@ export function UserMenu() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+};

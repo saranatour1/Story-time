@@ -18,12 +18,12 @@ beforeAll(() => {
 
 const clip = (bytes: number) => new Uint8Array(bytes).fill(1).buffer;
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
   const userId = await t.run((ctx) => ctx.db.insert("users", {}));
   return { t, userId, person: t.withIdentity({ subject: userId }) };
-}
+};
 
 describe("reading the gateway's reply", () => {
   test("keeps the words, tidied", () => {

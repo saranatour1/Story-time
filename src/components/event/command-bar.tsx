@@ -28,7 +28,7 @@ const LOOKUP_GAP_MS = 1100;
 type Plan = { summary: string; needs?: string; ops: PlanOp[] };
 
 // Pins the places a plan names, one lookup at a time, near `near`.
-async function pin(ops: PlanOp[], near: Geo | undefined): Promise<PlanOp[]> {
+const pin = async (ops: PlanOp[], near: Geo | undefined): Promise<PlanOp[]> => {
   const found = new Map<string, Geo>();
   for (const [i, name] of placesToFind(ops).entries()) {
     if (i > 0) await new Promise((resolve) => setTimeout(resolve, LOOKUP_GAP_MS));
@@ -36,7 +36,7 @@ async function pin(ops: PlanOp[], near: Geo | undefined): Promise<PlanOp[]> {
     if (hit) found.set(name, hit.geo);
   }
   return withPins(ops, found);
-}
+};
 
 // One box above the moments for everything: say what happened and it becomes
 // a moment, as before; say what to change ("move this to Friday", "add Hanover
@@ -45,7 +45,7 @@ async function pin(ops: PlanOp[], near: Geo | undefined): Promise<PlanOp[]> {
 // be spoken (the mic) and photos can be attached: new files, or ones already
 // in the trip that aren't on a moment. With photos, the words are what they
 // are, and the photos become moments, as the Add button makes them.
-export function CommandBar({ event, openMomentId }: { event: EventView; openMomentId?: string }) {
+export const CommandBar = ({ event, openMomentId }: { event: EventView; openMomentId?: string }) => {
   const token = useAuthToken();
   const adding = canAddTo(event);
   const moments = useQuery(api.moments.list, { eventId: event._id });
@@ -97,23 +97,23 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
   const lines = plan?.ops.map((op) => describeOp(op, moments ?? [])) ?? [];
   const destructive = lines.some((line) => line.destructive);
 
-  function cancel() {
+  const cancel = () => {
     setPlan(null);
     setProblem(null);
     input.current?.focus();
-  }
+  };
 
-  function toggleShelf(item: ShelfItem) {
+  const toggleShelf = (item: ShelfItem) => {
     setPicked((now) =>
       now.some((chosen) => chosen.mediaId === item.mediaId)
         ? now.filter((chosen) => chosen.mediaId !== item.mediaId)
         : [...now, item],
     );
     setPlan(null);
-  }
+  };
 
   // Something that happened, saved as a moment with only a note, stamped now.
-  async function addAsMoment(note: string) {
+  const addAsMoment = async (note: string) => {
     const momentId = await createMoment({
       eventId: event._id,
       startsAt: Date.now(),
@@ -124,9 +124,9 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
     setPlan(null);
     enrichMoment(enrich, momentId, []);
     toast.success("Moment added");
-  }
+  };
 
-  async function submit(e: FormEvent) {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if ((!said && files.length === 0 && picked.length === 0) || busy) return;
     setProblem(null);
@@ -186,9 +186,9 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
     } finally {
       setPhase("idle");
     }
-  }
+  };
 
-  async function applyPlan() {
+  const applyPlan = async () => {
     if (plan === null || plan.ops.length === 0 || busy) return;
     setPhase("applying");
     try {
@@ -205,12 +205,12 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
     } finally {
       setPhase("idle");
     }
-  }
+  };
 
   // Applying is always deliberate: a click, or ⌘/Ctrl+Enter. Plain Enter only
   // ever reads a request, and focus never jumps to Apply on its own, so an
   // extra Enter can't apply a plan nobody has looked at yet.
-  function onKeyDown(e: KeyboardEvent) {
+  const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape" && (plan !== null || problem !== null)) {
       e.stopPropagation();
       cancel();
@@ -218,7 +218,7 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
       e.preventDefault();
       void applyPlan();
     }
-  }
+  };
 
   return (
     <div className="space-y-2" onKeyDown={onKeyDown}>
@@ -429,4 +429,4 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
       )}
     </div>
   );
-}
+};

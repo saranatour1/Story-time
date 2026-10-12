@@ -5,7 +5,7 @@ import { photoMetaFromJpeg } from "./photo-meta";
 // pointing at a GPS IFD (Lisbon, 38°41'51.6"N 9°12'57.6"W) and an Exif IFD
 // (taken 2026-07-10 18:30:00, optionally at +01:00). `lngRef` "" writes an
 // empty E/W ref.
-function jpeg({ zone, lngRef = "W" }: { zone?: string; lngRef?: string }): ArrayBuffer {
+const jpeg = ({ zone, lngRef = "W" }: { zone?: string; lngRef?: string }): ArrayBuffer => {
   const tiff = new DataView(new ArrayBuffer(200));
   const u16 = (at: number, v: number) => tiff.setUint16(at, v, true);
   const u32 = (at: number, v: number) => tiff.setUint32(at, v, true);
@@ -44,7 +44,7 @@ function jpeg({ zone, lngRef = "W" }: { zone?: string; lngRef?: string }): Array
   const app1 = [..."Exif\0\0"].map((c) => c.charCodeAt(0)).concat(...new Uint8Array(tiff.buffer));
   const length = app1.length + 2;
   return new Uint8Array([0xff, 0xd8, 0xff, 0xe1, length >> 8, length & 0xff, ...app1, 0xff, 0xd9]).buffer;
-}
+};
 
 test("reads where and when a JPEG was taken from its EXIF", () => {
   const meta = photoMetaFromJpeg(jpeg({ zone: "+01:00" }));

@@ -9,7 +9,7 @@ const day = ({ at, offset }: When) => formatDay(at, offset, { month: "short", da
 
 // The date range: what the owner set, or the span of the moments. The owner's
 // dates have no zone; each moment's day reads in the zone it happened in.
-export function dateRange(event: StoryEvent, moments: StoryMoment[]): string | null {
+export const dateRange = (event: StoryEvent, moments: StoryMoment[]): string | null => {
   const sorted = [...moments].sort((a, b) => a.startsAt - b.startsAt);
   const mark = (m: StoryMoment | undefined) => m && { at: m.startsAt, offset: m.tzOffsetMinutes };
   const from = event.startsAt !== undefined ? { at: event.startsAt } : mark(sorted[0]);
@@ -17,11 +17,11 @@ export function dateRange(event: StoryEvent, moments: StoryMoment[]): string | n
   if (from === undefined) return null;
   if (to === undefined || day(to) === day(from)) return day(from);
   return `${day(from)} – ${day(to)}`;
-}
+};
 
-export function countStops(moments: StoryMoment[]) {
+export const countStops = (moments: StoryMoment[]) => {
   return moments.reduce((n, m) => n + stopsOf(m).length, 0);
-}
+};
 
 const TYPEWRITER = { fontFamily: '"Courier New", Courier, monospace' };
 const CHAR_MS = 35;
@@ -31,7 +31,7 @@ const MAX_TYPING_MS = 4000;
 const LINE_GAP = 8;
 
 // The page's lines, in typing order: date, title, description, counts.
-function titleLines(event: StoryEvent, moments: StoryMoment[]): string[] {
+const titleLines = (event: StoryEvent, moments: StoryMoment[]): string[] => {
   const stops = countStops(moments);
   const counts =
     moments.length === 0
@@ -39,10 +39,10 @@ function titleLines(event: StoryEvent, moments: StoryMoment[]): string[] {
       : `${moments.length} ${moments.length === 1 ? "moment" : "moments"}` +
         (stops > moments.length ? ` · ${stops} stops` : "");
   return [dateRange(event, moments) ?? "", event.title, event.description ?? "", counts];
-}
+};
 
 // Where each line starts typing, and the typing's length, in characters.
-function timeline(lines: string[]) {
+const timeline = (lines: string[]) => {
   const starts: number[] = [];
   let total = 0;
   for (const line of lines) {
@@ -50,16 +50,16 @@ function timeline(lines: string[]) {
     if (line) total += line.length + LINE_GAP;
   }
   return { starts, total, charMs: Math.min(CHAR_MS, MAX_TYPING_MS / Math.max(total, 1)) };
-}
+};
 
 // How long the title page takes to type out, for autoplay.
-export function typingMs(event: StoryEvent, moments: StoryMoment[]): number {
+export const typingMs = (event: StoryEvent, moments: StoryMoment[]): number => {
   const { total, charMs } = timeline(titleLines(event, moments));
   return total * charMs;
-}
+};
 
 // The opening page, typed out line by line like a typewriter on paper.
-export function TitleCard({
+export const TitleCard = ({
   event,
   moments,
   animate,
@@ -67,7 +67,7 @@ export function TitleCard({
   event: StoryEvent;
   moments: StoryMoment[];
   animate: boolean;
-}) {
+}) => {
   const lines = titleLines(event, moments);
   const { starts, total, charMs } = timeline(lines);
   const [typed, setTyped] = useState(animate ? 0 : total);
@@ -117,11 +117,11 @@ export function TitleCard({
       </div>
     </section>
   );
-}
+};
 
 // Text typed up to `shown` characters. The untyped rest keeps its place, so
 // the page doesn't reflow as it types; screen readers get the whole text.
-function Typed({ text, shown, caret }: { text: string; shown: number; caret: boolean }) {
+const Typed = ({ text, shown, caret }: { text: string; shown: number; caret: boolean }) => {
   const n = Math.max(0, Math.min(text.length, shown));
   return (
     <>
@@ -137,4 +137,4 @@ function Typed({ text, shown, caret }: { text: string; shown: number; caret: boo
       </span>
     </>
   );
-}
+};

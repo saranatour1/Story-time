@@ -26,17 +26,17 @@ const initials = (name: string | undefined) =>
     .map((w) => Array.from(w)[0]?.toUpperCase() ?? "")
     .join("");
 
-async function copy(text: string) {
+const copy = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text);
     toast.success("Copied");
   } catch {
     toast.error("Couldn't copy: select the link and copy it");
   }
-}
+};
 
 // A section of the tab: an icon, a title, a sentence on what it does, then its controls.
-function Card({ icon, title, lead, aside, children }: { icon: ReactNode; title: string; lead: string; aside?: ReactNode; children?: ReactNode }) {
+const Card = ({ icon, title, lead, aside, children }: { icon: ReactNode; title: string; lead: string; aside?: ReactNode; children?: ReactNode }) => {
   return (
     <section aria-label={title} className="space-y-4 rounded-xl border bg-card p-5 sm:p-6">
       <div className="flex items-start gap-3">
@@ -52,9 +52,9 @@ function Card({ icon, title, lead, aside, children }: { icon: ReactNode; title: 
       {children}
     </section>
   );
-}
+};
 
-export function SharedTab({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) {
+export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) => {
   const people = usePaginatedQuery(api.sessions.listForEvent, { eventId }, { initialNumItems: 25 });
   const invites = useQuery(api.invites.listForEvent, { eventId });
   // The switched-on link, or null. Undefined while it loads.
@@ -78,7 +78,7 @@ export function SharedTab({ eventId, archived }: { eventId: Id<"events">; archiv
   // The person whose access is about to be taken away, while they confirm.
   const [removing, setRemoving] = useState<{ id: Id<"sessions">; name: string } | null>(null);
 
-  async function setLinkOn(on: boolean) {
+  const setLinkOn = async (on: boolean) => {
     try {
       if (on) {
         await enableLink({ eventId });
@@ -90,9 +90,9 @@ export function SharedTab({ eventId, archived }: { eventId: Id<"events">; archiv
     } catch (e) {
       toast.error(errorMessage(e));
     }
-  }
+  };
 
-  async function sendLink(e: { preventDefault(): void }) {
+  const sendLink = async (e: { preventDefault(): void }) => {
     e.preventDefault();
     setSendingLink(true);
     try {
@@ -104,9 +104,9 @@ export function SharedTab({ eventId, archived }: { eventId: Id<"events">; archiv
     } finally {
       setSendingLink(false);
     }
-  }
+  };
 
-  async function invite() {
+  const invite = async () => {
     setInviting(true);
     try {
       const res = await createInvite({ eventId, role, sendTo: email.trim() || undefined });
@@ -119,7 +119,7 @@ export function SharedTab({ eventId, archived }: { eventId: Id<"events">; archiv
     } finally {
       setInviting(false);
     }
-  }
+  };
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -343,4 +343,4 @@ export function SharedTab({ eventId, archived }: { eventId: Id<"events">; archiv
       </Card>
     </div>
   );
-}
+};

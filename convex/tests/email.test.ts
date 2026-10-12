@@ -18,7 +18,7 @@ beforeAll(() => {
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   t.registerComponent("email", emailSchema, emailModules);
   t.registerComponent("invites", invitesSchema, invitesModules);
@@ -28,11 +28,11 @@ async function setup() {
   const a = as(aId);
   const eventId = await a.mutation(api.api.events.createDraft, {});
   return { t, aId, bId, a, b: as(bId), eventId };
-}
+};
 
 type Mail = { to?: string; reply_to?: string; subject?: string; html?: string; text?: string };
 
-function enableMail() {
+const enableMail = () => {
   const fetchMock = vi.fn((_input: unknown, init?: { body?: string }) => {
     void _input;
     void init;
@@ -43,24 +43,24 @@ function enableMail() {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   Object.assign(process.env, cf);
   return fetchMock;
-}
+};
 
-function disableMail() {
+const disableMail = () => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   for (const key of Object.keys(cf)) delete process.env[key];
   vi.unstubAllGlobals();
   vi.useRealTimers();
-}
+};
 
-function mailsOf(fetchMock: ReturnType<typeof enableMail>): Mail[] {
+const mailsOf = (fetchMock: ReturnType<typeof enableMail>): Mail[] => {
   return fetchMock.mock.calls.map((call) => JSON.parse(call[1]?.body ?? "{}") as Mail);
-}
+};
 
-function tokenIn(mail: Mail): string {
+const tokenIn = (mail: Mail): string => {
   const found = `${mail.text ?? ""}\n${mail.html ?? ""}`.match(/verify-email#([A-Za-z0-9_-]+)/);
   if (found?.[1] === undefined) throw new Error("confirmation link missing");
   return found[1];
-}
+};
 
 describe("email confirmation", () => {
   test("a typed address waits, then becomes the one we trust", async () => {

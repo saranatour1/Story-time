@@ -29,13 +29,7 @@ const search = z.object({
   back: z.enum(["words"]).optional().catch(undefined),
 });
 
-// Outside `_app`, so there's no sidebar or header: the story fills the window.
-export const Route = createFileRoute("/e/$id/story")({
-  validateSearch: search,
-  component: StoryPage,
-});
-
-function StoryPage() {
+const StoryPage = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const { id } = Route.useParams();
   const { step, page, momentId, mode } = Route.useSearch();
@@ -130,9 +124,9 @@ function StoryPage() {
       </BookStage>
     </div>
   );
-}
+};
 
-function BookStage({
+const BookStage = ({
   stage,
   setSize,
   children,
@@ -140,7 +134,7 @@ function BookStage({
   stage: RefObject<HTMLDivElement | null>;
   setSize: (size: { w: number; h: number }) => void;
   children: ReactNode;
-}) {
+}) => {
   useEffect(() => {
     const el = stage.current;
     if (!el) return;
@@ -155,4 +149,10 @@ function BookStage({
       {children}
     </div>
   );
-}
+};
+
+// Outside `_app`, so there's no sidebar or header: the story fills the window.
+export const Route = createFileRoute("/e/$id/story")({
+  validateSearch: search,
+  component: StoryPage,
+});

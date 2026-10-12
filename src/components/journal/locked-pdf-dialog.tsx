@@ -18,7 +18,7 @@ import { FONTS } from "./look";
 // The whole journal as a PDF that opens only with a password, put on the
 // share link. The browser prints and locks it; the server keeps the file
 // encrypted and the password under the experience's key, for its owner.
-export function LockedPdfDialog({
+export const LockedPdfDialog = ({
   event,
   pages,
   open,
@@ -31,7 +31,7 @@ export function LockedPdfDialog({
   onOpenChange: (open: boolean) => void;
   // The whole book as an unlocked PDF, printed by the journal.
   print: () => Promise<Blob>;
-}) {
+}) => {
   const current = useQuery(api.pdf.get, open ? { eventId: event._id } : "skip");
   const link = useQuery(api.share.link, open ? { eventId: event._id } : "skip");
   const setPdf = useMutation(api.pdf.set);
@@ -46,7 +46,7 @@ export function LockedPdfDialog({
       () => toast.error("Couldn't copy it. Select it and copy it yourself."),
     );
 
-  async function make() {
+  const make = async () => {
     if (!token) return;
     try {
       setStep("Printing the pages…");
@@ -64,9 +64,9 @@ export function LockedPdfDialog({
     } finally {
       setStep(null);
     }
-  }
+  };
 
-  async function stop() {
+  const stop = async () => {
     if (!token) return;
     try {
       const old = await dropPdf({ eventId: event._id });
@@ -75,7 +75,7 @@ export function LockedPdfDialog({
     } catch (error) {
       toast.error(errorMessage(error));
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(next) => step === null && onOpenChange(next)}>
@@ -149,4 +149,4 @@ export function LockedPdfDialog({
       </DialogContent>
     </Dialog>
   );
-}
+};

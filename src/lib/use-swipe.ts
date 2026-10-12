@@ -13,10 +13,10 @@ const FLICK_SPEED = 0.45; // px per ms
 
 // The dominant axis picks the direction, a tie going across. A move commits when
 // it is long enough or quick enough, and is nothing otherwise.
-export function classifySwipe(
+export const classifySwipe = (
   move: SwipeMove,
   opts: { distance?: number; velocity?: number } = {},
-): SwipeDirection | null {
+): SwipeDirection | null => {
   const distance = opts.distance ?? SWIPE_PX;
   const velocity = opts.velocity ?? FLICK_SPEED;
   const across = Math.abs(move.dx) >= Math.abs(move.dy);
@@ -27,7 +27,7 @@ export function classifySwipe(
   if (size < distance && !(speed >= velocity && size >= FLICK_PX)) return null;
   if (across) return along < 0 ? "left" : "right";
   return along < 0 ? "up" : "down";
-}
+};
 
 // Forward is the way the story goes: left or up. Back is right or down.
 export const isForward = (d: SwipeDirection) => d === "left" || d === "up";
@@ -60,21 +60,21 @@ type Gesture = {
 
 // The walk stops at the surface itself, so a surface that is marked (a deck
 // inside a scroller) still takes its own gestures.
-function ownsPointer(target: EventTarget | null, surface: Element): boolean {
+const ownsPointer = (target: EventTarget | null, surface: Element): boolean => {
   for (let n = target instanceof Element ? target : null; n && n !== surface; n = n.parentElement) {
     if (n.matches(OWN_POINTER)) return true;
   }
   return false;
-}
+};
 
 // Listens for swipes and taps on an element. Moves and releases are listened
 // for on the window, so a drag that leaves the element still ends cleanly. With
 // `axes: "x"` a vertical drag is left to the browser, which scrolls the page.
-export function useSwipeSurface(
+export const useSwipeSurface = (
   ref: RefObject<HTMLElement | null>,
   handlers: SwipeHandlers,
   options: SwipeOptions = {},
-) {
+) => {
   const { axes = "both", enabled = true, touchOnly = false } = options;
   // Read at each event, so the handlers can change without re-attaching.
   const latest = useRef(handlers);
@@ -175,4 +175,4 @@ export function useSwipeSurface(
       cancelAnimationFrame(frame);
     };
   }, [ref, axes, enabled, touchOnly]);
-}
+};

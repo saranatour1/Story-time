@@ -6,15 +6,15 @@ const HEAD_BYTES = 128 * 1024;
 
 // Where and when a JPEG was taken, from its EXIF. Read in the browser, so it
 // needs no network. HEIC, PNG and videos come back empty.
-export async function readPhotoMeta(file: File): Promise<PhotoMeta> {
+export const readPhotoMeta = async (file: File): Promise<PhotoMeta> => {
   if (file.type !== "image/jpeg") return {};
   return photoMetaFromJpeg(await file.slice(0, HEAD_BYTES).arrayBuffer());
-}
+};
 
 // Walks the JPEG's segments to the Exif APP1, then its TIFF: IFD0 points at
 // the GPS IFD (location) and the Exif IFD (time). Anything malformed or cut
 // short just leaves that part out.
-export function photoMetaFromJpeg(buffer: ArrayBuffer): PhotoMeta {
+export const photoMetaFromJpeg = (buffer: ArrayBuffer): PhotoMeta => {
   const view = new DataView(buffer);
   const tiff = attempt(() => exifStart(view));
   const little = attempt(() => tiff !== undefined && view.getUint16(tiff) === 0x4949); // "II"
@@ -70,11 +70,11 @@ export function photoMetaFromJpeg(buffer: ArrayBuffer): PhotoMeta {
   const meta: PhotoMeta = { ...time };
   if (geo) meta.geo = geo;
   return meta;
-}
+};
 
 // "2026:07:10 18:30:00", with "+01:00" when the camera recorded its zone;
 // without one it's read as the browser's local time.
-function parseExifTime(text: string, offset: string | undefined): Pick<PhotoMeta, "takenAt" | "offsetMinutes"> | undefined {
+const parseExifTime = (text: string, offset: string | undefined): Pick<PhotoMeta, "takenAt" | "offsetMinutes"> | undefined => {
   const m = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(text);
   if (!m) return undefined;
   const [y = 0, mo = 0, d = 0, h = 0, mi = 0, s = 0] = m.slice(1).map(Number);
@@ -85,10 +85,10 @@ function parseExifTime(text: string, offset: string | undefined): Pick<PhotoMeta
     return { takenAt: Date.UTC(y, mo - 1, d, h, mi, s) - offsetMinutes * 60_000, offsetMinutes };
   }
   return { takenAt: new Date(y, mo - 1, d, h, mi, s).getTime() };
-}
+};
 
 // Where the TIFF data starts inside the Exif APP1 segment, if there is one.
-function exifStart(view: DataView): number | undefined {
+const exifStart = (view: DataView): number | undefined => {
   if (view.getUint16(0) !== 0xffd8) return undefined;
   let at = 2;
   while (at + 4 <= view.byteLength) {
@@ -99,13 +99,13 @@ function exifStart(view: DataView): number | undefined {
     at += 2 + view.getUint16(at + 2);
   }
   return undefined;
-}
+};
 
 // Reading past a truncated buffer throws; treat that as "not there".
-function attempt<T>(read: () => T | undefined): T | undefined {
+const attempt = <T>(read: () => T | undefined): T | undefined => {
   try {
     return read();
   } catch {
     return undefined;
   }
-}
+};

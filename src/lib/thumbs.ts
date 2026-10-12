@@ -13,7 +13,7 @@ const made = new WeakMap<File, Promise<string | undefined>>();
 // A small base64 JPEG (no data: prefix) of a picture, for the AI. Videos, and
 // pictures the browser can't decode, give undefined. Memoized per file, so a
 // thumbnail started early costs nothing when it's needed.
-export function thumbnail(file: File): Promise<string | undefined> {
+export const thumbnail = (file: File): Promise<string | undefined> => {
   if (!file.type.startsWith("image/")) return Promise.resolve(undefined);
   let thumb = made.get(file);
   if (!thumb) {
@@ -23,11 +23,11 @@ export function thumbnail(file: File): Promise<string | undefined> {
     made.set(file, thumb);
   }
   return thumb;
-}
+};
 
 // A JPEG small enough for a shelf or a card, plus the original's pixel size
 // so the layout can reserve the right box. Videos give undefined.
-export function displayThumbnail(file: File): Promise<{ blob: Blob; width: number; height: number } | undefined> {
+export const displayThumbnail = (file: File): Promise<{ blob: Blob; width: number; height: number } | undefined> => {
   if (!file.type.startsWith("image/")) return Promise.resolve(undefined);
   const job = turn.then(() => makeDisplay(file));
   turn = job.then(
@@ -35,9 +35,9 @@ export function displayThumbnail(file: File): Promise<{ blob: Blob; width: numbe
     () => undefined,
   );
   return job;
-}
+};
 
-async function makeDisplay(file: File): Promise<{ blob: Blob; width: number; height: number } | undefined> {
+const makeDisplay = async (file: File): Promise<{ blob: Blob; width: number; height: number } | undefined> => {
   let bitmap: ImageBitmap | undefined;
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
@@ -49,9 +49,9 @@ async function makeDisplay(file: File): Promise<{ blob: Blob; width: number; hei
   } finally {
     bitmap?.close();
   }
-}
+};
 
-async function shrink(file: File): Promise<string | undefined> {
+const shrink = async (file: File): Promise<string | undefined> => {
   let bitmap: ImageBitmap | undefined;
   try {
     // Apply the camera's rotation, so the thumbnail is upright.
@@ -66,10 +66,10 @@ async function shrink(file: File): Promise<string | undefined> {
   } finally {
     bitmap?.close();
   }
-}
+};
 
 // OffscreenCanvas where the browser has it, else a <canvas> element.
-async function encode(source: ImageBitmap, width: number, height: number): Promise<Blob | null> {
+const encode = async (source: ImageBitmap, width: number, height: number): Promise<Blob | null> => {
   if (typeof OffscreenCanvas === "function") {
     const canvas = new OffscreenCanvas(width, height);
     const context = canvas.getContext("2d");
@@ -84,13 +84,13 @@ async function encode(source: ImageBitmap, width: number, height: number): Promi
   if (!context) return null;
   context.drawImage(source, 0, 0, width, height);
   return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", QUALITY));
-}
+};
 
-function base64(bytes: Uint8Array): string {
+const base64 = (bytes: Uint8Array): string => {
   let binary = "";
   // In chunks: spreading a whole photo into one call overflows the stack.
   for (let i = 0; i < bytes.length; i += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   }
   return btoa(binary);
-}
+};

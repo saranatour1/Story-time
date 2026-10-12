@@ -22,12 +22,12 @@ import { listForEvent, type PlainBlock, vMomentView } from "./moments";
 // Off until the owner switches it on.
 
 // Same shape as an invite token: 24 random bytes, base64url.
-function newToken(): string {
+const newToken = (): string => {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+};
 
 // Checked before any hashing, so junk never reaches the key derivation.
 const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,64}$/;
@@ -39,7 +39,7 @@ const EMAILS_PER_DAY = 20;
 
 // Counts share-link emails per sender over a rolling day. The address itself
 // is not stored.
-async function chargeShareEmail(ctx: MutationCtx, userId: Id<"users">) {
+const chargeShareEmail = async (ctx: MutationCtx, userId: Id<"users">) => {
   const since = Date.now() - DAY_MS;
   const recent = await ctx.db
     .query("shareEmails")
@@ -57,7 +57,7 @@ async function chargeShareEmail(ctx: MutationCtx, userId: Id<"users">) {
     .take(EMAILS_PER_DAY);
   for (const row of stale) await ctx.db.delete("shareEmails", row._id);
   await ctx.db.insert("shareEmails", { userId });
-}
+};
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (ch) => {
@@ -69,13 +69,13 @@ const escapeHtml = (value: string) =>
   });
 
 // The token of the link that is switched on, or null.
-async function activeToken(event: Doc<"events">): Promise<string | null> {
+const activeToken = async (event: Doc<"events">): Promise<string | null> => {
   if (event.visibility !== "link" || event.shareToken === undefined) return null;
   return decryptText(event._id, event.shareToken);
-}
+};
 
 // Points the experience at a new token. Any link made before stops working.
-async function switchOn(ctx: MutationCtx, event: Doc<"events">): Promise<string> {
+const switchOn = async (ctx: MutationCtx, event: Doc<"events">): Promise<string> => {
   const token = newToken();
   await ctx.db.patch("events", event._id, {
     visibility: "link",
@@ -83,11 +83,11 @@ async function switchOn(ctx: MutationCtx, event: Doc<"events">): Promise<string>
     shareToken: await encryptText(event._id, event.keyVersion, token),
   });
   return token;
-}
+};
 
 // The experience a link opens, or null. A malformed, unknown and switched-off
 // token all read the same, so a caller can't tell which one they had.
-async function eventFor(ctx: QueryCtx, token: string): Promise<Doc<"events"> | null> {
+const eventFor = async (ctx: QueryCtx, token: string): Promise<Doc<"events"> | null> => {
   if (!TOKEN_SHAPE.test(token)) return null;
   const shareKey = await shareKeyFor(token);
   const event = await ctx.db
@@ -95,7 +95,7 @@ async function eventFor(ctx: QueryCtx, token: string): Promise<Doc<"events"> | n
     .withIndex("by_shareKey", (q) => q.eq("shareKey", shareKey))
     .unique();
   return event?.visibility === "link" ? event : null;
-}
+};
 
 // Shared stories leave out who wrote each moment: the people watching them
 // have no account here, and the names are for the people who do. `get` and
@@ -103,11 +103,11 @@ async function eventFor(ctx: QueryCtx, token: string): Promise<Doc<"events"> | n
 
 // Photos and videos are the only blocks that carry a picture id. Dropping
 // them leaves notes, links and feelings, and no mediaId anywhere.
-function withoutPictures(blocks: PlainBlock[]): PlainBlock[] {
+const withoutPictures = (blocks: PlainBlock[]): PlainBlock[] => {
   return blocks.filter((block) => block.type !== "photo" && block.type !== "video");
-}
+};
 
-function sharedMoment(moment: Infer<typeof vMomentView>, redact: boolean) {
+const sharedMoment = (moment: Infer<typeof vMomentView>, redact: boolean) => {
   const stops = redact
     ? moment.stops.map((stop) => ({ ...stop, blocks: withoutPictures(stop.blocks) }))
     : moment.stops;
@@ -123,7 +123,7 @@ function sharedMoment(moment: Infer<typeof vMomentView>, redact: boolean) {
     stops,
     labels: moment.labels,
   };
-}
+};
 
 // Whether this experience's link hides photos. False until the owner opts in,
 // including while the link itself is off, so the choice is waiting when they

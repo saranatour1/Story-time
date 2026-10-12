@@ -70,7 +70,7 @@ export type MenuActions = {
 
 const mod = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
 
-function Styles({ label, list, names, on, pick }: { label: string; list: readonly string[]; names: Record<string, string>; on: string | undefined; pick: (s: string) => void }) {
+const Styles = ({ label, list, names, on, pick }: { label: string; list: readonly string[]; names: Record<string, string>; on: string | undefined; pick: (s: string) => void }) => {
   return (
     <ContextMenuSub>
       <ContextMenuSubTrigger>
@@ -85,9 +85,9 @@ function Styles({ label, list, names, on, pick }: { label: string; list: readonl
       </ContextMenuSubContent>
     </ContextMenuSub>
   );
-}
+};
 
-function ThingMenu({ e, can, act }: { e: JournalElement; can: { paste: boolean }; act: MenuActions }) {
+const ThingMenu = ({ e, can, act }: { e: JournalElement; can: { paste: boolean }; act: MenuActions }) => {
   const locked = e.locked ?? false;
   let styles: ReactNode = null;
   if (e.kind === "title") styles = <Styles label="Title style" list={TITLE_STYLES} names={TITLE_NAMES} on={e.style ?? "typewriter"} pick={(style) => act.change(e, { style })} />;
@@ -190,7 +190,7 @@ function ThingMenu({ e, can, act }: { e: JournalElement; can: { paste: boolean }
       </ContextMenuItem>
     </>
   );
-}
+};
 
 const QUICK: Array<{ label: string; thing: NewThing }> = [
   { label: "A title", thing: { kind: "title", style: "typewriter", text: "Our trip", w: 0, h: 0 } },
@@ -201,7 +201,7 @@ const QUICK: Array<{ label: string; thing: NewThing }> = [
 ];
 
 
-function PaperMenu({ paper, locked, can, act }: { paper: string; locked: boolean; can: { paste: boolean }; act: MenuActions }) {
+const PaperMenu = ({ paper, locked, can, act }: { paper: string; locked: boolean; can: { paste: boolean }; act: MenuActions }) => {
   return (
     <>
       {!locked && (
@@ -276,9 +276,9 @@ function PaperMenu({ paper, locked, can, act }: { paper: string; locked: boolean
       </ContextMenuItem>
     </>
   );
-}
+};
 
-export function JournalMenu({
+export const JournalMenu = ({
   e,
   paper,
   pageLocked,
@@ -291,7 +291,7 @@ export function JournalMenu({
   pageLocked: boolean;
   can: { paste: boolean; edit: boolean };
   act: MenuActions;
-}) {
+}) => {
   return (
     <ContextMenuContent className="paper-scope w-60">
       {can.edit && e && !pageLocked ? (
@@ -313,4 +313,4 @@ export function JournalMenu({
       )}
     </ContextMenuContent>
   );
-}
+};

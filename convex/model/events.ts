@@ -35,7 +35,7 @@ const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
 // The first stops of an experience with a place on the map, in time order,
 // rounded to about 100 m (it is a drawing, not a map). Repeats in a row drop out.
-async function sketchFor(ctx: QueryCtx, event: Doc<"events">) {
+const sketchFor = async (ctx: QueryCtx, event: Doc<"events">) => {
   const moments = await ctx.db
     .query("moments")
     .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
@@ -52,11 +52,11 @@ async function sketchFor(ctx: QueryCtx, event: Doc<"events">) {
     }
   }
   return points.length >= 2 ? points : undefined;
-}
+};
 
 // The experience as a home card shows it. No description: the cards never
 // show one, so there's nothing to decrypt for them.
-function summaryOf(event: Doc<"events">, role: EventRole) {
+const summaryOf = (event: Doc<"events">, role: EventRole) => {
   return {
     _id: event._id,
     _creationTime: event._creationTime,
@@ -68,18 +68,18 @@ function summaryOf(event: Doc<"events">, role: EventRole) {
     momentCount: event.momentCount,
     role,
   };
-}
+};
 
-async function toView(event: Doc<"events">, role: EventRole) {
+const toView = async (event: Doc<"events">, role: EventRole) => {
   return { ...summaryOf(event, role), description: await readText(event._id, event.description) };
-}
+};
 
 // The chosen cover, else the first photo (not video) of the earliest few
 // moments, first stop before later ones. Bounded to 5 moments per event.
-async function coverFor(
+const coverFor = async (
   ctx: QueryCtx,
   event: Doc<"events">,
-): Promise<Id<"media"> | undefined> {
+): Promise<Id<"media"> | undefined> => {
   if (event.coverMediaId !== undefined) return event.coverMediaId;
   const moments = await ctx.db
     .query("moments")
@@ -91,11 +91,12 @@ async function coverFor(
     }
   }
   return undefined;
-}
+};
 
-function invalid(field: string, message: string): never {
+// Typed as a whole: TypeScript only follows a `never` call through a declared type.
+const invalid: (field: string, message: string) => never = (field, message) => {
   throw new ConvexError({ code: "INVALID", field, message });
-}
+};
 
 const createDraft = mutation({
   args: {},

@@ -2,9 +2,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-function source(path: string): string {
+const source = (path: string): string => {
   return readFileSync(path, "utf8");
-}
+};
 
 describe("page load", () => {
   it("keeps scrapbook fonts off the global stylesheet", () => {

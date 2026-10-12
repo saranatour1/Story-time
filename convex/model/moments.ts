@@ -79,7 +79,7 @@ export const vMomentView = v.object({
   labels: v.array(v.string()),
 });
 
-async function viewBlocks(event: Doc<"events">, encrypted: Doc<"moments">["blocks"]): Promise<PlainBlock[]> {
+const viewBlocks = async (event: Doc<"events">, encrypted: Doc<"moments">["blocks"]): Promise<PlainBlock[]> => {
   const blocks: PlainBlock[] = [];
   for (const b of encrypted) {
     if (b.type === "photo" || b.type === "video") blocks.push(b);
@@ -100,13 +100,13 @@ async function viewBlocks(event: Doc<"events">, encrypted: Doc<"moments">["block
     }
   }
   return blocks;
-}
+};
 
-export async function viewMoment(
+export const viewMoment = async (
   ctx: QueryCtx,
   event: Doc<"events">,
   moment: Doc<"moments">,
-): Promise<Infer<typeof vMomentView>> {
+): Promise<Infer<typeof vMomentView>> => {
   const author = await ctx.db.get("users", moment.authorId);
   const edit = moment.lastEdit;
   const editor =
@@ -141,7 +141,7 @@ export async function viewMoment(
     ),
     labels: await Promise.all((moment.labels ?? []).map((l) => decryptText(event._id, l))),
   };
-}
+};
 
 // What a new moment takes. `create` takes these as they are; an agent adds
 // a moment through the same write.
@@ -171,10 +171,10 @@ const create = mutation({
 // The write behind `create`, shared with agents. Access stays with the
 // caller; this checks the experience takes more moments and that the content
 // is valid. `userId` is the author: for an agent, the person it acts for.
-export async function createMoment(
+export const createMoment = async (
   ctx: MutationCtx,
   args: { event: Doc<"events">; userId: Id<"users">; actor: Actor; input: MomentCreate },
-): Promise<Id<"moments">> {
+): Promise<Id<"moments">> => {
   const { event, userId, actor, input } = args;
   assertNotArchived(event);
   if (event.momentCount >= MOMENT_LIMIT) {
@@ -245,18 +245,18 @@ export async function createMoment(
   // must not decrypt and insert the whole book in one transaction.
   await ctx.scheduler.runAfter(0, internal.model.journal.makePages, { eventId: event._id });
   return momentId;
-}
+};
 
-export async function listForEvent(
+export const listForEvent = async (
   ctx: QueryCtx,
   event: Doc<"events">,
-): Promise<Array<Infer<typeof vMomentView>>> {
+): Promise<Array<Infer<typeof vMomentView>>> => {
   const moments = await ctx.db
     .query("moments")
     .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
     .take(momentsToRead(event.momentCount));
   return Promise.all(moments.map((m) => viewMoment(ctx, event, m)));
-}
+};
 
 const list = query({
   args: { eventId: v.id("events") },
@@ -317,18 +317,18 @@ const update = mutation({
 // Takes a photo off a moment. Its uploader may delete it afterwards, so they're
 // recorded as the detacher. Anyone else's photo stays for its uploader and the
 // experience owner to delete: someone who merely edits a moment gets no rights.
-async function detachMedia(ctx: MutationCtx, mediaId: Id<"media">, userId: Id<"users">) {
+const detachMedia = async (ctx: MutationCtx, mediaId: Id<"media">, userId: Id<"users">) => {
   const media = await ctx.db.get("media", mediaId);
   await ctx.db.patch("media", mediaId, {
     momentId: undefined,
     detachedBy: media?.uploaderId === userId ? userId : undefined,
   });
-}
+};
 
 // The write behind `update`, shared with the AI enrichment and with agents.
 // Encodes the edit, moves media on and off the moment, keeps the itinerary in
 // step, notes who edited and logs the change. Access checks stay with the caller.
-export async function writeMomentUpdate(
+export const writeMomentUpdate = async (
   ctx: MutationCtx,
   args: {
     event: Doc<"events">;
@@ -339,7 +339,7 @@ export async function writeMomentUpdate(
     actor: Actor;
     patch: MomentEdit;
   },
-): Promise<{ removedMediaIds: Id<"media">[] }> {
+): Promise<{ removedMediaIds: Id<"media">[] }> => {
   const { event, moment, userId, actor, patch } = args;
 
   const docPatch: Partial<
@@ -461,7 +461,7 @@ export async function writeMomentUpdate(
     after: docPatch.startsAt !== undefined ? { startsAt: docPatch.startsAt } : undefined,
   });
   return { removedMediaIds };
-}
+};
 
 // Delete a moment. Its photos are detached and returned so the caller can
 // delete them from R2.
@@ -488,10 +488,10 @@ const remove = mutation({
 
 // The write behind `remove`, shared with typed requests. Detaches the moment's
 // photos (returned, so the caller can clear them from R2) and logs the change. Access checks stay with the caller.
-export async function deleteMoment(
+export const deleteMoment = async (
   ctx: MutationCtx,
   args: { event: Doc<"events">; moment: Doc<"moments">; userId: Id<"users"> },
-): Promise<{ removedMediaIds: Id<"media">[] }> {
+): Promise<{ removedMediaIds: Id<"media">[] }> => {
   const { event, moment, userId } = args;
   const removedMediaIds = mediaIdsOf(moment);
   for (const id of removedMediaIds) {
@@ -513,7 +513,7 @@ export async function deleteMoment(
     fields: [],
   });
   return { removedMediaIds };
-}
+};
 
 // What the app calls. Registered once, by convex/api/moments.ts, which re-exports it.
 export const momentsApi = { create, list, update, remove };

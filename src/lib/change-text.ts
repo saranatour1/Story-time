@@ -20,22 +20,22 @@ const FIELD_WORDS: Partial<Record<string, string>> = {
 };
 
 // An experience's own dates read as "dates"; a moment's start is its "time".
-function wordFor(entity: string, field: string): string {
+const wordFor = (entity: string, field: string): string => {
   if (entity === "event" && (field === "startsAt" || field === "endsAt")) return "dates";
   return FIELD_WORDS[field] ?? field;
-}
+};
 
 // The changed fields in words: each once, in the order they were recorded. A
 // place comes with its map pin, so the pin is not named again.
-function fieldWords(entity: string, fields: string[]): string {
+const fieldWords = (entity: string, fields: string[]): string => {
   const words = new Set(fields.map((f) => wordFor(entity, f)));
   if (fields.includes("place")) words.delete("map pin");
   return [...words].join(", ");
-}
+};
 
 const onlyField = (fields: string[], field: string) => fields.length > 0 && fields.every((f) => f === field);
 
-export function describeChange(c: { entity: string; action: string; fields: string[] }): string {
+export const describeChange = (c: { entity: string; action: string; fields: string[] }): string => {
   const { entity, action, fields } = c;
   const edited = (what: string) => {
     const words = fieldWords(entity, fields);
@@ -91,4 +91,4 @@ export function describeChange(c: { entity: string; action: string; fields: stri
   // Anything the log does not describe yet still reads as a sentence.
   const phrase = `${action} ${entity}`;
   return phrase.charAt(0).toUpperCase() + phrase.slice(1);
-}
+};

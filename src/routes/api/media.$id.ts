@@ -6,7 +6,7 @@ import { bearerToken, convexAnonymous, convexAs, json, shareToken, ssecKeyFor } 
 
 // Null unless the caller may see it. A signed-in viewer is checked as
 // themselves; a share link by its token alone. Convex makes both decisions.
-async function mediaFor(request: Request, mediaId: Id<"media">, variant: "full" | "thumb") {
+const mediaFor = async (request: Request, mediaId: Id<"media">, variant: "full" | "thumb") => {
   const token = bearerToken(request);
   if (token) {
     return convexAs(token).query(api.media.getForDownload, { mediaId, variant }).catch(() => null);
@@ -18,7 +18,7 @@ async function mediaFor(request: Request, mediaId: Id<"media">, variant: "full" 
       .catch(() => null);
   }
   return null;
-}
+};
 
 export const Route = createFileRoute("/api/media/$id")({
   server: {

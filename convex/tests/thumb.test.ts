@@ -11,7 +11,7 @@ beforeAll(() => {
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   const ownerId = await t.run((ctx) => ctx.db.insert("users", {}));
   const otherId = await t.run((ctx) => ctx.db.insert("users", {}));
@@ -25,7 +25,7 @@ async function setup() {
   });
   await owner.mutation(api.api.media.confirmUpload, { mediaId });
   return { t, owner, other, eventId, mediaId, r2Key };
-}
+};
 
 describe("thumbnails", () => {
   test("a list asks for the thumb and an old photo falls back to the original", async () => {

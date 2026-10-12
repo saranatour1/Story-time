@@ -14,7 +14,7 @@ const count = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 // One stop as a card: where and when, how they got there, what they wrote and
 // the pictures they took. Its step is its id, for the map and the keys; the
 // round button starts the film from here.
-export function StopCard({
+export const StopCard = ({
   step,
   number,
   scene,
@@ -27,7 +27,7 @@ export function StopCard({
   // The reader, so their own stop says "by you".
   meId?: string;
   onPlayFilm: (step: number) => void;
-}) {
+}) => {
   const { stop } = scene;
   // On the clock where the stop happened.
   const at = stop.startsAt === undefined ? undefined : formatTime(stop.startsAt, scene.tzOffsetMinutes);
@@ -139,4 +139,4 @@ export function StopCard({
       )}
     </article>
   );
-}
+};

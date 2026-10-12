@@ -22,14 +22,14 @@ import { cn } from "@/lib/utils";
 const STRIP_BOTTOM = 56 + 224 + 16;
 // How long a glide to a scene may take before the observer is listening again.
 const GLIDE_MS = 1200;
-function readingLine(): number {
+const readingLine = (): number => {
   const third = window.innerHeight / 3;
   return window.matchMedia("(min-width: 1024px)").matches ? third : Math.max(third, STRIP_BOTTOM);
-}
+};
 
 // Brings a scene to the reading line, where the observer below looks for it.
 // The cover is the top of the page.
-function revealStep(step: number, behavior: ScrollBehavior) {
+const revealStep = (step: number, behavior: ScrollBehavior) => {
   if (step === 0) {
     window.scrollTo({ top: 0, behavior });
     return;
@@ -38,18 +38,18 @@ function revealStep(step: number, behavior: ScrollBehavior) {
   if (!el) return;
   const top = el.getBoundingClientRect().top + window.scrollY - readingLine();
   window.scrollTo({ top, behavior });
-}
+};
 
 // The card a step from the aimed one lands on: the next card down, or the one
 // above, the cover standing above the first.
-function stepFrom(cards: number[], aimed: number, delta: 1 | -1): number | undefined {
+const stepFrom = (cards: number[], aimed: number, delta: 1 | -1): number | undefined => {
   if (delta > 0) return cards.find((i) => i > aimed);
   return [...cards].reverse().find((i) => i < aimed) ?? 0;
-}
+};
 
 // The story as a memoir: a long page of stops in time order, day by day, with
 // the route on a map that follows the reading. The film is one tap away.
-export function StoryScroll({
+export const StoryScroll = ({
   event,
   moments,
   meId,
@@ -66,7 +66,7 @@ export function StoryScroll({
   // Keeps ?step= on the scene in view, replacing history rather than adding.
   onStep: (step: number) => void;
   onPlayFilm: (step: number) => void;
-}) {
+}) => {
   const reduced = useReducedMotion();
   const steps = useMemo(() => buildStorySteps(event.title, moments), [event.title, moments]);
   const days = useMemo(() => storyDays(steps), [steps]);
@@ -283,4 +283,4 @@ export function StoryScroll({
       </main>
     </div>
   );
-}
+};

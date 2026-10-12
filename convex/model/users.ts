@@ -17,12 +17,12 @@ import {
 
 // A verified provider email, normalised, or nothing. An unverified or
 // malformed address is left off. Name and avatar are never copied.
-function oauthEmail(profile: { email?: string; emailVerified: boolean }): string | undefined {
+const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string | undefined => {
   if (!profile.emailVerified || profile.email === undefined) return undefined;
   const email = cleanEmail(profile.email);
   if (email === undefined || email.length > MAX_EMAIL || !EMAIL_PATTERN.test(email)) return undefined;
   return email;
-}
+};
 
 // Privacy by default: the row starts empty apart from a verified contact
 // email. Nothing else from the OAuth profile is copied.
@@ -105,9 +105,10 @@ const getCurrentUser = query({
   },
 });
 
-function invalid(field: string, message: string): never {
+// Typed as a whole: TypeScript only follows a `never` call through a declared type.
+const invalid: (field: string, message: string) => never = (field, message) => {
   throw new ConvexError({ code: "INVALID", field, message });
-}
+};
 
 type EmailStatus = "unchanged" | "cleared" | "sent" | "waiting";
 
