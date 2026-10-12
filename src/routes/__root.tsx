@@ -3,6 +3,7 @@ import type { RouterContext } from "@/router";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { Databuddy } from "@databuddy/sdk/react";
 
 import appCss from "../styles.css?url";
 import manropeLatin from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
@@ -15,6 +16,9 @@ const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme')||
 const TITLE = "Story-time";
 const DESCRIPTION =
   "Everyone's photos from the trip, in the order it happened. Invite the people who were there, then play it back stop by stop on a map.";
+// Production builds only (.env.production), so local work isn't counted.
+const DATABUDDY_ID: string | undefined = import.meta.env.VITE_DATABUDDY_CLIENT_ID;
+
 // Crawlers need an absolute image URL, and the client has no other way to
 // know the site's origin.
 const APP_URL: string = import.meta.env.VITE_APP_URL ?? "";
@@ -80,6 +84,19 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         <Outlet />
         <Toaster />
       </TooltipProvider>
+      {DATABUDDY_ID && (
+        // Page views, page speed and errors, without cookies. Trip ids and
+        // invite tokens in paths are masked, and the part after # (a share
+        // link's key) is never read. Click and outgoing-link tracking stay
+        // off: they send element labels and link text, which can name a trip.
+        <Databuddy
+          clientId={DATABUDDY_ID}
+          trackWebVitals
+          trackErrors
+          trackInteractions={false}
+          maskPatterns={["/e/*", "/invite/*"]}
+        />
+      )}
     </ThemeProvider>
   ),
 });

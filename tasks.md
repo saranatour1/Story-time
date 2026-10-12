@@ -21,6 +21,7 @@ After the eight, in this order. Each one stays inside "photos or a sentence in, 
 
 ## Later
 
+- Databuddy: after the next production deploy, check the dashboard shows the first page view (localhost is ignored).
 - Voice clips on a page: ten seconds, kept as a tap-to-play sticker (a new audio media type).
 - Ordering a printed book (payments and a print partner).
 - BYO backend (`docs/byo-backend.md`): phase 0 groundwork, only on a go.

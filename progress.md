@@ -2,6 +2,10 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-10-13
+
+- Analytics with Databuddy, on production builds only: page views, Web Vitals and errors, without cookies. Trip ids and invite codes in paths are masked, the share link's `#` key is never read, nobody is identified, and click and outgoing-link tracking are off because they send labels and link text that can name a trip. Settings → Data & privacy says so.
+
 ## 2026-10-12
 
 - The app reads Convex through TanStack Query (`@convex-dev/react-query`). `src/lib/queries.ts` has one factory per feature (`queries.moments.list({ eventId })`), and the experience, journal, story and share routes prefetch theirs in a `loader`, so hovering a link starts its data and the page and loader share one live cache entry. Prefetching waits until sign-in is known. Errors still reach the error screen. Lint rejects `useQuery` from `convex/react`. Writes still use Convex's `useMutation`, and the two paginated lists keep `usePaginatedQuery`.
