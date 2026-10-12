@@ -32,7 +32,7 @@ import {
   TONES,
 } from "../lib/journal";
 import { IMAGE_MIME_TYPES, momentsToRead } from "../lib/limits";
-import { rateLimiter } from "../lib/rateLimit";
+import { limitWrites, rateLimiter } from "../lib/rateLimit";
 import { type LinkPreview, previewFromHtml } from "./ai/unfurl";
 import { viewMoment } from "./moments";
 import { vJournalKind } from "../schema";
@@ -121,8 +121,9 @@ export const mediaOnAPage = async (ctx: QueryCtx, eventId: Id<"events">, mediaId
 const editablePage = async (ctx: MutationCtx, pageId: Id<"journalPages">, unlocking = false) => {
   const page = await ctx.db.get("journalPages", pageId);
   if (page === null) throw notFound();
-  const { event } = await requireEventAccess(ctx, page.eventId, "owner");
+  const { userId, event } = await requireEventAccess(ctx, page.eventId, "owner");
   assertNotArchived(event);
+  await limitWrites(ctx, userId);
   const journal = await journalOf(ctx, event._id);
   if (journal?.locked) throw new ConvexError({ code: "LOCKED", message: "This journal is locked. Unlock it to change it." });
   if (page.locked && !unlocking) throw new ConvexError({ code: "LOCKED", message: "This page is locked. Unlock it to change it." });
@@ -866,7 +867,7 @@ const linkPreview = action({
     if ((url.protocol !== "http:" && url.protocol !== "https:") || args.url.length > 2000) {
       throw new ConvexError({ code: "INVALID", message: "That isn't a web address." });
     }
-    const { ok } = await rateLimiter.limit(ctx, "enrich", { key: userId });
+    const { ok } = await rateLimiter.limit(ctx, "linkPreview", { key: userId });
     if (!ok) throw new ConvexError({ code: "RATE_LIMITED", message: "That's a lot of links this hour. Try again a little later." });
     const read = await ctx.runAction(internal.model.ai.publicFetch.fetchPage, { url: url.href, limit: 256 * 1024 });
     if (read === null) return { url: url.href, site: url.hostname.replace(/^www\./, "") };

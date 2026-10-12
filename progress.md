@@ -2,6 +2,10 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-10-13
+
+- Limits. Each person gets 10 AI uses a day, shared by everything that calls a model: a note drafted for a moment, a typed or spoken request, a journal title. The day starts at midnight UTC. After that, moments still save without a drafted note, and the box and voice say so. Link previews have their own hourly limit, since they aren't AI. Every change a person makes passes one limit (300 a minute, refilling), which stops a client stuck in a loop. Settings → Account shows AI uses left today, storage against the 2 GB, and experiences against the 20.
+
 ## 2026-10-12
 
 - The app reads Convex through TanStack Query (`@convex-dev/react-query`). `src/lib/queries.ts` has one factory per feature (`queries.moments.list({ eventId })`), and the experience, journal, story and share routes prefetch theirs in a `loader`, so hovering a link starts its data and the page and loader share one live cache entry. Prefetching waits until sign-in is known. Errors still reach the error screen. Lint rejects `useQuery` from `convex/react`. Writes still use Convex's `useMutation`, and the two paginated lists keep `usePaginatedQuery`.
