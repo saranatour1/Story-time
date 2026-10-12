@@ -2,17 +2,18 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { FileLockIcon, LoaderCircleIcon, PlayIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { api } from "@/lib/api";
 import { download, fileName } from "@/components/journal/export";
 import { Reader } from "@/components/journal/reader";
 import { SignedOutPage } from "@/components/sign-in-screen";
-import { StoryPlayer } from "@/components/story/story-player";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { MediaAuthContext } from "@/lib/use-media-url";
+
+const StoryPlayer = lazy(() => import("@/components/story/story-player").then((m) => ({ default: m.StoryPlayer })));
 
 const search = z.object({
   // Where the film is, when Play is open.
@@ -81,7 +82,9 @@ function SharedStoryPage() {
   return (
     <MediaAuthContext.Provider value={{ kind: "share", token }}>
       {mode === "film" ? (
-        <StoryPlayer event={shared.event} moments={shared.moments} meId={undefined} step={step} onStep={onStep} onClose={closeFilm} />
+        <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
+          <StoryPlayer event={shared.event} moments={shared.moments} meId={undefined} step={step} onStep={onStep} onClose={closeFilm} />
+        </Suspense>
       ) : (
         <div className="flex h-svh flex-col bg-[#e9dfcb] text-[#1f1a16]">
           <header className="flex items-center justify-between gap-3 px-4 py-3">

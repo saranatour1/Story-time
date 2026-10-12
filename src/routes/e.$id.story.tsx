@@ -1,19 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useConvexAuth, useQuery } from "convex/react";
 import { PlayIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { z } from "zod";
 import { api } from "@/lib/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { pageForPlay, playSurface } from "@/components/journal/play";
 import { Reader } from "@/components/journal/reader";
 import { SignInScreen } from "@/components/sign-in-screen";
-import { StoryPlayer } from "@/components/story/story-player";
-import { StoryScroll } from "@/components/story/story-scroll";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { buildStorySteps, stepForMoment } from "@/lib/story-steps";
+
+const StoryPlayer = lazy(() => import("@/components/story/story-player").then((m) => ({ default: m.StoryPlayer })));
+const StoryScroll = lazy(() => import("@/components/story/story-scroll").then((m) => ({ default: m.StoryScroll })));
 
 const search = z.object({
   // The scene in view, kept up to date as the film plays or the story scrolls.
@@ -91,14 +92,20 @@ function StoryPage() {
   const start = momentId ? stepForMoment(buildStorySteps(event.title, listed), momentId) : step;
   if (mode === "film") {
     return (
-      <StoryPlayer event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onClose={closeFilm} />
+      <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
+        <StoryPlayer event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onClose={closeFilm} />
+      </Suspense>
     );
   }
   const pages = book?.pages ?? [];
   const surface = mode === "words" ? "story" : book === undefined ? "loading" : playSurface(pages, momentId);
   if (surface === "loading") return <Skeleton className="h-svh w-full rounded-none" />;
   if (surface === "story") {
-    return <StoryScroll event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onPlayFilm={playFilm} />;
+    return (
+      <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
+        <StoryScroll event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onPlayFilm={playFilm} />
+      </Suspense>
+    );
   }
   const at = momentId ? pageForPlay(pages, momentId) : page;
   const openMoment = pages[at]?.momentId;

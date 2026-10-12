@@ -1,10 +1,25 @@
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, useEffect, type ReactNode } from "react";
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 import type { StoryMoment } from "@/components/event/types";
 import { placeLabel, stopsOf } from "@/lib/story-steps";
 import { cn } from "@/lib/utils";
 import { ElementView, elementBox, HeartClip } from "./elements";
+import journalFonts from "./journal-fonts.css?url";
 import { FONTS, paperLook } from "./look";
+
+// Caveat, Special Elite, Libre Caslon and Oswald are only needed once a page
+// is on screen. The landing keeps Manrope and Newsreader.
+function useJournalFonts() {
+  useEffect(() => {
+    const id = "journal-fonts";
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = journalFonts;
+    document.head.appendChild(link);
+  }, []);
+}
 
 export type PageData = { _id: string; paper: string; locked: boolean; momentId?: string; elements: JournalElement[] };
 
@@ -28,6 +43,7 @@ export const JournalPage = forwardRef<
     children?: ReactNode;
   }
 >(function JournalPage({ page, moments, scale, live = true, print = false, pageKey, reading = false, className, children }, ref) {
+  useJournalFonts();
   const look = paperLook(page.paper);
   const elements = [...page.elements].sort((a, b) => a.z - b.z);
   return (

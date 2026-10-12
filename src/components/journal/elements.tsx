@@ -1,9 +1,12 @@
 import { PlayIcon, SquareIcon } from "lucide-react";
-import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, type CSSProperties, type ReactNode, useEffect, useMemo, useState } from "react";
 import { type JournalElement, readLink } from "../../../convex/lib/journal";
 import { seeded } from "../../../convex/lib/seeded";
 import type { StoryMoment } from "@/components/event/types";
-import { type MapStop, StickyMap } from "@/components/story/memoir/sticky-map";
+import type { MapStop } from "@/components/story/memoir/sticky-map";
+
+// MapLibre stays out of the journal, moments and share graphs until a map is shown.
+const StickyMap = lazy(() => import("@/components/story/memoir/sticky-map").then((m) => ({ default: m.StickyMap })));
 import { tornPolygon, TAPE_ENDS } from "@/lib/paper/look";
 import { placeLabel, stopsOf } from "@/lib/story-steps";
 import { useMediaUrl } from "@/lib/use-media-url";
@@ -597,16 +600,18 @@ export function MapCard({ e, moment, interactive }: { e: JournalElement; moment:
         </div>
       ) : (
         <div className={cn("size-full", !interactive && "pointer-events-none")}>
-          <StickyMap
-            stops={stops}
-            focus={focus}
-            leg={here && from ? { from: { lat: from.lat, lng: from.lng }, to: { lat: here.lat, lng: here.lng }, transport: here.transport ?? "walk" } : undefined}
-            reduced={reduced}
-            className="size-full"
-            onPick={setFocus}
-            light
-            printable
-          />
+          <Suspense fallback={<div className="size-full bg-[#e9e1cd]" />}>
+            <StickyMap
+              stops={stops}
+              focus={focus}
+              leg={here && from ? { from: { lat: from.lat, lng: from.lng }, to: { lat: here.lat, lng: here.lng }, transport: here.transport ?? "walk" } : undefined}
+              reduced={reduced}
+              className="size-full"
+              onPick={setFocus}
+              light
+              printable
+            />
+          </Suspense>
         </div>
       )}
       {stops.length > 1 && (

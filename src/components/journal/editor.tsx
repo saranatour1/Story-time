@@ -1,5 +1,9 @@
-import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
-import Moveable from "react-moveable";
+import { lazy, Suspense, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import type Moveable from "react-moveable";
+
+// Loaded when the page can be edited, in its own chunk. The journal can paint
+// before the handles arrive.
+const MoveableView = lazy(() => import("react-moveable"));
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 import type { MomentView } from "@/components/event/types";
 import { tapedTo } from "./add";
@@ -46,6 +50,10 @@ export function PageEditor({
 }) {
   const root = useRef<HTMLDivElement>(null);
   const moveable = useRef<Moveable>(null);
+  useEffect(() => {
+    if (!editable) return;
+    void import("react-moveable");
+  }, [editable]);
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const chosen = page.elements.find((e) => e.id === selected);
   const elements = useRef(page.elements);
@@ -105,7 +113,8 @@ export function PageEditor({
         }} />}
         {editable && pen && onStroke && <DrawLayer pen={pen} scale={scale} onStroke={onStroke} />}
         {editable && target && chosen && !writing && !pen && (
-          <Moveable
+          <Suspense fallback={null}>
+          <MoveableView
             ref={moveable}
             target={target}
             zoom={1 / scale}
@@ -169,6 +178,7 @@ export function PageEditor({
               if (lastEvent) update(chosen.id, { rotation: Math.round(lastEvent.rotation) % 360 });
             }}
           />
+          </Suspense>
         )}
       </JournalPage>
     </div>
