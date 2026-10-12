@@ -52,7 +52,15 @@ function DataSettings() {
               The password is kept encrypted so its owner can copy it again; the link never gives it out.
             </li>
             <li>A journal's words (titles, notes, tickets, drawings, links) are encrypted like notes. Its layout isn't.</li>
-            <li>Nothing is copied from your GitHub or Google account.</li>
+            <li>
+              From your GitHub or Google account, only an email address the provider says is verified is copied, as the
+              address replies and reminders go to. Your name and picture are not. An address you type in Settings is used
+              only after you open the link sent to it.
+            </li>
+            <li>
+              If you turn on the memory reminder, its email says only that a memory is waiting, with a link: no words or
+              photos from the trip. Emailing a share link hands the address to the email service; it isn't kept here.
+            </li>
           </ul>
         </SettingsBlock>
       </div>
