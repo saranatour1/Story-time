@@ -28,7 +28,6 @@ async function journalOf(ctx: MutationCtx, eventId: Id<"events">) {
 // Step 1 of the upload, called by the server route before it streams bytes.
 const reserve = mutation({
   args: { eventId: v.id("events"), size: v.number() },
-  returns: v.object({ mediaId: v.id("media"), r2Key: v.string(), keyVersion: v.number(), keyScope: v.string() }),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -63,7 +62,6 @@ const reserve = mutation({
 // it replaces, so the caller can delete that file from storage.
 const set = mutation({
   args: { eventId: v.id("events"), mediaId: v.id("media"), password: v.string(), pages: v.number() },
-  returns: v.union(v.null(), v.id("media")),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -97,7 +95,6 @@ const set = mutation({
 // Takes the PDF off the share link. Returns it, so the caller can delete it.
 const drop = mutation({
   args: { eventId: v.id("events") },
-  returns: v.union(v.null(), v.id("media")),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     const journal = await journalOf(ctx, event._id);
@@ -118,10 +115,6 @@ const drop = mutation({
 // The locked PDF, if there is one. Its owner also gets the password back.
 const get = query({
   args: { eventId: v.id("events") },
-  returns: v.union(
-    v.null(),
-    v.object({ mediaId: v.id("media"), pages: v.number(), at: v.number(), password: v.optional(v.string()) }),
-  ),
   handler: async (ctx, args) => {
     const { event, role } = await requireEventAccess(ctx, args.eventId, "viewer");
     const journal = await ctx.db

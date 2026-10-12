@@ -1,24 +1,12 @@
 import { v } from "convex/values";
-import { paginationOptsValidator, paginationResultValidator } from "convex/server";
+import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "../_generated/server";
 import { requireEventAccess } from "../lib/access";
 import { recordChange } from "../lib/changes";
-import { vRole } from "../schema";
-
-const vGrant = v.object({
-  _id: v.id("sessions"),
-  userId: v.id("users"),
-  displayName: v.optional(v.string()),
-  role: vRole,
-  grantedAt: v.number(),
-  lastSeenAt: v.optional(v.number()),
-  revokedAt: v.optional(v.number()),
-});
 
 // The people with access, one page at a time, in index order (by person).
 const listForEvent = query({
   args: { eventId: v.id("events"), paginationOpts: paginationOptsValidator },
-  returns: paginationResultValidator(vGrant),
   handler: async (ctx, args) => {
     await requireEventAccess(ctx, args.eventId, "owner");
     const page = await ctx.db
@@ -48,7 +36,6 @@ const listForEvent = query({
 // Revoke access: every read and write checks for an active grant.
 const revoke = mutation({
   args: { sessionId: v.id("sessions") },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const session = await ctx.db.get("sessions", args.sessionId);
     // A missing grant fails exactly like one on an experience the caller doesn't

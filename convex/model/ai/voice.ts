@@ -40,7 +40,6 @@ export function readTranscript(body: unknown): string | undefined {
 
 const transcribe = action({
   args: { audio: v.bytes(), format: v.string() },
-  returns: v.string(),
   handler: async (ctx, args): Promise<string> => {
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Sign in to use your voice." });

@@ -290,12 +290,6 @@ export const vOutlinePage = v.object({
 // decrypt every page.
 const outline = query({
   args: { eventId: v.id("events") },
-  returns: v.object({
-    canEdit: v.boolean(),
-    locked: v.boolean(),
-    pending: v.number(),
-    pages: v.array(vOutlinePage),
-  }),
   handler: async (ctx, args) => {
     const { event, role } = await requireEventAccess(ctx, args.eventId, "viewer");
     const journal = await journalOf(ctx, event._id);
@@ -337,7 +331,6 @@ export async function pageInEvent(
 // One page, decrypted. The open page, a neighbour, or a page being printed.
 const page = query({
   args: { pageId: v.id("journalPages") },
-  returns: v.union(vPageView, v.null()),
   handler: async (ctx, args) => {
     const row = await ctx.db.get("journalPages", args.pageId);
     if (row === null) return null;
@@ -350,7 +343,6 @@ const page = query({
 // that page was never made or was taken out: the caller does not invent one.
 const pageForMoment = query({
   args: { eventId: v.id("events"), momentId: v.optional(v.id("moments")) },
-  returns: v.union(vPageView, v.null()),
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
     const row =
@@ -368,12 +360,6 @@ const pageForMoment = query({
 // The open book does not: it subscribes to `outline` and `page`.
 const get = query({
   args: { eventId: v.id("events") },
-  returns: v.object({
-    canEdit: v.boolean(),
-    locked: v.boolean(),
-    pending: v.number(),
-    pages: v.array(vPageView),
-  }),
   handler: async (ctx, args) => {
     const { event, role } = await requireEventAccess(ctx, args.eventId, "viewer");
     const journal = await journalOf(ctx, event._id);
@@ -527,7 +513,6 @@ export const backfillWaiting = internalMutation({
 // Safe to call twice: the second finds nothing new.
 const fill = mutation({
   args: { eventId: v.id("events") },
-  returns: v.number(),
   handler: async (ctx, args): Promise<number> => {
     const { event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -542,10 +527,6 @@ const fill = mutation({
 // is already behind `filledAt`.
 const unpaged = query({
   args: { eventId: v.id("events") },
-  returns: v.object({
-    full: v.boolean(),
-    momentIds: v.array(v.id("moments")),
-  }),
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
     const journal = await journalOf(ctx, event._id);
@@ -614,7 +595,6 @@ async function markRetyped(event: Doc<"events">, page: Doc<"journalPages">, elem
 // Saves what is on a page (all of it: a page is small), and its paper.
 const savePage = mutation({
   args: { pageId: v.id("journalPages"), paper: v.optional(v.string()), elements: v.array(vElement) },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { page, event } = await editablePage(ctx, args.pageId);
     if (args.paper !== undefined && !PAPER_SET.has(args.paper)) invalid("paper", "That paper doesn't exist.");
@@ -677,7 +657,6 @@ async function refreshBatch(ctx: MutationCtx, event: Doc<"events">): Promise<{ m
 // has saved it. Without one, every untouched stale page, and the rest follows.
 const refresh = mutation({
   args: { eventId: v.id("events"), pageId: v.optional(v.id("journalPages")) },
-  returns: v.number(),
   handler: async (ctx, args): Promise<number> => {
     const { event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -722,7 +701,6 @@ const addPage = mutation({
     paper: v.optional(v.string()),
     elements: v.optional(v.array(vElement)),
   },
-  returns: v.id("journalPages"),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -739,7 +717,6 @@ const addPage = mutation({
 
 const removePage = mutation({
   args: { pageId: v.id("journalPages") },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { page } = await editablePage(ctx, args.pageId);
     await ctx.db.delete("journalPages", page._id);
@@ -750,7 +727,6 @@ const removePage = mutation({
 // Moves a page to just before `before`, or to the end.
 const movePage = mutation({
   args: { pageId: v.id("journalPages"), before: v.union(v.id("journalPages"), v.null()) },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { page, event } = await editablePage(ctx, args.pageId);
     const others = (await pagesOf(ctx, event._id)).filter((p) => p._id !== page._id);
@@ -764,7 +740,6 @@ const movePage = mutation({
 // Locks or unlocks one page, or with no page, the whole journal.
 const setLock = mutation({
   args: { eventId: v.id("events"), pageId: v.optional(v.id("journalPages")), locked: v.boolean() },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -788,7 +763,6 @@ const setLock = mutation({
 // left off rather than refused, so an old file still comes in.
 const importPages = mutation({
   args: { eventId: v.id("events"), pages: v.array(v.object({ paper: v.string(), elements: v.array(vElement) })) },
-  returns: v.number(),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -819,7 +793,6 @@ const importPages = mutation({
 // journal's: on its shelf, and visible to everyone who can see the journal.
 const keepSticker = mutation({
   args: { mediaId: v.id("media") },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
     if (media === null || media.eventId === undefined) throw notFound();
@@ -838,7 +811,6 @@ const keepSticker = mutation({
 // the stored object the same way a moment drops a photo.
 const dropSticker = mutation({
   args: { mediaId: v.id("media") },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
     if (media === null || media.eventId === undefined) throw notFound();
@@ -857,7 +829,6 @@ const dropSticker = mutation({
 // The stickers on an experience's shelf, newest first.
 const stickers = query({
   args: { eventId: v.id("events") },
-  returns: v.array(v.id("media")),
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
     const ready = await ctx.db
@@ -867,15 +838,6 @@ const stickers = query({
       .take(2000);
     return ready.filter((m) => m.purpose === "sticker").slice(0, 200).map((m) => m._id);
   },
-});
-
-
-const vPreview = v.object({
-  url: v.string(),
-  title: v.optional(v.string()),
-  description: v.optional(v.string()),
-  image: v.optional(v.string()),
-  site: v.optional(v.string()),
 });
 
 // Who may ask for a preview: the journal's owner.
@@ -894,7 +856,6 @@ export const previewer = internalQuery({
 // address, so the card still has something on it.
 const linkPreview = action({
   args: { eventId: v.id("events"), url: v.string() },
-  returns: vPreview,
   handler: async (ctx, args): Promise<LinkPreview> => {
     const userId: Id<"users"> = await ctx.runQuery(internal.model.journal.previewer, { eventId: args.eventId });
     let url: URL;

@@ -30,11 +30,15 @@ describe("convex/ layout", () => {
     expect(root.filter((p) => !ROOT.has(p))).toEqual([]);
   });
 
-  test("api/ only re-exports: one `export const { … } = …Api` line per file", () => {
+  test("api/ only re-exports: one `export const { … } = …Api` statement per file", () => {
     for (const { path, text } of under("api")) {
-      const code = text.split("\n").filter((line) => line.trim() !== "" && !line.startsWith("//") && !line.startsWith("import "));
-      expect(code, path).toHaveLength(1);
-      expect(code[0], path).toMatch(/^export const \{ [\w, ]+ \} = \w+Api;$/);
+      // A formatter may wrap the statement; join it back into one line.
+      const code = text
+        .split("\n")
+        .filter((line) => line.trim() !== "" && !line.trim().startsWith("//") && !line.startsWith("import "))
+        .map((line) => line.trim())
+        .join(" ");
+      expect(code, path).toMatch(/^export const \{ ?[\w, ]+ ?\} = \w+Api;$/);
     }
   });
 

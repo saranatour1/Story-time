@@ -74,11 +74,8 @@ export const vOp = v.object({
 });
 export type Op = Infer<typeof vOp>;
 
-const vProposal = v.union(
-  v.object({ kind: v.literal("new") }),
-  v.object({ kind: v.literal("plan"), summary: v.string(), needs: v.optional(v.string()), ops: v.array(vOp) }),
-);
-type Proposal = Infer<typeof vProposal>;
+// What `propose` answers: a new moment for the form, or a plan to apply.
+type Proposal = { kind: "new" } | { kind: "plan"; summary: string; needs?: string; ops: Op[] };
 
 // ---- What the models are shown ----------------------------------------------
 
@@ -475,7 +472,6 @@ const propose = action({
     // other zone to go by.
     zone: v.number(),
   },
-  returns: vProposal,
   handler: async (ctx, args): Promise<Proposal> => {
     const text = args.text.trim();
     if (text === "") throw new ConvexError({ code: "INVALID", message: "Say what to add or change." });
@@ -672,11 +668,6 @@ function summaryOf(ops: Op[]): string {
 // Photos dropped along the way come back so the app can clear them from R2.
 const apply = mutation({
   args: { eventId: v.id("events"), ops: v.array(vOp) },
-  returns: v.object({
-    created: v.array(v.id("moments")),
-    removedMediaIds: v.array(v.id("media")),
-    summary: v.string(),
-  }),
   handler: async (ctx, args) => {
     const { userId, event, role } = await requireEventAccess(ctx, args.eventId, "contributor");
     assertNotArchived(event);

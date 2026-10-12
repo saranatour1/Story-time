@@ -56,12 +56,6 @@ export async function assertUploadBudget(ctx: MutationCtx, userId: Id<"users">, 
 // to R2, so size, type and per-event caps are enforced here.
 const reserveUpload = mutation({
   args: { eventId: v.id("events"), size: v.number(), mime: v.string() },
-  returns: v.object({
-    mediaId: v.id("media"),
-    r2Key: v.string(),
-    keyVersion: v.number(),
-    keyScope: v.string(),
-  }),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(
       ctx,
@@ -135,7 +129,6 @@ const reserveUpload = mutation({
 // Step 3: the route confirms once R2 holds the object.
 const confirmUpload = mutation({
   args: { mediaId: v.id("media"), sha256: v.optional(v.string()) },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const media = await ctx.db.get("media", args.mediaId);
@@ -182,15 +175,6 @@ const confirmUpload = mutation({
 // Used by the download route. Null for anyone without an active grant.
 const getForDownload = query({
   args: { mediaId: v.id("media") },
-  returns: v.union(
-    v.null(),
-    v.object({
-      r2Key: v.string(),
-      mime: v.string(),
-      keyVersion: v.number(),
-      keyScope: v.string(),
-    }),
-  ),
   handler: async (ctx, args) => {
     const media = await ctx.db.get("media", args.mediaId);
     if (media === null || media.status !== "ready") return null;
@@ -240,12 +224,6 @@ const getForDownload = query({
 // Profile images: not tied to an experience, smaller cap, own key scope.
 const reserveAvatarUpload = mutation({
   args: { size: v.number(), mime: v.string() },
-  returns: v.object({
-    mediaId: v.id("media"),
-    r2Key: v.string(),
-    keyVersion: v.number(),
-    keyScope: v.string(),
-  }),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     if (!Number.isInteger(args.size) || args.size < 1) {
@@ -283,7 +261,6 @@ const reserveAvatarUpload = mutation({
 // Returns the image it replaced so the caller can delete that object from R2.
 const setAvatar = mutation({
   args: { mediaId: v.id("media") },
-  returns: v.union(v.null(), v.id("media")),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const media = await ctx.db.get("media", args.mediaId);
@@ -308,7 +285,6 @@ const setAvatar = mutation({
 
 const clearAvatar = mutation({
   args: {},
-  returns: v.union(v.null(), v.id("media")),
   handler: async (ctx) => {
     const userId = await requireUserId(ctx);
     const user = await ctx.db.get("users", userId);
@@ -353,7 +329,6 @@ async function deletableBy(
 // For the delete route.
 const getForDelete = query({
   args: { mediaId: v.id("media") },
-  returns: v.union(v.null(), v.object({ r2Key: v.string() })),
   handler: async (ctx, args) => {
     const userId = await getUserId(ctx);
     if (userId === null) return null;
@@ -366,7 +341,6 @@ const getForDelete = query({
 // Called by the delete route once the R2 object is gone.
 const markDeleted = mutation({
   args: { mediaId: v.id("media") },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const media = await ctx.db.get("media", args.mediaId);
@@ -418,7 +392,6 @@ const showable = (mime: string) =>
 // A contributor can put these on a new moment from the box.
 const unattached = query({
   args: { eventId: v.id("events") },
-  returns: v.array(v.object({ mediaId: v.id("media"), mime: v.string() })),
   handler: async (ctx, args) => {
     const { userId } = await requireEventAccess(ctx, args.eventId, "contributor");
     const rows = await ctx.db
@@ -447,7 +420,6 @@ const MAX_KEYS = 12_000;
 // ones, and the total is capped to stay inside Convex's per-call read limits.
 const listKeysForEvent = query({
   args: { eventId: v.id("events") },
-  returns: v.array(v.string()),
   handler: async (ctx, args) => {
     await requireEventAccess(ctx, args.eventId, "owner");
     const keys: string[] = [];

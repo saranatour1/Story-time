@@ -18,46 +18,15 @@ import { recordChange } from "../lib/changes";
 import { coverWords, followCover } from "../lib/cover";
 import { decryptGeo, encryptText, readText } from "../lib/crypto";
 import { MAX_EVENTS_PER_USER } from "../lib/limits";
-import { vGeo } from "../schema";
 
 const vStatus = v.union(
   v.literal("draft"),
   v.literal("active"),
   v.literal("archived"),
 );
-const vVisibility = v.union(
-  v.literal("private"),
-  v.literal("invite"),
-  v.literal("link"),
-);
 // Owners set these by hand. A link is switched on and off only in share.ts.
 const vEditableVisibility = v.union(v.literal("private"), v.literal("invite"));
-const vRoleOut = v.union(
-  v.literal("owner"),
-  v.literal("contributor"),
-  v.literal("viewer"),
-);
 
-const vEventView = v.object({
-  _id: v.id("events"),
-  _creationTime: v.number(),
-  title: v.string(),
-  description: v.optional(v.string()),
-  startsAt: v.optional(v.number()),
-  endsAt: v.optional(v.number()),
-  status: vStatus,
-  visibility: vVisibility,
-  momentCount: v.number(),
-  role: vRoleOut,
-});
-
-// The home grid's card: the event plus a photo to show on it.
-const vEventCard = vEventView.omit("description").extend({
-  coverMediaId: v.optional(v.id("media")),
-  // With no photo to show, the shape of the trip: its first stops on the map,
-  // rounded, for a drawn cover. Absent with fewer than two places.
-  sketch: v.optional(v.array(vGeo)),
-});
 
 // Moments read for a sketch, and the most points it keeps: enough for a shape.
 const SKETCH_MOMENTS = 12;
@@ -130,7 +99,6 @@ function invalid(field: string, message: string): never {
 
 const createDraft = mutation({
   args: {},
-  returns: v.id("events"),
   handler: async (ctx) => {
     const userId = await requireUserId(ctx);
     // Bounded: the count only needs to reach the cap. Deleting one frees a slot.
@@ -180,7 +148,6 @@ const update = mutation({
     visibility: v.optional(vEditableVisibility),
     status: v.optional(vStatus),
   },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(
       ctx,
@@ -266,7 +233,6 @@ const update = mutation({
 // as "not found" rather than fail validation.
 const get = query({
   args: { eventId: v.string() },
-  returns: v.union(v.null(), vEventView),
   handler: async (ctx, args) => {
     const eventId = ctx.db.normalizeId("events", args.eventId);
     if (eventId === null) return null;
@@ -277,7 +243,6 @@ const get = query({
 
 const listMine = query({
   args: {},
-  returns: v.array(vEventCard),
   handler: async (ctx) => {
     const userId = await getUserId(ctx);
     if (userId === null) return [];
@@ -314,7 +279,6 @@ const listMine = query({
 // R2 objects are removed first by DELETE /api/events/$id, which calls this.
 const remove = mutation({
   args: { eventId: v.id("events") },
-  returns: v.null(),
   // Explicit return types: these handlers reference `internal.model.events`,
   // which TypeScript would otherwise infer from these same functions.
   handler: async (ctx, args): Promise<null> => {

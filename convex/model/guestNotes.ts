@@ -11,7 +11,6 @@ const MAX_NOTES = 50;
 // have no account, so they cannot write one.
 const leave = mutation({
   args: { eventId: v.id("events"), text: v.string() },
-  returns: v.id("guestNotes"),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "viewer");
     assertNotArchived(event);
@@ -49,14 +48,6 @@ const leave = mutation({
 
 const list = query({
   args: { eventId: v.id("events") },
-  returns: v.array(
-    v.object({
-      _id: v.id("guestNotes"),
-      authorName: v.optional(v.string()),
-      text: v.string(),
-      at: v.number(),
-    }),
-  ),
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
     const rows = await ctx.db

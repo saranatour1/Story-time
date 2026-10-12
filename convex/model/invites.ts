@@ -56,11 +56,6 @@ const create = mutation({
     ttlDays: v.optional(v.number()),
     sendTo: v.optional(v.string()),
   },
-  returns: v.object({
-    link: v.string(),
-    expiresAt: v.number(),
-    emailed: v.boolean(),
-  }),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(
       ctx,
@@ -134,7 +129,6 @@ const create = mutation({
 // that much access, leaves it usable.
 const accept = mutation({
   args: { token: v.string() },
-  returns: v.object({ eventId: v.id("events") }),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const invite = await ctx.runQuery(components.invites.lib.lookup, {
@@ -222,7 +216,6 @@ const accept = mutation({
 // "Not important anymore": the invite row is hard-deleted.
 const dismiss = mutation({
   args: { eventId: v.id("events"), inviteId: v.string() },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { userId } = await requireEventAccess(ctx, args.eventId, "owner");
     const deleted = await ctx.runMutation(components.invites.lib.dismiss, {
@@ -245,9 +238,6 @@ const dismiss = mutation({
 
 const listForEvent = query({
   args: { eventId: v.id("events") },
-  returns: v.array(
-    v.object({ inviteId: v.string(), role: vRole, expiresAt: v.number() }),
-  ),
   handler: async (ctx, args) => {
     await requireEventAccess(ctx, args.eventId, "owner");
     return await ctx.runQuery(components.invites.lib.listForEvent, {

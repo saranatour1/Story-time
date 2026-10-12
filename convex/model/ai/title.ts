@@ -47,7 +47,6 @@ export const pageMoment = internalQuery({
 
 const suggest = action({
   args: { pageId: v.id("journalPages"), current: v.optional(v.string()) },
-  returns: v.string(),
   handler: async (ctx, args): Promise<string> => {
     const { userId, momentId }: { userId: Id<"users">; momentId: Id<"moments"> } = await ctx.runQuery(internal.model.ai.title.pageMoment, { pageId: args.pageId });
     const { ok } = await rateLimiter.limit(ctx, "enrich", { key: userId });

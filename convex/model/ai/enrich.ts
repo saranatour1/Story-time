@@ -51,7 +51,6 @@ const enrich = action({
     // What the person said the photos are, to guide the note.
     hint: v.optional(v.string()),
   },
-  returns: v.boolean(),
   handler: async (ctx, args): Promise<boolean> => {
     const userId: Id<"users"> = await ctx.runQuery(internal.model.ai.enrich.authorize, { momentId: args.momentId });
     const { ok } = await rateLimiter.limit(ctx, "enrich", { key: userId });

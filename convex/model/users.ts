@@ -81,20 +81,6 @@ export const createAnonymousUser = internalMutation({
 
 const getCurrentUser = query({
   args: {},
-  returns: v.union(
-    v.null(),
-    v.object({
-      id: v.id("users"),
-      displayName: v.optional(v.string()),
-      username: v.optional(v.string()),
-      email: v.optional(v.string()),
-      pendingEmail: v.optional(v.string()),
-      emailVerified: v.boolean(),
-      onThisDay: v.boolean(),
-      imageMediaId: v.optional(v.id("media")),
-      locale: v.optional(v.string()),
-    }),
-  ),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) return null;
@@ -134,14 +120,6 @@ const updateSettings = mutation({
     email: v.optional(v.string()),
     locale: v.optional(v.string()),
   },
-  returns: v.object({
-    emailStatus: v.union(
-      v.literal("unchanged"),
-      v.literal("cleared"),
-      v.literal("sent"),
-      v.literal("waiting"),
-    ),
-  }),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const user = await ctx.db.get("users", userId);
@@ -226,7 +204,6 @@ const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,64}$/;
 // Opens the confirmation link. The signed-in person must be the one it was sent to.
 const verifyEmail = mutation({
   args: { token: v.string() },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     if (!TOKEN_SHAPE.test(args.token)) {
@@ -260,7 +237,6 @@ const verifyEmail = mutation({
 // Sends the confirmation again for an address that is still waiting.
 const resendEmailVerification = mutation({
   args: {},
-  returns: v.object({ emailed: v.boolean() }),
   handler: async (ctx) => {
     const userId = await requireUserId(ctx);
     const user = await ctx.db.get("users", userId);
@@ -277,7 +253,6 @@ const resendEmailVerification = mutation({
 // that a memory is waiting.
 const setOnThisDay = mutation({
   args: { on: v.boolean() },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const user = await ctx.db.get("users", userId);

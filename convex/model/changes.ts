@@ -1,9 +1,8 @@
-import { paginationOptsValidator, paginationResultValidator } from "convex/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireEventAccess } from "../lib/access";
-import schema from "../schema";
 
 // What the Activity badge counts: new moments, new pages, and guestbook notes.
 const NOTABLE = ["moment", "page", "guestNote"] as const;
@@ -28,20 +27,10 @@ async function countCreates(
   return rows.length;
 }
 
-const vChange = v.object({
-  _id: v.id("changes"),
-  _creationTime: v.number(),
-  ...schema.tables.changes.validator.fields,
-  // The display name of the person behind the change (`actorId`), so the log
-  // can say who. Absent for the system and for edits with no person behind them.
-  actorName: v.optional(v.string()),
-});
-
 // How many new moments, pages and guestbook notes the owner has not opened
 // Activity for. Zero until something notable is created after the last look.
 const unreadCount = query({
   args: { eventId: v.string() },
-  returns: v.number(),
   handler: async (ctx, args) => {
     const eventId = ctx.db.normalizeId("events", args.eventId);
     if (eventId === null) return 0;
@@ -60,7 +49,6 @@ const unreadCount = query({
 // The owner has looked. Later moments, pages and notes count again.
 const markRead = mutation({
   args: { eventId: v.id("events") },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { userId } = await requireEventAccess(ctx, args.eventId, "owner");
     const read = await ctx.db
@@ -80,7 +68,6 @@ const markRead = mutation({
 // Activity feed, newest first. Owner only; a revoked session sees nothing.
 const listForEvent = query({
   args: { eventId: v.id("events"), paginationOpts: paginationOptsValidator },
-  returns: paginationResultValidator(vChange),
   handler: async (ctx, args) => {
     await requireEventAccess(ctx, args.eventId, "owner");
     const page = await ctx.db

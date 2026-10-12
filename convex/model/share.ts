@@ -12,7 +12,7 @@ import { appOrigin } from "../lib/appUrl";
 import { emailConfigured, replyAddress } from "../lib/emailAddress";
 import { recordChange } from "../lib/changes";
 import { decryptText, encryptText, readText, shareKeyFor } from "../lib/crypto";
-import { contentsOf, pageInEvent, vOutlinePage, vPageView } from "./journal";
+import { contentsOf, pageInEvent } from "./journal";
 import { MAX_JOURNAL_PAGES } from "../lib/journal";
 import { isSharedPdf } from "../lib/sharedPdf";
 import { listForEvent, type PlainBlock, vMomentView } from "./moments";
@@ -98,25 +98,8 @@ async function eventFor(ctx: QueryCtx, token: string): Promise<Doc<"events"> | n
 }
 
 // Shared stories leave out who wrote each moment: the people watching them
-// have no account here, and the names are for the people who do.
-const vSharedEvent = v.object({
-  _id: v.id("events"),
-  title: v.string(),
-  description: v.optional(v.string()),
-  startsAt: v.optional(v.number()),
-  endsAt: v.optional(v.number()),
-  momentCount: v.number(),
-  status: v.union(v.literal("draft"), v.literal("active"), v.literal("archived")),
-});
-const vSharedMoment = vMomentView.omit(
-  "authorId",
-  "authorName",
-  "authorAgent",
-  "editedAt",
-  "editedById",
-  "editedByName",
-  "editedByAgent",
-);
+// have no account here, and the names are for the people who do. `get` and
+// `sharedMoment` build what goes out field by field for that reason.
 
 // Photos and videos are the only blocks that carry a picture id. Dropping
 // them leaves notes, links and feelings, and no mediaId anywhere.
@@ -147,7 +130,6 @@ function sharedMoment(moment: Infer<typeof vMomentView>, redact: boolean) {
 // switch it on.
 const hidePhotos = query({
   args: { eventId: v.id("events") },
-  returns: v.boolean(),
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "owner");
     return event.shareRedacted === true;
@@ -158,7 +140,6 @@ const hidePhotos = query({
 // once: the same token, with pictures gone or returned.
 const setHidePhotos = mutation({
   args: { eventId: v.id("events"), hide: v.boolean() },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     const current = event.shareRedacted === true;
@@ -179,7 +160,6 @@ const setHidePhotos = mutation({
 // The owner's link, to copy again. Null when none is switched on.
 const link = query({
   args: { eventId: v.id("events") },
-  returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "owner");
     const token = await activeToken(event);
@@ -190,7 +170,6 @@ const link = query({
 // Switches the link on, or returns the one already on.
 const enable = mutation({
   args: { eventId: v.id("events") },
-  returns: v.string(),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -214,7 +193,6 @@ const enable = mutation({
 // Switches the link off. Nothing happens if it was already off.
 const disable = mutation({
   args: { eventId: v.id("events") },
-  returns: v.null(),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     if (event.visibility !== "link") return null;
@@ -240,7 +218,6 @@ const disable = mutation({
 // A new link, for when the old one has got out. The old one stops working at once.
 const rotate = mutation({
   args: { eventId: v.id("events") },
-  returns: v.string(),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -262,7 +239,6 @@ const rotate = mutation({
 // caller still has the link to copy.
 const emailLink = mutation({
   args: { eventId: v.id("events"), to: v.string() },
-  returns: v.object({ emailed: v.boolean() }),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
@@ -301,10 +277,6 @@ const emailLink = mutation({
 // Public: the token is the only credential. Null for anything but a live link.
 const get = query({
   args: { token: v.string() },
-  returns: v.union(
-    v.null(),
-    v.object({ event: vSharedEvent, moments: v.array(vSharedMoment) }),
-  ),
   handler: async (ctx, args) => {
     const event = await eventFor(ctx, args.token);
     if (event === null) return null;
@@ -330,7 +302,6 @@ const get = query({
 // opening the link does not decrypt every note. Null for anything but a live link.
 const journal = query({
   args: { token: v.string() },
-  returns: v.union(v.null(), v.object({ pages: v.array(vOutlinePage) })),
   handler: async (ctx, args) => {
     const event = await eventFor(ctx, args.token);
     if (event === null) return null;
@@ -342,7 +313,6 @@ const journal = query({
 // experience is null, the same as a token that was never issued.
 const page = query({
   args: { token: v.string(), pageId: v.id("journalPages") },
-  returns: v.union(v.null(), vPageView),
   handler: async (ctx, args) => {
     const event = await eventFor(ctx, args.token);
     if (event === null) return null;
@@ -355,7 +325,6 @@ const page = query({
 // photos does not name the file either — the book is the pictures.
 const pdf = query({
   args: { token: v.string() },
-  returns: v.union(v.null(), v.object({ mediaId: v.id("media"), pages: v.number(), at: v.number() })),
   handler: async (ctx, args) => {
     const event = await eventFor(ctx, args.token);
     if (event === null || event.shareRedacted === true) return null;
@@ -373,15 +342,6 @@ const pdf = query({
 // page of this experience actually shows it.
 const mediaForShare = query({
   args: { token: v.string(), mediaId: v.id("media") },
-  returns: v.union(
-    v.null(),
-    v.object({
-      r2Key: v.string(),
-      mime: v.string(),
-      keyVersion: v.number(),
-      keyScope: v.string(),
-    }),
-  ),
   handler: async (ctx, args) => {
     const event = await eventFor(ctx, args.token);
     if (event === null || event.shareRedacted === true) return null;

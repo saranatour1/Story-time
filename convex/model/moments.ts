@@ -162,7 +162,6 @@ export type MomentCreate = ObjectType<typeof momentCreate>;
 
 const create = mutation({
   args: momentCreate,
-  returns: v.id("moments"),
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "contributor");
     return createMoment(ctx, { event, userId, actor: { kind: "human", userId }, input: args });
@@ -261,7 +260,6 @@ export async function listForEvent(
 
 const list = query({
   args: { eventId: v.id("events") },
-  returns: v.array(vMomentView),
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
     return listForEvent(ctx, event);
@@ -291,7 +289,6 @@ export type MomentEdit = ObjectType<typeof momentEdit>;
 // R2 (they are detached here; Convex can't reach R2).
 const update = mutation({
   args: { momentId: v.id("moments"), ...momentEdit },
-  returns: v.object({ removedMediaIds: v.array(v.id("media")) }),
   handler: async (ctx, args) => {
     const moment = await ctx.db.get("moments", args.momentId);
     if (moment === null) throw new Error("Moment not found");
@@ -470,7 +467,6 @@ export async function writeMomentUpdate(
 // delete them from R2.
 const remove = mutation({
   args: { momentId: v.id("moments") },
-  returns: v.object({ removedMediaIds: v.array(v.id("media")) }),
   handler: async (ctx, args) => {
     const moment = await ctx.db.get("moments", args.momentId);
     if (moment === null) throw new Error("Moment not found");
