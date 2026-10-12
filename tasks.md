@@ -21,6 +21,7 @@ After the eight, in this order. Each one stays inside "photos or a sentence in, 
 
 ## Later
 
+- Journal photo frames that take the photo's shape: keep each photo's width and height when it's uploaded, and size frames from it when a page is cut, so a tall photo gets a tall frame instead of paper at its sides.
 - Voice clips on a page: ten seconds, kept as a tap-to-play sticker (a new audio media type).
 - Ordering a printed book (payments and a print partner).
 - BYO backend (`docs/byo-backend.md`): phase 0 groundwork, only on a go.
