@@ -39,12 +39,16 @@ for callers in `api/`, without losing jump-to-definition.
 
 | From | Public function | Internal function |
 | --- | --- | --- |
-| The app (`src/`) | `api.moments.list`, with `api` from `@/lib/api` | not reachable |
+| The app reading (`src/`) | `useQuery(queries.moments.list({ eventId }))`, with `useQuery` from `@tanstack/react-query` and `queries` from `@/lib/queries` | not reachable |
+| The app writing (`src/`) | `useMutation(api.moments.create)`, with `api` from `@/lib/api` | not reachable |
 | Sign-in (`src/`) | `authApi.signInAnonymous`, from `@/lib/api` | |
 | Backend code and tests | `api.api.moments.list` (from `_generated/api`) | `internal.model.journal.makePages` |
 
 `@/lib/api` is `api.api` from `_generated/api`, so the app never spells out the
-folder.
+folder. `@/lib/queries` wraps each public query the app reads as TanStack Query
+options, so a page and its route's `loader` (which prefetches) share one live
+cache entry. Lint rejects `useQuery` from `convex/react`. Paginated lists still
+use `usePaginatedQuery` from `convex/react`.
 
 ## Adding a function
 
@@ -56,7 +60,9 @@ folder.
    from `lib/access.ts`. Encrypt anything a person wrote with `encryptText`
    (`lib/crypto.ts`), and log changes with `recordChange` (`lib/changes.ts`)
    in the same mutation.
-4. New feature file? Add it to the map below. `pnpm exec convex codegen`, then
+4. A query the app reads: add it to `src/lib/queries.ts` under its feature,
+   and prefetch it in the route's `loader` when the page needs it at once.
+5. New feature file? Add it to the map below. `pnpm exec convex codegen`, then
    `pnpm typecheck`, `pnpm lint` and `pnpm test`.
 
 ## The map

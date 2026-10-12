@@ -25,6 +25,7 @@ After the eight, in this order. Each one stays inside "photos or a sentence in, 
 - Ordering a printed book (payments and a print partner).
 - BYO backend (`docs/byo-backend.md`): phase 0 groundwork, only on a go.
 - Deferred audit items: S9, S11, S12, S13, S25, S26, S29, CARTO tiles.
+- Paginated lists (Activity, the people on Shared) on TanStack Query, once `@convex-dev/react-query` has a paginated query.
 - Narrow the `events.description` schema union once the description migration has run on prod.
 
 ## Rules that stay

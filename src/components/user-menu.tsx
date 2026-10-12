@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
 import { ChevronsUpDownIcon, LogOutIcon, SettingsIcon } from "lucide-react";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,7 @@ import { clearMediaCache } from "@/lib/use-media-url";
 // Footer card: shows who you are and opens a menu to the side with
 // Settings and Sign out.
 export const UserMenu = () => {
-  const user = useQuery(api.users.getCurrentUser);
+  const { data: user } = useQuery(queries.users.getCurrentUser());
   const { signOut } = useAuthActions();
   const { isMobile } = useSidebar();
 

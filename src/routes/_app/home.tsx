@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { PlayIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { AuthImage } from "@/components/auth-image";
 import { EventActionsMenu } from "@/components/event/event-actions-menu";
 import { eventDates } from "@/components/event/event-dates";
@@ -21,7 +23,7 @@ type Experience = FunctionReturnType<typeof api.events.listMine>[number];
 const GRID = "grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-3";
 
 const Home = () => {
-  const events = useQuery(api.events.listMine);
+  const { data: events } = useQuery(queries.events.listMine());
   const createDraft = useMutation(api.events.createDraft);
   const navigate = useNavigate();
   const [starting, setStarting] = useState(false);

@@ -1,10 +1,10 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { BookOpenIcon, PencilIcon, PlayIcon } from "lucide-react";
 import { z } from "zod";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { CommandBar } from "@/components/event/command-bar";
 import { ExperienceShell } from "@/components/event/experience-shell";
 import { EditorPanel, type Panel } from "@/components/event/itinerary-panel";
@@ -29,7 +29,7 @@ const EventPage = () => {
   const { id } = Route.useParams();
   const { panel, momentId, editId } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
-  const me = useQuery(api.users.getCurrentUser);
+  const { data: me } = useQuery(queries.users.getCurrentUser());
 
   return (
     <ExperienceShell id={id} section="Moments">
@@ -81,7 +81,7 @@ const EventPage = () => {
 // Beside the list on a wide screen: the picked moment's journal page with ways
 // on from it, or the cover when nothing is picked.
 const PickedPage = ({ event, momentId, canEditMoment, onEdit }: { event: EventView; momentId?: string; canEditMoment: (authorId: string) => boolean; onEdit: (id: Id<"moments">) => void }) => {
-  const moments = useQuery(api.moments.list, { eventId: event._id });
+  const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
   const moment = moments?.find((m) => m._id === momentId);
   // The aside is hidden below `lg`. Mounting it there would still subscribe
   // to the page, so a phone does not.
@@ -129,6 +129,13 @@ export const Route = createFileRoute("/_app/e/$id/")({
     if (s.tab === "shared") throw redirect({ to: "/e/$id/shared", params });
     if (s.tab === "activity") throw redirect({ to: "/e/$id/activity", params });
     if (s.tab === "canvas" || s.tab === "journal") throw redirect({ to: "/e/$id/journal", params });
+  },
+  // Started together, rather than the moments waiting on the experience.
+  loader: ({ context: { prefetch }, params }) => {
+    const eventId = params.id as Id<"events">;
+    prefetch(queries.events.get({ eventId }));
+    prefetch(queries.moments.list({ eventId }));
+    prefetch(queries.journal.unpaged({ eventId }));
   },
   component: EventPage,
 });

@@ -181,6 +181,9 @@ importers:
       '@convex-dev/rate-limiter':
         specifier: ^0.4.2
         version: 0.4.2(@standard-schema/spec@1.1.0)(convex@1.46.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(zod@4.6.5)
+      '@convex-dev/react-query':
+        specifier: ^0.1.0
+        version: 0.1.0(@tanstack/react-query@5.104.1(react@19.3.0))(convex@1.46.0(react@19.3.0))
       '@convex-dev/workflow':
         specifier: ^0.4.9
         version: 0.4.9(@convex-dev/workpool@0.4.13(convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(convex@1.46.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(zod@4.6.5))(convex@1.46.0(react@19.3.0))(react@19.3.0))(convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(convex@1.46.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(zod@4.6.5))(convex@1.46.0(react@19.3.0))
@@ -623,6 +626,12 @@ packages:
     peerDependenciesMeta:
       react:
         optional: true
+
+  '@convex-dev/react-query@0.1.0':
+    resolution: {integrity: sha512-ULmBZCtAQDUePdBhUv7hj1Yy4QiCelhi6uEIOtMpjW8db6W9CFKvQwLt9heLngccFyMFfAZdOfSrT+cP4AH0Jw==}
+    peerDependencies:
+      '@tanstack/react-query': ^5.0.0
+      convex: ^1.29.3
 
   '@convex-dev/workflow@0.4.9':
     resolution: {integrity: sha512-wqWluDVhwkZOq6TB4gWKePile0dlgfKT/rrvFKT9REYbjhb22Tn1oGsPhGJ1g6H/VNt54vpjtwvZ8trSrFGWJg==}
@@ -5437,6 +5446,11 @@ snapshots:
       - hono
       - typescript
       - zod
+
+  '@convex-dev/react-query@0.1.0(@tanstack/react-query@5.104.1(react@19.3.0))(convex@1.46.0(react@19.3.0))':
+    dependencies:
+      '@tanstack/react-query': 5.104.1(react@19.3.0)
+      convex: 1.46.0(react@19.3.0)
 
   '@convex-dev/workflow@0.4.9(@convex-dev/workpool@0.4.13(convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(convex@1.46.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(zod@4.6.5))(convex@1.46.0(react@19.3.0))(react@19.3.0))(convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(convex@1.46.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(zod@4.6.5))(convex@1.46.0(react@19.3.0))':
     dependencies:

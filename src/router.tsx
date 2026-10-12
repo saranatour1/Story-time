@@ -1,17 +1,50 @@
 import { createRouter, Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
-import { ConvexReactClient } from "convex/react";
+import { QueryClient, QueryClientProvider, type FetchQueryOptions, type QueryKey } from "@tanstack/react-query";
+import { ConvexQueryClient } from "@convex-dev/react-query";
+import { ConvexReactClient, useConvexAuth } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { useEffect } from "react";
 import { authApi } from "@/lib/api";
+import { signInGate } from "@/lib/queries";
 import { routeTree } from "./routeTree.gen";
 import { Logo, LogoSplash } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 
+// What every route's beforeLoad and loader get.
+export type RouterContext = {
+  queryClient: QueryClient;
+  // Starts a query for a signed-in page (see signInGate) without waiting on it.
+  prefetch: <T, K extends QueryKey>(query: FetchQueryOptions<T, Error, T, K>) => void;
+};
+
 export const getRouter = () => {
   const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
+  const convexQueries = new ConvexQueryClient(convex);
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        queryKeyHashFn: convexQueries.hashFn(),
+        queryFn: convexQueries.queryFn(),
+        // Convex keeps each query live and reconnects by itself; a function
+        // that threw will throw again, so retrying only delays the error.
+        retry: false,
+        // An error reaches the route's error screen, as convex/react's
+        // useQuery did.
+        throwOnError: true,
+      },
+    },
+  });
+  convexQueries.connect(queryClient);
+  const gate = signInGate();
+  const context: RouterContext = {
+    queryClient,
+    prefetch: (query) => gate.whenSignedIn(() => void queryClient.prefetchQuery(query)),
+  };
 
   return createRouter({
     routeTree,
+    context,
     scrollRestoration: true,
     defaultPreload: "intent",
     // With SSR off, the server renders this inside the shell, so the first
@@ -21,10 +54,22 @@ export const getRouter = () => {
     defaultErrorComponent: RouteError,
     Wrap: ({ children }) => (
       <ConvexAuthProvider client={convex} api={authApi}>
-        {children}
+        <QueryClientProvider client={queryClient}>
+          <TrackSignIn onChange={gate.set} />
+          {children}
+        </QueryClientProvider>
       </ConvexAuthProvider>
     ),
   });
+};
+
+// Tells the prefetch gate once Convex has confirmed who is signed in.
+const TrackSignIn = ({ onChange }: { onChange: (signedIn: boolean) => void }) => {
+  const { isLoading, isAuthenticated } = useConvexAuth();
+  useEffect(() => {
+    if (!isLoading) onChange(isAuthenticated);
+  }, [isLoading, isAuthenticated, onChange]);
+  return null;
 };
 
 // Fills the page at the root, and the content area inside the app's layout.

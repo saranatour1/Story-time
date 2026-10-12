@@ -1,8 +1,8 @@
-import { useQuery } from "convex/react";
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { PAGE } from "../../../convex/lib/journal";
 import type { StoryMoment } from "@/components/event/types";
@@ -24,8 +24,8 @@ const SpreadPage = ({
   token?: string;
   eventId?: string;
 }) => {
-  const member = useQuery(api.journal.page, token ? "skip" : { pageId: pageId as Id<"journalPages"> });
-  const shared = useQuery(api.share.page, token ? { token, pageId: pageId as Id<"journalPages"> } : "skip");
+  const { data: member } = useQuery(queries.journal.page(token ? "skip" : { pageId: pageId as Id<"journalPages"> }));
+  const { data: shared } = useQuery(queries.share.page(token ? { token, pageId: pageId as Id<"journalPages"> } : "skip"));
   const page = token ? shared : member;
   if (page === undefined || page === null) {
     return <div className="animate-pulse bg-[#efe6d2]" style={{ width: PAGE.w * scale, height: PAGE.h * scale }} />;

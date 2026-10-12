@@ -1,4 +1,5 @@
-import { HeadContent, Scripts, ScriptOnce, createRootRoute, Outlet } from "@tanstack/react-router";
+import { HeadContent, Scripts, ScriptOnce, createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import type { RouterContext } from "@/router";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
@@ -38,7 +39,7 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
 };
 
 // Last, so the components it names are defined above it.
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },

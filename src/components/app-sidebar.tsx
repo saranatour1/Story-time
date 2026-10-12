@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { BookHeartIcon, ChevronRightIcon, HistoryIcon, HomeIcon, ListIcon, UsersIcon } from "lucide-react";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
@@ -39,12 +39,11 @@ export const AppSidebar = () => {
   const open = /^\/e\/([^/]+)(\/[a-z]+)?\/?$/.exec(pathname);
   const eventId = open?.[1];
   const section = open?.[2] ?? "";
-  const event = useQuery(api.events.get, eventId ? { eventId } : "skip");
-  const unread = useQuery(
-    api.changes.unreadCount,
-    eventId && event?.role === "owner" ? { eventId } : "skip",
+  const { data: event } = useQuery(queries.events.get(eventId ? { eventId } : "skip"));
+  const { data: unread } = useQuery(
+    queries.changes.unreadCount(eventId && event?.role === "owner" ? { eventId } : "skip"),
   );
-  const events = useQuery(api.events.listMine);
+  const { data: events } = useQuery(queries.events.listMine());
 
   return (
     <Sidebar collapsible="icon">

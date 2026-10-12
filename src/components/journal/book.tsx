@@ -1,5 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
-import { useAction, useConvex, useMutation, useQuery } from "convex/react";
+import { useAction, useConvex, useMutation } from "convex/react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -28,6 +29,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -99,8 +101,8 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
   const [index, setIndex] = useState(0);
   const journal = useJournal(event._id, index);
   const convex = useConvex();
-  const moments = useQuery(api.moments.list, { eventId: event._id });
-  const stickers = useQuery(api.journal.stickers, { eventId: event._id }) ?? [];
+  const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
+  const stickers = useQuery(queries.journal.stickers({ eventId: event._id })).data ?? [];
   const momentById = useMemo(() => new Map<string, MomentView>((moments ?? []).map((m) => [m._id, m])), [moments]);
   const photos = useMemo(
     () => (moments ?? []).flatMap((m) => [m.blocks, ...m.stops.map((s) => s.blocks)].flat().flatMap((b) => (b.type === "photo" ? [b.mediaId as string] : []))),
@@ -1074,7 +1076,7 @@ const StripFace = ({
   draw: boolean;
   moments: ReadonlyMap<string, MomentView>;
 }) => {
-  const loaded = useQuery(api.journal.page, draw ? { pageId: pageId as PageId } : "skip");
+  const { data: loaded } = useQuery(queries.journal.page(draw ? { pageId: pageId as PageId } : "skip"));
   if (draw && loaded) return <JournalPage page={loaded} moments={moments} scale={THUMB} live={false} />;
   return (
     <span

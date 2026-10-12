@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { FileLockIcon, LoaderCircleIcon, PlayIcon } from "lucide-react";
 import { toast } from "sonner";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { download, fileName } from "@/components/journal/export";
 import { Reader } from "@/components/journal/reader";
 import { SignedOutPage } from "@/components/sign-in-screen";
@@ -33,9 +33,9 @@ const SharedStoryPage = () => {
   const { step, page, mode } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [token] = useState(readToken);
-  const shared = useQuery(api.share.get, token ? { token } : "skip");
-  const book = useQuery(api.share.journal, token ? { token } : "skip");
-  const pdf = useQuery(api.share.pdf, token ? { token } : "skip");
+  const { data: shared } = useQuery(queries.share.get(token ? { token } : "skip"));
+  const { data: book } = useQuery(queries.share.journal(token ? { token } : "skip"));
+  const { data: pdf } = useQuery(queries.share.pdf(token ? { token } : "skip"));
   const [fetching, setFetching] = useState(false);
   useDocumentTitle(shared ? `${shared.event.title} · Story-time` : undefined);
   const moments = useMemo(() => new Map((shared?.moments ?? []).map((m) => [m._id, m])), [shared?.moments]);
@@ -155,5 +155,13 @@ const downloadPdf = async (token: string, mediaId: string, title: string, busy: 
 export const Route = createFileRoute("/s")({
   validateSearch: search,
   head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
+  // The link is the key, so these don't wait for sign-in.
+  loader: ({ context: { queryClient } }) => {
+    const token = readToken();
+    if (!token) return;
+    void queryClient.prefetchQuery(queries.share.get({ token }));
+    void queryClient.prefetchQuery(queries.share.journal({ token }));
+    void queryClient.prefetchQuery(queries.share.pdf({ token }));
+  },
   component: SharedStoryPage,
 });

@@ -7,6 +7,7 @@ import { LogoSplash } from "@/components/logo";
 import { SignInScreen } from "@/components/sign-in-screen";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { queries } from "@/lib/queries";
 
 const AppLayout = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -40,4 +41,11 @@ const AppLayout = () => {
 };
 
 // Last, so the components it names are defined above it.
-export const Route = createFileRoute("/_app")({ component: AppLayout });
+export const Route = createFileRoute("/_app")({
+  // The sidebar's list and the account menu, on every page in here.
+  loader: ({ context: { prefetch } }) => {
+    prefetch(queries.users.getCurrentUser());
+    prefetch(queries.events.listMine());
+  },
+  component: AppLayout,
+});

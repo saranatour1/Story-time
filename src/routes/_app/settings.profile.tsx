@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { AvatarField } from "@/components/avatar-field";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { SettingsBlock, SettingsPage } from "@/components/settings/section";
@@ -10,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { errorMessage } from "@/lib/errors";
 
 const Profile = () => {
-  const user = useQuery(api.users.getCurrentUser);
+  const { data: user } = useQuery(queries.users.getCurrentUser());
 
   return (
     <SettingsPage

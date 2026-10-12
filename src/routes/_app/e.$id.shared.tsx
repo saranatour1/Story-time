@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ExperienceShell } from "@/components/event/experience-shell";
 import { SharedTab } from "@/components/event/shared-tab";
+import { queries } from "@/lib/queries";
 
 // Who can see the experience: the link, invites and people. Its owner's only.
 const SharedPage = () => {
@@ -19,4 +20,7 @@ const SharedPage = () => {
 };
 
 // Last, so the components it names are defined above it.
-export const Route = createFileRoute("/_app/e/$id/shared")({ component: SharedPage });
+export const Route = createFileRoute("/_app/e/$id/shared")({
+  loader: ({ context: { prefetch }, params }) => prefetch(queries.events.get({ eventId: params.id })),
+  component: SharedPage,
+});

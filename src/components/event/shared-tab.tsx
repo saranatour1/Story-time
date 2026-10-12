@@ -1,8 +1,10 @@
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import { CopyIcon, Link2Icon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -56,10 +58,10 @@ const Card = ({ icon, title, lead, aside, children }: { icon: ReactNode; title: 
 
 export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) => {
   const people = usePaginatedQuery(api.sessions.listForEvent, { eventId }, { initialNumItems: 25 });
-  const invites = useQuery(api.invites.listForEvent, { eventId });
+  const { data: invites } = useQuery(queries.invites.listForEvent({ eventId }));
   // The switched-on link, or null. Undefined while it loads.
-  const publicLink = useQuery(api.share.link, { eventId });
-  const hidePhotos = useQuery(api.share.hidePhotos, { eventId });
+  const { data: publicLink } = useQuery(queries.share.link({ eventId }));
+  const { data: hidePhotos } = useQuery(queries.share.hidePhotos({ eventId }));
   const enableLink = useMutation(api.share.enable);
   const setHidePhotos = useMutation(api.share.setHidePhotos);
   const disableLink = useMutation(api.share.disable);

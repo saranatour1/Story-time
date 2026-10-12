@@ -1,9 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { ArrowUpIcon, ImagePlusIcon, ImagesIcon, LoaderCircleIcon, PlayIcon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { MAX_COMMAND_CHARS } from "../../../convex/lib/limits";
 import { AuthImage } from "@/components/auth-image";
 import { findPlace, type Geo } from "@/components/event/place-input";
@@ -48,8 +50,8 @@ const pin = async (ops: PlanOp[], near: Geo | undefined): Promise<PlanOp[]> => {
 export const CommandBar = ({ event, openMomentId }: { event: EventView; openMomentId?: string }) => {
   const token = useAuthToken();
   const adding = canAddTo(event);
-  const moments = useQuery(api.moments.list, { eventId: event._id });
-  const shelf = useQuery(api.media.unattached, adding ? { eventId: event._id } : "skip");
+  const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
+  const { data: shelf } = useQuery(queries.media.unattached(adding ? { eventId: event._id } : "skip"));
   const createMoment = useMutation(api.moments.create);
   const apply = useMutation(api.ai.command.apply);
   const propose = useAction(api.ai.command.propose);

@@ -1,6 +1,6 @@
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { XIcon } from "lucide-react";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { EventDetailsForm } from "@/components/event/event-details-form";
 import { MomentForm } from "@/components/event/moment-form";
 import type { EventView } from "@/components/event/types";
@@ -30,7 +30,7 @@ export const EditorPanel = ({
   canEditMoment: (authorId: string) => boolean;
   onClose: () => void;
 }) => {
-  const moments = useQuery(api.moments.list, { eventId: event._id });
+  const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
 
   let body;
   if (panel === "details") {

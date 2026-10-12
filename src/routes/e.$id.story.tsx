@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useConvexAuth } from "convex/react";
 import { PlayIcon } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { z } from "zod";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../convex/_generated/dataModel";
 import { pageForPlay, playSurface } from "@/components/journal/play";
 import { Reader } from "@/components/journal/reader";
@@ -35,10 +36,10 @@ const StoryPage = () => {
   const { step, page, momentId, mode } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const eventId = id as Id<"events">;
-  const event = useQuery(api.events.get, isAuthenticated ? { eventId } : "skip");
-  const moments = useQuery(api.moments.list, event ? { eventId } : "skip");
-  const book = useQuery(api.journal.outline, event && mode === "read" ? { eventId } : "skip");
-  const me = useQuery(api.users.getCurrentUser, isAuthenticated ? {} : "skip");
+  const { data: event } = useQuery(queries.events.get(isAuthenticated ? { eventId } : "skip"));
+  const { data: moments } = useQuery(queries.moments.list(event ? { eventId } : "skip"));
+  const { data: book } = useQuery(queries.journal.outline(event && mode === "read" ? { eventId } : "skip"));
+  const { data: me } = useQuery(queries.users.getCurrentUser(isAuthenticated ? {} : "skip"));
   useDocumentTitle(event ? `${event.title} · Story-time` : undefined);
   const momentById = useMemo(() => new Map((moments ?? []).map((moment) => [moment._id, moment])), [moments]);
   const stage = useRef<HTMLDivElement>(null);
@@ -154,5 +155,12 @@ const BookStage = ({
 // Outside `_app`, so there's no sidebar or header: the story fills the window.
 export const Route = createFileRoute("/e/$id/story")({
   validateSearch: search,
+  // Signed-in readers only; the page asks again once it knows.
+  loader: ({ context: { prefetch }, params }) => {
+    const eventId = params.id as Id<"events">;
+    prefetch(queries.events.get({ eventId }));
+    prefetch(queries.moments.list({ eventId }));
+    prefetch(queries.users.getCurrentUser());
+  },
   component: StoryPage,
 });

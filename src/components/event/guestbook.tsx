@@ -1,7 +1,9 @@
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +11,7 @@ import { errorMessage } from "@/lib/errors";
 
 // A short note from someone invited. The owner sees it on Activity as well.
 export const Guestbook = ({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) => {
-  const notes = useQuery(api.guestNotes.list, { eventId });
+  const { data: notes } = useQuery(queries.guestNotes.list({ eventId }));
   const leave = useMutation(api.guestNotes.leave);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);

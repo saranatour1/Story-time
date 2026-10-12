@@ -1,10 +1,12 @@
 import { useAuthToken } from "@convex-dev/auth/react";
 import { Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { CopyIcon, LoaderCircleIcon, LockKeyholeIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
@@ -32,8 +34,8 @@ export const LockedPdfDialog = ({
   // The whole book as an unlocked PDF, printed by the journal.
   print: () => Promise<Blob>;
 }) => {
-  const current = useQuery(api.pdf.get, open ? { eventId: event._id } : "skip");
-  const link = useQuery(api.share.link, open ? { eventId: event._id } : "skip");
+  const { data: current } = useQuery(queries.pdf.get(open ? { eventId: event._id } : "skip"));
+  const { data: link } = useQuery(queries.share.link(open ? { eventId: event._id } : "skip"));
   const setPdf = useMutation(api.pdf.set);
   const dropPdf = useMutation(api.pdf.drop);
   const token = useAuthToken();

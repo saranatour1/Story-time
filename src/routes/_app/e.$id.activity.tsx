@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-import { api } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/lib/queries";
 import { ActivityTab } from "@/components/event/activity-tab";
 import { ExperienceShell } from "@/components/event/experience-shell";
 
 // What changed in the experience, and who changed it. Its owner's only.
 const ActivityPage = () => {
   const { id } = Route.useParams();
-  const me = useQuery(api.users.getCurrentUser);
+  const { data: me } = useQuery(queries.users.getCurrentUser());
   return (
     <ExperienceShell id={id} section="Activity">
       {(event) =>
@@ -22,4 +22,7 @@ const ActivityPage = () => {
 };
 
 // Last, so the components it names are defined above it.
-export const Route = createFileRoute("/_app/e/$id/activity")({ component: ActivityPage });
+export const Route = createFileRoute("/_app/e/$id/activity")({
+  loader: ({ context: { prefetch }, params }) => prefetch(queries.events.get({ eventId: params.id })),
+  component: ActivityPage,
+});

@@ -1,8 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftIcon, PlayIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { EventActionsMenu } from "@/components/event/event-actions-menu";
 import { eventDates } from "@/components/event/event-dates";
 import { QuickAddButton } from "@/components/event/quick-add";
@@ -27,7 +27,7 @@ export const ExperienceShell = ({
   children: (event: EventView) => ReactNode;
 }) => {
   const navigate = useNavigate();
-  const event = useQuery(api.events.get, { eventId: id });
+  const { data: event } = useQuery(queries.events.get({ eventId: id }));
   useDocumentTitle(event ? `${section ? `${section} · ` : ""}${event.title} · Story-time` : undefined);
 
   if (event === undefined) {

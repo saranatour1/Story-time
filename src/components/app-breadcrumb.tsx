@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-import { api } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/lib/queries";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,7 +18,7 @@ export const AppBreadcrumb = () => {
   const open = /^\/e\/([^/]+)(\/[a-z]+)?\/?$/.exec(pathname);
   const eventId = open?.[1];
   const section = open?.[2] ? SECTION_NAMES[open[2]] : undefined;
-  const event = useQuery(api.events.get, eventId ? { eventId } : "skip");
+  const { data: event } = useQuery(queries.events.get(eventId ? { eventId } : "skip"));
 
   if (pathname !== "/home" && !eventId) return null;
   const title = event === undefined ? "…" : event === null ? "Not found" : event.title;

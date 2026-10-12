@@ -1,7 +1,7 @@
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { ActorBadge } from "@/components/event/actor-badge";
 import { QuickAddButton } from "@/components/event/quick-add";
 import type { EventView, MomentView } from "@/components/event/types";
@@ -27,8 +27,8 @@ export const Timeline = ({
   selectedMomentId?: string;
   onPick: (moment: MomentView) => void;
 }) => {
-  const moments = useQuery(api.moments.list, { eventId: event._id });
-  const leftOut = useQuery(api.journal.unpaged, { eventId: event._id });
+  const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
+  const { data: leftOut } = useQuery(queries.journal.unpaged({ eventId: event._id }));
   const unpaged = new Set(leftOut?.full ? leftOut.momentIds : []);
   const [query, setQuery] = useState("");
   const searchInput = useRef<HTMLInputElement>(null);
