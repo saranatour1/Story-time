@@ -1,6 +1,8 @@
-import { v, type Infer } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
+import { ConvexError, v, type Infer } from "convex/values";
+import { components } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
 import {
+  env,
   mutation,
   query,
   type MutationCtx,
@@ -31,6 +33,40 @@ function newToken(): string {
 const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,64}$/;
 
 const linkFor = (token: string) => `${appOrigin()}/s#${token}`;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const EMAILS_PER_DAY = 20;
+
+// Counts share-link emails per sender over a rolling day. The address itself
+// is not stored.
+async function chargeShareEmail(ctx: MutationCtx, userId: Id<"users">) {
+  const since = Date.now() - DAY_MS;
+  const recent = await ctx.db
+    .query("shareEmails")
+    .withIndex("by_user", (q) => q.eq("userId", userId).gt("_creationTime", since))
+    .take(EMAILS_PER_DAY);
+  if (recent.length >= EMAILS_PER_DAY) {
+    throw new ConvexError({
+      code: "RATE_LIMITED",
+      message: `You can email a share link up to ${EMAILS_PER_DAY} times a day. Copy the link and send it yourself.`,
+    });
+  }
+  const stale = await ctx.db
+    .query("shareEmails")
+    .withIndex("by_user", (q) => q.eq("userId", userId).lte("_creationTime", since))
+    .take(EMAILS_PER_DAY);
+  for (const row of stale) await ctx.db.delete("shareEmails", row._id);
+  await ctx.db.insert("shareEmails", { userId });
+}
+
+const escapeHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (ch) => {
+    if (ch === "&") return "&amp;";
+    if (ch === "<") return "&lt;";
+    if (ch === ">") return "&gt;";
+    if (ch === '"') return "&quot;";
+    return "&#39;";
+  });
 
 // The token of the link that is switched on, or null.
 async function activeToken(event: Doc<"events">): Promise<string | null> {
@@ -218,6 +254,46 @@ export const rotate = mutation({
       fields: ["shareLink"],
     });
     return linkFor(token);
+  },
+});
+
+// Emails the live share link. The address is handed to the email component
+// and not kept here. Unconfigured email returns emailed: false, and the
+// caller still has the link to copy.
+export const emailLink = mutation({
+  args: { eventId: v.id("events"), to: v.string() },
+  returns: v.object({ emailed: v.boolean() }),
+  handler: async (ctx, args) => {
+    const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
+    assertNotArchived(event);
+    const token = await activeToken(event);
+    if (token === null) {
+      throw new ConvexError({ code: "INVALID", message: "Switch the share link on first." });
+    }
+    const to = args.to.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || to.length > 254) {
+      throw new ConvexError({ code: "INVALID", field: "to", message: "Enter a valid email address" });
+    }
+    const canEmail = Boolean(env.CF_ACCOUNT_ID && env.CF_EMAIL_TOKEN && env.EMAIL_FROM);
+    if (!canEmail) return { emailed: false };
+    await chargeShareEmail(ctx, userId);
+    const link = linkFor(token);
+    const title = escapeHtml(event.title);
+    await ctx.runMutation(components.email.lib.send, {
+      to,
+      subject: `A story to read: "${event.title}"`,
+      html: `<p>Someone shared a story with you on Story-time: ${title}.</p><p><a href="${link}">Open the story</a></p><p>Anyone with this link can watch it. No account is needed.</p>`,
+      text: `Someone shared "${event.title}" with you on Story-time.\n${link}\nAnyone with this link can watch it. No account is needed.`,
+    });
+    await recordChange(ctx, {
+      eventId: args.eventId,
+      entity: "event",
+      entityId: args.eventId,
+      actorId: userId,
+      action: "update",
+      fields: ["shareEmail"],
+    });
+    return { emailed: true };
   },
 });
 

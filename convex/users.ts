@@ -13,8 +13,17 @@ import {
   cleanUsername,
 } from "./lib/profile";
 
-// Privacy by default: the user row starts empty. Nothing from the OAuth
-// profile (name, email, avatar) is copied; users add what they choose.
+// A verified provider email, normalised, or nothing. An unverified or
+// malformed address is left off. Name and avatar are never copied.
+function oauthEmail(profile: { email?: string; emailVerified: boolean }): string | undefined {
+  if (!profile.emailVerified || profile.email === undefined) return undefined;
+  const email = cleanEmail(profile.email);
+  if (email === undefined || email.length > MAX_EMAIL || !EMAIL_PATTERN.test(email)) return undefined;
+  return email;
+}
+
+// Privacy by default: the row starts empty apart from a verified contact
+// email. Nothing else from the OAuth profile is copied.
 export const createGithubUser = internalMutation({
   args: {
     provider: v.object({
@@ -24,7 +33,10 @@ export const createGithubUser = internalMutation({
     }),
   },
   returns: v.id("users"),
-  handler: async (ctx) => await ctx.db.insert("users", {}),
+  handler: async (ctx, args) => {
+    const email = oauthEmail(args.provider.profile);
+    return await ctx.db.insert("users", email === undefined ? {} : { email });
+  },
 });
 
 export const createGoogleUser = internalMutation({
@@ -36,7 +48,10 @@ export const createGoogleUser = internalMutation({
     }),
   },
   returns: v.id("users"),
-  handler: async (ctx) => await ctx.db.insert("users", {}),
+  handler: async (ctx, args) => {
+    const email = oauthEmail(args.provider.profile);
+    return await ctx.db.insert("users", email === undefined ? {} : { email });
+  },
 });
 
 export const createAnonymousUser = internalMutation({

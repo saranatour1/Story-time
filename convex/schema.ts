@@ -131,14 +131,15 @@ export const vLastEdit = v.object({
 });
 
 export default defineSchema({
-  // Created by Convex Auth (`createUser` inserts `{}`). Everything is
-  // optional and user-entered: nothing is copied from the OAuth profile.
+  // Created by Convex Auth. A verified OAuth email is copied as a contact
+  // address; name and avatar are not. The address is never used to sign in.
   users: defineTable({
     displayName: v.optional(v.string()),
     // Lowercase, 3-20 chars of a-z 0-9 _. Unique across users when set.
     username: v.optional(v.string()),
-    // Typed in by the user, never copied from the OAuth profile and never
-    // verified, so it must not be trusted for sign-in or access decisions.
+    // A contact address: copied from a verified OAuth email at sign-in, or
+    // typed in later. Not checked again after that, so it must not be trusted
+    // for sign-in or access decisions.
     email: v.optional(v.string()),
     imageMediaId: v.optional(v.id("media")),
     region: v.optional(vRegion), // legacy, unused
@@ -253,6 +254,11 @@ export default defineSchema({
 
   // One row per invite email sent, for the daily cap. No address is kept.
   inviteEmails: defineTable({ userId: v.id("users") }).index("by_user", [
+    "userId",
+  ]),
+
+  // One row per share-link email sent, for the daily cap. No address is kept.
+  shareEmails: defineTable({ userId: v.id("users") }).index("by_user", [
     "userId",
   ]),
 

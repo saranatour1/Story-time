@@ -1,11 +1,16 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { beforeAll, describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test, vi } from "vitest";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import emailSchema from "../components/email/schema";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
+const emailModules = import.meta.glob([
+  "../components/email/**/*.ts",
+  "../components/email/**/*.js",
+]);
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
@@ -16,6 +21,7 @@ beforeAll(() => {
 
 async function setup() {
   const t = convexTest(schema, modules);
+  t.registerComponent("email", emailSchema, emailModules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, guestId] = [await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
@@ -334,6 +340,48 @@ describe("share links", () => {
     expect(shown).toContain(photo);
     expect(shown).toContain(httpImage);
     expect(await t.query(api.share.mediaForShare, { token, mediaId: photo })).toMatchObject({ mime: "image/jpeg" });
+  });
+
+  test("the share link can be emailed, only when it is on and email is configured", async () => {
+    const { t, owner, guest, eventId } = await setup();
+    const send = (to: string) => owner.mutation(api.share.emailLink, { eventId, to });
+    await expect(send("friend@example.com")).rejects.toThrow(/Switch the share link on first/);
+    const link = await owner.mutation(api.share.enable, { eventId });
+    const token = tokenOf(link);
+    await expect(send("not-an-email")).rejects.toThrow(/Enter a valid email/);
+    await expect(guest.mutation(api.share.emailLink, { eventId, to: "friend@example.com" })).rejects.toThrow(
+      /Event not found/,
+    );
+    expect((await send("friend@example.com")).emailed).toBe(false);
+
+    const cf = { CF_ACCOUNT_ID: "acct", CF_EMAIL_TOKEN: "token", EMAIL_FROM: "a@example.com" };
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ result: {} })));
+    // eslint-disable-next-line @convex-dev/no-process-env -- test setup
+    Object.assign(process.env, cf);
+    try {
+      for (let i = 0; i < 20; i++) {
+        expect((await send(`friend${i}@example.com`)).emailed).toBe(true);
+      }
+      await expect(send("one-more@example.com")).rejects.toThrow(/RATE_LIMITED/);
+      const rows = await t.run((ctx) => ctx.db.query("shareEmails").collect());
+      expect(rows).toHaveLength(20);
+      expect(JSON.stringify(rows)).not.toContain("friend");
+      const changes = await t.run((ctx) => ctx.db.query("changes").collect());
+      const logged = JSON.stringify(changes);
+      expect(logged).not.toContain(token);
+      expect(logged).not.toContain("friend0@example.com");
+      expect(changes.some((c) => c.fields.includes("shareEmail"))).toBe(true);
+
+      vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000 + 1);
+      expect((await send("tomorrow@example.com")).emailed).toBe(true);
+      expect(await t.run((ctx) => ctx.db.query("shareEmails").collect())).toHaveLength(1);
+    } finally {
+      // eslint-disable-next-line @convex-dev/no-process-env -- test setup
+      for (const key of Object.keys(cf)) delete process.env[key];
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
   });
 
   test("taking visibility off through events.update switches the link off", async () => {

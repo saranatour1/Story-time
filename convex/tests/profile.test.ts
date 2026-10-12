@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 
@@ -222,5 +222,72 @@ describe("profile images", () => {
     const { t } = await setup();
     const rows = await t.run((ctx) => ctx.db.query("users").collect());
     for (const row of rows) expect(row.imageMediaId).toBeUndefined();
+  });
+});
+
+describe("oauth contact email", () => {
+  test("a verified GitHub or Google email is copied, and the name and picture are not", async () => {
+    const t = convexTest(schema, modules);
+    const githubId = await t.mutation(internal.users.createGithubUser, {
+      provider: {
+        name: "github",
+        accountId: "gh-1",
+        profile: {
+          id: "gh-1",
+          login: "sara",
+          name: "Sara",
+          email: " Sara@Example.COM ",
+          emailVerified: true,
+          avatarUrl: "https://example.com/a.png",
+        },
+      },
+    });
+    const github = await t.run((ctx) => ctx.db.get("users", githubId));
+    expect(github).toMatchObject({ email: "sara@example.com" });
+    expect(github?.displayName).toBeUndefined();
+    expect(github?.imageMediaId).toBeUndefined();
+
+    const googleId = await t.mutation(internal.users.createGoogleUser, {
+      provider: {
+        name: "google",
+        accountId: "g-1",
+        profile: {
+          id: "g-1",
+          email: "Ada@Example.com",
+          emailVerified: true,
+          name: "Ada",
+          picture: "https://example.com/p.png",
+        },
+      },
+    });
+    const google = await t.run((ctx) => ctx.db.get("users", googleId));
+    expect(google).toMatchObject({ email: "ada@example.com" });
+    expect(google?.displayName).toBeUndefined();
+  });
+
+  test("an unverified or unusable address is not copied", async () => {
+    const t = convexTest(schema, modules);
+    const unverified = await t.mutation(internal.users.createGithubUser, {
+      provider: {
+        name: "github",
+        accountId: "gh-2",
+        profile: { id: "gh-2", login: "nope", email: "nope@example.com", emailVerified: false },
+      },
+    });
+    expect((await t.run((ctx) => ctx.db.get("users", unverified)))?.email).toBeUndefined();
+
+    const missing = await t.mutation(internal.users.createGoogleUser, {
+      provider: { name: "google", accountId: "g-2", profile: { id: "g-2", emailVerified: true } },
+    });
+    expect((await t.run((ctx) => ctx.db.get("users", missing)))?.email).toBeUndefined();
+
+    const bad = await t.mutation(internal.users.createGoogleUser, {
+      provider: {
+        name: "google",
+        accountId: "g-3",
+        profile: { id: "g-3", email: "not-an-email", emailVerified: true },
+      },
+    });
+    expect((await t.run((ctx) => ctx.db.get("users", bad)))?.email).toBeUndefined();
   });
 });

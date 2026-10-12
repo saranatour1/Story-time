@@ -64,11 +64,14 @@ export function SharedTab({ eventId, archived }: { eventId: Id<"events">; archiv
   const setHidePhotos = useMutation(api.share.setHidePhotos);
   const disableLink = useMutation(api.share.disable);
   const rotateLink = useMutation(api.share.rotate);
+  const emailShare = useMutation(api.share.emailLink);
   const revoke = useMutation(api.sessions.revoke);
   const createInvite = useMutation(api.invites.create);
   const dismiss = useMutation(api.invites.dismiss);
   const [role, setRole] = useState<Role>("viewer");
   const [email, setEmail] = useState("");
+  const [shareTo, setShareTo] = useState("");
+  const [sendingLink, setSendingLink] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [rotating, setRotating] = useState(false);
   const [inviting, setInviting] = useState(false);
@@ -86,6 +89,20 @@ export function SharedTab({ eventId, archived }: { eventId: Id<"events">; archiv
       }
     } catch (e) {
       toast.error(errorMessage(e));
+    }
+  }
+
+  async function sendLink(e: { preventDefault(): void }) {
+    e.preventDefault();
+    setSendingLink(true);
+    try {
+      const res = await emailShare({ eventId, to: shareTo.trim() });
+      setShareTo("");
+      toast.success(res.emailed ? "Link emailed" : "Email isn't set up: copy the link instead");
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setSendingLink(false);
     }
   }
 
@@ -160,6 +177,22 @@ export function SharedTab({ eventId, archived }: { eventId: Id<"events">; archiv
                 }}
               />
             </div>
+            <form onSubmit={(e) => void sendLink(e)} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="grid min-w-0 flex-1 gap-2">
+                <Label htmlFor="share-email">Email the link</Label>
+                <Input
+                  id="share-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="friend@example.com"
+                  value={shareTo}
+                  onChange={(e) => setShareTo(e.target.value)}
+                />
+              </div>
+              <Button type="submit" variant="outline" disabled={sendingLink || shareTo.trim() === ""}>
+                Send
+              </Button>
+            </form>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-muted-foreground">Switch it off and the link stops working.</p>
               <Button variant="ghost" size="sm" disabled={archived} onClick={() => setRotating(true)}>
