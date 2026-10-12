@@ -1,6 +1,7 @@
 import { ImageIcon, TypeIcon } from "lucide-react";
 import { type DragEvent, type ReactNode, useState } from "react";
 import type { MomentView } from "@/components/event/types";
+import { STARTERS, type StarterId } from "@/lib/canvas/fill";
 import { FRAME_LOOKS, FRAME_SIZES, PAPERS, TAPES, paperLook } from "@/lib/canvas/look";
 import { useMediaUrl } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,8 @@ export type Item =
   | { what: "scrap"; paper: string }
   | { what: "tape"; look: string }
   | { what: "moment"; momentId: string }
-  | { what: "photo"; mediaId: string };
+  | { what: "photo"; mediaId: string }
+  | { what: "starter"; id: StarterId };
 
 export const DRAG_TYPE = "application/x-story-piece";
 
@@ -55,6 +57,7 @@ export function Tray({
   onTitle,
   onAdd,
   placedMoments,
+  upload,
 }: {
   moments: MomentView[];
   placedMoments: ReadonlySet<string>;
@@ -62,6 +65,8 @@ export function Tray({
   onAdd: (item: Item) => void;
   // A title typed in: make it from letters.
   onTitle: (text: string) => void;
+  // Where photos from the device are added.
+  upload?: ReactNode;
 }) {
   const [size, setSize] = useState<(typeof FRAME_SIZES)[number]["id"]>("poster");
   const [title, setTitle] = useState("");
@@ -71,6 +76,7 @@ export function Tray({
 
   return (
     <aside aria-label="Things to add" className="flex w-60 shrink-0 flex-col overflow-y-auto border-r border-stone-300 bg-[#efe9dc] text-stone-900">
+      {upload !== undefined && <div className="border-b border-stone-300/70 p-3 [&>button]:w-full">{upload}</div>}
       <Section title="Frames" open>
         <div className="mb-2 flex flex-wrap gap-1">
           {FRAME_SIZES.map((s) => (
@@ -96,6 +102,25 @@ export function Tray({
             </button>
           ))}
         </div>
+      </Section>
+
+      <Section title="Ready-made pages" open>
+        <ul className="space-y-1.5">
+          {STARTERS.map((st) => (
+            <li key={st.id}>
+              <button
+                type="button"
+                draggable
+                onDragStart={(e) => drag(e, { what: "starter", id: st.id })}
+                onClick={() => onAdd({ what: "starter", id: st.id })}
+                className="w-full rounded-md border border-stone-300 bg-white/70 px-2 py-1.5 text-left text-xs hover:bg-white focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
+              >
+                <span className="block font-medium">{st.name}</span>
+                <span className="block text-stone-500">{st.hint}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </Section>
 
       <Section title="Title" open>

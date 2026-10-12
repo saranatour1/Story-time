@@ -34,3 +34,5 @@ export const MAX_VOICE_BYTES = 900_000;
 // A canvas: how many things it holds, and how many one request may add or move.
 export const MAX_CANVAS_NODES = 400;
 export const MAX_CANVAS_BATCH = 100;
+// How many moments one fill of a canvas puts on it, so the pages fit one request.
+export const MAX_CANVAS_FILL = 30;

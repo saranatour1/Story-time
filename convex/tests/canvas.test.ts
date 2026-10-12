@@ -77,7 +77,43 @@ describe("the canvas of an experience", () => {
     const ownerId = await t.run((ctx) => ctx.db.insert("users", {}));
     const owner = t.withIdentity({ subject: ownerId });
     const eventId = await owner.mutation(api.events.createDraft, {});
-    expect(await owner.query(api.canvas.get, { eventId })).toEqual({ canvasId: null, desk: "desk", canEdit: true, nodes: [] });
+    expect(await owner.query(api.canvas.get, { eventId })).toEqual({ canvasId: null, desk: "desk", canEdit: true, nodes: [], pending: null });
+  });
+});
+
+describe("filling the canvas with moments", () => {
+  const frame = { kind: "frame" as const, x: 0, y: 0, w: 1200, h: 800, order: 1, text: "A day" };
+
+  test("moments not on the canvas yet are pending for the owner, and for nobody else", async () => {
+    const { owner, viewer, eventId, momentId } = await setup();
+    const mine = await owner.query(api.canvas.get, { eventId });
+    expect(mine.pending?.ids).toEqual([momentId]);
+    expect(typeof mine.pending?.upTo).toBe("number");
+    expect((await viewer.query(api.canvas.get, { eventId })).pending).toBeNull();
+  });
+
+  test("a fill marks them done, and the same fill sent twice adds nothing", async () => {
+    const { owner, eventId, momentId, canvasId } = await setup();
+    const { pending } = await owner.query(api.canvas.get, { eventId });
+    const nodes = [frame, { kind: "moment" as const, parent: { ref: 0 }, x: 60, y: 170, w: 420, h: 360, momentId }];
+    const ids = await owner.mutation(api.canvas.add, { canvasId, nodes, filled: pending!.upTo });
+    expect(ids).toHaveLength(2);
+    const after = await owner.query(api.canvas.get, { eventId });
+    expect(after.pending).toBeNull();
+    expect(after.nodes).toHaveLength(2);
+    // Another window, same fill: nothing is made twice.
+    expect(await owner.mutation(api.canvas.add, { canvasId, nodes, filled: pending!.upTo })).toEqual([]);
+    expect((await owner.query(api.canvas.get, { eventId })).nodes).toHaveLength(2);
+  });
+
+  test("a moment made after the fill is pending again, the filled ones aren't", async () => {
+    const { owner, eventId, momentId, canvasId } = await setup();
+    const { pending } = await owner.query(api.canvas.get, { eventId });
+    await owner.mutation(api.canvas.add, { canvasId, nodes: [frame], filled: pending!.upTo });
+    const later = await owner.mutation(api.moments.create, { eventId, startsAt: Date.now(), blocks: [{ type: "note", text: "Later" }] });
+    const { pending: next } = await owner.query(api.canvas.get, { eventId });
+    expect(next?.ids).toEqual([later]);
+    expect(next?.ids).not.toContain(momentId);
   });
 });
 

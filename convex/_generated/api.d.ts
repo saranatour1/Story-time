@@ -13,6 +13,7 @@ import type * as ai_apply from "../ai/apply.js";
 import type * as ai_command from "../ai/command.js";
 import type * as ai_decide from "../ai/decide.js";
 import type * as ai_enrich from "../ai/enrich.js";
+import type * as ai_frames from "../ai/frames.js";
 import type * as ai_generate from "../ai/generate.js";
 import type * as ai_models from "../ai/models.js";
 import type * as ai_scribe from "../ai/scribe.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   "ai/command": typeof ai_command;
   "ai/decide": typeof ai_decide;
   "ai/enrich": typeof ai_enrich;
+  "ai/frames": typeof ai_frames;
   "ai/generate": typeof ai_generate;
   "ai/models": typeof ai_models;
   "ai/scribe": typeof ai_scribe;

@@ -289,6 +289,9 @@ export default defineSchema({
     eventId: v.id("events"),
     // The desk under the frames, by name (see src/lib/canvas/look.ts).
     desk: v.string(),
+    // Moments made up to this time have been put on the canvas, so one taken
+    // off by hand stays off. Unset until the first fill.
+    filledAt: v.optional(v.number()),
   }).index("by_event", ["eventId"]),
 
   // One row per thing on a canvas. They nest: a frame holds pieces, and a

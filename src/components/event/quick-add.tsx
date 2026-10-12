@@ -3,6 +3,7 @@ import { useAction, useMutation } from "convex/react";
 import { ImagePlusIcon } from "lucide-react";
 import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
 import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { addPhotos } from "@/lib/add-photos";
@@ -21,11 +22,14 @@ export function QuickAddButton({
   variant = "default",
   size,
   children = "Add",
+  onMoment,
 }: {
   event: EventView;
   variant?: ButtonProps["variant"];
   size?: ButtonProps["size"];
   children?: ReactNode;
+  // Called with each moment the photos make.
+  onMoment?: (id: Id<"moments">) => void;
 }) {
   const createMoment = useMutation(api.moments.create);
   const enrich = useAction(api.ai.enrich.enrich);
@@ -48,6 +52,7 @@ export function QuickAddButton({
         token: () => latestToken.current ?? undefined,
         createMoment,
         enrich,
+        onMoment,
       });
     } finally {
       setBusy(false);

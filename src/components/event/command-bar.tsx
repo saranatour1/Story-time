@@ -1,6 +1,6 @@
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { ImagePlusIcon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
+import { ArrowUpIcon, ImagePlusIcon, LoaderCircleIcon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
@@ -175,7 +175,12 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
 
   return (
     <div className="space-y-2" onKeyDown={onKeyDown}>
-      <form onSubmit={(e) => void submit(e)} className="flex items-center gap-2" aria-label="Add or change something">
+      <form
+        onSubmit={(e) => void submit(e)}
+        className="flex items-center gap-0.5 rounded-2xl border bg-background py-1 pr-1 pl-3 shadow-xs transition-shadow focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30"
+        aria-label="Add or change something"
+      >
+        <SparklesIcon aria-hidden className="mr-1.5 size-4 shrink-0 text-muted-foreground" />
         <Input
           ref={input}
           value={text}
@@ -187,12 +192,12 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
           aria-label="What happened, or what should change?"
           maxLength={MAX_COMMAND_CHARS}
           disabled={busy}
-          className="min-w-0 flex-1"
+          className="h-8 min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
         />
         <Button
           type="button"
-          size="icon"
-          variant="outline"
+          size="icon-sm"
+          variant="ghost"
           disabled={busy || !token}
           aria-label="Attach photos or videos"
           title="Attach photos or videos"
@@ -201,9 +206,16 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
           <ImagePlusIcon aria-hidden />
         </Button>
         {/* The words are spliced onto what is already there. */}
-        <VoiceButton disabled={busy} onText={(spoken) => setText((now) => (now.trim() ? `${now.trim()} ${spoken}` : spoken))} />
-        <Button type="submit" size="sm" variant="outline" disabled={(!said && files.length === 0) || busy}>
-          <SparklesIcon /> {phase === "reading" ? (files.length > 0 ? "Adding…" : "Reading…") : "Go"}
+        <VoiceButton quiet disabled={busy} onText={(spoken) => setText((now) => (now.trim() ? `${now.trim()} ${spoken}` : spoken))} />
+        <Button
+          type="submit"
+          size="icon-sm"
+          className="ml-0.5 rounded-full"
+          disabled={(!said && files.length === 0) || busy}
+          aria-label={phase === "reading" ? (files.length > 0 ? "Adding" : "Reading") : "Go"}
+          title="Go"
+        >
+          {phase === "reading" ? <LoaderCircleIcon aria-hidden className="animate-spin" /> : <ArrowUpIcon aria-hidden />}
         </Button>
       </form>
       <input

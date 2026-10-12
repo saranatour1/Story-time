@@ -1,15 +1,18 @@
-import { useQuery } from "convex/react";
-import { MaximizeIcon, MinusIcon, PauseIcon, PlayIcon, PlusIcon, Redo2Icon, SkipBackIcon, SkipForwardIcon, Undo2Icon, XIcon } from "lucide-react";
+import { useAction, useQuery } from "convex/react";
+import { LayoutGridIcon, MaximizeIcon, MinusIcon, PauseIcon, PlayIcon, PlusIcon, Redo2Icon, SkipBackIcon, SkipForwardIcon, Undo2Icon, XIcon } from "lucide-react";
 import { type DragEvent, type KeyboardEvent, type PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { QuickAddButton } from "@/components/event/quick-add";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { type Camera, centerOf, fitRect, flight, type Size, toWorld, zoomAt } from "@/lib/canvas/camera";
 import { errorMessage } from "@/lib/errors";
 import { copiesOf, newFrame, newMoment, newPhoto, newScrap, newTape, newTitle, type NewNode, piecesOfMoment } from "@/lib/canvas/make";
-import { DESK, frameLook } from "@/lib/canvas/look";
+import { fillSpecs, frameSpot, starterSpecs, type StarterId } from "@/lib/canvas/fill";
+import { type Arrangement, arrange, type Box as Area, clearOf, freeSpot, packFrames, pagesOf, snap, topMargin } from "@/lib/canvas/layout";
+import { DESK, frameLook, FRAME_SIZES } from "@/lib/canvas/look";
 import {
   type Change,
   flowOf,
@@ -26,6 +29,7 @@ import {
   worldRect,
 } from "@/lib/canvas/model";
 import { type Box, type Handle, normalize, resizeBox, round1, turnTo } from "@/lib/canvas/transform";
+import { CanvasAsk } from "./ask";
 import { Canvas } from "./canvas";
 import { Inspector } from "./inspector";
 import { NodeTree } from "./node-tree";
@@ -42,6 +46,8 @@ type Gesture =
   | { kind: "turn"; id: NodeId; center: Pt };
 
 const TURNS = new Set<Node["kind"]>(["moment", "photo", "scrap", "tape", "letter"]);
+// How big a piece is when it is added, to find it room.
+const PIECE_SIZE = { scrap: { w: 240, h: 140 }, photo: { w: 280, h: 210 }, moment: { w: 420, h: 360 } } as const;
 const typing = (e: { target: EventTarget }) => e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -66,6 +72,8 @@ export function CanvasEditor({ event }: { event: EventView }) {
   const [playing, setPlaying] = useState(false);
   const [trayOpen, setTrayOpen] = useState(false);
   const [focusWords, setFocusWords] = useState(0);
+  // Lines a piece being moved has settled on, in the world.
+  const [guides, setGuides] = useState<{ x?: number; y?: number; page: Area }>();
 
   const box = useRef<HTMLDivElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
@@ -180,20 +188,41 @@ export function CanvasEditor({ event }: { event: EventView }) {
     setScope(undefined);
   };
 
-  // New frames go to the right of the last one, and the view goes with them.
-  const addFrame = async (item: Extract<Item, { what: "frame" }>) => {
-    const frames = (tree.kids.get("") ?? []).filter((n) => n.kind === "frame");
-    const last = frames.reduce<Node | undefined>((far, f) => (far === undefined || f.x + f.w > far.x + far.w ? f : far), undefined);
-    const centre = last === undefined ? centerOf(camera, view) : { x: last.x + last.w + 200, y: last.y + last.h / 2 };
-    const order = flow.reduce((top, f) => Math.max(top, f.order ?? 0), 0) + 1;
-    const [id] = await canvas.add([newFrame(item.size, item.look, order, centre, `Frame ${order}`)]);
-    if (id === undefined) return;
-    select([id]);
-    // The camera moves once the frame is in the tree.
+  const frameBoxes = (skip: ReadonlySet<string> = new Set()): Area[] =>
+    (treeRef.current.kids.get("") ?? []).filter((n) => n.kind === "frame" && !skip.has(n._id)).map((f) => worldRect(f, treeRef.current.byId));
+
+  // Brings the camera to a new frame once it is in the tree.
+  const showFrame = (id: NodeId) => {
     setTimeout(() => {
       const f = treeRef.current.byId.get(id);
       if (f !== undefined) zoomToFrame(f);
-    }, 120);
+    }, 150);
+  };
+
+  // New frames go to the right of the last one with a gap, and the view goes with them.
+  const addFrame = async (item: Extract<Item, { what: "frame" }>) => {
+    const size = FRAME_SIZES.find((f) => f.id === item.size) ?? FRAME_SIZES[0];
+    const spot = frameSpot(frameBoxes(), size, centerOf(camera, view));
+    const order = flow.reduce((top, f) => Math.max(top, f.order ?? 0), 0) + 1;
+    const [id] = await canvas.add([newFrame(item.size, item.look, order, { x: spot.x + size.w / 2, y: spot.y + size.h / 2 }, `Frame ${order}`)]);
+    if (id === undefined) return;
+    select([id]);
+    showFrame(id);
+  };
+
+  // A ready-made page, with the experience's own title and dates on it.
+  const addStarter = async (id: StarterId) => {
+    const dates = [event.startsAt, event.endsAt]
+      .flatMap((t) => (t === undefined ? [] : [new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" })]))
+      .join(" to ");
+    const words = { title: event.title, dates: dates === "" ? undefined : dates };
+    const order = flow.reduce((top, f) => Math.max(top, f.order ?? 0), 0) + 1;
+    const frame = starterSpecs(id, words, { x: 0, y: 0 }, order)[0]!;
+    const spot = frameSpot(frameBoxes(), frame, centerOf(camera, view));
+    const ids = await canvas.add(starterSpecs(id, words, { x: spot.x + frame.w / 2, y: spot.y + frame.h / 2 }, order));
+    if (ids[0] === undefined) return;
+    select(ids.slice(0, 1));
+    showFrame(ids[0]);
   };
 
   // Where a piece goes: into the frame under the point, else on the desk.
@@ -213,6 +242,46 @@ export function CanvasEditor({ event }: { event: EventView }) {
     return { x: c.x + (k * 40) / cameraRef.current.zoom, y: c.y + (k * 30) / cameraRef.current.zoom };
   };
 
+  // The page a piece added by a click goes on: the one selected (or the one a
+  // selected piece is on), else the one in the middle of the view, else the
+  // nearest.
+  const targetFrame = (): Node | undefined => {
+    const t = treeRef.current;
+    for (let n: Node | undefined = selectedNodes[0]; n !== undefined; n = n.parentId === undefined ? undefined : t.byId.get(n.parentId)) if (n.kind === "frame") return n;
+    const c = centerOf(cameraRef.current, viewRef.current);
+    const under = frameAt(t, c.x, c.y);
+    if (under !== undefined) return under;
+    const away = (f: Node) => {
+      const r = worldRect(f, t.byId);
+      return Math.hypot(r.x + r.w / 2 - c.x, r.y + r.h / 2 - c.y);
+    };
+    return (t.kids.get("") ?? []).filter((n) => n.kind === "frame").sort((a, b) => away(a) - away(b))[0];
+  };
+
+  // Where `n` pieces of `size` go on that page so they touch nothing already on it
+  // or each other, as centres. The camera goes to the page if it is out of sight.
+  // With no page (or a size that isn't a piece, like tape), they fan out from the middle.
+  const spotsFor = (size: { w: number; h: number } | undefined, n = 1): Pt[] => {
+    const frame = size === undefined ? undefined : targetFrame();
+    if (frame === undefined || size === undefined) return Array.from({ length: n }, nextSpot);
+    const t = treeRef.current;
+    const o = worldRect(frame, t.byId);
+    const cam = cameraRef.current;
+    const seen = { x: cam.x, y: cam.y, w: viewRef.current.w / cam.zoom, h: viewRef.current.h / cam.zoom };
+    if (o.x + o.w / 2 < seen.x || o.x + o.w / 2 > seen.x + seen.w || o.y + o.h / 2 < seen.y || o.y + o.h / 2 > seen.y + seen.h) zoomToFrame(frame);
+    const taken = (t.kids.get(frame._id) ?? []).filter((k) => k.kind !== "tape").map((k) => ({ x: k.x, y: k.y, w: k.w, h: k.h }));
+    return Array.from({ length: n }, () => {
+      const free = freeSpot(frame, taken, size);
+      if (free === undefined) {
+        // A full page: stack them near its middle.
+        const k = (spot.current++ % 7) - 3;
+        return { x: o.x + o.w / 2 + k * 30, y: o.y + o.h / 2 + k * 24 };
+      }
+      taken.push({ ...free, ...size });
+      return { x: o.x + free.x + size.w / 2, y: o.y + free.y + size.h / 2 };
+    });
+  };
+
   const momentOf = (id: string) => moments?.find((m) => m._id === id);
   const mediaOf = (id: string) =>
     moments?.flatMap((m) => [m.blocks, ...m.stops.map((s) => s.blocks)].flat()).flatMap((b) => (b.type === "photo" && b.mediaId === id ? [b.mediaId] : []))[0];
@@ -220,6 +289,7 @@ export function CanvasEditor({ event }: { event: EventView }) {
   const addPiece = async (item: Item, pt: Pt) => {
     try {
       if (item.what === "frame") return void (await addFrame(item));
+      if (item.what === "starter") return void (await addStarter(item.id));
       const where = placeAt(pt);
       let specs: NewNode[] = [];
       if (item.what === "scrap") specs = [newScrap("Write something here", item.paper, where)];
@@ -241,9 +311,62 @@ export function CanvasEditor({ event }: { event: EventView }) {
     }
   };
 
+  // Moments made from photos picked here go onto the canvas as they arrive.
+  // The list is state, because the moment can reach the page before the upload
+  // reports its id.
+  const [arriving, setArriving] = useState<string[]>([]);
+  useEffect(() => {
+    const here = arriving.filter((id) => momentById.has(id));
+    if (here.length === 0) return;
+    setArriving((list) => list.filter((id) => !here.includes(id)));
+    const spots = spotsFor(PIECE_SIZE.moment, here.length);
+    for (const [i, id] of here.entries()) void addPiece({ what: "moment", momentId: id }, spots[i]!);
+    // Only when these change: addPiece and nextSpot are new every render.
+  }, [momentById, arriving]);
+
+  // Every moment gets a page of its day as it is made: the canvas starts out
+  // holding them all, each frame in the flow. Moments already on it are left, and
+  // one taken off by hand isn't put back, because the canvas remembers how far
+  // it has been filled.
+  const filledUpTo = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const pending = canvas.pending;
+    if (!canEdit || !canvas.ready || moments === undefined || pending === null || filledUpTo.current === pending.upTo) return;
+    // Wait for the moments themselves to arrive.
+    if (!pending.ids.every((id) => momentById.has(id))) return;
+    filledUpTo.current = pending.upTo;
+    const t = treeRef.current;
+    const onCanvas = new Set([...t.byId.values()].flatMap((n) => (n.momentId === undefined ? [] : [n.momentId as string])));
+    const fresh = pending.ids.flatMap((id) => (onCanvas.has(id) ? [] : [momentById.get(id)!]));
+    const roots = t.kids.get("") ?? [];
+    const order = flow.reduce((top, f) => Math.max(top, f.order ?? 0), 0) + 1;
+    const frames = roots.filter((n) => n.kind === "frame");
+    const homes = frames.map((f) => ({ id: f._id, name: f.text, heads: (t.kids.get(f._id) ?? []).flatMap((k) => (k.kind === "scrap" && k.text !== undefined ? [k.text.split("\n")[0]!] : [])), w: f.w, h: f.h, kids: (t.kids.get(f._id) ?? []).filter((k) => k.kind !== "tape").map((k) => ({ x: k.x, y: k.y, w: k.w, h: k.h })) }));
+    const specs = fillSpecs(pagesOf(fresh, -new Date().getTimezoneOffset()), union(roots.map((n) => worldRect(n, t.byId))), order, frames.length, homes);
+    const empty = t.byId.size === 0;
+    canvas
+      .fill(specs, pending.upTo)
+      .then((ids) => {
+        if (empty && ids[0] !== undefined) showFrame(ids[0]);
+        // The frames just made have a day and a place for a name; Haiku offers
+        // better ones when it can, and nothing is lost when it can't.
+        const made = specs.flatMap((s, i) => {
+          const id = ids[i];
+          if (s.kind !== "frame" || id === undefined) return [];
+          const momentIds = specs.flatMap((m) => (m.kind === "moment" && typeof m.parent === "object" && m.parent.ref === i && m.momentId !== undefined ? [m.momentId] : []));
+          return momentIds.length === 0 ? [] : [{ id, momentIds }];
+        });
+        if (made.length > 0) void nameFrames(made, false).catch(() => undefined);
+      })
+      .catch(fail);
+  }, [canvas.pending, canvas.ready, canEdit, moments, momentById]);
+
   const addTitle = async (text: string) => {
     try {
-      const ids = await canvas.add(newTitle(text, placeAt(nextSpot())));
+      const seed = String(Math.random());
+      const probe = newTitle(text, { x: 0, y: 0 }, 110, seed)[0];
+      const at = placeAt(spotsFor(probe === undefined ? undefined : { w: probe.w, h: probe.h })[0]!);
+      const ids = await canvas.add(newTitle(text, at, 110, seed));
       select(ids.slice(0, 1));
     } catch (e) {
       fail(e);
@@ -294,7 +417,24 @@ export function CanvasEditor({ event }: { event: EventView }) {
         const dy = p.y - cur.start.y;
         if (!cur.moved && Math.hypot(dx, dy) * cameraRef.current.zoom < 3) return;
         cur.moved = true;
-        show(new Map(cur.ids.map((id) => [id, { x: cur.origin.get(id)!.x + dx, y: cur.origin.get(id)!.y + dy }])));
+        // A piece on a page sits its edges and middle on the page's and its neighbours' when
+        // close (hold Alt to move freely).
+        let sx = dx;
+        let sy = dy;
+        let guide: typeof guides;
+        const node = cur.ids.length === 1 ? t.byId.get(cur.ids[0]!) : undefined;
+        const page = node?.parentId === undefined ? undefined : t.byId.get(node.parentId);
+        if (!e.altKey && node !== undefined && page?.kind === "frame" && node.kind !== "letter" && frameAt(t, p.x, p.y, new Set([node._id]))?._id === page._id) {
+          const from = cur.origin.get(node._id)!;
+          const near = (t.kids.get(page._id) ?? []).filter((k) => k._id !== node._id && k.kind !== "tape").map((k) => ({ x: k.x, y: k.y, w: k.w, h: k.h }));
+          const hit = snap({ x: from.x + dx, y: from.y + dy, w: node.w, h: node.h }, [{ x: 0, y: 0, w: page.w, h: page.h }, ...near], 8 / cameraRef.current.zoom);
+          sx += hit.dx;
+          sy += hit.dy;
+          const o = worldRect(page, t.byId);
+          if (hit.x !== undefined || hit.y !== undefined) guide = { x: hit.x === undefined ? undefined : o.x + hit.x, y: hit.y === undefined ? undefined : o.y + hit.y, page: o };
+        }
+        setGuides(guide);
+        show(new Map(cur.ids.map((id) => [id, { x: cur.origin.get(id)!.x + sx, y: cur.origin.get(id)!.y + sy }])));
       } else if (cur.kind === "resize") {
         const next = resizeBox(cur.box, cur.handle, p.x - cur.start.x, p.y - cur.start.y, cur.ratio || e.shiftKey);
         show(new Map([[cur.id, { x: next.x, y: next.y, w: next.w, h: next.h }]]));
@@ -320,19 +460,31 @@ export function CanvasEditor({ event }: { event: EventView }) {
           const node = t.byId.get(id);
           const from = cur.origin.get(id);
           if (node === undefined || from === undefined) return [];
-          const x = round1(from.x + dx);
-          const y = round1(from.y + dy);
+          // Where it was last shown, which includes any snap.
+          const shown = dragging.current.get(id);
+          const x = round1(shown?.x ?? from.x + dx);
+          const y = round1(shown?.y ?? from.y + dy);
           if (node.kind === "letter" || node.kind === "frame" || target?._id === node.parentId) return [{ id, x, y }];
           const o = originOf(node, t.byId);
           const into = target === undefined ? { x: 0, y: 0 } : worldRect(target, t.byId);
           return [{ id, x: round1(o.x + x - into.x), y: round1(o.y + y - into.y), parentId: target?._id ?? null, z: nextZ(t, target?._id) }];
         });
+        // Frames keep a gap between them: one dropped on another is moved clear of it.
+        const moved = new Set(updates.filter((u) => t.byId.get(u.id)?.kind === "frame").map((u) => u.id as string));
+        if (moved.size > 0) {
+          const others = frameBoxes(moved);
+          updates = updates.map((u) => {
+            const n = t.byId.get(u.id);
+            return n?.kind !== "frame" || u.x === undefined || u.y === undefined ? u : { ...u, ...clearOf({ x: u.x, y: u.y, w: n.w, h: n.h }, others) };
+          });
+        }
       } else if (cur.kind !== "move") {
         const l = dragging.current.get(cur.id);
         if (l !== undefined) updates = [{ id: cur.id, ...roundChange(l) }];
       }
       // The edit shows at once as soon as it is sent, so what was dragged can let go.
       const saving = updates.length > 0 ? canvas.change(updates) : undefined;
+      setGuides(undefined);
       show(new Map());
       saving?.catch(fail);
     };
@@ -465,6 +617,59 @@ export function CanvasEditor({ event }: { event: EventView }) {
     if (updates.length > 0) canvas.change(updates).catch(fail);
   };
 
+  // Frames given titles that fit what is on them. A name asked for is a step
+  // to undo; one made in the background isn't.
+  const askNames = useAction(api.ai.frames.name);
+  const [naming, setNaming] = useState(false);
+  const nameFrames = async (frames: Array<{ id: NodeId; momentIds: Array<Id<"moments">> }>, asked: boolean) => {
+    const titles = await askNames({ eventId: event._id, frames });
+    const updates = titles.map((t) => ({ id: t.id as NodeId, text: t.title }));
+    if (updates.length > 0) await (asked ? canvas.change(updates) : canvas.settle(updates));
+    return updates.length;
+  };
+  // Every frame that has moments on it, with them.
+  const framesWithMoments = () =>
+    (treeRef.current.kids.get("") ?? []).flatMap((f) => {
+      if (f.kind !== "frame") return [];
+      const momentIds = (treeRef.current.kids.get(f._id) ?? []).flatMap((k) => (k.kind === "moment" && k.momentId !== undefined ? [k.momentId] : []));
+      return momentIds.length === 0 ? [] : [{ id: f._id, momentIds }];
+    });
+  const nameAll = async () => {
+    setNaming(true);
+    try {
+      const n = await nameFrames(framesWithMoments(), true);
+      toast.success(n === 0 ? "Nothing to name yet." : `Named ${n === 1 ? "a frame" : `${n} frames`}.`);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setNaming(false);
+    }
+  };
+
+  // The moments and photos on a frame, in reading order: what arranging moves.
+  const arrangeable = (frame: Node | undefined) =>
+    frame?.kind !== "frame" ? [] : (tree.kids.get(frame._id) ?? []).filter((k) => k.kind === "moment" || k.kind === "photo").sort((a, b) => a.y - b.y || a.x - b.x);
+
+  // Lays a frame's moments and photos out again so none touch, keeping their order.
+  const arrangeFrame = (mode: Arrangement) => {
+    const frame = selectedNodes[0];
+    const pieces = arrangeable(frame);
+    if (frame === undefined || pieces.length === 0) return;
+    const kids = tree.kids.get(frame._id) ?? [];
+    const top = topMargin(kids.filter((k) => k.kind === "scrap" || k.kind === "ransom"), frame.h);
+    const placed = arrange(pieces.map((p) => ({ id: p._id, w: p.w, h: p.h })), frame, top, mode, frame._id);
+    canvas.change(placed.map((p) => ({ id: p.id as NodeId, x: p.x, y: p.y, w: p.w, h: p.h, rotation: p.rotation }))).catch(fail);
+  };
+
+  // Sets every frame in rows with a gap between, in the order they play.
+  const tidyFrames = () => {
+    const frames = (tree.kids.get("") ?? []).filter((n) => n.kind === "frame").sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || a.x - b.x || a.y - b.y);
+    if (frames.length < 2) return;
+    const all = union(frames.map((f) => worldRect(f, tree.byId)))!;
+    const spots = packFrames(frames, { x: all.x, y: all.y });
+    canvas.change(frames.map((f, i) => ({ id: f._id, x: spots[i]!.x, y: spots[i]!.y }))).then(() => void fly(everything(), 700)).catch(fail);
+  };
+
   const keys = (e: KeyboardEvent) => {
     if (typing(e)) return;
     const mod = e.metaKey || e.ctrlKey;
@@ -517,20 +722,25 @@ export function CanvasEditor({ event }: { event: EventView }) {
       tabIndex={0}
       onKeyDown={keys}
       aria-label="Collage canvas"
-      className="relative flex h-[calc(100svh-15rem)] min-h-[34rem] overflow-hidden rounded-xl border border-stone-300 bg-[#efe9dc] outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      className="paper-scope relative flex h-[calc(100svh-15rem)] min-h-[34rem] overflow-hidden rounded-xl border border-stone-300 bg-[#efe9dc] text-stone-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
     >
       {editing && (
         <div className={trayOpen ? "absolute inset-y-0 left-0 z-20 flex" : "hidden md:flex"}>
           <Tray
             moments={moments ?? []}
             placedMoments={placed}
-            onAdd={(item) => { void addPiece(item, nextSpot()); setTrayOpen(false); }}
+            onAdd={(item) => { void addPiece(item, spotsFor(item.what === "scrap" || item.what === "photo" || item.what === "moment" ? PIECE_SIZE[item.what] : undefined)[0]!); setTrayOpen(false); }}
             onTitle={(text) => void addTitle(text)}
+            upload={
+              <QuickAddButton event={event} size="sm" onMoment={(id) => { setArriving((list) => [...list, id]); setTrayOpen(false); }}>
+                Add photos
+              </QuickAddButton>
+            }
           />
         </div>
       )}
 
-      <div className="relative min-w-0 flex-1" onDragOver={(e) => canEdit && e.dataTransfer.types.includes(DRAG_TYPE) && (e.preventDefault(), (e.dataTransfer.dropEffect = "copy"))} onDrop={onDrop}>
+      <div className="@container relative min-w-0 flex-1" onDragOver={(e) => canEdit && e.dataTransfer.types.includes(DRAG_TYPE) && (e.preventDefault(), (e.dataTransfer.dropEffect = "copy"))} onDrop={onDrop}>
         <Canvas
           camera={camera}
           onCamera={moveCamera}
@@ -549,6 +759,12 @@ export function CanvasEditor({ event }: { event: EventView }) {
           <div className="contents" onPointerDown={press} onDoubleClick={doublePress}>
             <NodeTree tree={tree} moments={momentById} />
           </div>
+          {guides?.x !== undefined && (
+            <div aria-hidden className="pointer-events-none absolute bg-[#2f6df6]" style={{ left: guides.x, top: guides.page.y, width: "calc(1px / var(--zoom))", height: guides.page.h }} />
+          )}
+          {guides?.y !== undefined && (
+            <div aria-hidden className="pointer-events-none absolute bg-[#2f6df6]" style={{ left: guides.page.x, top: guides.y, width: guides.page.w, height: "calc(1px / var(--zoom))" }} />
+          )}
           {editing && scoped !== undefined && <Outline node={scoped} tree={tree} dashed />}
           {editing && selectedNodes.length > 1 && selectedNodes.map((n) => <Outline key={n._id} node={n} tree={tree} />)}
           {editing && only !== undefined && (
@@ -593,6 +809,8 @@ export function CanvasEditor({ event }: { event: EventView }) {
             onBreakApart={() => void breakApart()}
             onFlow={inFlow}
             onZoomTo={(id) => { const n = tree.byId.get(id); if (n !== undefined) zoomToFrame(n); }}
+            arrangeable={arrangeable(selectedNodes[0]).length}
+            onArrange={arrangeFrame}
           />
         )}
 
@@ -609,11 +827,16 @@ export function CanvasEditor({ event }: { event: EventView }) {
           <Button size="icon-sm" variant="ghost" aria-label="Zoom out" title="Zoom out" onClick={() => zoomBy(0.8)}><MinusIcon aria-hidden /></Button>
           <span className="w-10 text-center font-mono text-xs tabular-nums" aria-label="Zoom">{Math.round(camera.zoom * 100)}%</span>
           <Button size="icon-sm" variant="ghost" aria-label="Zoom in" title="Zoom in" onClick={() => zoomBy(1.25)}><PlusIcon aria-hidden /></Button>
+          {editing && (
+            <Button size="icon-sm" variant="ghost" aria-label="Space the frames out" title="Space the frames out" disabled={(tree.kids.get("") ?? []).filter((n) => n.kind === "frame").length < 2} onClick={tidyFrames}><LayoutGridIcon aria-hidden /></Button>
+          )}
           <Button size="icon-sm" variant="ghost" aria-label="See everything" title="See everything (0)" onClick={() => void fly(everything(), 600)}><MaximizeIcon aria-hidden /></Button>
         </div>
 
+        {canEdit && <CanvasAsk event={event} canName={framesWithMoments().length > 0} naming={naming} onName={() => void nameAll()} />}
+
         {/* The flow: play the frames in order, zooming from one to the next. */}
-        <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-stone-300 bg-[#f6f1e6]/95 p-1 shadow-md backdrop-blur md:top-auto md:bottom-3">
+        <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-stone-300 bg-[#f6f1e6]/95 p-1 shadow-md backdrop-blur md:top-auto md:right-3 md:bottom-3 md:left-auto md:translate-x-0">
           {at === null ? (
             <Button size="sm" variant="ghost" disabled={flow.length === 0} title={flow.length === 0 ? "Put frames in the flow to play them" : "Play the flow"} onClick={startFlow}>
               <PlayIcon aria-hidden /> Play{flow.length > 0 ? ` · ${flow.length}` : ""}

@@ -50,9 +50,9 @@ export function useCanvas(eventId: Id<"events">) {
 
   // New things. Parents that were re-made since are followed to where they are now.
   const put = useCallback(
-    async (specs: NewNode[]): Promise<NodeId[]> => {
+    async (specs: NewNode[], filled?: number): Promise<NodeId[]> => {
       const fresh = specs.map((s) => (typeof s.parent === "string" ? { ...s, parent: now(s.parent) } : s));
-      return addNodes({ canvasId: await canvas(), nodes: fresh });
+      return addNodes({ canvasId: await canvas(), nodes: fresh, filled });
     },
     [addNodes, canvas, now],
   );
@@ -71,6 +71,10 @@ export function useCanvas(eventId: Id<"events">) {
     },
     [put, removeNodes, now],
   );
+
+  // The pages made for new moments. Not something to undo: it is how the canvas
+  // starts, and `upTo` marks those moments as done so they aren't made again.
+  const fill = useCallback((specs: NewNode[], upTo: number) => put(specs, upTo), [put]);
 
   // Moves, sizes, restyles or rewrites things. Undoing puts back what was there.
   const change = useCallback(
@@ -99,6 +103,10 @@ export function useCanvas(eventId: Id<"events">) {
     },
     [patchNodes, now],
   );
+
+  // A change made for you in the background, like a name: shown and saved, but
+  // not a step to undo.
+  const settle = useCallback((updates: Update[]) => patchNodes({ updates: updates.map((u) => ({ ...u, id: now(u.id) })) }).then(() => undefined), [patchNodes, now]);
 
   // Takes things off, with what's inside them. Undoing puts them all back.
   const remove = useCallback(
@@ -133,7 +141,10 @@ export function useCanvas(eventId: Id<"events">) {
     canEdit: data?.canEdit ?? false,
     nodes,
     tree,
+    pending: data?.pending ?? null,
     add,
+    fill,
+    settle,
     change,
     remove,
     undo,

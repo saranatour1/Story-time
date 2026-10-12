@@ -120,7 +120,7 @@ export function Canvas({ camera, onCamera, onView, boxRef, onDeskDown, desk = DE
       ref={box}
       className={cn("relative touch-none overflow-hidden select-none", className)}
       style={{
-        background: desk,
+        backgroundColor: desk,
         backgroundImage: `radial-gradient(circle, ${DESK.dot} ${Math.max(1, zoom * 1.4)}px, transparent ${Math.max(1.5, zoom * 1.9)}px)`,
         backgroundSize: `${DESK.gap * zoom}px ${DESK.gap * zoom}px`,
         backgroundPosition: `${-x * zoom}px ${-y * zoom}px`,

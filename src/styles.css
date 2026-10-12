@@ -18,9 +18,10 @@
 }
 
 /* shadcn/ui theme tokens (neutral) */
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark *):not(:is(.paper-scope, .paper-scope *)));
 
-:root {
+:root,
+.paper-scope {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -48,6 +49,10 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+}
+
+.paper-scope {
+  color-scheme: light;
 }
 
 .dark {

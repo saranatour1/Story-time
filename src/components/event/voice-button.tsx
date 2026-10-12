@@ -11,7 +11,7 @@ import { canRecord, formatOfMime, micProblem, pickMime } from "@/lib/voice";
 // Speech for the box above the itinerary. Press to record, press again to stop;
 // the clip goes to the server, comes back as text and lands in the box, where
 // it can be fixed before it's sent. The clip is not kept anywhere.
-export function VoiceButton({ onText, disabled }: { onText: (text: string) => void; disabled?: boolean }) {
+export function VoiceButton({ onText, disabled, quiet = false }: { onText: (text: string) => void; disabled?: boolean; quiet?: boolean }) {
   const transcribe = useAction(api.ai.voice.transcribe);
   const [phase, setPhase] = useState<"idle" | "recording" | "sending">("idle");
   const [seconds, setSeconds] = useState(0);
@@ -87,8 +87,8 @@ export function VoiceButton({ onText, disabled }: { onText: (text: string) => vo
   return (
     <Button
       type="button"
-      size={recording ? "sm" : "icon"}
-      variant={recording ? "destructive" : "outline"}
+      size={recording ? "sm" : quiet ? "icon-sm" : "icon"}
+      variant={recording ? "destructive" : quiet ? "ghost" : "outline"}
       disabled={disabled || phase === "sending"}
       aria-label={recording ? "Stop recording" : phase === "sending" ? "Turning your voice into text" : "Record a message"}
       title={recording ? "Stop recording" : "Speak instead of typing"}

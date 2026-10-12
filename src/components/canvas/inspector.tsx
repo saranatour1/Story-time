@@ -2,6 +2,7 @@ import { ArrowDownToLineIcon, ArrowUpToLineIcon, CopyIcon, ScissorsIcon, Trash2I
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FRAME_LOOKS, LETTERS, PAPERS, PRINTS, TAPES } from "@/lib/canvas/look";
+import type { Arrangement } from "@/lib/canvas/layout";
 import type { Node } from "@/lib/canvas/model";
 import { cn } from "@/lib/utils";
 import type { Update } from "./use-canvas";
@@ -22,8 +23,16 @@ type Props = {
   onBreakApart: () => void;
   onFlow: (id: Node["_id"], action: "add" | "remove" | "earlier" | "later") => void;
   onZoomTo: (id: Node["_id"]) => void;
+  // How many moments and photos a selected frame has to arrange, and the arranging.
+  arrangeable: number;
+  onArrange: (mode: Arrangement) => void;
 };
 
+const ARRANGEMENTS: Array<{ id: Arrangement; name: string; hint: string }> = [
+  { id: "grid", name: "Grid", hint: "Lay them out square, in rows" },
+  { id: "scrapbook", name: "Scrapbook", hint: "Lay them out a little tipped" },
+  { id: "strip", name: "Strip", hint: "Lay them out in one row" },
+];
 const TURNS = new Set<Node["kind"]>(["moment", "photo", "scrap", "tape", "letter"]);
 const NAMES: Record<Node["kind"], string> = {
   frame: "Frame",
@@ -86,7 +95,7 @@ function Words({ value, focus, rows, max, onSave, label }: { value: string; focu
   );
 }
 
-export function Inspector({ nodes, flow, focusWords, onChange, onRemove, onDuplicate, onRestack, onBreakApart, onFlow, onZoomTo }: Props) {
+export function Inspector({ nodes, flow, focusWords, onChange, onRemove, onDuplicate, onRestack, onBreakApart, onFlow, onZoomTo, arrangeable, onArrange }: Props) {
   if (nodes.length === 0) return null;
   const one = nodes.length === 1 ? nodes[0]! : undefined;
 
@@ -118,6 +127,15 @@ export function Inspector({ nodes, flow, focusWords, onChange, onRemove, onDupli
               </div>
             )}
           </Row>
+          {arrangeable > 1 && (
+            <Row label="Arrange">
+              <div className="flex flex-wrap gap-1">
+                {ARRANGEMENTS.map((a) => (
+                  <Button key={a.id} size="sm" variant="outline" title={a.hint} onClick={() => onArrange(a.id)}>{a.name}</Button>
+                ))}
+              </div>
+            </Row>
+          )}
           <Button size="sm" variant="outline" onClick={() => onZoomTo(one._id)}>Zoom to it</Button>
         </>
       )}

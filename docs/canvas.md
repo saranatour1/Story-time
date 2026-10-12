@@ -38,6 +38,33 @@ Frames with a place in the flow play in order. The camera backs out of one frame
 and into the next, and the desk takes the colour of the frame it is in. Anyone who
 can see the experience can play it.
 
+## Pages made for you
+
+Every moment lands on the canvas on its own: the canvas asks for the moments
+made since it was last filled (`get` returns them as `pending`, owner only), the
+page groups them by the day they happened and sends one `add` with a frame per
+day, its heading, and the moments laid out in cells that never overlap. The `add`
+carries `filled`, the time of the newest of them, and the canvas remembers it, so
+two windows filling at once make the pages once, and a moment taken off by hand
+stays off. A day that already has a frame gets its new moments on that frame,
+in the room it has. The frames are named for the day and the place; Haiku then
+offers a short title for each from its notes (`ai.frames.name`), in the
+background after a fill and from "Name my frames" in the Ask box. A name you
+asked for is a step to undo; one made in the background isn't.
+
+Frames keep a gap between them (`GAP` in `src/lib/canvas/layout.ts`): a new one
+goes beside the last, one dropped on another is moved clear, and the grid button
+in the corner lays them all out again in flow order. A piece added by a click
+goes to the first free spot on the page you're working on. While a piece is
+dragged on a page its edges and middle snap to the page's and its neighbours'
+(hold Alt to move freely), with a blue line where it settled. A frame's
+inspector can arrange its moments and photos as a grid, a scrapbook or a strip.
+The tray's ready-made pages (cover, postcard, memory notes) are frames with
+pieces already on them.
+
+The Ask button on the canvas opens the same box as the one on the itinerary;
+what it adds goes to its day's page like anything else.
+
 ## Rules
 
 - Only the owner edits. Everyone else can look and play. (People don't edit

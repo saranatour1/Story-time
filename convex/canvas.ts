@@ -6,7 +6,7 @@ import { mutation, query } from "./_generated/server";
 import { assertNotArchived, requireEventAccess } from "./lib/access";
 import { checkText, invalid } from "./lib/blocks";
 import { decryptText, encryptText } from "./lib/crypto";
-import { MAX_CANVAS_BATCH, MAX_CANVAS_NODES } from "./lib/limits";
+import { MAX_CANVAS_BATCH, MAX_CANVAS_FILL, MAX_CANVAS_NODES, MAX_MOMENT_LIMIT } from "./lib/limits";
 import { vCanvasKind } from "./schema";
 
 // The collage canvas of an experience. Anyone who can see the experience can
@@ -177,6 +177,21 @@ async function nodesOf(ctx: QueryCtx | MutationCtx, canvasId: Id<"canvases">) {
     .take(MAX_CANVAS_NODES + 1);
 }
 
+// The moments made since the canvas was last filled, oldest first, a few at a
+// time so one request can hold their pages. `upTo` is when the last was made.
+async function pendingMoments(ctx: QueryCtx, eventId: Id<"events">, filledAt: number | undefined) {
+  const rows = await ctx.db
+    .query("moments")
+    .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", eventId))
+    .take(MAX_MOMENT_LIMIT);
+  const fresh = rows
+    .filter((m) => filledAt === undefined || m._creationTime > filledAt)
+    .sort((a, b) => a._creationTime - b._creationTime)
+    .slice(0, MAX_CANVAS_FILL);
+  const last = fresh.at(-1);
+  return last === undefined ? null : { ids: fresh.map((m) => m._id), upTo: last._creationTime };
+}
+
 // The canvas of an experience, with everything on it, for anyone who can see
 // the experience. `canEdit` says whether this person may change it.
 export const get = query({
@@ -186,6 +201,8 @@ export const get = query({
     desk: v.string(),
     canEdit: v.boolean(),
     nodes: v.array(vNodeView),
+    // The next moments to put on the canvas, for whoever may edit it.
+    pending: v.union(v.null(), v.object({ ids: v.array(v.id("moments")), upTo: v.number() })),
   }),
   handler: async (ctx, args) => {
     const { event, role } = await requireEventAccess(ctx, args.eventId, "viewer");
@@ -194,15 +211,16 @@ export const get = query({
       .query("canvases")
       .withIndex("by_event", (q) => q.eq("eventId", event._id))
       .unique();
+    const pending = canEdit ? await pendingMoments(ctx, event._id, canvas?.filledAt) : null;
     if (canvas === null) {
       const none: NodeView[] = [];
-      return { canvasId: null, desk: "desk", canEdit, nodes: none };
+      return { canvasId: null, desk: "desk", canEdit, nodes: none, pending };
     }
     const rows = (await nodesOf(ctx, canvas._id)).slice(0, MAX_CANVAS_NODES);
     const nodes = await Promise.all(rows.map((row) => viewOf(event, row)));
     // Back to front; ties keep the order they were made in.
     nodes.sort((a, b) => a.z - b.z);
-    return { canvasId: canvas._id, desk: canvas.desk, canEdit, nodes };
+    return { canvasId: canvas._id, desk: canvas.desk, canEdit, nodes, pending };
   },
 });
 
@@ -221,15 +239,21 @@ export const ensure = mutation({
   },
 });
 
+// `filled` marks the moments made up to that time as put on the canvas, in the
+// same step. A second request for a time already marked adds nothing, so two
+// windows filling the same canvas don't make it twice.
 export const add = mutation({
-  args: { canvasId: v.id("canvases"), nodes: v.array(vNodeIn) },
+  args: { canvasId: v.id("canvases"), nodes: v.array(vNodeIn), filled: v.optional(v.number()) },
   returns: v.array(v.id("canvasNodes")),
   handler: async (ctx, args) => {
     const canvas = await ctx.db.get("canvases", args.canvasId);
     if (canvas === null) throw notFound();
     const { event } = await requireEventAccess(ctx, canvas.eventId, "owner");
     assertNotArchived(event);
-    if (args.nodes.length === 0) invalid("nodes", "There is nothing to add.");
+    if (args.filled !== undefined) {
+      if (canvas.filledAt !== undefined && canvas.filledAt >= args.filled) return [];
+      await ctx.db.patch("canvases", canvas._id, { filledAt: args.filled });
+    } else if (args.nodes.length === 0) invalid("nodes", "There is nothing to add.");
     if (args.nodes.length > MAX_CANVAS_BATCH) invalid("nodes", `Add at most ${MAX_CANVAS_BATCH} things at once.`);
     if ((await nodesOf(ctx, canvas._id)).length + args.nodes.length > MAX_CANVAS_NODES) {
       throw new ConvexError({ code: "FULL", message: `A canvas holds up to ${MAX_CANVAS_NODES} things.` });

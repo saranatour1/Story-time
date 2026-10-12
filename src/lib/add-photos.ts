@@ -58,8 +58,10 @@ export async function addPhotos(args: {
   token: () => string | undefined;
   createMoment: (args: FunctionArgs<typeof api.moments.create>) => Promise<Id<"moments">>;
   enrich: Enrich;
+  // Called with each moment as it is made.
+  onMoment?: (id: Id<"moments">) => void;
 }): Promise<boolean> {
-  const { event, files, note, createMoment, enrich } = args;
+  const { event, files, note, createMoment, enrich, onMoment } = args;
   const token = args.token();
   if (files.length === 0 || !token) return false;
   const toastId = toast.loading("Reading photos…");
@@ -115,6 +117,7 @@ export async function addPhotos(args: {
         const create = first ? { ...m.create, blocks: [...m.create.blocks, { type: "note" as const, text: words }] } : m.create;
         const momentId = await createMoment({ eventId: event._id, ...create });
         created++;
+        onMoment?.(momentId);
         for (const u of m.uses) used.add(u.mediaId);
         enrichMoment(
           enrich,
