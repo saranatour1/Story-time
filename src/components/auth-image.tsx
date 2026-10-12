@@ -1,21 +1,52 @@
-import { useMediaUrl } from "@/lib/use-media-url";
+import { useMediaUrl, useWhenSeen, type MediaVariant } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 
 // Photos are private, so they load with the viewer's token and are shown
 // from a blob URL instead of a public link. `className` reshapes all three
-// states (e.g. a square thumbnail).
-export function AuthImage({ mediaId, alt, className }: { mediaId: string; alt: string; className?: string }) {
-  const { url, failed } = useMediaUrl(mediaId);
+// states (e.g. a square thumbnail). Lists ask for the stored thumbnail and
+// wait until the tile is near the viewport; the fetch itself cannot be deferred
+// by loading=lazy, because the bytes are not a public URL.
+export function AuthImage({
+  mediaId,
+  alt,
+  className,
+  variant = "thumb",
+  width,
+  height,
+  sizes,
+}: {
+  mediaId: string;
+  alt: string;
+  className?: string;
+  variant?: MediaVariant;
+  width?: number;
+  height?: number;
+  sizes?: string;
+}) {
+  const [ref, seen] = useWhenSeen();
+  const { url, failed } = useMediaUrl(seen ? mediaId : undefined, variant);
 
-  if (failed) {
-    return (
-      <div className={cn("grid aspect-video place-items-center rounded-md bg-muted text-xs text-muted-foreground", className)}>
-        Photo unavailable
-      </div>
-    );
-  }
-  if (!url) return <div className={cn("aspect-video animate-pulse rounded-md bg-muted", className)} />;
-  return <img src={url} alt={alt} className={cn("aspect-video w-full rounded-md object-cover", className)} />;
+  return (
+    <div ref={ref} className={cn("aspect-video w-full overflow-hidden rounded-md bg-muted", !url && !failed && "animate-pulse", className)}>
+      {failed ? (
+        <span className="grid size-full place-items-center text-xs text-muted-foreground">Photo unavailable</span>
+      ) : (
+        url && (
+          <img
+            src={url}
+            alt={alt}
+            width={width}
+            height={height}
+            sizes={sizes}
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            className="size-full object-cover"
+          />
+        )
+      )}
+    </div>
+  );
 }
 
 // Videos load the same way. ponytail: the whole file is fetched before it

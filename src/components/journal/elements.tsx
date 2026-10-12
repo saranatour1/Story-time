@@ -9,7 +9,7 @@ import type { MapStop } from "@/components/story/memoir/sticky-map";
 const StickyMap = lazy(() => import("@/components/story/memoir/sticky-map").then((m) => ({ default: m.StickyMap })));
 import { tornPolygon, TAPE_ENDS } from "@/lib/paper/look";
 import { placeLabel, stopsOf } from "@/lib/story-steps";
-import { useMediaUrl } from "@/lib/use-media-url";
+import { useMediaUrl, useWhenSeen } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 import { GINGHAM, MoreSticker } from "./stickers";
 import { DIE_CUT, DISTRESS, DRAW_WIDTH, FONTS, GRAIN, INK, LIFT, MUSTARD, NAVY, ROSE, RUST, TEAL, TONE_FILTER } from "./look";
@@ -265,22 +265,43 @@ export function Note({ e }: { e: JournalElement }) {
 
 // ---- Photos and stickers ----------------------------------------------------------------
 
-function Picture({ mediaId, tone, contain = false, className, style }: { mediaId: string; tone?: string; contain?: boolean; className?: string; style?: CSSProperties }) {
-  const { url, failed } = useMediaUrl(mediaId);
-  if (url) {
-    return (
-      <img
-        src={url}
-        alt=""
-        draggable={false}
-        className={cn("block size-full", contain ? "object-contain" : "object-cover", className)}
-        style={{ filter: tone ? TONE_FILTER[tone] : undefined, ...style }}
-      />
-    );
-  }
+function Picture({
+  mediaId,
+  tone,
+  contain = false,
+  className,
+  style,
+  width,
+  height,
+}: {
+  mediaId: string;
+  tone?: string;
+  contain?: boolean;
+  className?: string;
+  style?: CSSProperties;
+  width?: number;
+  height?: number;
+}) {
+  const [ref, seen] = useWhenSeen();
+  const { url, failed } = useMediaUrl(seen ? mediaId : undefined);
   return (
-    <div className={cn("grid size-full place-items-center bg-stone-300/70 text-xs text-stone-600", !failed && "animate-pulse", className)} style={style}>
-      {failed ? "This photo was removed" : null}
+    <div ref={ref} className={cn("size-full", !url && "bg-stone-300/70", !url && !failed && "animate-pulse", className)} style={style}>
+      {url ? (
+        <img
+          src={url}
+          alt=""
+          width={width}
+          height={height}
+          sizes={width ? `${Math.round(width)}px` : undefined}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          className={cn("block size-full", contain ? "object-contain" : "object-cover")}
+          style={{ filter: tone ? TONE_FILTER[tone] : undefined }}
+        />
+      ) : (
+        failed && <span className="grid size-full place-items-center text-xs text-stone-600">This photo was removed</span>
+      )}
     </div>
   );
 }
@@ -320,14 +341,14 @@ export function Photo({ e }: { e: JournalElement }) {
     case "print":
       return (
         <div className="size-full" style={{ background: paper, padding: Math.max(5, w * 0.035), ...LIFT }}>
-          <Picture mediaId={e.mediaId} tone={tone} />
+          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
         </div>
       );
     case "deckle":
       return (
         <div className="size-full" style={LIFT}>
           <div className="size-full" style={{ background: paper, padding: Math.max(8, w * 0.06), clipPath: DECKLE }}>
-            <Picture mediaId={e.mediaId} tone={tone} />
+            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
           </div>
         </div>
       );
@@ -335,7 +356,7 @@ export function Photo({ e }: { e: JournalElement }) {
       return (
         <div className="size-full" style={LIFT}>
           <div className="size-full" style={{ clipPath: tornPolygon(e.id, undefined, 2.6) }}>
-            <Picture mediaId={e.mediaId} tone={tone} />
+            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
           </div>
         </div>
       );
@@ -343,7 +364,7 @@ export function Photo({ e }: { e: JournalElement }) {
       return (
         <div className="size-full" style={LIFT}>
           <div className="size-full overflow-hidden rounded-full" style={{ border: `${Math.max(4, w * 0.03)}px solid ${paper}` }}>
-            <Picture mediaId={e.mediaId} tone={tone} />
+            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
           </div>
         </div>
       );
@@ -351,7 +372,7 @@ export function Photo({ e }: { e: JournalElement }) {
       return (
         <div className="size-full" style={LIFT}>
           <div className="size-full" style={{ clipPath: "url(#journal-heart)" }}>
-            <Picture mediaId={e.mediaId} tone={tone} />
+            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
           </div>
         </div>
       );
@@ -372,7 +393,7 @@ export function Photo({ e }: { e: JournalElement }) {
             }}
           >
             <div className="size-full" style={{ outline: `1px solid rgba(40,28,10,.18)` }}>
-              <Picture mediaId={e.mediaId} tone={tone} />
+              <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
             </div>
           </div>
         </div>
@@ -381,7 +402,7 @@ export function Photo({ e }: { e: JournalElement }) {
     case "plain":
       return (
         <div className="size-full" style={LIFT}>
-          <Picture mediaId={e.mediaId} tone={tone} />
+          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
         </div>
       );
     default: {
@@ -390,7 +411,7 @@ export function Photo({ e }: { e: JournalElement }) {
       const foot = Math.max(edge * 3, h * 0.17);
       return (
         <div className="relative size-full" style={{ background: paper, padding: `${edge}px ${edge}px ${foot}px`, ...LIFT }}>
-          <Picture mediaId={e.mediaId} tone={tone} />
+          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
           {caption && (
             <div
               className="absolute inset-x-0 bottom-0 grid place-items-center truncate px-2"
@@ -407,7 +428,7 @@ export function Photo({ e }: { e: JournalElement }) {
 
 export function Sticker({ e }: { e: JournalElement }) {
   if (e.mediaId === undefined) return null;
-  return <Picture mediaId={e.mediaId} tone={e.tone} contain style={DIE_CUT} />;
+  return <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={e.tone} contain style={DIE_CUT} />;
 }
 
 // ---- Bits of ephemera ---------------------------------------------------------------------
@@ -729,6 +750,10 @@ export function LinkCard({ e, open }: { e: JournalElement; open: boolean }) {
           <img
             src={link.image}
             alt=""
+            width={Math.round(w)}
+            height={Math.round(h * 0.55)}
+            loading="lazy"
+            decoding="async"
             draggable={false}
             referrerPolicy="no-referrer"
             className="min-h-0 w-full flex-1 object-cover"

@@ -1,3 +1,5 @@
+import { MAX_THUMB_BYTES } from "../../convex/lib/limits";
+import { displayThumbnail } from "./thumbs";
 import { stripExif } from "./strip-exif";
 
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -39,7 +41,25 @@ export async function uploadMedia(
   if (!res.ok || !body?.mediaId) {
     throw new Error(body?.error ?? "Upload failed");
   }
+  if (!isVideoFile(file)) await uploadThumb(file, body.mediaId, token, eventId);
   return body.mediaId;
+}
+
+// Best effort: a list can still show the original when this does not land.
+async function uploadThumb(file: File, mediaId: string, token: string, eventId?: string) {
+  const thumb = await displayThumbnail(file).catch(() => undefined);
+  if (!thumb || thumb.blob.size > MAX_THUMB_BYTES) return;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "image/jpeg",
+    "X-Purpose": "thumb",
+    "X-Media-Id": mediaId,
+    "X-File-Size": String(thumb.blob.size),
+    "X-Image-Width": String(thumb.width),
+    "X-Image-Height": String(thumb.height),
+  };
+  if (eventId) headers["X-Event-Id"] = eventId;
+  await fetch("/api/upload", { method: "POST", headers, body: thumb.blob }).catch(() => undefined);
 }
 
 // The journal printed to a locked PDF, through the same route, which
@@ -84,6 +104,7 @@ export async function uploadAvatar(file: File, token: string): Promise<string> {
     error?: string;
   } | null;
   if (!res.ok || !body?.mediaId) throw new Error(body?.error ?? "Upload failed");
+  await uploadThumb(file, body.mediaId, token);
   return body.mediaId;
 }
 

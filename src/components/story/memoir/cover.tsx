@@ -47,7 +47,7 @@ export function Cover({
           {event.description}
         </p>
       )}
-      {photo && <AuthImage mediaId={photo} alt="" className="mt-8 aspect-[3/2] w-full rounded-2xl object-cover" />}
+      {photo && <AuthImage mediaId={photo} alt="" variant="full" sizes="(min-width: 768px) 640px, 100vw" className="mt-8 aspect-[3/2] w-full rounded-2xl object-cover" />}
       <div className="mt-6 flex flex-wrap items-center gap-4">
         <Button size="lg" className="rounded-full bg-[#c2410c] px-5 text-white hover:bg-[#c2410c]/90" onClick={onPlayFilm}>
           <PlayIcon /> Play as film

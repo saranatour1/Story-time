@@ -396,7 +396,7 @@ export function MomentForm({
                           <span className="sr-only">{m.name}</span>
                         </div>
                       ) : (
-                        <AuthImage mediaId={m.mediaId} alt={m.name} className="aspect-square rounded-md" />
+                        <AuthImage mediaId={m.mediaId} alt={m.name} width={160} height={160} sizes="160px" className="aspect-square rounded-md" />
                       )}
                       <button
                         type="button"

@@ -49,6 +49,7 @@ import { PageEditor, writable } from "./editor";
 import { pathThrough, readDrawing, writeDrawing } from "./elements";
 import type { Idea } from "./ideas";
 import { download, fileName, journalFile, journalPdf, pagePng, readJournalFile, waitForPage, wholeJournalPdfLabel } from "./export";
+import { PdfCancelled } from "./pdf-book";
 import { DRAW_NAMES, DRAW_WIDTH, FONTS, GRAIN, INKS, paperLook } from "./look";
 import { JournalMenu, type Layer } from "./menu";
 import { contentsByDay } from "./contents";
@@ -145,6 +146,7 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
   // The panel as a sheet, on a phone.
   const [sheet, setSheet] = useState(false);
   const [printing, setPrinting] = useState<{ done: number; total: number } | null>(null);
+  const printJob = useRef<AbortController | null>(null);
   const [locking, setLocking] = useState(false);
   const [sheetPage, setSheetPage] = useState<PageData | null>(null);
   const importer = useRef<HTMLInputElement>(null);
@@ -488,6 +490,8 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
   }
   // Pages drawn one at a time offstage into one PDF, with the count shown.
   async function makePdf(ids: PageId[]): Promise<Blob> {
+    const job = new AbortController();
+    printJob.current = job;
     setPrinting({ done: 0, total: ids.length });
     try {
       return await journalPdf(
@@ -497,8 +501,10 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
           return drawPage(ids[i]!);
         },
         (n) => setPrinting({ done: n, total: ids.length }),
+        job.signal,
       );
     } finally {
+      if (printJob.current === job) printJob.current = null;
       setPrinting(null);
       setSheetPage(null);
     }
@@ -509,6 +515,7 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
       download(await makePdf(ids), `${fileName(event.title)}.pdf`);
       toast.success(done);
     } catch (e) {
+      if (e instanceof PdfCancelled) return;
       toast.error(errorMessage(e));
     }
   }
@@ -722,6 +729,11 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
               onClick={() => void journal.lockJournal(!journal.locked)}
             >
               {journal.locked ? <LockIcon aria-hidden /> : <UnlockIcon aria-hidden />} {journal.locked ? "Locked" : "Lock"}
+            </Button>
+          )}
+          {printing && printJob.current && (
+            <Button size="sm" variant="ghost" onClick={() => printJob.current?.abort()}>
+              Cancel
             </Button>
           )}
           <DropdownMenu>

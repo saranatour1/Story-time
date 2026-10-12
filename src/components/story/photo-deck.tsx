@@ -333,7 +333,7 @@ export const PhotoDeck = forwardRef<
                         <AuthVideo mediaId={pic.mediaId} label={`Video ${i + 1}`} />
                       </div>
                     )}
-                    {(live || leaving) && pic?.type === "photo" && <AuthImage mediaId={pic.mediaId} alt={`Picture ${i + 1}`} />}
+                    {(live || leaving) && pic?.type === "photo" && <AuthImage mediaId={pic.mediaId} alt={`Picture ${i + 1}`} variant="full" sizes="100vw" />}
                   </div>
                 </div>
               );

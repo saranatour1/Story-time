@@ -127,6 +127,9 @@ function ExperienceCard({ event: e }: { event: Experience }) {
           <AuthImage
             mediaId={e.coverMediaId}
             alt=""
+            width={480}
+            height={320}
+            sizes="(min-width: 1024px) 320px, 100vw"
             className="absolute inset-0 aspect-auto size-full rounded-none transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none"
           />
         ) : (

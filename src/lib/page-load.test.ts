@@ -49,7 +49,9 @@ describe("page load", () => {
     expect(story).toContain('import("@/components/story/story-scroll")');
 
     const exp = source("src/components/journal/export.ts");
-    expect(exp).toContain('import("jspdf")');
+    // The journal PDF is assembled in its own module. jsPDF is not on this path.
+    expect(exp).toContain('from "./pdf-book"');
+    expect(exp).not.toContain('from "jspdf"');
     expect(exp).toContain('import("modern-screenshot")');
     expect(source("src/components/journal/cutter.tsx")).toContain('import("@mediapipe/tasks-vision")');
     expect(source("src/router.tsx")).toContain('defaultPreload: "intent"');

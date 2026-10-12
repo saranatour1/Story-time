@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { ConvexError } from "convex/values";
 import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { MAX_THUMB_BYTES } from "../../../convex/lib/limits";
 import { bearerToken, convexAs, json, ssecKeyFor } from "@/server/r2";
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -16,12 +17,17 @@ export const Route = createFileRoute("/api/upload")({
       POST: async ({ request }) => {
         const token = bearerToken(request);
         const eventId = request.headers.get("X-Event-Id");
-        const isAvatar = request.headers.get("X-Purpose") === "avatar";
+        const purpose = request.headers.get("X-Purpose");
+        const isAvatar = purpose === "avatar";
+        const isThumb = purpose === "thumb";
         // The journal printed to a locked PDF for its share link.
-        const isPdf = request.headers.get("X-Purpose") === "journal-pdf";
+        const isPdf = purpose === "journal-pdf";
         const size = Number(request.headers.get("X-File-Size"));
         const mime = request.headers.get("Content-Type") ?? "";
         if (!token) return json({ error: "Sign in to upload" }, 401);
+        if (isThumb) {
+          return storeThumb(convexAs(token), request, size, mime);
+        }
         if ((!isAvatar && !eventId) || !request.body || !Number.isInteger(size) || (isPdf && mime !== "application/pdf")) {
           return json({ error: "Bad request" }, 400);
         }
@@ -78,3 +84,41 @@ export const Route = createFileRoute("/api/upload")({
     },
   },
 });
+
+// The small JPEG for lists. The original is already stored; a failed thumb
+// leaves that original in place and lists fall back to it.
+async function storeThumb(convex: ReturnType<typeof convexAs>, request: Request, size: number, mime: string) {
+  const mediaId = request.headers.get("X-Media-Id");
+  const width = Number(request.headers.get("X-Image-Width"));
+  const height = Number(request.headers.get("X-Image-Height"));
+  if (!mediaId || !request.body || mime !== "image/jpeg" || !Number.isInteger(size) || !Number.isInteger(width) || !Number.isInteger(height)) {
+    return json({ error: "Bad request" }, 400);
+  }
+  if (size < 1 || size > MAX_THUMB_BYTES) return json({ error: "Thumbnails can be at most 400 KB" }, 413);
+  try {
+    const reserved = await convex.mutation(api.media.reserveThumb, {
+      mediaId: mediaId as Id<"media">,
+      size,
+    });
+    await env.MEDIA.put(reserved.r2Key, request.body.pipeThrough(new FixedLengthStream(size)), {
+      httpMetadata: { contentType: "image/jpeg" },
+      ssecKey: await ssecKeyFor(reserved.keyScope, reserved.keyVersion),
+    });
+    const previous = await convex.mutation(api.media.attachThumb, {
+      mediaId: mediaId as Id<"media">,
+      thumbR2Key: reserved.r2Key,
+      thumbSize: size,
+      width,
+      height,
+    });
+    if (previous) await env.MEDIA.delete(previous);
+    return json({ mediaId }, 201);
+  } catch (e) {
+    if (e instanceof ConvexError) {
+      const data = e.data as { message?: string } | string;
+      return json({ error: typeof data === "string" ? data : data.message }, 400);
+    }
+    console.error("[upload] thumb failed", e);
+    return json({ error: "Upload failed" }, 500);
+  }
+}

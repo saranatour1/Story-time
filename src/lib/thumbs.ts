@@ -2,6 +2,8 @@
 // AI to look at without the call growing much.
 const SIDE = 512;
 const QUALITY = 0.7;
+// What lists and thumbnails fetch instead of the original.
+const DISPLAY_SIDE = 480;
 
 // One decode at a time: each one holds a full-size photo in memory, and a few
 // at once could exhaust a phone's.
@@ -21,6 +23,32 @@ export function thumbnail(file: File): Promise<string | undefined> {
     made.set(file, thumb);
   }
   return thumb;
+}
+
+// A JPEG small enough for a shelf or a card, plus the original's pixel size
+// so the layout can reserve the right box. Videos give undefined.
+export function displayThumbnail(file: File): Promise<{ blob: Blob; width: number; height: number } | undefined> {
+  if (!file.type.startsWith("image/")) return Promise.resolve(undefined);
+  const job = turn.then(() => makeDisplay(file));
+  turn = job.then(
+    () => undefined,
+    () => undefined,
+  );
+  return job;
+}
+
+async function makeDisplay(file: File): Promise<{ blob: Blob; width: number; height: number } | undefined> {
+  let bitmap: ImageBitmap | undefined;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, DISPLAY_SIDE / Math.max(bitmap.width, bitmap.height));
+    const blob = await encode(bitmap, Math.max(1, Math.round(bitmap.width * scale)), Math.max(1, Math.round(bitmap.height * scale)));
+    return blob ? { blob, width: bitmap.width, height: bitmap.height } : undefined;
+  } catch {
+    return undefined;
+  } finally {
+    bitmap?.close();
+  }
 }
 
 async function shrink(file: File): Promise<string | undefined> {

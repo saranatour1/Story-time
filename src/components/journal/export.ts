@@ -1,4 +1,5 @@
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
+import { assembleJournalPdf, PDF_QUALITY, PDF_SCALE, reuseCanvas } from "./pdf-book";
 
 // Getting a journal out as paper (an A4 PDF, a page as a picture) and as a
 // file it can come back from.
@@ -14,10 +15,9 @@ async function settled(node: HTMLElement, hasMap: boolean) {
   if (hasMap) await new Promise((r) => setTimeout(r, 1800));
 }
 
-const options = {
+const frame = {
   width: PAGE.w,
   height: PAGE.h,
-  scale: 2,
   // The page is drawn scaled on screen; the picture is at full size.
   style: { transform: "none" },
   // The play buttons on maps are for the screen, not the paper.
@@ -51,27 +51,52 @@ export function waitForPage(root: () => HTMLElement | null, pageId: string): Pro
 export async function pagePng({ node, hasMap, paper }: Drawn): Promise<string> {
   const { domToPng } = await import("modern-screenshot");
   await settled(node, hasMap);
-  return domToPng(node, { ...options, backgroundColor: paper });
+  return domToPng(node, { ...frame, scale: 2, backgroundColor: paper });
 }
 
 // Every page, one A4 sheet each, in order. `pages` draws them one at a time
 // at full size and hands back the drawn node.
+// One canvas for the whole book. Each page is drawn into it, encoded, and the
+// screenshot's own canvas is dropped before the next page.
+let pageCanvas: HTMLCanvasElement | null = null;
+
+async function pageJpeg(node: HTMLElement, paper: string): Promise<Uint8Array> {
+  const { domToCanvas } = await import("modern-screenshot");
+  const shot = await domToCanvas(node, { ...frame, scale: PDF_SCALE, backgroundColor: paper });
+  const reused = reuseCanvas(pageCanvas, shot.width, shot.height, (width, height) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  });
+  pageCanvas = reused.current;
+  const context = pageCanvas.getContext("2d");
+  if (!context) throw new Error("The page couldn't be drawn.");
+  context.drawImage(shot, 0, 0);
+  shot.width = 0;
+  shot.height = 0;
+  const blob = await new Promise<Blob | null>((resolve) => pageCanvas?.toBlob(resolve, "image/jpeg", PDF_QUALITY));
+  if (!blob) throw new Error("The page couldn't be drawn.");
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
 export async function journalPdf(
   count: number,
   draw: (index: number) => Promise<Drawn>,
   onProgress: (done: number) => void,
+  signal?: AbortSignal,
 ): Promise<Blob> {
-  const [{ jsPDF }, { domToJpeg }] = await Promise.all([import("jspdf"), import("modern-screenshot")]);
-  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
-  for (let i = 0; i < count; i++) {
-    const { node, hasMap, paper } = await draw(i);
-    await settled(node, hasMap);
-    const jpeg = await domToJpeg(node, { ...options, backgroundColor: paper, quality: 0.9 });
-    if (i > 0) pdf.addPage("a4", "portrait");
-    pdf.addImage(jpeg, "JPEG", 0, 0, 210, 297, undefined, "FAST");
-    onProgress(i + 1);
-  }
-  return pdf.output("blob");
+  const bytes = await assembleJournalPdf(
+    count,
+    async (index) => {
+      const { node, hasMap, paper } = await draw(index);
+      await settled(node, hasMap);
+      return pageJpeg(node, paper);
+    },
+    { signal, onProgress },
+  );
+  const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  return new Blob([copy], { type: "application/pdf" });
 }
 
 export function download(href: string | Blob, name: string) {

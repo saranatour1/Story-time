@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { type FrameLook, paperLook, printLook, tapeLook, TAPE_ENDS, tornPolygon } from "@/lib/paper/look";
-import { useMediaUrl } from "@/lib/use-media-url";
+import { useMediaUrl, useWhenSeen } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 
 // The things on a story page, drawn like a scrapbook: torn paper and taped
@@ -73,12 +73,25 @@ export function Scrap({ id, w, h, look, text }: { id: string; w: number; h: numb
 
 // ---- Prints ---------------------------------------------------------------------
 
-function Picture({ mediaId, className, style }: { mediaId: string; className?: string; style?: CSSProperties }) {
-  const { url, failed } = useMediaUrl(mediaId);
-  if (url) return <img src={url} alt="" draggable={false} className={cn("size-full object-cover", className)} style={style} />;
+function Picture({ mediaId, w, h, className, style }: { mediaId: string; w: number; h: number; className?: string; style?: CSSProperties }) {
+  const [ref, seen] = useWhenSeen();
+  const { url, failed } = useMediaUrl(seen ? mediaId : undefined, "thumb");
   return (
-    <div className={cn("grid size-full place-items-center bg-stone-300/70 text-[0.7em] text-stone-600", !failed && "animate-pulse", className)} style={style}>
-      {failed ? "Photo unavailable" : null}
+    <div ref={ref} className={cn("size-full", !url && "bg-stone-300/70", !url && !failed && "animate-pulse", className)} style={style}>
+      {url && (
+        <img
+          src={url}
+          alt=""
+          width={Math.round(w)}
+          height={Math.round(h)}
+          sizes={`${Math.round(w)}px`}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          className="size-full object-cover"
+        />
+      )}
+      {failed && <span className="grid size-full place-items-center text-[0.7em] text-stone-600">Photo unavailable</span>}
     </div>
   );
 }
@@ -89,7 +102,7 @@ export function Print({ id, w, h, look, mediaId }: { id: string; w: number; h: n
     return (
       <div className="size-full" style={LIFT}>
         <div className="size-full" style={{ clipPath: tornPolygon(id, { top: true, right: true, bottom: true, left: true }, 2.2) }}>
-          <Picture mediaId={mediaId} />
+          <Picture mediaId={mediaId} w={w} h={h} />
         </div>
       </div>
     );
@@ -97,14 +110,14 @@ export function Print({ id, w, h, look, mediaId }: { id: string; w: number; h: n
   if (style === "cutout") {
     return (
       <div className="size-full" style={{ border: `${Math.max(3, w * 0.018)}px solid #fffdf6`, boxShadow: `${w * 0.014}px ${w * 0.02}px 0 rgba(30,20,8,.3)` }}>
-        <Picture mediaId={mediaId} />
+        <Picture mediaId={mediaId} w={w} h={h} />
       </div>
     );
   }
   if (style === "plain") {
     return (
       <div className="size-full" style={LIFT}>
-        <Picture mediaId={mediaId} />
+        <Picture mediaId={mediaId} w={w} h={h} />
       </div>
     );
   }
@@ -112,7 +125,7 @@ export function Print({ id, w, h, look, mediaId }: { id: string; w: number; h: n
   const edge = Math.max(4, w * 0.045);
   return (
     <div className="relative size-full bg-[#fdfaf1]" style={{ ...LIFT, padding: `${edge}px ${edge}px ${Math.max(edge * 2.6, h * 0.12)}px` }}>
-      <Picture mediaId={mediaId} />
+      <Picture mediaId={mediaId} w={w} h={h} />
     </div>
   );
 }

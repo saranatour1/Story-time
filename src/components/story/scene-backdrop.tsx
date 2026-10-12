@@ -11,6 +11,7 @@ export function SceneBackdrop({ mediaId }: { mediaId: string }) {
         <img
           src={url}
           alt=""
+          decoding="async"
           className="absolute inset-0 h-full w-full scale-125 object-cover opacity-50 blur-3xl saturate-150 animate-in fade-in duration-1000"
         />
       )}

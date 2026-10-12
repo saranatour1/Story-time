@@ -6,15 +6,15 @@ import { bearerToken, convexAnonymous, convexAs, json, shareToken, ssecKeyFor } 
 
 // Null unless the caller may see it. A signed-in viewer is checked as
 // themselves; a share link by its token alone. Convex makes both decisions.
-async function mediaFor(request: Request, mediaId: Id<"media">) {
+async function mediaFor(request: Request, mediaId: Id<"media">, variant: "full" | "thumb") {
   const token = bearerToken(request);
   if (token) {
-    return convexAs(token).query(api.media.getForDownload, { mediaId }).catch(() => null);
+    return convexAs(token).query(api.media.getForDownload, { mediaId, variant }).catch(() => null);
   }
   const share = shareToken(request);
   if (share) {
     return convexAnonymous()
-      .query(api.share.mediaForShare, { token: share, mediaId })
+      .query(api.share.mediaForShare, { token: share, mediaId, variant })
       .catch(() => null);
   }
   return null;
@@ -26,7 +26,8 @@ export const Route = createFileRoute("/api/media/$id")({
       GET: async ({ request, params }) => {
         if (!bearerToken(request) && !shareToken(request)) return json({ error: "Sign in" }, 401);
 
-        const media = await mediaFor(request, params.id as Id<"media">);
+        const variant = new URL(request.url).searchParams.get("variant") === "thumb" ? "thumb" : "full";
+        const media = await mediaFor(request, params.id as Id<"media">, variant);
         if (!media) return json({ error: "Not found" }, 404);
 
         const object = await env.MEDIA.get(media.r2Key, {
@@ -60,6 +61,7 @@ export const Route = createFileRoute("/api/media/$id")({
         if (!target) return json({ error: "Not found" }, 404);
 
         await env.MEDIA.delete(target.r2Key);
+        if (target.thumbR2Key) await env.MEDIA.delete(target.thumbR2Key);
         await convex.mutation(api.media.markDeleted, { mediaId });
         return json({ ok: true });
       },

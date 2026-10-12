@@ -317,7 +317,7 @@ export function CommandBar({ event, openMomentId }: { event: EventView; openMome
                       on && "ring-2 ring-ring ring-offset-2 ring-offset-background",
                     )}
                   >
-                    {video ? <PlayIcon aria-hidden className="size-5" /> : <AuthImage mediaId={item.mediaId} alt="" className="size-full rounded-none aspect-square" />}
+                    {video ? <PlayIcon aria-hidden className="size-5" /> : <AuthImage mediaId={item.mediaId} alt="" width={56} height={56} sizes="56px" className="size-full rounded-none aspect-square" />}
                   </button>
                 </li>
               );

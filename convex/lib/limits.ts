@@ -8,6 +8,8 @@ export const momentsToRead = (momentCount: number) => Math.max(MOMENT_LIMIT, mom
 // storage budget: live bytes are still capped by MAX_LIVE_UPLOAD_BYTES.
 export const MAX_MEDIA_PER_EVENT = MOMENT_LIMIT * 5;
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+// A list thumbnail: longest side 480px, JPEG. The original stays for the open page.
+export const MAX_THUMB_BYTES = 400 * 1024;
 export const MAX_BLOCKS_PER_MOMENT = 20;
 // A moment is a journey: its own place and time are the first stop.
 export const MAX_STOPS_PER_MOMENT = 10;

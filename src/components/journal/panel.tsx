@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
 import { firstLine, groupByDay } from "@/lib/timeline";
-import { useMediaUrl } from "@/lib/use-media-url";
+import { useMediaUrl, useWhenSeen } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 import { type NewThing, sizeOf, WORDED } from "./add";
 import { Deco, Note, Title } from "./elements";
@@ -29,8 +29,13 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Thumb({ mediaId, className }: { mediaId: string; className?: string }) {
-  const { url } = useMediaUrl(mediaId);
-  return url ? <img src={url} alt="" draggable={false} className={cn("size-full object-cover", className)} /> : <span className={cn("block size-full animate-pulse bg-stone-200", className)} />;
+  const [ref, seen] = useWhenSeen();
+  const { url } = useMediaUrl(seen ? mediaId : undefined, "thumb");
+  return (
+    <span ref={ref} className={cn("block size-full", !url && "animate-pulse bg-stone-200", className)}>
+      {url && <img src={url} alt="" width={96} height={96} sizes="96px" loading="lazy" decoding="async" draggable={false} className="size-full object-cover" />}
+    </span>
+  );
 }
 
 // A small drawing of a style, to pick it by sight.

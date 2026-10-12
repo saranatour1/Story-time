@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { errorMessage } from "@/lib/errors";
 import { uploadMedia } from "@/lib/upload";
-import { useMediaUrl } from "@/lib/use-media-url";
+import { useMediaUrl, useWhenSeen } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 import { FONTS } from "./look";
 
@@ -215,6 +215,7 @@ export function StickerCutter({
                   ref={img}
                   src={url}
                   alt="Photo to cut. Arrow keys move the point, Enter cuts there."
+                  decoding="async"
                   tabIndex={0}
                   onPointerDown={tap}
                   onKeyDown={nudge}
@@ -283,8 +284,13 @@ export function StickerCutter({
 }
 
 function ThumbOf({ id }: { id: string }) {
-  const { url } = useMediaUrl(id);
-  return url ? <img src={url} alt="" className="size-full object-cover" /> : <span className="block size-full animate-pulse bg-stone-200" />;
+  const [ref, seen] = useWhenSeen();
+  const { url } = useMediaUrl(seen ? id : undefined, "thumb");
+  return (
+    <span ref={ref} className={cn("block size-full", !url && "animate-pulse bg-stone-200")}>
+      {url && <img src={url} alt="" width={56} height={56} sizes="56px" loading="lazy" decoding="async" className="size-full object-cover" />}
+    </span>
+  );
 }
 
 const clamp = (n: number) => Math.min(0.98, Math.max(0.02, n));
