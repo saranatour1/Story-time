@@ -4,6 +4,8 @@ What has landed, newest first. One line per change; the PR has the detail.
 
 ## 2026-10-13
 
+- **Edit and Delete on each moment row.** A pencil and a trash can sit at the end of every row you may change (your own moments, or any if you own the trip), so you no longer open a moment to find Delete at the bottom of the form. Delete asks first and clears the photos, as the form does.
+
 - Journal titles read as titles: the Dada style is one size of tall capitals (no more THE TIme I weNT), and Ransom letters are always capitals on their scraps (no more UNTitlEd).
 - Tighter limits, all in `convex/lib/limits.ts`: 50 photos and 5 videos per experience (journal stickers and a locked PDF don't count), 100 moments, 150 journal pages, 10 experiences and 1 GB of uploads per person, 20 waiting invites, and 10 invite and 10 share-link emails a day. The user guide's table says the same.
 - AI Budget (`@convex-dev/ai-budget`) measures every AI call: model, person, feature (note, transport, intent, plan, voice, title), tokens and the gateway's own cost, with no prompts or responses kept. Its dashboard is at `<deployment>.convex.site/aibudget` behind a token, and `model/aiBudget:spend` prints totals. It caps nothing; the 10-a-day allowance stays.

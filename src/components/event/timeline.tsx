@@ -1,12 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import { SearchIcon } from "lucide-react";
+import { useAuthToken } from "@convex-dev/auth/react";
+import { useMutation } from "convex/react";
+import { PencilIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 import { queries } from "@/lib/queries";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ActorBadge } from "@/components/event/actor-badge";
 import { QuickAddButton } from "@/components/event/quick-add";
 import type { EventView, MomentView } from "@/components/event/types";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { deletePhotos } from "@/lib/actions";
 import { authorOf } from "@/lib/actors";
 import { formatTime } from "@/lib/local-time";
 import { matchesSearch } from "@/lib/moment-filters";
@@ -15,22 +22,30 @@ import { firstLine, groupByDay } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
 // The moments of an experience, by day, with a search box. Picking one hands
-// it to the page, which edits it or opens it in the story.
+// it to the page, which edits it or opens it in the story. Each row you may
+// change has its own Edit and Delete buttons.
 export const Timeline = ({
   event,
   meId,
   selectedMomentId,
   onPick,
+  canEdit,
+  onEdit,
 }: {
   event: EventView;
   meId?: string;
   selectedMomentId?: string;
   onPick: (moment: MomentView) => void;
+  canEdit: (authorId: string) => boolean;
+  onEdit: (moment: MomentView) => void;
 }) => {
   const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
   const { data: leftOut } = useQuery(queries.journal.unpaged({ eventId: event._id }));
   const unpaged = new Set(leftOut?.full ? leftOut.momentIds : []);
   const [query, setQuery] = useState("");
+  const remove = useMutation(api.moments.remove);
+  const token = useAuthToken();
+  const [deleting, setDeleting] = useState<MomentView | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
 
   // "/" jumps to the search from anywhere outside a text field, as on most sites.
@@ -115,16 +130,13 @@ export const Timeline = ({
             {day.moments.map((m) => {
               const selected = m._id === selectedMomentId;
               return (
-                <li key={m._id}>
+                <li key={m._id} className={cn("group flex items-center hover:bg-muted/60", selected && "bg-muted")}>
                   <button
                     type="button"
                     data-moment-id={m._id}
                     aria-current={selected ? "true" : undefined}
                     onClick={() => onPick(m)}
-                    className={cn(
-                      "flex w-full items-center gap-3 px-3 py-2.5 text-left outline-none hover:bg-muted/60 focus-visible:bg-muted/60",
-                      selected && "bg-muted",
-                    )}
+                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left outline-none focus-visible:bg-muted/60"
                   >
                     <span className="w-16 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">{formatTime(m.startsAt, m.tzOffsetMinutes)}</span>
                     <span className="min-w-0 flex-1">
@@ -136,12 +148,35 @@ export const Timeline = ({
                     <PlaceChip place={m.place} />
                     <ActorBadge actor={authorOf(m)} you={m.authorId === meId} className="hidden md:inline-flex" />
                   </button>
+                  {canEdit(m.authorId) && (
+                    <div className="flex shrink-0 items-center pr-1.5">
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit moment" className="text-muted-foreground" onClick={() => onEdit(m)}>
+                        <PencilIcon />
+                      </Button>
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete moment" className="text-muted-foreground hover:text-destructive" onClick={() => setDeleting(m)}>
+                        <Trash2Icon />
+                      </Button>
+                    </div>
+                  )}
                 </li>
               );
             })}
           </ul>
         </section>
       ))}
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title="Delete this moment?"
+        description="Its notes, links and photos are removed for everyone. This can't be undone."
+        confirmLabel="Delete moment"
+        onConfirm={async () => {
+          if (deleting === null) return;
+          const { removedMediaIds } = await remove({ momentId: deleting._id });
+          if (token) await deletePhotos(removedMediaIds, token);
+          toast.success("Moment deleted");
+        }}
+      />
     </div>
   );
 };

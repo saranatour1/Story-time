@@ -69,7 +69,14 @@ const EventPage = () => {
             )}
             <div className="min-w-0 space-y-4 lg:order-1">
               <CommandBar event={event} openMomentId={momentId} />
-              <Timeline event={event} meId={me?.id} selectedMomentId={momentId} onPick={pick} />
+              <Timeline
+                event={event}
+                meId={me?.id}
+                selectedMomentId={momentId}
+                onPick={pick}
+                canEdit={canEditMoment}
+                onEdit={(m) => openPanel("moment", m._id)}
+              />
             </div>
           </div>
         );
