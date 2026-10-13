@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { AvatarField } from "@/components/avatar-field";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { SettingsBlock, SettingsPage } from "@/components/settings/section";
@@ -9,10 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { errorMessage } from "@/lib/errors";
 
-export const Route = createFileRoute("/_app/settings/profile")({ component: Profile });
-
-function Profile() {
-  const user = useQuery(api.users.getCurrentUser);
+const Profile = () => {
+  const { data: user } = useQuery(queries.users.getCurrentUser());
 
   return (
     <SettingsPage
@@ -39,9 +39,9 @@ function Profile() {
       )}
     </SettingsPage>
   );
-}
+};
 
-function OnThisDay({ emailVerified, on }: { emailVerified: boolean; on: boolean }) {
+const OnThisDay = ({ emailVerified, on }: { emailVerified: boolean; on: boolean }) => {
   const set = useMutation(api.users.setOnThisDay);
   return (
     <SettingsBlock
@@ -61,4 +61,7 @@ function OnThisDay({ emailVerified, on }: { emailVerified: boolean; on: boolean 
       </div>
     </SettingsBlock>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app/settings/profile")({ component: Profile });

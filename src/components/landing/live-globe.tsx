@@ -30,7 +30,7 @@ const FILL = 0.42;
 
 // Zooms so the globe fills its box at any width: at zoom z the world is
 // 512·2^z pixels round, so its radius is that over 2π.
-function Fit() {
+const Fit = () => {
   const { map, isLoaded } = useMap();
   useEffect(() => {
     if (!map || !isLoaded) return;
@@ -42,9 +42,9 @@ function Fit() {
     };
   }, [map, isLoaded]);
   return null;
-}
+};
 
-function Turn({ active }: { active: boolean }) {
+const Turn = ({ active }: { active: boolean }) => {
   const { map, isLoaded } = useMap();
   useEffect(() => {
     if (!map || !isLoaded || !active) return;
@@ -59,9 +59,9 @@ function Turn({ active }: { active: boolean }) {
     return () => cancelAnimationFrame(frame);
   }, [map, isLoaded, active]);
   return null;
-}
+};
 
-export function LiveGlobe({ turning }: { turning: boolean }) {
+export const LiveGlobe = ({ turning }: { turning: boolean }) => {
   return (
     <Map theme="dark" projection={{ type: "globe" }} center={[MID_LNG, 30]} zoom={1.55} interactive={false} className="size-full">
       <MapArc
@@ -85,4 +85,4 @@ export function LiveGlobe({ turning }: { turning: boolean }) {
       <Turn active={turning} />
     </Map>
   );
-}
+};

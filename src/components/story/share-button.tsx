@@ -2,7 +2,7 @@ import { useMutation } from "convex/react";
 import { Share2Icon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { StoryEvent } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,22 +10,22 @@ import { errorMessage } from "@/lib/errors";
 
 // Safari only lets a click write the clipboard before its first await, so
 // the write starts at once and takes the text when it's ready.
-function copyLater(text: Promise<string>): Promise<void> {
+const copyLater = (text: Promise<string>): Promise<void> => {
   if (typeof ClipboardItem === "undefined") return text.then((t) => navigator.clipboard.writeText(t));
   const blob = text.then((t) => new Blob([t], { type: "text/plain" }));
   return navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
-}
+};
 
 // Owners switch the story's link on and copy it: anyone with it can watch.
 // Everyone else copies the story's own address. On a shared story, which has
 // no role, the address on screen is the link.
-export function ShareButton({ event, label, className }: { event: StoryEvent; label?: string; className?: string }) {
+export const ShareButton = ({ event, label, className }: { event: StoryEvent; label?: string; className?: string }) => {
   const enableLink = useMutation(api.share.enable);
   const [busy, setBusy] = useState(false);
   const shared = event.role === undefined;
   const canShareLink = event.role === "owner" && event.status !== "archived";
 
-  async function share() {
+  const share = async () => {
     setBusy(true);
     const link = shared
       ? Promise.resolve(window.location.href)
@@ -54,7 +54,7 @@ export function ShareButton({ event, label, className }: { event: StoryEvent; la
     } finally {
       setBusy(false);
     }
-  }
+  };
 
   if (label) {
     return (
@@ -68,6 +68,7 @@ export function ShareButton({ event, label, className }: { event: StoryEvent; la
       variant="ghost"
       size="icon"
       aria-label={canShareLink ? "Share with a link" : "Copy link"}
+      data-track="story_shared"
       onClick={() => void share()}
       disabled={busy}
       className={cn("text-white hover:bg-white/10 hover:text-white", className)}
@@ -75,4 +76,4 @@ export function ShareButton({ event, label, className }: { event: StoryEvent; la
       <Share2Icon />
     </Button>
   );
-}
+};

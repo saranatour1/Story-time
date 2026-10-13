@@ -5,7 +5,7 @@ import type { StoryDay } from "@/lib/story-days";
 
 // One day of the story: its eyebrow, then its stops in order, each preceded by
 // the leg that brought them there.
-export function DaySection({
+export const DaySection = ({
   day,
   numbers,
   minutes,
@@ -19,7 +19,7 @@ export function DaySection({
   minutes: Map<number, number>;
   meId?: string;
   onPlayFilm: (step: number) => void;
-}) {
+}) => {
   return (
     <section aria-label={`Day ${day.index}`} className="space-y-6">
       <h2 className="text-xs tracking-[0.2em] text-orange-800 uppercase dark:text-orange-400">
@@ -33,4 +33,4 @@ export function DaySection({
       ))}
     </section>
   );
-}
+};

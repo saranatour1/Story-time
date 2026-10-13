@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { PlayIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { AuthImage } from "@/components/auth-image";
 import { EventActionsMenu } from "@/components/event/event-actions-menu";
 import { eventDates } from "@/components/event/event-dates";
@@ -15,21 +17,19 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_app/home")({ component: Home });
-
 type Experience = FunctionReturnType<typeof api.events.listMine>[number];
 
 // The grid's columns follow the space it has (the sidebar may be open).
 const GRID = "grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-3";
 
-function Home() {
-  const events = useQuery(api.events.listMine);
+const Home = () => {
+  const { data: events } = useQuery(queries.events.listMine());
   const createDraft = useMutation(api.events.createDraft);
   const navigate = useNavigate();
   const [starting, setStarting] = useState(false);
   useDocumentTitle("Experiences · Story-time");
 
-  async function start() {
+  const start = async () => {
     setStarting(true);
     try {
       const id = await createDraft();
@@ -38,7 +38,7 @@ function Home() {
       toast.error(errorMessage(e));
       setStarting(false);
     }
-  }
+  };
 
   if (events === undefined) {
     return (
@@ -84,7 +84,7 @@ function Home() {
     <div className="@container mx-auto w-full max-w-6xl space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-serif text-3xl font-semibold tracking-tight">Experiences</h1>
-        <Button onClick={() => void start()} disabled={starting}>
+        <Button onClick={() => void start()} disabled={starting} data-track="new_experience_clicked">
           <PlusIcon /> New experience
         </Button>
       </header>
@@ -95,9 +95,9 @@ function Home() {
       {shared.length > 0 && <Section title="Shared with you" events={shared} />}
     </div>
   );
-}
+};
 
-function Section({ title, events }: { title?: string; events: Experience[] }) {
+const Section = ({ title, events }: { title?: string; events: Experience[] }) => {
   return (
     <section className="space-y-4">
       <h2 className={title ? "text-sm font-medium text-muted-foreground" : "sr-only"}>
@@ -110,12 +110,12 @@ function Section({ title, events }: { title?: string; events: Experience[] }) {
       </ul>
     </section>
   );
-}
+};
 
 // One experience as a postcard: its cover (or a paper placeholder), then
 // its title, dates and size. The title's link covers the whole card; the
 // menu and Play sit above it.
-function ExperienceCard({ event: e }: { event: Experience }) {
+const ExperienceCard = ({ event: e }: { event: Experience }) => {
   const dates = eventDates(e);
   const archived = e.status === "archived";
   const draft = e.status === "draft";
@@ -127,6 +127,9 @@ function ExperienceCard({ event: e }: { event: Experience }) {
           <AuthImage
             mediaId={e.coverMediaId}
             alt=""
+            width={480}
+            height={320}
+            sizes="(min-width: 1024px) 320px, 100vw"
             className="absolute inset-0 aspect-auto size-full rounded-none transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none"
           />
         ) : (
@@ -165,7 +168,7 @@ function ExperienceCard({ event: e }: { event: Experience }) {
               asChild
               className="relative z-10 bg-amber-300 text-stone-950 hover:bg-amber-200 dark:bg-amber-200 dark:hover:bg-amber-100"
             >
-              <Link to="/e/$id/story" params={{ id: e._id }} search={{ step: 0 }} aria-label={`Play story: ${e.title}`}>
+              <Link to="/e/$id/story" params={{ id: e._id }} search={{ step: 0 }} aria-label={`Play story: ${e.title}`} data-track="story_played" data-from="home">
                 <PlayIcon className="fill-current" /> Play story
               </Link>
             </Button>
@@ -178,11 +181,11 @@ function ExperienceCard({ event: e }: { event: Experience }) {
       </div>
     </li>
   );
-}
+};
 
 // No photo yet: cream paper, like the story's title page, with the trip drawn
 // on it when its stops are on the map, else the title's first letter.
-function PaperCover({ title, sketch }: { title: string; sketch?: Experience["sketch"] }) {
+const PaperCover = ({ title, sketch }: { title: string; sketch?: Experience["sketch"] }) => {
   return (
     <div
       aria-hidden
@@ -196,7 +199,7 @@ function PaperCover({ title, sketch }: { title: string; sketch?: Experience["ske
       )}
     </div>
   );
-}
+};
 
 // The trip's shape, drawn like a pen line across the paper: fitted to the
 // card, longitude narrowed by latitude so it isn't stretched, a diamond where
@@ -205,7 +208,7 @@ const SKETCH_W = 300;
 const SKETCH_H = 200;
 const SKETCH_PAD = 34;
 
-function RouteSketch({ points }: { points: NonNullable<Experience["sketch"]> }) {
+const RouteSketch = ({ points }: { points: NonNullable<Experience["sketch"]> }) => {
   const k = Math.cos(((points.reduce((n, p) => n + p.lat, 0) / points.length) * Math.PI) / 180);
   const xs = points.map((p) => p.lng * k);
   const ys = points.map((p) => -p.lat);
@@ -236,10 +239,10 @@ function RouteSketch({ points }: { points: NonNullable<Experience["sketch"]> }) 
       <circle cx={end[0]} cy={end[1]} r="4" className="fill-[#c2410c] dark:fill-amber-300" />
     </svg>
   );
-}
+};
 
 // Two paper snapshots, for the empty state.
-function Snapshots() {
+const Snapshots = () => {
   return (
     <div aria-hidden className="relative h-36 w-52">
       <div className="absolute inset-0 rotate-6 rounded-sm bg-[#e9dcc4] shadow-lg dark:bg-[#3a3227]" />
@@ -249,4 +252,7 @@ function Snapshots() {
       </div>
     </div>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app/home")({ component: Home });

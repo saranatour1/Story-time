@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { DuskScene, useScrollDepth } from "@/components/landing/dusk";
+import { HERO_LEAD, HERO_NOTE, LandingFirstPaint } from "@/components/landing/first-paint";
 import { FilmDemo } from "@/components/landing/film-demo";
 import { MapFrame } from "@/components/landing/frames";
 import {
@@ -28,7 +29,7 @@ import {
 import { useInView, useReducedMotion } from "@/components/landing/paper";
 import { SwipeDeck } from "@/components/landing/swipe-deck";
 import { SignInButtons } from "@/components/login-form";
-import { Logo, LogoSplash } from "@/components/logo";
+import { Logo } from "@/components/logo";
 import { CONTAINER } from "@/components/sign-in-screen";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,15 +37,13 @@ import { cn } from "@/lib/utils";
 // MapLibre is heavy, so the globe arrives only when its band comes near.
 const LiveGlobe = lazy(() => import("@/components/landing/live-globe").then((m) => ({ default: m.LiveGlobe })));
 
-export const Route = createFileRoute("/")({ component: Landing });
-
-function Landing() {
+const Landing = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
 
   if (isAuthenticated) return <Navigate to="/home" replace />;
-  // Until auth settles a returning visitor looks signed out; don't flash
-  // the sign-in at them on the way to /home.
-  if (isLoading) return <LogoSplash className="bg-[#141210]" />;
+  // Until auth settles, the same first screen the server sent. It stays hidden
+  // for someone with a session, so they don't see sign-in on the way to /home.
+  if (isLoading) return <LandingFirstPaint />;
 
   // Always story mode's dark room: `dark` gives the app's own buttons and
   // cards their dark colours inside.
@@ -62,7 +61,7 @@ function Landing() {
       <Footer />
     </div>
   );
-}
+};
 
 // The page's frame: thin rails either side of the column, a rule between
 // bands, and a small cross where they meet.
@@ -78,27 +77,27 @@ const SECTIONS: Array<{ id: string; label: string; short: [string, string]; icon
   { id: "privacy", label: "Privacy", short: ["Private", "by default"], icon: LockIcon },
 ];
 
-function SectionLink({ id, className, children }: { id: string; className?: string; children: ReactNode }) {
+const SectionLink = ({ id, className, children }: { id: string; className?: string; children: ReactNode }) => {
   const reduced = useReducedMotion();
   return (
     <Link to="/" hash={id} hashScrollIntoView={reduced ? true : { behavior: "smooth" }} className={className}>
       {children}
     </Link>
   );
-}
+};
 
 // "Sign in" brings the hero's buttons into view and focuses the first,
 // rather than going anywhere.
-function goToSignIn(e: React.MouseEvent<HTMLAnchorElement>) {
+const goToSignIn = (e: React.MouseEvent<HTMLAnchorElement>) => {
   const target = document.getElementById("sign-in");
   if (!target) return;
   e.preventDefault();
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   target.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
   target.querySelector("button")?.focus({ preventScroll: true });
-}
+};
 
-function Nav() {
+const Nav = () => {
   return (
     <header className="absolute inset-x-0 top-0 z-20">
       <div className={cn(CONTAINER, "flex h-16 items-center gap-4")}>
@@ -128,14 +127,14 @@ function Nav() {
       </div>
     </header>
   );
-}
+};
 
 // Short single words: the first line never changes how it wraps.
 const WORDS = ["sunset", "photo", "detour", "picnic", "ferry", "toast"];
 
 // The headline's changing word, in italics. Its box eases to each word's
 // width, so the line closes up around short words instead of leaving gaps.
-function Rotating({ words }: { words: string[] }) {
+const Rotating = ({ words }: { words: string[] }) => {
   const reduced = useReducedMotion();
   const [shown, setShown] = useState(0);
   const sizes = useRef<Array<HTMLSpanElement | null>>([]);
@@ -179,9 +178,9 @@ function Rotating({ words }: { words: string[] }) {
       ))}
     </span>
   );
-}
+};
 
-function Hero() {
+const Hero = () => {
   const ref = useRef<HTMLElement>(null);
   useScrollDepth(ref);
   return (
@@ -214,21 +213,16 @@ function Hero() {
               <span className="block">in the order it happened.</span>
             </span>
           </h1>
-          <p className="mt-6 max-w-[50ch] text-base leading-relaxed text-pretty text-white/70 sm:text-lg">
-            Everyone who was there adds what they caught. Story-time puts it in order and plays it back as a little
-            film, with your route drawn on a map.
-          </p>
+          <p className="mt-6 max-w-[50ch] text-base leading-relaxed text-pretty text-white/70 sm:text-lg">{HERO_LEAD}</p>
           <div id="sign-in" className="mt-9 w-full max-w-md [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]">
             <SignInButtons prominent groupClassName="sm:flex-row sm:justify-center" />
           </div>
-          <p className="mt-4 text-sm text-white/60 [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]">
-            New here? Signing in creates your account. It's private until you share it.
-          </p>
+          <p className="mt-4 text-sm text-white/60 [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]">{HERO_NOTE}</p>
         </div>
 
         <div className="mt-16 w-full max-w-5xl sm:mt-24">
           <FilmDemo />
-          <p className="mt-4 text-sm text-stone-500">A sample story, playing on its own. Tap either side to step through it.</p>
+          <p className="mt-4 text-sm text-stone-400">A sample story, playing on its own. Tap either side to step through it.</p>
         </div>
 
         <nav aria-label="On this page" className="mt-16 w-full max-w-5xl sm:mt-20">
@@ -253,19 +247,19 @@ function Hero() {
       </div>
     </section>
   );
-}
+};
 
-function Cross({ className }: { className: string }) {
+const Cross = ({ className }: { className: string }) => {
   return (
     <span aria-hidden className={cn("pointer-events-none absolute hidden size-[11px] sm:block", className)}>
       <span className="absolute top-1/2 left-0 h-px w-full -translate-y-1/2 bg-white/40" />
       <span className="absolute top-0 left-1/2 h-full w-px -translate-x-1/2 bg-white/40" />
     </span>
   );
-}
+};
 
 // Fades a band's heading up the first time it scrolls into view.
-function Reveal({ className, children }: { className?: string; children: ReactNode }) {
+const Reveal = ({ className, children }: { className?: string; children: ReactNode }) => {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
   return (
@@ -273,10 +267,10 @@ function Reveal({ className, children }: { className?: string; children: ReactNo
       {children}
     </div>
   );
-}
+};
 
 // One band of the page: a small label, a heading and a line, then what it shows.
-function Band({ id, eyebrow, title, lead, children }: { id: string; eyebrow: string; title: string; lead: string; children: ReactNode }) {
+const Band = ({ id, eyebrow, title, lead, children }: { id: string; eyebrow: string; title: string; lead: string; children: ReactNode }) => {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-4 border-t border-white/10">
       <div className={cn(RAILS, "py-20 sm:py-28")}>
@@ -293,14 +287,14 @@ function Band({ id, eyebrow, title, lead, children }: { id: string; eyebrow: str
       </div>
     </section>
   );
-}
+};
 
 // Side-by-side panels split by a rule, each with a title and a line under it.
-function Split({ children }: { children: ReactNode }) {
+const Split = ({ children }: { children: ReactNode }) => {
   return <div className="grid border-y border-white/10 md:grid-cols-2 md:divide-x md:divide-white/10">{children}</div>;
-}
+};
 
-function Panel({ title, text, children }: { title: string; text: string; children: ReactNode }) {
+const Panel = ({ title, text, children }: { title: string; text: string; children: ReactNode }) => {
   return (
     <figure className="flex flex-col gap-8 border-b border-white/10 px-1 py-10 last:border-b-0 sm:px-10 md:border-b-0">
       <div className="flex flex-1 items-center justify-center">{children}</div>
@@ -310,7 +304,7 @@ function Panel({ title, text, children }: { title: string; text: string; childre
       </figcaption>
     </figure>
   );
-}
+};
 
 const FACTS: Array<[string, string]> = [
   ["When", "From the photo itself, in the time zone where you took it."],
@@ -318,7 +312,7 @@ const FACTS: Array<[string, string]> = [
   ["What", "A first line, drafted for you. It never overwrites what you wrote."],
 ];
 
-function Photos() {
+const Photos = () => {
   return (
     <Band
       id="photos"
@@ -330,7 +324,7 @@ function Photos() {
         <div className="mx-auto w-full max-w-[19rem]">
           <CameraRollFragment />
         </div>
-        <div aria-hidden className="flex flex-col items-center gap-2 text-stone-500">
+        <div aria-hidden className="flex flex-col items-center gap-2 text-stone-400">
           <span className="font-mono text-[10px] tracking-[0.22em] uppercase">Add</span>
           <ArrowRightIcon className="hidden size-5 lg:block" />
           <ArrowDownIcon className="size-5 lg:hidden" />
@@ -347,7 +341,7 @@ function Photos() {
       </dl>
     </Band>
   );
-}
+};
 
 // The globe's trip, leg by leg (live-globe.tsx draws the same stops).
 const LEGS = [
@@ -359,7 +353,7 @@ const LEGS = [
 ];
 
 // Asks for a context and gives it straight back: browsers allow only a few.
-function supportsWebGL(): boolean {
+const supportsWebGL = (): boolean => {
   try {
     const canvas = document.createElement("canvas");
     const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
@@ -368,11 +362,11 @@ function supportsWebGL(): boolean {
   } catch {
     return false;
   }
-}
+};
 
 // The live globe once the band is near, turning only while it's on screen.
 // Without WebGL, the drawn map stands in.
-function Globe() {
+const Globe = () => {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
@@ -410,9 +404,9 @@ function Globe() {
       )}
     </div>
   );
-}
+};
 
-function Maps() {
+const Maps = () => {
   return (
     <Band
       id="maps"
@@ -425,7 +419,7 @@ function Maps() {
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-2">
           <div className="px-3 pt-3 pb-2">
             <p className="font-display text-xl text-stone-100">Six weeks, Porto to Tokyo</p>
-            <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-stone-500 uppercase">6 stops · 5 legs</p>
+            <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-stone-400 uppercase">6 stops · 5 legs</p>
           </div>
           <ol aria-label="Legs of the trip" className="relative">
             <span aria-hidden className="absolute top-8 bottom-8 left-[1.875rem] border-l border-dashed border-white/15" />
@@ -436,9 +430,9 @@ function Maps() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-display text-[1.0625rem] text-stone-100">
-                    {leg.from} <span className="text-stone-500">→</span> {leg.to}
+                    {leg.from} <span className="text-stone-400">→</span> {leg.to}
                   </span>
-                  <span className="font-mono text-[10.5px] tracking-[0.18em] text-stone-500 uppercase">{leg.by}</span>
+                  <span className="font-mono text-[10.5px] tracking-[0.18em] text-stone-400 uppercase">{leg.by}</span>
                 </span>
                 <span className="font-mono text-xs text-stone-400 tabular-nums">{leg.time}</span>
               </li>
@@ -448,7 +442,7 @@ function Maps() {
       </div>
     </Band>
   );
-}
+};
 
 const FILM = [
   { icon: TypeIcon, title: "A title page, typed out", text: "The name, the dates and a line about the trip, on paper." },
@@ -457,7 +451,7 @@ const FILM = [
   { icon: PlayIcon, title: "Or let it play", text: "Leave it and it moves on by itself. The arrow keys step through it." },
 ];
 
-function StoryMode() {
+const StoryMode = () => {
   return (
     <Band
       id="story-mode"
@@ -482,7 +476,7 @@ function StoryMode() {
       </div>
     </Band>
   );
-}
+};
 
 // Each line checked against the code: access checks, invites, encryption,
 // media serving, archive and delete.
@@ -497,7 +491,7 @@ const PROMISES = [
   "Deleting an experience removes its moments and everyone's access along with it.",
 ];
 
-function Privacy() {
+const Privacy = () => {
   return (
     <Band
       id="privacy"
@@ -530,11 +524,9 @@ function Privacy() {
       </ul>
     </Band>
   );
-}
+};
 
-
-
-function Closing() {
+const Closing = () => {
   return (
     <section aria-labelledby="closing-title" className="relative isolate overflow-hidden border-t border-white/10">
       <div
@@ -555,9 +547,9 @@ function Closing() {
       </div>
     </section>
   );
-}
+};
 
-function Footer() {
+const Footer = () => {
   return (
     <footer className="border-t border-white/10">
       <div className={cn(RAILS, "grid gap-10 py-14 sm:grid-cols-[minmax(0,1fr)_auto]")}>
@@ -589,7 +581,7 @@ function Footer() {
           </ul>
         </nav>
       </div>
-      <div className={cn(RAILS, "flex flex-wrap items-center justify-between gap-2 border-t border-white/10 py-6 text-xs text-stone-500")}>
+      <div className={cn(RAILS, "flex flex-wrap items-center justify-between gap-2 border-t border-white/10 py-6 text-xs text-stone-400")}>
         <span>© {new Date().getFullYear()} Story-time</span>
         <SectionLink id="top" className="font-mono tracking-[0.18em] uppercase transition-colors hover:text-stone-300">
           Back to top ↑
@@ -597,4 +589,7 @@ function Footer() {
       </div>
     </footer>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/")({ component: Landing });

@@ -1,5 +1,9 @@
-import { type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
-import Moveable from "react-moveable";
+import { lazy, Suspense, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import type Moveable from "react-moveable";
+
+// Loaded when the page can be edited, in its own chunk. The journal can paint
+// before the handles arrive.
+const MoveableView = lazy(() => import("react-moveable"));
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 import type { MomentView } from "@/components/event/types";
 import { tapedTo } from "./add";
@@ -17,7 +21,7 @@ const WRITABLE = new Set<JournalElement["kind"]>(["title", "note"]);
 
 export const writable = (e: JournalElement) => WRITABLE.has(e.kind) || (e.kind === "deco" && (e.style === "ticket" || e.style === "postmark")) || (e.kind === "photo" && (e.style ?? "polaroid") === "polaroid");
 
-export function PageEditor({
+export const PageEditor = ({
   page,
   moments,
   scale,
@@ -43,9 +47,13 @@ export function PageEditor({
   // Drawing: what draws, and where each finished stroke goes.
   pen?: { style: string; color: string } | null;
   onStroke?: (points: Array<{ x: number; y: number }>) => void;
-}) {
+}) => {
   const root = useRef<HTMLDivElement>(null);
   const moveable = useRef<Moveable>(null);
+  useEffect(() => {
+    if (!editable) return;
+    void import("react-moveable");
+  }, [editable]);
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const chosen = page.elements.find((e) => e.id === selected);
   const elements = useRef(page.elements);
@@ -105,7 +113,8 @@ export function PageEditor({
         }} />}
         {editable && pen && onStroke && <DrawLayer pen={pen} scale={scale} onStroke={onStroke} />}
         {editable && target && chosen && !writing && !pen && (
-          <Moveable
+          <Suspense fallback={null}>
+          <MoveableView
             ref={moveable}
             target={target}
             zoom={1 / scale}
@@ -169,15 +178,16 @@ export function PageEditor({
               if (lastEvent) update(chosen.id, { rotation: Math.round(lastEvent.rotation) % 360 });
             }}
           />
+          </Suspense>
         )}
       </JournalPage>
     </div>
   );
-}
+};
 
 // Writing on a thing: a text box over it, in its place and turn. Enter keeps a
 // title; a note keeps its new lines until you click away. Escape leaves it as it was.
-function WordsBox({ e, onDone }: { e: JournalElement | undefined; onDone: (text: string | null) => void }) {
+const WordsBox = ({ e, onDone }: { e: JournalElement | undefined; onDone: (text: string | null) => void }) => {
   const box = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState(e?.text ?? "");
   useEffect(() => {
@@ -218,11 +228,11 @@ function WordsBox({ e, onDone }: { e: JournalElement | undefined; onDone: (text:
       }}
     />
   );
-}
+};
 
 // The pen on the page: press, draw, lift. The stroke shows as it is drawn and
 // goes to `onStroke`, in page units, when the pen lifts.
-function DrawLayer({ pen, scale, onStroke }: { pen: { style: string; color: string }; scale: number; onStroke: (points: Array<{ x: number; y: number }>) => void }) {
+const DrawLayer = ({ pen, scale, onStroke }: { pen: { style: string; color: string }; scale: number; onStroke: (points: Array<{ x: number; y: number }>) => void }) => {
   const [points, setPoints] = useState<Array<{ x: number; y: number }> | null>(null);
   const at = (ev: React.PointerEvent<HTMLDivElement>) => {
     const r = ev.currentTarget.getBoundingClientRect();
@@ -259,4 +269,4 @@ function DrawLayer({ pen, scale, onStroke }: { pen: { style: string; color: stri
       )}
     </div>
   );
-}
+};

@@ -14,7 +14,7 @@ import { errorMessage } from "@/lib/errors";
 
 // Yes/no for irreversible actions. While `onConfirm` runs the buttons are
 // disabled; if it throws, the error is shown and the dialog stays open.
-export function ConfirmDialog({
+export const ConfirmDialog = ({
   open,
   onOpenChange,
   title,
@@ -28,10 +28,10 @@ export function ConfirmDialog({
   description: ReactNode;
   confirmLabel: string;
   onConfirm: () => Promise<void>;
-}) {
+}) => {
   const [busy, setBusy] = useState(false);
 
-  async function confirm() {
+  const confirm = async () => {
     setBusy(true);
     try {
       await onConfirm();
@@ -47,7 +47,7 @@ export function ConfirmDialog({
     } finally {
       setBusy(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
@@ -67,4 +67,4 @@ export function ConfirmDialog({
       </DialogContent>
     </Dialog>
   );
-}
+};

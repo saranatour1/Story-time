@@ -11,11 +11,11 @@ const WAIT_MS = 2500;
 // answer is final for this leg: until then a scene holds back its animation, so
 // it never starts along an arc and bends onto a street halfway. A route that
 // turns up after the wait is kept for the next time, not swapped in.
-export function useRoutePath(
+export const useRoutePath = (
   from: LatLng | undefined,
   to: LatLng | undefined,
   transport: Transport,
-): { path: Path | undefined; settled: boolean } {
+): { path: Path | undefined; settled: boolean } => {
   const [fromLat, fromLng, toLat, toLng] = [from?.lat, from?.lng, to?.lat, to?.lng];
   const wanted =
     fromLat !== undefined &&
@@ -46,7 +46,7 @@ export function useRoutePath(
 
   if (!wanted) return { path: undefined, settled: true };
   return done?.key === key ? { path: done.path, settled: true } : { path: undefined, settled: false };
-}
+};
 
 type ChainStop = { lat: number; lng: number; transport?: Transport };
 // Legs asked for at once: enough to fill a map quickly, few enough to be polite
@@ -58,7 +58,7 @@ const MAX_LEGS = 40;
 // The streets or tracks for every leg of a chain of stops, filled in as they
 // arrive, a couple at a time in the background: entry i is the way into stop
 // i, or undefined while it is an arc (no network, still coming, or refused).
-export function useChainPaths(stops: ChainStop[]): Array<Path | undefined> {
+export const useChainPaths = (stops: ChainStop[]): Array<Path | undefined> => {
   const key = stops.map((s) => `${s.transport ?? ""}:${s.lat},${s.lng}`).join(";");
   const chain = useRef(stops);
   chain.current = stops;
@@ -96,4 +96,4 @@ export function useChainPaths(stops: ChainStop[]): Array<Path | undefined> {
   }, [key]);
 
   return found.key === key ? found.paths : [];
-}
+};

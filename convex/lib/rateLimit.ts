@@ -1,15 +1,31 @@
-import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
+import { DAY, HOUR, MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
+import { ConvexError } from "convex/values";
 import { components } from "../_generated/api";
+import type { ActionCtx, MutationCtx } from "../_generated/server";
+import { AI_PER_DAY } from "./limits";
 
-// Per-person allowances. Token buckets refill steadily, so a burst at the end
-// of one hour can't add up with the start of the next.
+// Per-person allowances, keyed by user id.
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
-  // AI fill-ins (Haiku notes, Jev transports), one per enrich call: enough for
-  // a big import, not for a runaway client.
-  enrich: { kind: "token bucket", rate: 120, period: HOUR },
-  // Typed requests to change moments ("move this to Friday"): each reads the
-  // sentence with two models, so fewer than fill-ins.
-  command: { kind: "token bucket", rate: 60, period: HOUR },
-  // Spoken requests turned into text; each is paid for by the project.
-  voice: { kind: "token bucket", rate: 40, period: HOUR },
+  // Every AI feature draws on one allowance: a note written for a moment, a
+  // typed or spoken request, a journal title. The day starts at midnight UTC.
+  ai: { kind: "fixed window", rate: AI_PER_DAY, period: DAY, start: 0 },
+  // A link preview fetches someone else's page. Not AI, so it has its own.
+  linkPreview: { kind: "token bucket", rate: 60, period: HOUR },
+  // Changes a person makes (moments, journal pages, invites, sharing...):
+  // far more than anyone types, enough for a big photo import, and a stop
+  // for a client stuck in a loop. Token buckets refill steadily.
+  writes: { kind: "token bucket", rate: 300, period: MINUTE },
 });
+
+export const AI_LIMIT_MESSAGE = `You've used today's ${AI_PER_DAY} AI requests. They come back at midnight UTC.`;
+
+// One use of the day's AI allowance, or false when it's spent.
+export const takeAi = async (ctx: MutationCtx | ActionCtx, userId: string): Promise<boolean> => {
+  return (await rateLimiter.limit(ctx, "ai", { key: userId })).ok;
+};
+
+// Throws when someone is changing things faster than a person can.
+export const limitWrites = async (ctx: MutationCtx, userId: string): Promise<void> => {
+  const { ok } = await rateLimiter.limit(ctx, "writes", { key: userId });
+  if (!ok) throw new ConvexError({ code: "RATE_LIMITED", message: "That's a lot of changes at once. Wait a moment and try again." });
+};

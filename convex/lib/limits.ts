@@ -1,13 +1,20 @@
-// Moments an experience holds. One number, the same for everyone.
-export const MOMENT_LIMIT = 300;
-// How many moments to read for an experience: all of them. One given more
-// room before there was one limit can hold more than MOMENT_LIMIT (up to 500).
+// AI uses one person gets a day, across every AI feature (see lib/rateLimit.ts).
+export const AI_PER_DAY = 10;
+// What one experience and one person may hold. Every cap lives here, the same
+// for everyone; the server checks each one where the thing is made.
+
+// Moments an experience holds.
+export const MOMENT_LIMIT = 100;
+// How many moments to read for an experience: all of them. One made before
+// the limit came down can hold more than MOMENT_LIMIT (up to 500).
 export const momentsToRead = (momentCount: number) => Math.max(MOMENT_LIMIT, momentCount);
-// Photos and videos an experience holds live (reserved or ready).
-// 1,500 is the deliberate ceiling (300 moments × 5). It is not a guessed
-// storage budget: live bytes are still capped by MAX_LIVE_UPLOAD_BYTES.
-export const MAX_MEDIA_PER_EVENT = MOMENT_LIMIT * 5;
+// Photos and videos an experience holds live (reserved or ready), not counting
+// journal stickers or a locked PDF. Deleting one frees its place.
+export const MAX_PHOTOS_PER_EVENT = 50;
+export const MAX_VIDEOS_PER_EVENT = 5;
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+// A list thumbnail: longest side 480px, JPEG. The original stays for the open page.
+export const MAX_THUMB_BYTES = 400 * 1024;
 export const MAX_BLOCKS_PER_MOMENT = 20;
 // A moment is a journey: its own place and time are the first stop.
 export const MAX_STOPS_PER_MOMENT = 10;
@@ -28,10 +35,10 @@ export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const AVATAR_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 // Experiences one person may own. Checked when one is created.
-export const MAX_EVENTS_PER_USER = 20;
+export const MAX_EVENTS_PER_USER = 10;
 // Bytes one person may hold in live uploads (reserved or ready) across all
 // their experiences. Deleted uploads don't count.
-export const MAX_LIVE_UPLOAD_BYTES = 2 * 1024 ** 3;
+export const MAX_LIVE_UPLOAD_BYTES = 1024 ** 3;
 // What one typed request may do: how long it is, and how many things it may change.
 export const MAX_COMMAND_CHARS = 600;
 export const MAX_COMMAND_OPS = 8;
@@ -39,3 +46,10 @@ export const MAX_COMMAND_OPS = 8;
 // inside the 1 MiB a Convex value may hold.
 export const MAX_VOICE_SECONDS = 60;
 export const MAX_VOICE_BYTES = 900_000;
+// Pages one journal holds: a page per moment, a cover, and room for more.
+export const MAX_JOURNAL_PAGES = 150;
+// Invites waiting to be opened, per experience.
+export const MAX_WAITING_INVITES = 20;
+// Emails one person may send a day: invites, and share links.
+export const INVITE_EMAILS_PER_DAY = 10;
+export const SHARE_EMAILS_PER_DAY = 10;

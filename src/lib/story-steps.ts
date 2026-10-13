@@ -38,9 +38,9 @@ export type StoryStep =
   | { kind: "end" };
 
 // The first stop lives on the moment itself; later ones in `stops`.
-export function stopsOf(m: StoryMoment): Stop[] {
+export const stopsOf = (m: StoryMoment): Stop[] => {
   return [{ startsAt: m.startsAt, place: m.place, geo: m.geo, transport: m.transport, blocks: m.blocks }, ...m.stops];
-}
+};
 
 // A stop without a place is numbered through the whole story, so two of
 // them never land on the same spot of the map.
@@ -50,7 +50,7 @@ export const placeLabel = (stop: Stop, n: number) => stop.place || `Stop ${n + 1
 // Moments play in time order. Before any stop that records how they got
 // there, a travel scene runs from the previous place (or the title, for the
 // very first) to this one.
-export function buildStorySteps(title: string, moments: StoryMoment[]): StoryStep[] {
+export const buildStorySteps = (title: string, moments: StoryMoment[]): StoryStep[] => {
   const steps: StoryStep[] = [{ kind: "title" }];
   const ordered = [...moments].sort((a, b) => a.startsAt - b.startsAt);
   let previousPlace = title;
@@ -92,13 +92,13 @@ export function buildStorySteps(title: string, moments: StoryMoment[]): StorySte
   }
   steps.push({ kind: "end" });
   return steps;
-}
+};
 
 export const clampStep = (step: number, steps: StoryStep[]) =>
   Math.min(Math.max(Math.trunc(step) || 0, 0), Math.max(steps.length - 1, 0));
 
 // Index of the first scene showing this moment, for deep links from the page.
-export function stepForMoment(steps: StoryStep[], momentId: string): number {
+export const stepForMoment = (steps: StoryStep[], momentId: string): number => {
   const i = steps.findIndex((s) => s.kind === "stop" && s.momentId === momentId);
   return i === -1 ? 0 : i;
-}
+};

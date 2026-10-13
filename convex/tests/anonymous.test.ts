@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { afterEach, expect, test } from "vitest";
 import { internal } from "../_generated/api";
 import schema from "../schema";
@@ -18,30 +19,32 @@ afterEach(() => {
 
 test("anonymous sign-up is rejected unless the deployment allows it", async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   await expect(
-    t.mutation(internal.users.createAnonymousUser, args),
+    t.mutation(internal.model.users.createAnonymousUser, args),
   ).rejects.toThrow("Anonymous sign-in is disabled.");
 
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ALLOW_ANONYMOUS_SIGNIN = "true";
   await expect(
-    t.mutation(internal.users.createAnonymousUser, args),
+    t.mutation(internal.model.users.createAnonymousUser, args),
   ).resolves.toBeTruthy();
 });
 
 test("anonymous sign-up needs every app origin to be local, not just the flag", async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ALLOW_ANONYMOUS_SIGNIN = "true";
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.APP_URL = "https://story.example.com";
   await expect(
-    t.mutation(internal.users.createAnonymousUser, args),
+    t.mutation(internal.model.users.createAnonymousUser, args),
   ).rejects.toThrow("Anonymous sign-in is disabled.");
 
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.APP_URL = "http://localhost:3000, http://127.0.0.1:5173";
   await expect(
-    t.mutation(internal.users.createAnonymousUser, args),
+    t.mutation(internal.model.users.createAnonymousUser, args),
   ).resolves.toBeTruthy();
 });

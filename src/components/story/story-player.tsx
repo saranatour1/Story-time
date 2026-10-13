@@ -32,7 +32,7 @@ const PREV_KEYS = ["ArrowLeft", "ArrowUp", "PageUp"];
 const THRESHOLDS = Array.from({ length: 21 }, (_, i) => i / 20);
 
 // How long autoplay lingers on each scene; the title waits for its typing.
-function sceneMs(step: StoryStep, titleTypingMs: number): number | null {
+const sceneMs = (step: StoryStep, titleTypingMs: number): number | null => {
   switch (step.kind) {
     case "title":
       return titleTypingMs + 2500;
@@ -43,10 +43,10 @@ function sceneMs(step: StoryStep, titleTypingMs: number): number | null {
     case "end":
       return null;
   }
-}
+};
 
 // Asks for a context and gives it straight back: browsers allow only a few.
-function detectWebGL(): boolean {
+const detectWebGL = (): boolean => {
   if (typeof document === "undefined") return false;
   try {
     const c = document.createElement("canvas");
@@ -56,7 +56,7 @@ function detectWebGL(): boolean {
   } catch {
     return false;
   }
-}
+};
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -65,7 +65,7 @@ const prefersReducedMotion = () =>
 // lightly into place, progress on top. Scroll, click, keys or the arrows move
 // through it. Autoplay (on unless the viewer prefers reduced motion) scrolls
 // on by itself until the viewer scrolls or presses a key.
-export function StoryPlayer({
+export const StoryPlayer = ({
   event,
   moments,
   meId,
@@ -82,7 +82,7 @@ export function StoryPlayer({
   onStep: (step: number) => void;
   // Closing hands back the scene in view; without it, the story is left.
   onClose?: (step: number) => void;
-}) {
+}) => {
   const navigate = useNavigate();
   const steps = useMemo(() => buildStorySteps(event.title, moments), [event.title, moments]);
   // The scene most in view.
@@ -468,4 +468,4 @@ export function StoryPlayer({
       </nav>
     </div>
   );
-}
+};

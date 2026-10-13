@@ -1,5 +1,5 @@
 import type { FunctionReturnType } from "convex/server";
-import type { api } from "../../convex/_generated/api";
+import type { api } from "@/lib/api";
 import { transportOf } from "../components/event/transport";
 import type { MomentView } from "@/components/event/types";
 import { formatDateTime, formatDay } from "./local-time";
@@ -25,12 +25,12 @@ const photosIn = (blocks: MomentView["blocks"]) => blocks.filter((b) => b.type =
 
 const quoted = (text: string) => `"${text.length > 60 ? `${text.slice(0, 57)}…` : text}"`;
 
-function transportChange(transport: PlanOp["transport"]): string[] {
+const transportChange = (transport: PlanOp["transport"]): string[] => {
   if (transport === undefined) return [];
   return [transport === null ? "no transport" : (transportOf(transport)?.phrase.toLowerCase() ?? transport)];
-}
+};
 
-export function describeOp(op: PlanOp, moments: MomentView[]): PlanLine {
+export const describeOp = (op: PlanOp, moments: MomentView[]): PlanLine => {
   if (op.op === "add") {
     return {
       heading: op.place ? `New moment in ${op.place}` : "New moment",
@@ -93,18 +93,18 @@ export function describeOp(op: PlanOp, moments: MomentView[]): PlanLine {
     changes: [`remove stop ${op.stop}${gone?.place ? ` (${gone.place})` : ""}${photos > 0 ? `, with its ${plural(photos, "photo")}` : ""}`],
     destructive: true,
   };
-}
+};
 
 // The place names in a plan that still need a spot on the map.
-export function placesToFind(ops: PlanOp[]): string[] {
+export const placesToFind = (ops: PlanOp[]): string[] => {
   return [...new Set(ops.flatMap((op) => (op.place && op.geo === undefined ? [op.place] : [])))];
-}
+};
 
 // Pins every named place that was found. The name stays as it was said; only
 // the pin comes from the lookup.
-export function withPins(ops: PlanOp[], found: ReadonlyMap<string, { lat: number; lng: number }>): PlanOp[] {
+export const withPins = (ops: PlanOp[], found: ReadonlyMap<string, { lat: number; lng: number }>): PlanOp[] => {
   return ops.map((op) => {
     const geo = op.place === undefined ? undefined : found.get(op.place);
     return geo === undefined ? op : { ...op, geo };
   });
-}
+};

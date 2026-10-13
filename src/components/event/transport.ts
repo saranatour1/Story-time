@@ -31,9 +31,9 @@ export const TRANSPORTS: Array<{ value: Transport; label: string; phrase: string
 export const transportOf = (t: Transport | undefined) => TRANSPORTS.find((x) => x.value === t);
 
 // The first stop lives on the moment itself; later ones in `stops`.
-export function stopsOf(m: MomentView) {
+export const stopsOf = (m: MomentView) => {
   return [
     { startsAt: m.startsAt as number | undefined, place: m.place, geo: m.geo, transport: m.transport, blocks: m.blocks },
     ...m.stops,
   ];
-}
+};

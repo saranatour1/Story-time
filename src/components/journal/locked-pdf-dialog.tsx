@@ -1,10 +1,12 @@
 import { useAuthToken } from "@convex-dev/auth/react";
 import { Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { CopyIcon, LoaderCircleIcon, LockKeyholeIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,7 @@ import { FONTS } from "./look";
 // The whole journal as a PDF that opens only with a password, put on the
 // share link. The browser prints and locks it; the server keeps the file
 // encrypted and the password under the experience's key, for its owner.
-export function LockedPdfDialog({
+export const LockedPdfDialog = ({
   event,
   pages,
   open,
@@ -31,9 +33,9 @@ export function LockedPdfDialog({
   onOpenChange: (open: boolean) => void;
   // The whole book as an unlocked PDF, printed by the journal.
   print: () => Promise<Blob>;
-}) {
-  const current = useQuery(api.pdf.get, open ? { eventId: event._id } : "skip");
-  const link = useQuery(api.share.link, open ? { eventId: event._id } : "skip");
+}) => {
+  const { data: current } = useQuery(queries.pdf.get(open ? { eventId: event._id } : "skip"));
+  const { data: link } = useQuery(queries.share.link(open ? { eventId: event._id } : "skip"));
   const setPdf = useMutation(api.pdf.set);
   const dropPdf = useMutation(api.pdf.drop);
   const token = useAuthToken();
@@ -46,7 +48,7 @@ export function LockedPdfDialog({
       () => toast.error("Couldn't copy it. Select it and copy it yourself."),
     );
 
-  async function make() {
+  const make = async () => {
     if (!token) return;
     try {
       setStep("Printing the pages…");
@@ -64,9 +66,9 @@ export function LockedPdfDialog({
     } finally {
       setStep(null);
     }
-  }
+  };
 
-  async function stop() {
+  const stop = async () => {
     if (!token) return;
     try {
       const old = await dropPdf({ eventId: event._id });
@@ -75,7 +77,7 @@ export function LockedPdfDialog({
     } catch (error) {
       toast.error(errorMessage(error));
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(next) => step === null && onOpenChange(next)}>
@@ -149,4 +151,4 @@ export function LockedPdfDialog({
       </DialogContent>
     </Dialog>
   );
-}
+};

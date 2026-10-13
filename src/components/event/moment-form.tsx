@@ -5,7 +5,7 @@ import { ArrowDownIcon, ArrowUpIcon, ImageIcon, PlusIcon, Trash2Icon, VideoIcon,
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { AuthImage } from "@/components/auth-image";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -75,7 +75,7 @@ const emptyStop = (startsAt = ""): StopValue => ({
   mood: "",
 });
 
-function stopValuesOf(moment: MomentView): StopValue[] {
+const stopValuesOf = (moment: MomentView): StopValue[] => {
   return stopsOf(moment).map((s) => {
     const notes = s.blocks.flatMap((b) => (b.type === "note" ? [b.text] : []));
     const links = s.blocks.flatMap((b) => (b.type === "link" ? [b.url] : []));
@@ -97,11 +97,11 @@ function stopValuesOf(moment: MomentView): StopValue[] {
       mood: feeling?.type === "feeling" ? (feeling.mood ?? "") : "",
     };
   });
-}
+};
 
 // Edits a moment: a journey of stops, each with its time, place, photos and
 // words. Deleting it lives here too.
-export function MomentForm({
+export const MomentForm = ({
   eventId,
   moment,
   onDone,
@@ -109,7 +109,7 @@ export function MomentForm({
   eventId: Id<"events">;
   moment: MomentView;
   onDone?: () => void;
-}) {
+}) => {
   const update = useMutation(api.moments.update);
   const remove = useMutation(api.moments.remove);
   const [confirming, setConfirming] = useState(false);
@@ -244,7 +244,7 @@ export function MomentForm({
     },
   });
 
-  async function onMedia(stop: number, input: HTMLInputElement) {
+  const onMedia = async (stop: number, input: HTMLInputElement) => {
     const files = Array.from(input.files ?? []);
     // Cleared, so picking the same file again (after removing it) still works.
     input.value = "";
@@ -274,13 +274,13 @@ export function MomentForm({
       }
     }
     setUploadingStop(null);
-  }
+  };
 
   // A stop with no location takes it from the first photo that has GPS (no
   // network), then, if its Where is empty, a name for that spot from
   // OpenStreetMap. Typed text is never overwritten. Stops can't move while
   // photos upload, so `stop` still points at the same one.
-  async function locateFromPhotos(stop: number, files: File[]) {
+  const locateFromPhotos = async (stop: number, files: File[]) => {
     if (form.state.values.stops[stop]?.geo) return;
     let geo: Geo | undefined;
     for (const file of files) {
@@ -296,7 +296,7 @@ export function MomentForm({
     const now = form.state.values.stops[stop];
     const same = now?.geo?.lat === geo.lat && now.geo.lng === geo.lng;
     if (label && !closed.current && same && !now.place.trim()) form.setFieldValue(`stops[${stop}].place`, label);
-  }
+  };
 
   // Where to centre place search for stop `i`: the nearest earlier stop on
   // the map, else any stop of this moment that is.
@@ -396,7 +396,7 @@ export function MomentForm({
                           <span className="sr-only">{m.name}</span>
                         </div>
                       ) : (
-                        <AuthImage mediaId={m.mediaId} alt={m.name} className="aspect-square rounded-md" />
+                        <AuthImage mediaId={m.mediaId} alt={m.name} width={160} height={160} sizes="160px" className="aspect-square rounded-md" />
                       )}
                       <button
                         type="button"
@@ -583,4 +583,4 @@ export function MomentForm({
       />
     </form>
   );
-}
+};

@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SettingsBlock, SettingsPage } from "@/components/settings/section";
 
-export const Route = createFileRoute("/_app/settings/data")({ component: DataSettings });
-
-function DataSettings() {
+const DataSettings = () => {
   return (
     <SettingsPage title="Data & privacy" description="What we keep, and what leaves your browser to make the app work.">
       <div className="space-y-10">
@@ -16,6 +14,9 @@ function DataSettings() {
             <li>
               When you add photos, small copies of up to four photos from each moment go through Convex's AI gateway to
               Anthropic to draft the first note and labels, along with any words you typed about them; the copies aren't kept.
+              Every AI request except voice goes only to zero-data-retention endpoints, where the provider keeps nothing
+              it's sent. For each request Story-time keeps a usage record (which model, which feature, your account id,
+              tokens, cost), never what was sent or written back.
             </li>
             <li>
               When you type in the box above the moments, your words go through the same gateway. TypeSafe's Jev model
@@ -25,7 +26,8 @@ function DataSettings() {
             </li>
             <li>
               When you speak into the box, the recording goes through the same gateway to a speech-to-text model
-              (Whisper) and comes back as text you can fix before sending. The recording isn't kept.
+              (Whisper) and comes back as text you can fix before sending. Story-time doesn't keep the recording. Unlike
+              the models above, the gateway can't yet ask Whisper's provider for a zero-data-retention endpoint.
             </li>
             <li>
               Place search and the names of photo locations use OpenStreetMap data from photon.komoot.io; your typed text
@@ -61,9 +63,17 @@ function DataSettings() {
               If you turn on the memory reminder, its email says only that a memory is waiting, with a link: no words or
               photos from the trip. Emailing a share link hands the address to the email service; it isn't kept here.
             </li>
+            <li>
+              Databuddy counts visits, page speed and errors on the live site, without cookies. It gets the page's address
+              with trip ids and invite codes blanked out, never the part of a share link after the #, and nothing you wrote.
+              It isn't told who you are. It counts a few buttons by a fixed name (sign in, add photos, play, share, export, guestbook), never by what they say, and whether each AI request worked, hit the day's limit or failed, never what you asked.
+            </li>
           </ul>
         </SettingsBlock>
       </div>
     </SettingsPage>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app/settings/data")({ component: DataSettings });

@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -27,13 +28,14 @@ const row = (uploaderId: Id<"users">, status: "reserved" | "ready") => ({
   status,
 });
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   const uploaderId = await t.run((ctx) => ctx.db.insert("users", {}));
   const insert = (status: "reserved" | "ready") => t.run((ctx) => ctx.db.insert("media", row(uploaderId, status)));
   const statusOf = (id: Id<"media">) => t.run(async (ctx) => (await ctx.db.get("media", id))?.status);
   return { t, uploaderId, insert, statusOf };
-}
+};
 
 describe("sweepReservedUploads", () => {
   test("marks reservations older than an hour deleted; fresh and confirmed uploads stay", async () => {
@@ -44,7 +46,7 @@ describe("sweepReservedUploads", () => {
     const inFlight = await insert("reserved");
 
     vi.setSystemTime(T0 + 2 * HOUR);
-    expect(await t.mutation(internal.media.sweepReservedUploads, {})).toBe(1);
+    expect(await t.mutation(internal.model.media.sweepReservedUploads, {})).toBe(1);
     expect(await statusOf(abandoned)).toBe("deleted");
     expect(await statusOf(inFlight)).toBe("reserved");
     expect(await statusOf(confirmed)).toBe("ready");
@@ -57,7 +59,7 @@ describe("sweepReservedUploads", () => {
     });
 
     vi.setSystemTime(T0 + 2 * HOUR);
-    expect(await t.mutation(internal.media.sweepReservedUploads, {})).toBe(100);
+    expect(await t.mutation(internal.model.media.sweepReservedUploads, {})).toBe(100);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     const stillReserved = await t.run((ctx) =>

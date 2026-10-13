@@ -7,7 +7,7 @@ import {
   type OauthFlowErrorCode,
 } from "@convex-dev/auth/providers/oauth/react";
 import { useAnonymousAuth } from "@convex-dev/auth/providers/anonymous/react";
-import { api } from "../../convex/_generated/api";
+import { authApi } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +28,7 @@ const FLOW_ERRORS: Record<OauthFlowErrorCode, string> = {
 };
 
 // shadcn login-03, trimmed to the OAuth providers the backend supports.
-export function LoginForm({
+export const LoginForm = ({
   className,
   heading = "Welcome",
   description = "Share moments from experiences you had together. You choose what to add, and who can see it.",
@@ -38,7 +38,7 @@ export function LoginForm({
   heading?: React.ReactNode;
   description?: React.ReactNode;
   returnTo?: string;
-}) {
+}) => {
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -52,7 +52,7 @@ export function LoginForm({
       </Card>
     </div>
   );
-}
+};
 
 // The provider buttons on their own, for pages that don't want a card.
 // OAuth comes back to the page it started on, so deep links survive sign-in;
@@ -61,7 +61,7 @@ export function LoginForm({
 // `prominent` makes them page-sized buttons on paper, `groupClassName` lays
 // them out, and `showError` lets a second set on a page leave the error to
 // the first.
-export function SignInButtons({
+export const SignInButtons = ({
   className,
   groupClassName,
   prominent = false,
@@ -73,11 +73,11 @@ export function SignInButtons({
   prominent?: boolean;
   showError?: boolean;
   returnTo?: string;
-}) {
+}) => {
   const options = returnTo === undefined ? undefined : { redirectTo: returnTo };
   const { isLoading } = useConvexAuth();
-  const { signInGithub } = useSignInWithGithub(api.auth);
-  const { signInGoogle } = useSignInWithGoogle(api.auth);
+  const { signInGithub } = useSignInWithGithub(authApi);
+  const { signInGoogle } = useSignInWithGoogle(authApi);
   const { flowError } = useOauth();
   const size = prominent ? "h-11 px-5 text-[0.9375rem]" : undefined;
 
@@ -89,6 +89,8 @@ export function SignInButtons({
           type="button"
           disabled={isLoading}
           className={size}
+          data-track="sign_in_started"
+          data-provider="google"
           onClick={() => void signInGoogle(options).catch(() => {})}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden>
@@ -108,6 +110,8 @@ export function SignInButtons({
             prominent &&
               "border-stone-900/20 bg-transparent hover:bg-stone-900/5 dark:border-white/20 dark:bg-transparent dark:hover:bg-white/5",
           )}
+          data-track="sign_in_started"
+          data-provider="github"
           onClick={() => void signInGithub(options).catch(() => {})}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden>
@@ -127,12 +131,12 @@ export function SignInButtons({
       )}
     </div>
   );
-}
+};
 
 // Dev only: anonymous sign-in for local testing. The backend also rejects it
 // unless ALLOW_ANONYMOUS_SIGNIN is "true" on the deployment.
-function DevAnonymousSignIn({ className }: { className?: string }) {
-  const { signInAnonymous } = useAnonymousAuth(api.auth.signInAnonymous);
+const DevAnonymousSignIn = ({ className }: { className?: string }) => {
+  const { signInAnonymous } = useAnonymousAuth(authApi.signInAnonymous);
   return (
     <button
       type="button"
@@ -145,4 +149,4 @@ function DevAnonymousSignIn({ className }: { className?: string }) {
       Continue anonymously (dev only)
     </button>
   );
-}
+};

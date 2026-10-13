@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useConvexAuth, useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { LoginForm } from "@/components/login-form";
 import { SignedOutPage } from "@/components/sign-in-screen";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,7 @@ import { errorMessage } from "@/lib/errors";
 // The token waits in this tab while its opener signs in, the same way an invite does.
 const STASH = "storytime:email-verify";
 
-export const Route = createFileRoute("/verify-email")({ component: VerifyEmail });
-
-function readToken(): string {
+const readToken = (): string => {
   if (typeof window === "undefined") return "";
   const fromLink = window.location.hash.slice(1);
   try {
@@ -22,25 +20,25 @@ function readToken(): string {
     // No storage: the return address has to carry the token.
   }
   return fromLink;
-}
+};
 
-function kept(token: string): boolean {
+const kept = (token: string): boolean => {
   try {
     return token !== "" && sessionStorage.getItem(STASH) === token;
   } catch {
     return false;
   }
-}
+};
 
-function forget() {
+const forget = () => {
   try {
     sessionStorage.removeItem(STASH);
   } catch {
     // Nothing kept.
   }
-}
+};
 
-function VerifyEmail() {
+const VerifyEmail = () => {
   const [token, setToken] = useState(readToken);
   useEffect(() => {
     const onHash = () => {
@@ -51,9 +49,9 @@ function VerifyEmail() {
   }, []);
   const returnTo = typeof window !== "undefined" && kept(token) ? `${window.location.origin}/verify-email` : undefined;
   return <VerifyBody key={token} token={token} returnTo={returnTo} />;
-}
+};
 
-function VerifyBody({ token, returnTo }: { token: string; returnTo?: string }) {
+const VerifyBody = ({ token, returnTo }: { token: string; returnTo?: string }) => {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const verify = useMutation(api.users.verifyEmail);
   const [error, setError] = useState<string | null>(token ? null : "This confirmation link is missing its code.");
@@ -104,4 +102,7 @@ function VerifyBody({ token, returnTo }: { token: string; returnTo?: string }) {
       </div>
     </SignedOutPage>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/verify-email")({ component: VerifyEmail });

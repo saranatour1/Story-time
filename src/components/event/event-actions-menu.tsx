@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ import { errorMessage } from "@/lib/errors";
 
 // The "..." menu for an experience. Items show only when they apply: edit
 // needs a handler, archive and delete need the owner.
-export function EventActionsMenu({
+export const EventActionsMenu = ({
   event,
   onEditDetails,
   compact = false,
@@ -39,7 +39,7 @@ export function EventActionsMenu({
   onEditDetails?: () => void;
   // The icon alone, where a label would crowd (a card's corner).
   compact?: boolean;
-}) {
+}) => {
   const update = useMutation(api.events.update);
   const token = useAuthToken();
   const navigate = useNavigate();
@@ -47,7 +47,7 @@ export function EventActionsMenu({
   const isOwner = event.role === "owner";
   const archived = event.status === "archived";
 
-  async function setArchived(next: boolean) {
+  const setArchived = async (next: boolean) => {
     const status = (on: boolean) => (on ? ("archived" as const) : ("active" as const));
     try {
       await update({ eventId: event._id, status: status(next) });
@@ -62,12 +62,12 @@ export function EventActionsMenu({
     } catch (e) {
       toast.error(errorMessage(e));
     }
-  }
+  };
 
-  async function copyLink() {
+  const copyLink = async () => {
     await navigator.clipboard.writeText(`${window.location.origin}/e/${event._id}`);
     toast.success("Link copied");
-  }
+  };
 
   return (
     <>
@@ -95,12 +95,14 @@ export function EventActionsMenu({
           )}
           {event.momentCount > 0 && (
             <DropdownMenuItem
+              data-track="story_played"
+              data-from="menu"
               onSelect={() => void navigate({ to: "/e/$id/story", params: { id: event._id }, search: { step: 0 } })}
             >
               <PlayIcon /> Play story
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onSelect={() => void copyLink()}>
+          <DropdownMenuItem data-track="link_copied" onSelect={() => void copyLink()}>
             <LinkIcon /> Copy link
           </DropdownMenuItem>
           {isOwner && (
@@ -139,4 +141,4 @@ export function EventActionsMenu({
       />
     </>
   );
-}
+};

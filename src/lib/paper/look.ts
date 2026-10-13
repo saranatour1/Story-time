@@ -6,7 +6,7 @@
 // A repeatable stream of numbers in [0, 1) from any string. A torn edge or a
 // print's tilt comes from the moment's id, so it looks the same every time it
 // is drawn, on every screen, in a shared link too.
-export function seeded(seed: string): () => number {
+export const seeded = (seed: string): () => number => {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
     h ^= seed.charCodeAt(i);
@@ -20,7 +20,7 @@ export function seeded(seed: string): () => number {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-}
+};
 
 // ---- Pages -----------------------------------------------------------------------
 
@@ -85,12 +85,12 @@ export const tapeLook = (id: string | undefined) => TAPES.find((t) => t.id === i
 // A CSS polygon for a rectangle with an uneven, torn edge on the sides in
 // `edges`, as percentages so it fits any size. `roughness` is how far a point
 // strays, in percent of the side.
-export function tornPolygon(
+export const tornPolygon = (
   seed: string,
   edges: { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean } = { top: true, right: true, bottom: true, left: true },
   roughness = 1.8,
   steps = 14,
-): string {
+): string => {
   const rnd = seeded(seed);
   const wobble = (on: boolean | undefined) => (on ? rnd() * roughness : 0);
   const pts: string[] = [];
@@ -101,7 +101,7 @@ export function tornPolygon(
   for (let i = steps - 1; i >= 0; i--) pts.push(`${pct((i / steps) * 100)} ${pct(100 - wobble(edges.bottom))}`);
   for (let i = steps - 1; i >= 1; i--) pts.push(`${pct(wobble(edges.left))} ${pct((i / steps) * 100)}`);
   return `polygon(${pts.join(", ")})`;
-}
+};
 
 // The jagged ends of a strip of tape.
 export const TAPE_ENDS = "polygon(0 0, 100% 0, 98% 20%, 100% 40%, 98% 60%, 100% 80%, 98% 100%, 0 100%, 2% 80%, 0 60%, 2% 40%, 0 20%)";

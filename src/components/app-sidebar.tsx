@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-import { BookHeartIcon, ChevronRightIcon, HistoryIcon, HomeIcon, ListIcon, UsersIcon } from "lucide-react";
-import { api } from "../../convex/_generated/api";
+import { useQuery } from "@tanstack/react-query";
+import { BookHeartIcon, ChevronRightIcon, HistoryIcon, HomeIcon, ListIcon, MessageSquareHeartIcon, UsersIcon } from "lucide-react";
+import { queries } from "@/lib/queries";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
@@ -29,22 +29,22 @@ import {
 const SECTIONS = [
   { to: "/e/$id", label: "Moments", icon: ListIcon, path: "", owner: false },
   { to: "/e/$id/journal", label: "Journal", icon: BookHeartIcon, path: "/journal", owner: false },
+  { to: "/e/$id/guestbook", label: "Guestbook", icon: MessageSquareHeartIcon, path: "/guestbook", owner: false },
   { to: "/e/$id/shared", label: "Shared", icon: UsersIcon, path: "/shared", owner: true },
   { to: "/e/$id/activity", label: "Activity", icon: HistoryIcon, path: "/activity", owner: true },
 ] as const;
 
-export function AppSidebar() {
+export const AppSidebar = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   // The experience open, if one is, and which of its sections.
   const open = /^\/e\/([^/]+)(\/[a-z]+)?\/?$/.exec(pathname);
   const eventId = open?.[1];
   const section = open?.[2] ?? "";
-  const event = useQuery(api.events.get, eventId ? { eventId } : "skip");
-  const unread = useQuery(
-    api.changes.unreadCount,
-    eventId && event?.role === "owner" ? { eventId } : "skip",
+  const { data: event } = useQuery(queries.events.get(eventId ? { eventId } : "skip"));
+  const { data: unread } = useQuery(
+    queries.changes.unreadCount(eventId && event?.role === "owner" ? { eventId } : "skip"),
   );
-  const events = useQuery(api.events.listMine);
+  const { data: events } = useQuery(queries.events.listMine());
 
   return (
     <Sidebar collapsible="icon">
@@ -133,4 +133,4 @@ export function AppSidebar() {
       <SidebarRail />
     </Sidebar>
   );
-}
+};

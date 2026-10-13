@@ -5,7 +5,7 @@ import { internal } from "./_generated/api";
 const MAX_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 const vRole = v.union(v.literal("viewer"), v.literal("contributor"));
 
-async function sha256Hex(text: string): Promise<string> {
+const sha256Hex = async (text: string): Promise<string> => {
   const buf = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(text),
@@ -13,14 +13,14 @@ async function sha256Hex(text: string): Promise<string> {
   return [...new Uint8Array(buf)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-}
+};
 
-function newToken(): string {
+const newToken = (): string => {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+};
 
 // The token is returned once, here; only its hash is stored.
 export const create = mutation({

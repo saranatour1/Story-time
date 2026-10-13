@@ -1,10 +1,11 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { beforeAll, describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { requireEventAccessFor } from "../lib/access";
-import { createMoment } from "../moments";
+import { createMoment } from "../model/moments";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
@@ -18,8 +19,9 @@ beforeAll(() => {
 
 const T0 = Date.UTC(2026, 5, 1, 12);
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   const make = (displayName?: string) => t.run((ctx) => ctx.db.insert("users", { displayName }));
   const [ownerId, helperId, viewerId, strangerId] = [
     await make("Sara"),
@@ -29,7 +31,7 @@ async function setup() {
   ];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
   const owner = as(ownerId);
-  const eventId = await owner.mutation(api.events.createDraft, {});
+  const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }),
   );
@@ -37,25 +39,25 @@ async function setup() {
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
   );
   return { t, eventId, ownerId, helperId, viewerId, strangerId, owner, helper: as(helperId) };
-}
+};
 
 describe("people are people", () => {
   test("a person's moment and edit carry no agent, and the edit names them", async () => {
     const { t, owner, helper, eventId, ownerId } = await setup();
-    const momentId = await helper.mutation(api.moments.create, {
+    const momentId = await helper.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       place: "Lisbon",
       blocks: [{ type: "note", text: "Landed" }],
     });
-    let [m] = await owner.query(api.moments.list, { eventId });
+    let [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.authorName).toBe("Noor");
     expect(m?.authorAgent).toBeUndefined();
     // Never edited, so nothing says who edited it.
     expect(m?.editedAt).toBeUndefined();
 
-    await owner.mutation(api.moments.update, { momentId, place: "Lisbon, Alfama" });
-    [m] = await owner.query(api.moments.list, { eventId });
+    await owner.mutation(api.api.moments.update, { momentId, place: "Lisbon, Alfama" });
+    [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.editedById).toBe(ownerId);
     expect(m?.editedByName).toBe("Sara");
     expect(m?.editedByAgent).toBeUndefined();
@@ -71,15 +73,15 @@ describe("people are people", () => {
 describe("agents are labelled", () => {
   test("Scribe's edit is the agent's, for no one in particular", async () => {
     const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.moments.create, {
+    const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       place: "Lisbon",
       blocks: [{ type: "link", url: "https://example.com/tram" }],
     });
-    await t.mutation(internal.ai.apply.apply, { momentId, note: "We rode the tram", labels: ["tram"] });
+    await t.mutation(internal.model.ai.apply.apply, { momentId, note: "We rode the tram", labels: ["tram"] });
 
-    const [m] = await owner.query(api.moments.list, { eventId });
+    const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.editedByAgent).toBe("Scribe");
     expect(m?.editedById).toBeUndefined();
     expect(m?.editedByName).toBeUndefined();
@@ -104,7 +106,7 @@ describe("agents are labelled", () => {
       });
     });
 
-    const [m] = await owner.query(api.moments.list, { eventId });
+    const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?._id).toBe(momentId);
     expect(m?.authorId).toBe(ownerId);
     expect(m?.authorName).toBe("Sara");
@@ -128,9 +130,9 @@ describe("agents are labelled", () => {
       });
       return momentId;
     });
-    const link = await owner.mutation(api.share.enable, { eventId });
+    const link = await owner.mutation(api.api.share.enable, { eventId });
     const token = link.split("#")[1] ?? "";
-    const shared = await t.query(api.share.get, { token });
+    const shared = await t.query(api.api.share.get, { token });
     expect(shared?.moments).toHaveLength(1);
     const keys = Object.keys(shared?.moments[0] ?? {});
     for (const hidden of ["authorId", "authorName", "authorAgent", "editedAt", "editedById", "editedByName", "editedByAgent"]) {

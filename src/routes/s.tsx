@@ -1,18 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { FileLockIcon, LoaderCircleIcon, PlayIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
-import { api } from "../../convex/_generated/api";
+import { queries } from "@/lib/queries";
 import { download, fileName } from "@/components/journal/export";
 import { Reader } from "@/components/journal/reader";
 import { SignedOutPage } from "@/components/sign-in-screen";
-import { StoryPlayer } from "@/components/story/story-player";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { MediaAuthContext } from "@/lib/use-media-url";
+
+const StoryPlayer = lazy(() => import("@/components/story/story-player").then((m) => ({ default: m.StoryPlayer })));
 
 const search = z.object({
   // Where the film is, when Play is open.
@@ -23,27 +24,18 @@ const search = z.object({
   mode: z.enum(["book", "read", "film"]).default("book").catch("book"),
 });
 
-// A book anyone can turn with its link, so there's no sign-in gate. The token
-// is the URL's fragment, which browsers never send to a server, and search
-// engines are kept out. Play opens the film; the book is the page.
-export const Route = createFileRoute("/s")({
-  validateSearch: search,
-  head: () => ({ meta: [{ name: "robots", content: "noindex" }] }),
-  component: SharedStoryPage,
-});
-
 // Client only (the page isn't server-rendered), but nothing here assumes it.
-function readToken(): string {
+const readToken = (): string => {
   return typeof window === "undefined" ? "" : window.location.hash.slice(1);
-}
+};
 
-function SharedStoryPage() {
+const SharedStoryPage = () => {
   const { step, page, mode } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [token] = useState(readToken);
-  const shared = useQuery(api.share.get, token ? { token } : "skip");
-  const book = useQuery(api.share.journal, token ? { token } : "skip");
-  const pdf = useQuery(api.share.pdf, token ? { token } : "skip");
+  const { data: shared } = useQuery(queries.share.get(token ? { token } : "skip"));
+  const { data: book } = useQuery(queries.share.journal(token ? { token } : "skip"));
+  const { data: pdf } = useQuery(queries.share.pdf(token ? { token } : "skip"));
   const [fetching, setFetching] = useState(false);
   useDocumentTitle(shared ? `${shared.event.title} · Story-time` : undefined);
   const moments = useMemo(() => new Map((shared?.moments ?? []).map((m) => [m._id, m])), [shared?.moments]);
@@ -81,7 +73,9 @@ function SharedStoryPage() {
   return (
     <MediaAuthContext.Provider value={{ kind: "share", token }}>
       {mode === "film" ? (
-        <StoryPlayer event={shared.event} moments={shared.moments} meId={undefined} step={step} onStep={onStep} onClose={closeFilm} />
+        <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
+          <StoryPlayer event={shared.event} moments={shared.moments} meId={undefined} step={step} onStep={onStep} onClose={closeFilm} />
+        </Suspense>
       ) : (
         <div className="flex h-svh flex-col bg-[#e9dfcb] text-[#1f1a16]">
           <header className="flex items-center justify-between gap-3 px-4 py-3">
@@ -120,10 +114,10 @@ function SharedStoryPage() {
       )}
     </MediaAuthContext.Provider>
   );
-}
+};
 
 // Off, switched off, replaced, or never real: the same page for all of them.
-function NotShared() {
+const NotShared = () => {
   return (
     <SignedOutPage className="items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm space-y-4">
@@ -137,11 +131,11 @@ function NotShared() {
       </div>
     </SignedOutPage>
   );
-}
+};
 
 // The locked PDF, fetched with the link's token the way its pictures are, and
 // saved. It opens with the password its owner sends separately.
-async function downloadPdf(token: string, mediaId: string, title: string, busy: (on: boolean) => void) {
+const downloadPdf = async (token: string, mediaId: string, title: string, busy: (on: boolean) => void) => {
   busy(true);
   try {
     const res = await fetch(`/api/media/${mediaId}`, { headers: { Authorization: `Share ${token}` } });
@@ -153,4 +147,20 @@ async function downloadPdf(token: string, mediaId: string, title: string, busy: 
   } finally {
     busy(false);
   }
-}
+};
+
+// A book anyone can turn with its link, so there's no sign-in gate. The token
+// is the URL's fragment, which browsers never send to a server, and search
+// engines are kept out. Play opens the film; the book is the page.
+export const Route = createFileRoute("/s")({
+  validateSearch: search,
+  // The link is the key, so these don't wait for sign-in.
+  loader: ({ context: { queryClient } }) => {
+    const token = readToken();
+    if (!token) return;
+    void queryClient.prefetchQuery(queries.share.get({ token }));
+    void queryClient.prefetchQuery(queries.share.journal({ token }));
+    void queryClient.prefetchQuery(queries.share.pdf({ token }));
+  },
+  component: SharedStoryPage,
+});

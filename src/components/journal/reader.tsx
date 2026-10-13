@@ -1,8 +1,8 @@
-import { useQuery } from "convex/react";
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api } from "../../../convex/_generated/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { PAGE } from "../../../convex/lib/journal";
 import type { StoryMoment } from "@/components/event/types";
@@ -11,7 +11,7 @@ import { firstNote, noteWasCut } from "./play";
 import { FONTS } from "./look";
 import { JournalPage } from "./page";
 
-function SpreadPage({
+const SpreadPage = ({
   pageId,
   moments,
   scale,
@@ -23,9 +23,9 @@ function SpreadPage({
   scale: number;
   token?: string;
   eventId?: string;
-}) {
-  const member = useQuery(api.journal.page, token ? "skip" : { pageId: pageId as Id<"journalPages"> });
-  const shared = useQuery(api.share.page, token ? { token, pageId: pageId as Id<"journalPages"> } : "skip");
+}) => {
+  const { data: member } = useQuery(queries.journal.page(token ? "skip" : { pageId: pageId as Id<"journalPages"> }));
+  const { data: shared } = useQuery(queries.share.page(token ? { token, pageId: pageId as Id<"journalPages"> } : "skip"));
   const page = token ? shared : member;
   if (page === undefined || page === null) {
     return <div className="animate-pulse bg-[#efe6d2]" style={{ width: PAGE.w * scale, height: PAGE.h * scale }} />;
@@ -49,11 +49,11 @@ function SpreadPage({
       )}
     </div>
   );
-}
+};
 
 // A page that no longer matches its moment. The words only; the button lives
 // in make mode, where the owner can ask.
-function PageNotice({ page }: { page: { gone: boolean; stale: boolean } }) {
+const PageNotice = ({ page }: { page: { gone: boolean; stale: boolean } }) => {
   const line = page.gone ? "This moment was taken out of the trip." : page.stale ? "The moment changed." : null;
   if (line === null) return null;
   return (
@@ -61,11 +61,11 @@ function PageNotice({ page }: { page: { gone: boolean; stale: boolean } }) {
       {line}
     </p>
   );
-}
+};
 
 // Reading the journal like a book: the cover alone, then two pages at a time
 // (one on a phone), turned with the arrows, the keyboard or a swipe.
-export function Reader({
+export const Reader = ({
   pages,
   moments,
   size,
@@ -83,7 +83,7 @@ export function Reader({
   token?: string;
   // Set when Play can offer the full note of a clipped page.
   eventId?: string;
-}) {
+}) => {
   const pair = size.w >= 900;
   // Spreads: the cover alone, then pages side by side.
   const spreads = pair ? [[0], ...Array.from({ length: Math.ceil((pages.length - 1) / 2) }, (_, i) => [1 + i * 2, 2 + i * 2].filter((n) => n < pages.length))] : pages.map((_, i) => [i]);
@@ -146,4 +146,4 @@ export function Reader({
       </p>
     </div>
   );
-}
+};

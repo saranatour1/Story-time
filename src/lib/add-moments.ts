@@ -1,27 +1,28 @@
 import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
-import type { api } from "../../convex/_generated/api";
+import type { api } from "@/lib/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { IMAGE_MIME_TYPES } from "../../convex/lib/limits";
 import type { Geo, PhotoPoint } from "./photo-groups";
 import { type PhotoMeta, readPhotoMeta } from "./photo-meta";
 import { thumbnail } from "./thumbs";
 import { isVideoFile, MAX_UPLOAD_BYTES, MAX_VIDEO_BYTES, uploadMedia } from "./upload";
+import { trackAi } from "@/lib/analytics";
 
 // The steps that adding moments from picked files shares: the review sheet and
 // the one-tap add both read, upload, plan and create the same way.
 
 const UPLOADS_AT_ONCE = 3;
 // Thumbnails sent per moment: as many as the server reads (MAX_THUMBS in
-// convex/ai/scribe.ts), so keep the two in step.
+// convex/model/ai/scribe.ts), so keep the two in step.
 export const THUMBS_PER_MOMENT = 4;
 
 export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-export function dayLabel(day: string) {
+export const dayLabel = (day: string) => {
   const [y = 0, m = 1, d = 1] = day.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-}
+};
 
 // A picked photo or video, read on this device. `guessed` marks a time taken
 // from the file's date, not the camera's.
@@ -30,11 +31,11 @@ export type Picked = { file: File; kind: "photo" | "video"; guessed: boolean; po
 // Checks each file (type, size, and that it isn't already in `seen`, which it
 // updates) and reads when and where it was taken. Files left out are returned
 // as problems to show.
-export async function readPicked(
+export const readPicked = async (
   files: File[],
   seen: Set<string>,
   nextId: () => string,
-): Promise<{ picked: Picked[]; problems: string[] }> {
+): Promise<{ picked: Picked[]; problems: string[] }> => {
   const problems: string[] = [];
   const read = await Promise.all(
     files.map(async (file): Promise<Picked | null> => {
@@ -61,18 +62,18 @@ export async function readPicked(
     }),
   );
   return { picked: read.flatMap((p) => (p ? [p] : [])), problems };
-}
+};
 
 // Uploads a few at a time, reporting progress. Stops early when `stopped` says
 // so, and when the experience is out of upload room, which every later upload
 // would hit as well.
-export async function uploadAll(
+export const uploadAll = async (
   items: Array<{ id: string; file: File }>,
   eventId: string,
   token: () => string,
   onProgress: (done: number, total: number) => void,
   stopped: () => boolean = () => false,
-): Promise<{ uploaded: Map<string, string>; failures: string[]; full: boolean }> {
+): Promise<{ uploaded: Map<string, string>; failures: string[]; full: boolean }> => {
   // Item id → uploaded media id.
   const uploaded = new Map<string, string>();
   const failures: string[] = [];
@@ -102,7 +103,7 @@ export async function uploadAll(
     failures.push(`${plural(items.length - done, "more file")} weren't uploaded: the upload limit has been reached`);
   }
   return { uploaded, failures, full };
-}
+};
 
 // A stop as planned. `place` is only set once someone named it.
 export type PlannedStop = { startsAt: number; photos: PhotoPoint[]; place?: string; geo?: Geo };
@@ -119,11 +120,11 @@ export type PlannedMoment = { label: string; create?: Omit<CreateArgs, "eventId"
 // The moments a plan creates. A stop keeps only the photos that uploaded, and
 // is left out when none did. Coordinates go only with a place. The moment's
 // zone is the first photo's, when its camera recorded one.
-export function momentsFromPlan(
+export const momentsFromPlan = (
   days: PlannedDay[],
   uploaded: ReadonlyMap<string, string>,
   kindOf: (photoId: string) => "photo" | "video" | undefined,
-): PlannedMoment[] {
+): PlannedMoment[] => {
   return days.flatMap((d) =>
     d.moments.map((stops, i): PlannedMoment => {
       const label = dayLabel(d.day) + (d.moments.length > 1 ? `, part ${i + 1}` : "");
@@ -158,34 +159,34 @@ export function momentsFromPlan(
       };
     }),
   );
-}
+};
 
 export type Thumb = { mediaId: Id<"media">; jpeg: string };
 
 // The photos the AI looks at: the first few that are pictures.
-export function samplePhotos<T extends { file: File }>(photos: T[]): T[] {
+export const samplePhotos = <T extends { file: File }>(photos: T[]): T[] => {
   return photos.filter((p) => p.file.type.startsWith("image/")).slice(0, THUMBS_PER_MOMENT);
-}
+};
 
 export type Enrich = (args: { momentId: Id<"moments">; thumbs: Thumb[]; hint?: string }) => Promise<unknown>;
 
-// Once the server says this hour's AI fill-ins are used up, new moments skip
-// the thumbnails and the request for a while, from any form on the page: the
-// allowance is the person's. It refills steadily; ten minutes brings back
-// about 20.
-const PAUSE_MS = 10 * 60_000;
+// Once the server says the day's AI uses are spent, new moments skip the
+// thumbnails and the request, from any form on the page: the allowance is the
+// person's. It comes back at midnight UTC; asking again after an hour costs
+// one cheap refusal at most.
+const PAUSE_MS = 60 * 60_000;
 let pausedUntil = 0;
 
 // Asks the server to draft a saved moment's note, labels, transport and link
 // titles, from small copies of its photos. The moment is already saved, so a
 // failure here is only logged.
-export function enrichMoment(
+export const enrichMoment = (
   enrich: Enrich,
   momentId: Id<"moments">,
   photos: Array<{ mediaId: Id<"media">; file: File }>,
   // What the person said the photos are, to guide the note.
   hint?: string,
-): void {
+): void => {
   if (Date.now() < pausedUntil) return;
   void Promise.all(
     samplePhotos(photos).map(async ({ mediaId, file }) => {
@@ -193,13 +194,13 @@ export function enrichMoment(
       return jpeg ? [{ mediaId, jpeg }] : [];
     }),
   )
-    .then((made) => enrich({ momentId, thumbs: made.flat(), hint }))
+    .then((made) => trackAi("note", enrich({ momentId, thumbs: made.flat(), hint }), (admitted) => (admitted === false ? "limit" : "ok")))
     .then((admitted) => {
       if (admitted !== false || Date.now() < pausedUntil) return;
       pausedUntil = Date.now() + PAUSE_MS;
-      toast.info("Notes paused for a few minutes", {
-        description: "You've used this hour's AI fill-ins. New moments are saved without drafted notes until it refills.",
+      toast.info("No more AI notes today", {
+        description: "You've used today's 10 AI uses. New moments still save, without a drafted note. They come back at midnight UTC.",
       });
     })
     .catch((error: unknown) => console.warn("Couldn't draft the moment's notes:", error));
-}
+};

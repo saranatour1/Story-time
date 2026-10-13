@@ -1,6 +1,6 @@
 import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
-import type { api } from "../../convex/_generated/api";
+import type { api } from "@/lib/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { MOMENT_LIMIT } from "../../convex/lib/limits";
 import { reversePlace } from "@/components/event/place-input";
@@ -26,7 +26,7 @@ const LOOKUP_GAP_MS = 1100;
 
 // Names each located stop from its coordinates, so the moments get a place
 // and a map pin. Runs while the uploads do; a stop it can't name stays unnamed.
-async function namePlaces(days: PhotoDay[]): Promise<PlannedDay[]> {
+const namePlaces = async (days: PhotoDay[]): Promise<PlannedDay[]> => {
   const located = days.flatMap((d) => d.moments.flat()).flatMap((s) => (s.geo ? [{ stop: s, geo: s.geo }] : []));
   const names = new Map<PhotoStop, string>();
   for (const [i, { stop, geo }] of located.entries()) {
@@ -38,20 +38,20 @@ async function namePlaces(days: PhotoDay[]): Promise<PlannedDay[]> {
     day: d.day,
     moments: d.moments.map((stops) => stops.map((s) => ({ ...s, place: names.get(s) }))),
   }));
-}
+};
 
 // The first few problems, for a toast's description.
-function details(problems: string[]): string {
+const details = (problems: string[]): string => {
   const shown = problems.slice(0, 3).join(" · ");
   return problems.length > 3 ? `${shown} · and ${problems.length - 3} more` : shown;
-}
+};
 
 // Reads, uploads and plans the picked photos and videos, then makes their
 // moments: grouped as the review sheet groups them, each with its AI note.
 // `note`, when given, is the person's own words: it becomes the first moment's
 // note as written, and guides the notes the AI drafts for the rest. Returns
 // whether any moment was made. Progress and problems are shown as toasts.
-export async function addPhotos(args: {
+export const addPhotos = async (args: {
   event: Pick<EventView, "_id" | "momentCount">;
   files: File[];
   note?: string;
@@ -59,7 +59,7 @@ export async function addPhotos(args: {
   token: () => string | undefined;
   createMoment: (args: FunctionArgs<typeof api.moments.create>) => Promise<Id<"moments">>;
   enrich: Enrich;
-}): Promise<boolean> {
+}): Promise<boolean> => {
   const { event, files, note, createMoment, enrich } = args;
   const token = args.token();
   if (files.length === 0 || !token) return false;
@@ -146,4 +146,4 @@ export async function addPhotos(args: {
     toast.error(errorMessage(e), { id: toastId });
     return false;
   }
-}
+};

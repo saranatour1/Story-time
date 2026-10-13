@@ -12,7 +12,7 @@ export type Actor =
 
 // How the change log names an actor. A person leaves only their id, as it
 // always has; an agent also leaves its name; the system leaves neither.
-export function changeFields(actor: Actor): { actorId?: Id<"users">; agent?: string } {
+export const changeFields = (actor: Actor): { actorId?: Id<"users">; agent?: string } => {
   switch (actor.kind) {
     case "human":
       return { actorId: actor.userId };
@@ -21,10 +21,10 @@ export function changeFields(actor: Actor): { actorId?: Id<"users">; agent?: str
     case "system":
       return {};
   }
-}
+};
 
 // What a moment remembers of its latest edit.
-export function lastEditOf(actor: Actor, at: number): Infer<typeof vLastEdit> {
+export const lastEditOf = (actor: Actor, at: number): Infer<typeof vLastEdit> => {
   switch (actor.kind) {
     case "human":
       return { at, userId: actor.userId };
@@ -33,9 +33,9 @@ export function lastEditOf(actor: Actor, at: number): Infer<typeof vLastEdit> {
     case "system":
       return { at };
   }
-}
+};
 
 // An agent's label is shown to people, so keep it short and plain.
-export function agentLabel(name: string): string {
+export const agentLabel = (name: string): string => {
   return name.replace(/\s+/g, " ").trim().slice(0, 40);
-}
+};

@@ -11,25 +11,25 @@ const VERIFY_TTL_MS = 2 * DAY_MS;
 
 // Cloudflare Email is off until all three are set. Callers skip the send
 // rather than queueing a message that can only fail.
-export function emailConfigured(): boolean {
+export const emailConfigured = (): boolean => {
   return Boolean(env.CF_ACCOUNT_ID && env.CF_EMAIL_TOKEN && env.EMAIL_FROM);
-}
+};
 
 // The address we may put on a message: confirmed, and never an unverified one.
-export async function replyAddress(ctx: MutationCtx, userId: Id<"users">): Promise<string | undefined> {
+export const replyAddress = async (ctx: MutationCtx, userId: Id<"users">): Promise<string | undefined> => {
   const user = await ctx.db.get("users", userId);
   if (user?.emailVerified !== true || user.email === undefined) return undefined;
   return user.email;
-}
+};
 
-function newToken(): string {
+const newToken = (): string => {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+};
 
-async function chargeEmailCheck(ctx: MutationCtx, userId: Id<"users">) {
+const chargeEmailCheck = async (ctx: MutationCtx, userId: Id<"users">) => {
   const since = Date.now() - DAY_MS;
   const recent = await ctx.db
     .query("emailChecks")
@@ -47,11 +47,11 @@ async function chargeEmailCheck(ctx: MutationCtx, userId: Id<"users">) {
     .take(CHECKS_PER_DAY);
   for (const row of stale) await ctx.db.delete("emailChecks", row._id);
   await ctx.db.insert("emailChecks", { userId });
-}
+};
 
 // Stores the address as waiting, and mails a link when email is configured.
 // The token stays in the link fragment. Only its hash is kept.
-export async function issueEmailCheck(ctx: MutationCtx, userId: Id<"users">, to: string): Promise<"sent" | "waiting"> {
+export const issueEmailCheck = async (ctx: MutationCtx, userId: Id<"users">, to: string): Promise<"sent" | "waiting"> => {
   const token = newToken();
   await ctx.db.patch("users", userId, {
     pendingEmail: to,
@@ -68,4 +68,4 @@ export async function issueEmailCheck(ctx: MutationCtx, userId: Id<"users">, to:
     text: `Confirm this address for your Story-time account.\n${link}\nThe link works for two days. If you didn't ask for this, you can ignore it.`,
   });
   return "sent";
-}
+};

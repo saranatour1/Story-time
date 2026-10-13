@@ -27,7 +27,7 @@ const DISTRICTS = [
   { name: "PRAGAL", x: 62, y: 90 },
 ];
 
-export function MapFrame() {
+export const MapFrame = () => {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
   // Before it's seen, the ferry waits at the quay; without motion it has
@@ -113,4 +113,4 @@ export function MapFrame() {
       </div>
     </div>
   );
-}
+};

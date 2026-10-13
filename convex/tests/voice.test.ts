@@ -2,11 +2,12 @@
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vitest";
-import { isFormat, readTranscript, toBase64 } from "../ai/voice";
-import { promptFor } from "../ai/scribe";
+import { isFormat, readTranscript, toBase64 } from "../model/ai/voice";
+import { promptFor } from "../model/ai/scribe";
 import { api } from "../_generated/api";
 import { MAX_VOICE_BYTES } from "../lib/limits";
 import { rateLimiter } from "../lib/rateLimit";
+import { AI_PER_DAY } from "../lib/limits";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
@@ -18,12 +19,12 @@ beforeAll(() => {
 
 const clip = (bytes: number) => new Uint8Array(bytes).fill(1).buffer;
 
-async function setup() {
+const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
   const userId = await t.run((ctx) => ctx.db.insert("users", {}));
   return { t, userId, person: t.withIdentity({ subject: userId }) };
-}
+};
 
 describe("reading the gateway's reply", () => {
   test("keeps the words, tidied", () => {
@@ -57,20 +58,20 @@ describe("encoding", () => {
 describe("transcribe is refused before anything is sent", () => {
   test("when nobody is signed in", async () => {
     const { t } = await setup();
-    await expect(t.action(api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("Sign in");
+    await expect(t.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("Sign in");
   });
 
   test("for a format it can't read, an empty clip or one that's too long", async () => {
     const { person } = await setup();
-    await expect(person.action(api.ai.voice.transcribe, { audio: clip(10), format: "exe" })).rejects.toThrow("format");
-    await expect(person.action(api.ai.voice.transcribe, { audio: clip(0), format: "webm" })).rejects.toThrow("empty");
-    await expect(person.action(api.ai.voice.transcribe, { audio: clip(MAX_VOICE_BYTES + 1), format: "webm" })).rejects.toThrow("too long");
+    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "exe" })).rejects.toThrow("format");
+    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(0), format: "webm" })).rejects.toThrow("empty");
+    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(MAX_VOICE_BYTES + 1), format: "webm" })).rejects.toThrow("too long");
   });
 
   test("once the person's allowance is spent", async () => {
     const { t, userId, person } = await setup();
-    for (let i = 0; i < 40; i++) await t.run((ctx) => rateLimiter.limit(ctx, "voice", { key: userId }));
-    await expect(person.action(api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("a lot of recordings");
+    for (let i = 0; i < AI_PER_DAY; i++) await t.run((ctx) => rateLimiter.limit(ctx, "ai", { key: userId }));
+    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("You can still type it");
   });
 });
 

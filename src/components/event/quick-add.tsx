@@ -2,7 +2,7 @@ import { useAuthToken } from "@convex-dev/auth/react";
 import { useAction, useMutation } from "convex/react";
 import { ImagePlusIcon } from "lucide-react";
 import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { addPhotos } from "@/lib/add-photos";
@@ -15,7 +15,7 @@ type ButtonProps = ComponentProps<typeof Button>;
 
 // Picks photos and videos and makes their moments in one go, grouped by day
 // and place, each with its AI note.
-export function QuickAddButton({
+export const QuickAddButton = ({
   event,
   variant = "default",
   size,
@@ -25,7 +25,7 @@ export function QuickAddButton({
   variant?: ButtonProps["variant"];
   size?: ButtonProps["size"];
   children?: ReactNode;
-}) {
+}) => {
   const createMoment = useMutation(api.moments.create);
   const enrich = useAction(api.ai.enrich.enrich);
   const token = useAuthToken();
@@ -38,7 +38,7 @@ export function QuickAddButton({
   const [busy, setBusy] = useState(false);
   if (!canAddTo(event)) return null;
 
-  async function add(list: FileList | null) {
+  const add = async (list: FileList | null) => {
     setBusy(true);
     try {
       await addPhotos({
@@ -51,7 +51,7 @@ export function QuickAddButton({
     } finally {
       setBusy(false);
     }
-  }
+  };
 
   return (
     <>
@@ -60,6 +60,7 @@ export function QuickAddButton({
         size={size}
         disabled={busy || !token}
         aria-label="Add photos and videos"
+        data-track="add_photos_clicked"
         onClick={() => input.current?.click()}
       >
         <ImagePlusIcon /> {children}
@@ -80,4 +81,4 @@ export function QuickAddButton({
       />
     </>
   );
-}
+};

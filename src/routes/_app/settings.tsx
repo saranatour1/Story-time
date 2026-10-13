@@ -2,9 +2,7 @@ import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-r
 import { SETTINGS_SECTIONS } from "@/lib/settings-sections";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_app/settings")({ component: SettingsLayout });
-
-function SettingsLayout() {
+const SettingsLayout = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
@@ -45,4 +43,7 @@ function SettingsLayout() {
       </div>
     </div>
   );
-}
+};
+
+// Last, so the components it names are defined above it.
+export const Route = createFileRoute("/_app/settings")({ component: SettingsLayout });

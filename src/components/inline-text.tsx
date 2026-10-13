@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 // Edit in place. Click the text to edit; Enter or blur saves, Escape
 // cancels (multiline saves on Cmd/Ctrl+Enter or blur). If the server rejects
 // the value, a toast explains why and the saved text stays.
-export function InlineText({
+export const InlineText = ({
   value,
   onSave,
   label,
@@ -24,7 +24,7 @@ export function InlineText({
   disabled?: boolean;
   placeholder?: string;
   className?: string;
-}) {
+}) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   // Set once a save or cancel has happened, so the blur that follows
@@ -54,7 +54,7 @@ export function InlineText({
     );
   }
 
-  async function commit() {
+  const commit = async () => {
     if (done.current) return;
     done.current = true;
     setEditing(false);
@@ -65,7 +65,7 @@ export function InlineText({
     } catch (e) {
       toast.error(errorMessage(e));
     }
-  }
+  };
 
   const shared = {
     autoFocus: true,
@@ -89,4 +89,4 @@ export function InlineText({
   ) : (
     <Input className={cn("h-auto py-1", className)} {...shared} />
   );
-}
+};

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 // Up to two initials ("Sara Natour" → "SN"), or "" when there's no name.
 // Array.from keeps an emoji or accented letter whole.
-export function initials(name: string | undefined) {
+export const initials = (name: string | undefined) => {
   return (name ?? "")
     .trim()
     .split(/\s+/)
@@ -13,11 +13,11 @@ export function initials(name: string | undefined) {
     .map((word) => Array.from(word)[0] ?? "")
     .join("")
     .toUpperCase();
-}
+};
 
 // Shows the profile image when there is one, otherwise the name's initials,
 // or a person for people who haven't set a name.
-export function UserAvatar({
+export const UserAvatar = ({
   mediaId,
   name,
   className,
@@ -25,14 +25,14 @@ export function UserAvatar({
   mediaId?: string;
   name?: string;
   className?: string;
-}) {
-  const { url } = useMediaUrl(mediaId);
+}) => {
+  const { url } = useMediaUrl(mediaId, "thumb");
   return (
     <Avatar className={cn("rounded-lg", className)}>
-      {url && <AvatarImage src={url} alt="" className="rounded-lg object-cover" />}
+      {url && <AvatarImage src={url} alt="" width={40} height={40} sizes="40px" decoding="async" className="rounded-lg object-cover" />}
       <AvatarFallback className="rounded-lg">
         {initials(name) || <UserIcon aria-hidden className="size-1/2" />}
       </AvatarFallback>
     </Avatar>
   );
-}
+};

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as SRouteImport } from './routes/s'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
@@ -27,6 +28,7 @@ import { Route as ApiMediaIdRouteImport } from './routes/api/media.$id'
 import { Route as EIdStoryRouteImport } from './routes/e.$id.story'
 import { Route as AppEIdIndexRouteImport } from './routes/_app/e.$id.index'
 import { Route as AppEIdActivityRouteImport } from './routes/_app/e.$id.activity'
+import { Route as AppEIdGuestbookRouteImport } from './routes/_app/e.$id.guestbook'
 import { Route as AppEIdJournalRouteImport } from './routes/_app/e.$id.journal'
 import { Route as AppEIdSharedRouteImport } from './routes/_app/e.$id.shared'
 
@@ -37,6 +39,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SRoute = SRouteImport.update({
@@ -119,6 +126,11 @@ const AppEIdActivityRoute = AppEIdActivityRouteImport.update({
   path: '/e/$id/activity',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEIdGuestbookRoute = AppEIdGuestbookRouteImport.update({
+  id: '/e/$id/guestbook',
+  path: '/e/$id/guestbook',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEIdJournalRoute = AppEIdJournalRouteImport.update({
   id: '/e/$id/journal',
   path: '/e/$id/journal',
@@ -132,6 +144,7 @@ const AppEIdSharedRoute = AppEIdSharedRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/s': typeof SRoute
   '/verify-email': typeof VerifyEmailRoute
   '/home': typeof AppHomeRoute
@@ -147,12 +160,14 @@ export interface FileRoutesByFullPath {
   '/e/$id/story': typeof EIdStoryRoute
   '/settings/': typeof AppSettingsIndexRoute
   '/e/$id/activity': typeof AppEIdActivityRoute
+  '/e/$id/guestbook': typeof AppEIdGuestbookRoute
   '/e/$id/journal': typeof AppEIdJournalRoute
   '/e/$id/shared': typeof AppEIdSharedRoute
   '/e/$id/': typeof AppEIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/s': typeof SRoute
   '/verify-email': typeof VerifyEmailRoute
   '/home': typeof AppHomeRoute
@@ -167,6 +182,7 @@ export interface FileRoutesByTo {
   '/e/$id/story': typeof EIdStoryRoute
   '/settings': typeof AppSettingsIndexRoute
   '/e/$id/activity': typeof AppEIdActivityRoute
+  '/e/$id/guestbook': typeof AppEIdGuestbookRoute
   '/e/$id/journal': typeof AppEIdJournalRoute
   '/e/$id/shared': typeof AppEIdSharedRoute
   '/e/$id': typeof AppEIdIndexRoute
@@ -175,6 +191,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/llms.txt': typeof LlmsDottxtRoute
   '/s': typeof SRoute
   '/verify-email': typeof VerifyEmailRoute
   '/_app/home': typeof AppHomeRoute
@@ -190,6 +207,7 @@ export interface FileRoutesById {
   '/e/$id/story': typeof EIdStoryRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
   '/_app/e/$id/activity': typeof AppEIdActivityRoute
+  '/_app/e/$id/guestbook': typeof AppEIdGuestbookRoute
   '/_app/e/$id/journal': typeof AppEIdJournalRoute
   '/_app/e/$id/shared': typeof AppEIdSharedRoute
   '/_app/e/$id/': typeof AppEIdIndexRoute
@@ -198,6 +216,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/llms.txt'
     | '/s'
     | '/verify-email'
     | '/home'
@@ -213,12 +232,14 @@ export interface FileRouteTypes {
     | '/e/$id/story'
     | '/settings/'
     | '/e/$id/activity'
+    | '/e/$id/guestbook'
     | '/e/$id/journal'
     | '/e/$id/shared'
     | '/e/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/llms.txt'
     | '/s'
     | '/verify-email'
     | '/home'
@@ -233,6 +254,7 @@ export interface FileRouteTypes {
     | '/e/$id/story'
     | '/settings'
     | '/e/$id/activity'
+    | '/e/$id/guestbook'
     | '/e/$id/journal'
     | '/e/$id/shared'
     | '/e/$id'
@@ -240,6 +262,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/llms.txt'
     | '/s'
     | '/verify-email'
     | '/_app/home'
@@ -255,6 +278,7 @@ export interface FileRouteTypes {
     | '/e/$id/story'
     | '/_app/settings/'
     | '/_app/e/$id/activity'
+    | '/_app/e/$id/guestbook'
     | '/_app/e/$id/journal'
     | '/_app/e/$id/shared'
     | '/_app/e/$id/'
@@ -263,6 +287,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   SRoute: typeof SRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   ApiUploadRoute: typeof ApiUploadRoute
@@ -287,6 +312,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/s': {
@@ -401,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEIdActivityRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/e/$id/guestbook': {
+      id: '/_app/e/$id/guestbook'
+      path: '/e/$id/guestbook'
+      fullPath: '/e/$id/guestbook'
+      preLoaderRoute: typeof AppEIdGuestbookRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/e/$id/journal': {
       id: '/_app/e/$id/journal'
       path: '/e/$id/journal'
@@ -440,6 +479,7 @@ interface AppRouteChildren {
   AppHomeRoute: typeof AppHomeRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppEIdActivityRoute: typeof AppEIdActivityRoute
+  AppEIdGuestbookRoute: typeof AppEIdGuestbookRoute
   AppEIdJournalRoute: typeof AppEIdJournalRoute
   AppEIdSharedRoute: typeof AppEIdSharedRoute
   AppEIdIndexRoute: typeof AppEIdIndexRoute
@@ -449,6 +489,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHomeRoute: AppHomeRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
   AppEIdActivityRoute: AppEIdActivityRoute,
+  AppEIdGuestbookRoute: AppEIdGuestbookRoute,
   AppEIdJournalRoute: AppEIdJournalRoute,
   AppEIdSharedRoute: AppEIdSharedRoute,
   AppEIdIndexRoute: AppEIdIndexRoute,
@@ -459,6 +500,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   SRoute: SRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   ApiUploadRoute: ApiUploadRoute,

@@ -1,12 +1,15 @@
 import { PlayIcon, SquareIcon } from "lucide-react";
-import { type CSSProperties, type ReactNode, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, type CSSProperties, type ReactNode, useEffect, useMemo, useState } from "react";
 import { type JournalElement, readLink } from "../../../convex/lib/journal";
 import { seeded } from "../../../convex/lib/seeded";
 import type { StoryMoment } from "@/components/event/types";
-import { type MapStop, StickyMap } from "@/components/story/memoir/sticky-map";
+import type { MapStop } from "@/components/story/memoir/sticky-map";
+
+// MapLibre stays out of the journal, moments and share graphs until a map is shown.
+const StickyMap = lazy(() => import("@/components/story/memoir/sticky-map").then((m) => ({ default: m.StickyMap })));
 import { tornPolygon, TAPE_ENDS } from "@/lib/paper/look";
 import { placeLabel, stopsOf } from "@/lib/story-steps";
-import { useMediaUrl } from "@/lib/use-media-url";
+import { useMediaUrl, useWhenSeen } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 import { GINGHAM, MoreSticker } from "./stickers";
 import { DIE_CUT, DISTRESS, DRAW_WIDTH, FONTS, GRAIN, INK, LIFT, MUSTARD, NAVY, ROSE, RUST, TEAL, TONE_FILTER } from "./look";
@@ -17,36 +20,36 @@ import { DIE_CUT, DISTRESS, DRAW_WIDTH, FONTS, GRAIN, INK, LIFT, MUSTARD, NAVY, 
 
 // The biggest type that fits `text` on `lines` lines in a w×h box, for a font
 // whose letters are about `perChar` of the size wide.
-function fitSize(text: string, w: number, h: number, perChar: number, lineHeight = 1.15, maxLines = 3) {
+const fitSize = (text: string, w: number, h: number, perChar: number, lineHeight = 1.15, maxLines = 3) => {
   const len = Math.max(1, [...text].length);
   let best = 8;
   for (let lines = 1; lines <= maxLines; lines++) {
     best = Math.max(best, Math.min(h / (lines * lineHeight), (w * lines) / (len * perChar)));
   }
   return Math.min(best, h * 0.9);
-}
+};
 
 // Type for a paragraph that fills a box about `fill` full.
-function paragraphSize(text: string, w: number, h: number, perChar: number, lineHeight: number, min = 12, max = 42) {
+const paragraphSize = (text: string, w: number, h: number, perChar: number, lineHeight: number, min = 12, max = 42) => {
   const len = Math.max(20, text.length);
   return Math.max(min, Math.min(max, Math.sqrt((w * h * 0.62) / (len * perChar * lineHeight))));
-}
+};
 
 // ---- Titles ----------------------------------------------------------------------------
 
-type LetterPaper = { bg: string; fg: string; font: string; weight: number; italic?: boolean; caps?: boolean };
+type LetterPaper = { bg: string; fg: string; font: string; weight: number; italic?: boolean };
 const LETTERS: LetterPaper[] = [
-  { bg: "#1b1714", fg: "#f4ecda", font: FONTS.dada, weight: 700, caps: true },
+  { bg: "#1b1714", fg: "#f4ecda", font: FONTS.dada, weight: 700 },
   { bg: "#f6efdd", fg: "#1b1714", font: FONTS.caslon, weight: 700 },
-  { bg: RUST, fg: "#fbf3e4", font: FONTS.dada, weight: 600, caps: true },
+  { bg: RUST, fg: "#fbf3e4", font: FONTS.dada, weight: 600 },
   { bg: "#2f6da3", fg: "#f6efde", font: FONTS.caslon, weight: 400, italic: true },
-  { bg: MUSTARD, fg: "#1c1710", font: FONTS.dada, weight: 700, caps: true },
+  { bg: MUSTARD, fg: "#1c1710", font: FONTS.dada, weight: 700 },
   { bg: TEAL, fg: "#f7f1e1", font: FONTS.typewriter, weight: 400 },
   { bg: "#ece4cf", fg: RUST, font: FONTS.caslon, weight: 700, italic: true },
-  { bg: ROSE, fg: "#2c1419", font: FONTS.typewriter, weight: 400, caps: true },
+  { bg: ROSE, fg: "#2c1419", font: FONTS.typewriter, weight: 400 },
 ];
 
-function Ransom({ id, text, w, h }: { id: string; text: string; w: number; h: number }) {
+const Ransom = ({ id, text, w, h }: { id: string; text: string; w: number; h: number }) => {
   const size = fitSize(text, w, h, 0.86, 1.25);
   let i = 0;
   return (
@@ -76,7 +79,8 @@ function Ransom({ id, text, w, h }: { id: string; text: string; w: number; h: nu
                   ...LIFT,
                 }}
               >
-                {look.caps ? char.toUpperCase() : char}
+                {/* Always a capital: mixed case read as a typo, not a cut-out. */}
+                {char.toUpperCase()}
               </span>
             );
           })}
@@ -84,9 +88,9 @@ function Ransom({ id, text, w, h }: { id: string; text: string; w: number; h: nu
       ))}
     </div>
   );
-}
+};
 
-function Typewriter({ id, text, w, h }: { id: string; text: string; w: number; h: number }) {
+const Typewriter = ({ id, text, w, h }: { id: string; text: string; w: number; h: number }) => {
   const size = fitSize(text, w, h, 0.66, 1.6);
   return (
     <div className="flex size-full flex-wrap content-center items-center justify-center" style={{ gap: `${size * 0.22}px ${size * 0.18}px` }}>
@@ -112,39 +116,30 @@ function Typewriter({ id, text, w, h }: { id: string; text: string; w: number; h
       })}
     </div>
   );
-}
+};
 
-// Letters of two sizes, as on a Dada letterhead: MoUvEmEnT.
-function Dada({ id, text, w, h, ink }: { id: string; text: string; w: number; h: number; ink: string }) {
-  const size = fitSize(text, w, h, 0.5, 1.05);
-  const rnd = seeded(id);
+// Tall condensed capitals, one size, like a poster's. (Letters of two sizes,
+// MoUvEmEnT, read as broken type in a title.)
+const Dada = ({ text, w, h, ink }: { text: string; w: number; h: number; ink: string }) => {
   return (
     <div
-      className="flex size-full flex-wrap content-center items-end justify-center leading-[0.95]"
-      style={{ color: ink, fontFamily: FONTS.dada, fontWeight: 600, columnGap: size * 0.28 }}
+      className="grid size-full place-items-center text-center leading-[1.02]"
+      style={{ color: ink, fontFamily: FONTS.dada, fontWeight: 600, fontSize: fitSize(text, w, h, 0.5, 1.02) }}
     >
-      {text.toUpperCase().split(/\s+/).filter(Boolean).map((word, wi) => (
-        <span key={wi} className="inline-flex flex-nowrap items-end">
-          {[...word].map((char, i) => (
-            <span key={i} style={{ fontSize: size * (rnd() < 0.42 ? 0.58 : 1) }}>
-              {char}
-            </span>
-          ))}
-        </span>
-      ))}
+      <span className="text-balance">{text.toUpperCase()}</span>
     </div>
   );
-}
+};
 
-function Plain({ text, w, h, style, perChar, lineHeight = 1.1 }: { text: string; w: number; h: number; style: CSSProperties; perChar: number; lineHeight?: number }) {
+const Plain = ({ text, w, h, style, perChar, lineHeight = 1.1 }: { text: string; w: number; h: number; style: CSSProperties; perChar: number; lineHeight?: number }) => {
   return (
     <div className="grid size-full place-items-center text-center" style={{ fontSize: fitSize(text, w, h, perChar, lineHeight), lineHeight, ...style }}>
       <span className="text-balance">{text}</span>
     </div>
   );
-}
+};
 
-function Label({ text, w, h }: { text: string; w: number; h: number }) {
+const Label = ({ text, w, h }: { text: string; w: number; h: number }) => {
   const size = Math.min(h * 0.5, w / (Math.max(1, text.length) * 0.78));
   return (
     <div className="grid size-full place-items-center" style={{ padding: `${h * 0.12}px 0` }}>
@@ -165,9 +160,9 @@ function Label({ text, w, h }: { text: string; w: number; h: number }) {
       </div>
     </div>
   );
-}
+};
 
-function Stamp({ text, w, h }: { text: string; w: number; h: number }) {
+const Stamp = ({ text, w, h }: { text: string; w: number; h: number }) => {
   const size = fitSize(text, w * 0.86, h * 0.62, 0.62, 1.05, 2);
   return (
     <div
@@ -188,16 +183,16 @@ function Stamp({ text, w, h }: { text: string; w: number; h: number }) {
       {text}
     </div>
   );
-}
+};
 
-export function Title({ e, ink }: { e: JournalElement; ink: string }) {
+export const Title = ({ e, ink }: { e: JournalElement; ink: string }) => {
   const text = e.text?.trim() || "Your title";
   const { w, h } = e;
   switch (e.style) {
     case "ransom":
       return <Ransom id={e.id} text={text} w={w} h={h} />;
     case "dada":
-      return <Dada id={e.id} text={text} w={w} h={h} ink={ink} />;
+      return <Dada text={text} w={w} h={h} ink={ink} />;
     case "caslon":
       return <Plain text={text} w={w} h={h} perChar={0.46} style={{ fontFamily: FONTS.caslon, fontStyle: "italic", color: ink }} />;
     case "hand":
@@ -209,11 +204,11 @@ export function Title({ e, ink }: { e: JournalElement; ink: string }) {
     default:
       return <Typewriter id={e.id} text={text} w={w} h={h} />;
   }
-}
+};
 
 // ---- Notes -------------------------------------------------------------------------------
 
-export function Note({ e }: { e: JournalElement }) {
+export const Note = ({ e }: { e: JournalElement }) => {
   const text = e.text?.trim() || "Write something here…";
   const { w, h } = e;
   const style = e.style ?? "typed";
@@ -258,32 +253,53 @@ export function Note({ e }: { e: JournalElement }) {
       </div>
     </div>
   );
-}
+};
 
 // ---- Photos and stickers ----------------------------------------------------------------
 
-function Picture({ mediaId, tone, contain = false, className, style }: { mediaId: string; tone?: string; contain?: boolean; className?: string; style?: CSSProperties }) {
-  const { url, failed } = useMediaUrl(mediaId);
-  if (url) {
-    return (
-      <img
-        src={url}
-        alt=""
-        draggable={false}
-        className={cn("block size-full", contain ? "object-contain" : "object-cover", className)}
-        style={{ filter: tone ? TONE_FILTER[tone] : undefined, ...style }}
-      />
-    );
-  }
+const Picture = ({
+  mediaId,
+  tone,
+  contain = false,
+  className,
+  style,
+  width,
+  height,
+}: {
+  mediaId: string;
+  tone?: string;
+  contain?: boolean;
+  className?: string;
+  style?: CSSProperties;
+  width?: number;
+  height?: number;
+}) => {
+  const [ref, seen] = useWhenSeen();
+  const { url, failed } = useMediaUrl(seen ? mediaId : undefined);
   return (
-    <div className={cn("grid size-full place-items-center bg-stone-300/70 text-xs text-stone-600", !failed && "animate-pulse", className)} style={style}>
-      {failed ? "This photo was removed" : null}
+    <div ref={ref} className={cn("size-full", !url && "bg-stone-300/70", !url && !failed && "animate-pulse", className)} style={style}>
+      {url ? (
+        <img
+          src={url}
+          alt=""
+          width={width}
+          height={height}
+          sizes={width ? `${Math.round(width)}px` : undefined}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          className={cn("block size-full", contain ? "object-contain" : "object-cover")}
+          style={{ filter: tone ? TONE_FILTER[tone] : undefined }}
+        />
+      ) : (
+        failed && <span className="grid size-full place-items-center text-xs text-stone-600">This photo was removed</span>
+      )}
     </div>
   );
-}
+};
 
 // A regular wavy edge, like a photo's deckle-cut border.
-function deckle(steps = 18, depth = 1.4) {
+const deckle = (steps = 18, depth = 1.4) => {
   const pts: string[] = [];
   const at = (t: number) => (t % 2 === 0 ? 0 : depth);
   for (let i = 0; i <= steps; i++) pts.push(`${(i / steps) * 100}% ${at(i)}%`);
@@ -291,11 +307,11 @@ function deckle(steps = 18, depth = 1.4) {
   for (let i = steps - 1; i >= 0; i--) pts.push(`${(i / steps) * 100}% ${100 - at(i)}%`);
   for (let i = steps - 1; i >= 1; i--) pts.push(`${at(i)}% ${(i / steps) * 100}%`);
   return `polygon(${pts.join(", ")})`;
-}
+};
 const DECKLE = deckle();
 
 // The heart, for a heart-cut photo (see HeartClip).
-export function HeartClip() {
+export const HeartClip = () => {
   return (
     <svg aria-hidden width="0" height="0" className="absolute">
       <defs>
@@ -305,26 +321,30 @@ export function HeartClip() {
       </defs>
     </svg>
   );
-}
+};
 
-export function Photo({ e }: { e: JournalElement }) {
+export const Photo = ({ e }: { e: JournalElement }) => {
   if (e.mediaId === undefined) return null;
   const { w, h } = e;
   const tone = e.tone;
   const paper = "#fffdf6";
   const caption = e.text?.trim();
   switch (e.style) {
+    // Photos on paper (polaroid, print, deckle) show the whole photo: a frame's
+    // shape comes from the page's layout, not the photo, so filling it would
+    // cut a tall photo's top and bottom. The paper fills the rest. Stamps and
+    // cut-out shapes (postage, torn, round, heart, plain) fill theirs.
     case "print":
       return (
         <div className="size-full" style={{ background: paper, padding: Math.max(5, w * 0.035), ...LIFT }}>
-          <Picture mediaId={e.mediaId} tone={tone} />
+          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} contain />
         </div>
       );
     case "deckle":
       return (
         <div className="size-full" style={LIFT}>
           <div className="size-full" style={{ background: paper, padding: Math.max(8, w * 0.06), clipPath: DECKLE }}>
-            <Picture mediaId={e.mediaId} tone={tone} />
+            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} contain />
           </div>
         </div>
       );
@@ -332,7 +352,7 @@ export function Photo({ e }: { e: JournalElement }) {
       return (
         <div className="size-full" style={LIFT}>
           <div className="size-full" style={{ clipPath: tornPolygon(e.id, undefined, 2.6) }}>
-            <Picture mediaId={e.mediaId} tone={tone} />
+            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
           </div>
         </div>
       );
@@ -340,7 +360,7 @@ export function Photo({ e }: { e: JournalElement }) {
       return (
         <div className="size-full" style={LIFT}>
           <div className="size-full overflow-hidden rounded-full" style={{ border: `${Math.max(4, w * 0.03)}px solid ${paper}` }}>
-            <Picture mediaId={e.mediaId} tone={tone} />
+            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
           </div>
         </div>
       );
@@ -348,7 +368,7 @@ export function Photo({ e }: { e: JournalElement }) {
       return (
         <div className="size-full" style={LIFT}>
           <div className="size-full" style={{ clipPath: "url(#journal-heart)" }}>
-            <Picture mediaId={e.mediaId} tone={tone} />
+            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
           </div>
         </div>
       );
@@ -369,7 +389,7 @@ export function Photo({ e }: { e: JournalElement }) {
             }}
           >
             <div className="size-full" style={{ outline: `1px solid rgba(40,28,10,.18)` }}>
-              <Picture mediaId={e.mediaId} tone={tone} />
+              <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
             </div>
           </div>
         </div>
@@ -378,7 +398,7 @@ export function Photo({ e }: { e: JournalElement }) {
     case "plain":
       return (
         <div className="size-full" style={LIFT}>
-          <Picture mediaId={e.mediaId} tone={tone} />
+          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
         </div>
       );
     default: {
@@ -387,7 +407,7 @@ export function Photo({ e }: { e: JournalElement }) {
       const foot = Math.max(edge * 3, h * 0.17);
       return (
         <div className="relative size-full" style={{ background: paper, padding: `${edge}px ${edge}px ${foot}px`, ...LIFT }}>
-          <Picture mediaId={e.mediaId} tone={tone} />
+          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} contain />
           {caption && (
             <div
               className="absolute inset-x-0 bottom-0 grid place-items-center truncate px-2"
@@ -400,12 +420,12 @@ export function Photo({ e }: { e: JournalElement }) {
       );
     }
   }
-}
+};
 
-export function Sticker({ e }: { e: JournalElement }) {
+export const Sticker = ({ e }: { e: JournalElement }) => {
   if (e.mediaId === undefined) return null;
-  return <Picture mediaId={e.mediaId} tone={e.tone} contain style={DIE_CUT} />;
-}
+  return <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={e.tone} contain style={DIE_CUT} />;
+};
 
 // ---- Bits of ephemera ---------------------------------------------------------------------
 
@@ -417,7 +437,7 @@ const TAPE_COLORS: Record<string, { color: string; pattern?: string }> = {
   "tape-gingham": { color: "rgba(250,244,232,.85)", pattern: GINGHAM },
 };
 
-function Ticket({ e }: { e: JournalElement }) {
+const Ticket = ({ e }: { e: JournalElement }) => {
   const { w, h } = e;
   const words = e.text?.trim() || "ADMIT ONE";
   const notch = h * 0.16;
@@ -448,9 +468,9 @@ function Ticket({ e }: { e: JournalElement }) {
       </div>
     </div>
   );
-}
+};
 
-function Postmark({ e }: { e: JournalElement }) {
+const Postmark = ({ e }: { e: JournalElement }) => {
   const words = e.text?.trim() || "STORY-TIME";
   return (
     <svg viewBox="0 0 200 200" className="size-full overflow-visible" style={{ mixBlendMode: "multiply", opacity: 0.8 }}>
@@ -471,11 +491,11 @@ function Postmark({ e }: { e: JournalElement }) {
       </text>
     </svg>
   );
-}
+};
 
 const SHAPES = new Set(["circle-teal", "circle-mustard", "circle-rust", "triangles", "dots", "star", "flower", "butterfly", "arrow"]);
 
-function Shape({ name }: { name: string }) {
+const Shape = ({ name }: { name: string }) => {
   switch (name) {
     case "circle-teal":
     case "circle-mustard":
@@ -540,9 +560,9 @@ function Shape({ name }: { name: string }) {
     default:
       return null;
   }
-}
+};
 
-export function Deco({ e }: { e: JournalElement }) {
+export const Deco = ({ e }: { e: JournalElement }) => {
   const name = e.style ?? "tape";
   const tape = TAPE_COLORS[name];
   if (tape) {
@@ -555,7 +575,7 @@ export function Deco({ e }: { e: JournalElement }) {
   if (name === "ticket") return <Ticket e={e} />;
   if (name === "postmark") return <Postmark e={e} />;
   return SHAPES.has(name) ? <Shape name={name} /> : <MoreSticker e={e} />;
-}
+};
 
 // ---- A moment's stops on a map -------------------------------------------------------------
 
@@ -563,7 +583,7 @@ const STEP_MS = 1700;
 
 // The stops of a moment, numbered, on a light map in a postcard frame. Play
 // walks it stop by stop, the way the story does.
-export function MapCard({ e, moment, interactive }: { e: JournalElement; moment: StoryMoment | undefined; interactive: boolean }) {
+export const MapCard = ({ e, moment, interactive }: { e: JournalElement; moment: StoryMoment | undefined; interactive: boolean }) => {
   const stops = useMemo<MapStop[]>(() => {
     if (moment === undefined) return [];
     return stopsOf(moment).flatMap((s, i) =>
@@ -597,16 +617,18 @@ export function MapCard({ e, moment, interactive }: { e: JournalElement; moment:
         </div>
       ) : (
         <div className={cn("size-full", !interactive && "pointer-events-none")}>
-          <StickyMap
-            stops={stops}
-            focus={focus}
-            leg={here && from ? { from: { lat: from.lat, lng: from.lng }, to: { lat: here.lat, lng: here.lng }, transport: here.transport ?? "walk" } : undefined}
-            reduced={reduced}
-            className="size-full"
-            onPick={setFocus}
-            light
-            printable
-          />
+          <Suspense fallback={<div className="size-full bg-[#e9e1cd]" />}>
+            <StickyMap
+              stops={stops}
+              focus={focus}
+              leg={here && from ? { from: { lat: from.lat, lng: from.lng }, to: { lat: here.lat, lng: here.lng }, transport: here.transport ?? "walk" } : undefined}
+              reduced={reduced}
+              className="size-full"
+              onPick={setFocus}
+              light
+              printable
+            />
+          </Suspense>
         </div>
       )}
       {stops.length > 1 && (
@@ -628,7 +650,7 @@ export function MapCard({ e, moment, interactive }: { e: JournalElement; moment:
       )}
     </div>
   );
-}
+};
 
 // ---- Drawings ---------------------------------------------------------------------------
 
@@ -638,7 +660,7 @@ export function MapCard({ e, moment, interactive }: { e: JournalElement; moment:
 export type Stroke = { style: string; color: string; d: string };
 export type DrawingData = { x: number; y: number; w: number; h: number; strokes: Stroke[] };
 
-export function readDrawing(text: string | undefined): DrawingData | undefined {
+export const readDrawing = (text: string | undefined): DrawingData | undefined => {
   const [head, ...lines] = (text ?? "").split("\n");
   const nums = (head ?? "").split(" ").map(Number);
   const [x, y, w, h] = nums.length >= 4 ? nums : [0, 0, nums[0], nums[1]];
@@ -648,13 +670,13 @@ export function readDrawing(text: string | undefined): DrawingData | undefined {
     return style && color && rest.length > 0 ? [{ style, color, d: rest.join(" ") }] : [];
   });
   return { x: x!, y: y!, w, h, strokes };
-}
+};
 
 export const writeDrawing = ({ x, y, w, h, strokes }: DrawingData) =>
   [`${Math.round(x)} ${Math.round(y)} ${Math.round(w)} ${Math.round(h)}`, ...strokes.map((s) => `${s.style} ${s.color} ${s.d}`)].join("\n");
 
 // A smooth path through points, rounded to tenths.
-export function pathThrough(points: Array<{ x: number; y: number }>): string {
+export const pathThrough = (points: Array<{ x: number; y: number }>): string => {
   const r = (n: number) => Math.round(n * 10) / 10;
   const [first, ...rest] = points;
   if (!first) return "";
@@ -667,9 +689,9 @@ export function pathThrough(points: Array<{ x: number; y: number }>): string {
   }
   const last = rest.at(-1)!;
   return `${d}L${r(last.x)} ${r(last.y)}`;
-}
+};
 
-export function StrokePath({ stroke }: { stroke: Stroke }) {
+export const StrokePath = ({ stroke }: { stroke: Stroke }) => {
   const look = DRAW_WIDTH[stroke.style] ?? DRAW_WIDTH.pen!;
   return (
     <path
@@ -683,9 +705,9 @@ export function StrokePath({ stroke }: { stroke: Stroke }) {
       style={stroke.style === "highlighter" ? { mixBlendMode: "multiply" } : undefined}
     />
   );
-}
+};
 
-export function Drawing({ e }: { e: JournalElement }) {
+export const Drawing = ({ e }: { e: JournalElement }) => {
   const drawing = readDrawing(e.text);
   if (!drawing) return null;
   return (
@@ -695,13 +717,13 @@ export function Drawing({ e }: { e: JournalElement }) {
       ))}
     </svg>
   );
-}
+};
 
 // ---- Links ------------------------------------------------------------------------------
 
 // A link as a little card: its picture, its title in Caslon, a line about it,
 // and where it is from, typed. Opens in a new tab when the journal is read.
-export function LinkCard({ e, open }: { e: JournalElement; open: boolean }) {
+export const LinkCard = ({ e, open }: { e: JournalElement; open: boolean }) => {
   const link = readLink(e.text);
   if (!link) return null;
   const { w, h } = e;
@@ -724,6 +746,10 @@ export function LinkCard({ e, open }: { e: JournalElement; open: boolean }) {
           <img
             src={link.image}
             alt=""
+            width={Math.round(w)}
+            height={Math.round(h * 0.55)}
+            loading="lazy"
+            decoding="async"
             draggable={false}
             referrerPolicy="no-referrer"
             className="min-h-0 w-full flex-1 object-cover"
@@ -753,11 +779,11 @@ export function LinkCard({ e, open }: { e: JournalElement; open: boolean }) {
   ) : (
     body
   );
-}
+};
 
 // ---- One element, whatever it is --------------------------------------------------------
 
-export function ElementView({ e, ink, moment, interactive = false }: { e: JournalElement; ink: string; moment?: StoryMoment; interactive?: boolean }): ReactNode {
+export const ElementView = ({ e, ink, moment, interactive = false }: { e: JournalElement; ink: string; moment?: StoryMoment; interactive?: boolean }): ReactNode => {
   switch (e.kind) {
     case "photo":
       return <Photo e={e} />;
@@ -776,7 +802,7 @@ export function ElementView({ e, ink, moment, interactive = false }: { e: Journa
     default:
       return <Deco e={e} />;
   }
-}
+};
 
 // Where an element sits: moved and turned by one transform, so the editor's
 // handles can change both while it is dragged.

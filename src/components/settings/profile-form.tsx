@@ -3,7 +3,7 @@ import { useForm } from "@tanstack/react-form";
 import { useId } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ const schema = z.object({
     .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()), "Enter a valid email address"),
 });
 
-function emailHint(user: { email?: string; pendingEmail?: string; emailVerified: boolean }): string {
+const emailHint = (user: { email?: string; pendingEmail?: string; emailVerified: boolean }): string => {
   if (user.pendingEmail) {
     return user.emailVerified
       ? "Check your inbox to confirm this address. Until then, the confirmed one stays in use."
@@ -29,13 +29,13 @@ function emailHint(user: { email?: string; pendingEmail?: string; emailVerified:
     return "Confirmed. Replies to mail you send come here, and a memory reminder can too. Never used to sign you in.";
   }
   return "Not used until you confirm it. Never used to sign you in.";
-}
+};
 
-export function ProfileForm({
+export const ProfileForm = ({
   user,
 }: {
   user: { displayName?: string; username?: string; email?: string; pendingEmail?: string; emailVerified: boolean };
-}) {
+}) => {
   const update = useMutation(api.users.updateSettings);
   const resend = useMutation(api.users.resendEmailVerification);
   // Unique ids, so labels stay tied to their inputs wherever this renders.
@@ -137,4 +137,4 @@ export function ProfileForm({
       </form.Subscribe>
     </form>
   );
-}
+};

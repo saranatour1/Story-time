@@ -2,27 +2,27 @@ import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 import { AVATAR_TYPES, deleteMedia, uploadAvatar } from "@/lib/upload";
 
-export function AvatarField({
+export const AvatarField = ({
   mediaId,
   name,
 }: {
   mediaId?: Id<"media">;
   name?: string;
-}) {
+}) => {
   const token = useAuthToken();
   const setAvatar = useMutation(api.media.setAvatar);
   const clearAvatar = useMutation(api.media.clearAvatar);
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
-  async function onPick(file: File | undefined) {
+  const onPick = async (file: File | undefined) => {
     if (!file || !token) return;
     setBusy(true);
     try {
@@ -36,9 +36,9 @@ export function AvatarField({
       setBusy(false);
       if (input.current) input.current.value = "";
     }
-  }
+  };
 
-  async function onRemove() {
+  const onRemove = async () => {
     if (!token) return;
     setBusy(true);
     try {
@@ -50,7 +50,7 @@ export function AvatarField({
     } finally {
       setBusy(false);
     }
-  }
+  };
 
   return (
     <div className="flex items-center gap-4">
@@ -81,4 +81,4 @@ export function AvatarField({
       </div>
     </div>
   );
-}
+};

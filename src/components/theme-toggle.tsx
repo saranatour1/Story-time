@@ -12,7 +12,7 @@ const OPTIONS = [
 
 // Light / Dark / System. Expanded sidebar: a three-way switch. Collapsed
 // rail: one button that cycles through the three.
-export function ThemeToggle() {
+export const ThemeToggle = () => {
   const { theme = "system", setTheme } = useTheme();
   // The stored theme is only known on the client; avoid a wrong first paint.
   const [mounted, setMounted] = useState(false);
@@ -58,4 +58,4 @@ export function ThemeToggle() {
       </div>
     </>
   );
-}
+};

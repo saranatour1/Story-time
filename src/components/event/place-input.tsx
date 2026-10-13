@@ -35,7 +35,7 @@ const photonResponse = z.object({
 });
 
 // `near` biases a search, or is the point a reverse lookup names.
-function photonUrl(path: "api" | "reverse", params: { q?: string; near?: Geo; limit: number }) {
+const photonUrl = (path: "api" | "reverse", params: { q?: string; near?: Geo; limit: number }) => {
   const url = new URL(path, PHOTON);
   if (params.q) url.searchParams.set("q", params.q);
   url.searchParams.set("limit", String(params.limit));
@@ -46,10 +46,10 @@ function photonUrl(path: "api" | "reverse", params: { q?: string; near?: Geo; li
     url.searchParams.set("lon", String(params.near.lng));
   }
   return url;
-}
+};
 
 // A short name for a point (say, where a photo was taken), or undefined.
-export async function reversePlace(geo: Geo): Promise<string | undefined> {
+export const reversePlace = async (geo: Geo): Promise<string | undefined> => {
   try {
     // A few candidates, since the nearest is often just a postcode.
     const res = await fetch(photonUrl("reverse", { near: geo, limit: 5 }));
@@ -57,11 +57,11 @@ export async function reversePlace(geo: Geo): Promise<string | undefined> {
   } catch {
     return undefined;
   }
-}
+};
 
 // The best match for a place someone named in words, with where it is, or
 // undefined. `near` biases the search toward the trip.
-export async function findPlace(q: string, near?: Geo): Promise<{ label: string; geo: Geo } | undefined> {
+export const findPlace = async (q: string, near?: Geo): Promise<{ label: string; geo: Geo } | undefined> => {
   try {
     const res = await fetch(photonUrl("api", { q, near, limit: 5 }));
     const best = res.ok ? toSuggestions(await res.json())[0] : undefined;
@@ -69,11 +69,11 @@ export async function findPlace(q: string, near?: Geo): Promise<{ label: string;
   } catch {
     return undefined;
   }
-}
+};
 
 // A concise label ("Belém, Lisboa"), never the full address: the name, plus
 // the city when it adds something. The context line is city and country.
-function toSuggestions(json: unknown): Suggestion[] {
+const toSuggestions = (json: unknown): Suggestion[] => {
   const parsed = photonResponse.safeParse(json);
   if (!parsed.success) return [];
   const seen = new Set<string>();
@@ -93,13 +93,13 @@ function toSuggestions(json: unknown): Suggestion[] {
     seen.add(`${label}|${context}`);
     return [{ key: `${p.osm_type ?? ""}${p.osm_id ?? i}`, label, name, context, geo: { lat, lng } }];
   });
-}
+};
 
 // The "Where" field: a combobox that suggests places as you type. Picking
 // one sets the place and puts the stop on the map; typing afterwards takes
 // it off again, unless the location came from a photo (that's where it was
 // taken, whatever it's called). Nothing is looked up on save.
-export function PlaceInput({
+export const PlaceInput = ({
   id,
   value,
   geo,
@@ -116,7 +116,7 @@ export function PlaceInput({
   // Where to centre the search, read when it runs.
   getBias: () => Geo | undefined;
   onChange: (place: string, geo: Geo | undefined, fromPhoto: boolean) => void;
-}) {
+}) => {
   const listId = useId();
   const statusId = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -137,7 +137,7 @@ export function PlaceInput({
 
   // Debounced, and only the latest request counts. Failures (offline, rate
   // limits) just mean no suggestions.
-  function search(text: string) {
+  const search = (text: string) => {
     window.clearTimeout(timer.current);
     request.current?.abort();
     const q = text.trim();
@@ -159,17 +159,17 @@ export function PlaceInput({
         })
         .catch(() => undefined);
     }, DEBOUNCE_MS);
-  }
+  };
 
-  function pick(option: Suggestion) {
+  const pick = (option: Suggestion) => {
     window.clearTimeout(timer.current);
     request.current?.abort();
     onChange(option.label, option.geo, false);
     setOptions([]);
     setOpen(false);
-  }
+  };
 
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       if (options.length === 0) return;
       e.preventDefault();
@@ -185,7 +185,7 @@ export function PlaceInput({
       e.preventDefault();
       setOpen(false);
     }
-  }
+  };
 
   // A pin needs a name too: the server only keeps coordinates with a place.
   const named = value.trim() !== "";
@@ -256,4 +256,4 @@ export function PlaceInput({
       ) : null}
     </>
   );
-}
+};

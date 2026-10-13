@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { useQuery } from "@tanstack/react-query";
+import { queries } from "@/lib/queries";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,15 +10,20 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-const SECTION_NAMES: Record<string, string> = { "/journal": "Journal", "/shared": "Shared", "/activity": "Activity" };
+const SECTION_NAMES: Record<string, string> = {
+  "/journal": "Journal",
+  "/guestbook": "Guestbook",
+  "/shared": "Shared",
+  "/activity": "Activity",
+};
 
 // Navbar trail for the experiences side: Experiences › <experience> › <section>.
-export function AppBreadcrumb() {
+export const AppBreadcrumb = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const open = /^\/e\/([^/]+)(\/[a-z]+)?\/?$/.exec(pathname);
   const eventId = open?.[1];
   const section = open?.[2] ? SECTION_NAMES[open[2]] : undefined;
-  const event = useQuery(api.events.get, eventId ? { eventId } : "skip");
+  const { data: event } = useQuery(queries.events.get(eventId ? { eventId } : "skip"));
 
   if (pathname !== "/home" && !eventId) return null;
   const title = event === undefined ? "…" : event === null ? "Not found" : event.title;
@@ -62,4 +67,4 @@ export function AppBreadcrumb() {
       </BreadcrumbList>
     </Breadcrumb>
   );
-}
+};

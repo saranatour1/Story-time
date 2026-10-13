@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 // A settings page body: heading, description, then content.
-export function SettingsPage({
+export const SettingsPage = ({
   title,
   description,
   children,
@@ -9,7 +9,7 @@ export function SettingsPage({
   title: string;
   description: string;
   children: ReactNode;
-}) {
+}) => {
   return (
     <div className="space-y-8">
       <header className="space-y-2">
@@ -19,10 +19,10 @@ export function SettingsPage({
       {children}
     </div>
   );
-}
+};
 
 // A titled group on a page. Smaller than the page heading so the two don't echo.
-export function SettingsBlock({
+export const SettingsBlock = ({
   title,
   description,
   children,
@@ -30,7 +30,7 @@ export function SettingsBlock({
   title: string;
   description?: string;
   children: ReactNode;
-}) {
+}) => {
   return (
     <section className="space-y-4">
       <div className="space-y-1">
@@ -40,4 +40,4 @@ export function SettingsBlock({
       {children}
     </section>
   );
-}
+};

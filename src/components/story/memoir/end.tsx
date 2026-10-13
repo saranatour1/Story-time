@@ -10,7 +10,7 @@ import { stopsOf } from "@/lib/story-steps";
 
 // The end of the memoir: the trip's pictures laid out like prints, a few
 // numbers, then replay or share.
-export function MemoirEnd({
+export const MemoirEnd = ({
   event,
   moments,
   step,
@@ -21,7 +21,7 @@ export function MemoirEnd({
   // Its step, so the keys and a link to the end can reach it.
   step: number;
   onReplay: () => void;
-}) {
+}) => {
   const stops = countStops(moments);
   const photos = moments.reduce(
     (n, m) => n + stopsOf(m).reduce((k, s) => k + s.blocks.filter((b) => b.type === "photo" || b.type === "video").length, 0),
@@ -64,4 +64,4 @@ export function MemoirEnd({
       </div>
     </section>
   );
-}
+};

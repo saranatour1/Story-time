@@ -22,11 +22,14 @@
   "dependencies": {
     "@cantoo/pdf-lib": "2.9.2",
     "@convex-dev/agent": "^0.7.7",
-    "@convex-dev/ai-sdk-provider": "^0.2.1",
+    "@convex-dev/ai-budget": "^1.1.2",
+    "@convex-dev/ai-sdk-provider": "^0.3.0",
     "@convex-dev/auth": "2.0.0-alpha.2",
     "@convex-dev/rate-limiter": "^0.4.2",
+    "@convex-dev/react-query": "^0.1.0",
     "@convex-dev/workflow": "^0.4.9",
     "@convex-dev/workpool": "^0.4.13",
+    "@databuddy/sdk": "^3.2.1",
     "@fontsource-variable/caveat": "^5.3.0",
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
@@ -85,11 +88,5 @@
     "vite-plus": "^1.0.0",
     "vitest": "^5.0.3",
     "wrangler": "^4.147.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss"
-    ]
   }
 }

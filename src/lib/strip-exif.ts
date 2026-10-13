@@ -7,7 +7,7 @@ const SOS = 0xffda;
 
 // The JPEG without its APP1 and APP2 segments, or null for anything that
 // doesn't walk cleanly, so the caller keeps the original.
-export function withoutExif(bytes: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> | null {
+export const withoutExif = (bytes: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> | null => {
   if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null; // SOI
   const kept: Uint8Array<ArrayBuffer>[] = [bytes.subarray(0, 2)];
   let at = 2;
@@ -28,9 +28,9 @@ export function withoutExif(bytes: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuf
     at = end;
   }
   return null; // ran out before the image data
-}
+};
 
-function concat(parts: Uint8Array<ArrayBuffer>[]): Uint8Array<ArrayBuffer> {
+const concat = (parts: Uint8Array<ArrayBuffer>[]): Uint8Array<ArrayBuffer> => {
   const out = new Uint8Array(new ArrayBuffer(parts.reduce((n, p) => n + p.length, 0)));
   let at = 0;
   for (const part of parts) {
@@ -38,12 +38,12 @@ function concat(parts: Uint8Array<ArrayBuffer>[]): Uint8Array<ArrayBuffer> {
     at += part.length;
   }
   return out;
-}
+};
 
 // A photo to upload: a JPEG without its camera details. Anything else, or a
 // JPEG that doesn't parse, comes back as the file it was.
-export async function stripExif(file: File): Promise<Blob> {
+export const stripExif = async (file: File): Promise<Blob> => {
   if (file.type !== "image/jpeg") return file;
   const stripped = withoutExif(new Uint8Array(await file.arrayBuffer()));
   return stripped ? new Blob([stripped], { type: file.type }) : file;
-}
+};

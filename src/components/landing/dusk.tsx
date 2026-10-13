@@ -12,10 +12,10 @@ const H = 900;
 const HORIZON = 772;
 
 // The same sky on every visit: positions from a fixed hash, not Math.random.
-function hash(i: number, n: number) {
+const hash = (i: number, n: number) => {
   const s = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453;
   return s - Math.floor(s);
-}
+};
 const STARS = Array.from({ length: 90 }, (_, i) => ({
   x: hash(i, 1) * W,
   y: hash(i, 2) * 560,
@@ -41,7 +41,7 @@ const STOPS = [
 
 // Sets `--p` on the element: 0 at the top of the page, 1 once it has scrolled
 // out of view. The layers read it to drift; nothing re-renders.
-export function useScrollDepth(ref: RefObject<HTMLElement | null>) {
+export const useScrollDepth = (ref: RefObject<HTMLElement | null>) => {
   const reduced = useReducedMotion();
   useEffect(() => {
     const el = ref.current;
@@ -62,10 +62,10 @@ export function useScrollDepth(ref: RefObject<HTMLElement | null>) {
       cancelAnimationFrame(frame);
     };
   }, [ref, reduced]);
-}
+};
 
 // One layer of the scene, moved down by `drift` pixels as `--p` goes to 1.
-function Layer({ drift, children }: { drift: number; children: ReactNode }) {
+const Layer = ({ drift, children }: { drift: number; children: ReactNode }) => {
   const style: CSSProperties = { transform: `translate3d(0, calc(var(--p, 0) * ${drift}px), 0)` };
   return (
     <svg
@@ -78,12 +78,12 @@ function Layer({ drift, children }: { drift: number; children: ReactNode }) {
       {children}
     </svg>
   );
-}
+};
 
 // Fine film grain over the scene, from an SVG noise filter.
 const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
-export function DuskScene() {
+export const DuskScene = () => {
   const uid = useId().replace(/:/g, "");
   const reduced = useReducedMotion();
   const id = (name: string) => `${uid}-${name}`;
@@ -200,4 +200,4 @@ export function DuskScene() {
       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[#141210]" />
     </div>
   );
-}
+};

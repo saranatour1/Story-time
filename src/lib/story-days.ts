@@ -20,7 +20,7 @@ const DATE = { weekday: "short", month: "short", day: "numeric" } as const;
 // The stops of the story, in order, grouped into the days they happened on.
 // Stops on the same day share a section; a stop with no time of its own takes
 // its moment's day. A stop's leg is the travel scene right before it.
-export function storyDays(steps: StoryStep[]): StoryDay[] {
+export const storyDays = (steps: StoryStep[]): StoryDay[] => {
   const days: StoryDay[] = [];
   // When the moment being walked began: its first stop's time.
   let momentAt = 0;
@@ -37,11 +37,11 @@ export function storyDays(steps: StoryStep[]): StoryDay[] {
     else days.push({ day, label: formatDay(at, scene.tzOffsetMinutes, DATE), index: days.length + 1, stops: [entry] });
   });
   return days;
-}
+};
 
 // Minutes from the previous stop's time to each stop that has a leg into it,
 // keyed by that stop's step. Only where both times are known.
-export function travelMinutes(steps: StoryStep[]): Map<number, number> {
+export const travelMinutes = (steps: StoryStep[]): Map<number, number> => {
   const minutes = new Map<number, number>();
   let previous: number | undefined;
   steps.forEach((scene, step) => {
@@ -55,4 +55,4 @@ export function travelMinutes(steps: StoryStep[]): Map<number, number> {
     previous = at;
   });
   return minutes;
-}
+};

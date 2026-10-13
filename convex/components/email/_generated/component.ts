@@ -27,7 +27,13 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
       send: FunctionReference<
         "mutation",
         "internal",
-        { html: string; subject: string; text?: string; to: string },
+        {
+          html: string;
+          replyTo?: string;
+          subject: string;
+          text?: string;
+          to: string;
+        },
         string,
         Name
       >;

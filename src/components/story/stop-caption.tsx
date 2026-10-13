@@ -17,7 +17,7 @@ const when = (ms: number, offset?: number) =>
 
 // The words under a stop: where and when, who, how they got there, and
 // anything written down. Pictures are the scene above.
-export function StopCaption({ scene, meId }: { scene: StopScene; meId: string | undefined }) {
+export const StopCaption = ({ scene, meId }: { scene: StopScene; meId: string | undefined }) => {
   const { stop } = scene;
   const transport = transportOf(stop.transport);
   const author = authorByline(scene, meId);
@@ -84,4 +84,4 @@ export function StopCaption({ scene, meId }: { scene: StopScene; meId: string | 
       )}
     </section>
   );
-}
+};

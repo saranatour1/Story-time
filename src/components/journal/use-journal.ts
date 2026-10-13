@@ -1,7 +1,9 @@
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { JournalElement } from "../../../convex/lib/journal";
 import { errorMessage } from "@/lib/errors";
@@ -13,10 +15,10 @@ type Step = { pageId: PageId; before: { paper: string; elements: JournalElement[
 // (an optimistic update) and is saved in the background; undo and redo replay
 // a page as it was. Pages for new moments are cut on the server; `pending`
 // stays above zero until they arrive, or until the book is full.
-export function useJournal(eventId: Id<"events">, index: number) {
-  const data = useQuery(api.journal.outline, { eventId });
+export const useJournal = (eventId: Id<"events">, index: number) => {
+  const { data } = useQuery(queries.journal.outline({ eventId }));
   const openId = data === undefined ? undefined : data.pages[Math.min(index, Math.max(0, data.pages.length - 1))]?._id;
-  const open = useQuery(api.journal.page, openId ? { pageId: openId } : "skip");
+  const { data: open } = useQuery(queries.journal.page(openId ? { pageId: openId } : "skip"));
   const savePage = useMutation(api.journal.savePage).withOptimisticUpdate((store, args) => {
     const now = store.getQuery(api.journal.page, { pageId: args.pageId });
     if (now === undefined || now === null) return;
@@ -126,11 +128,11 @@ export function useJournal(eventId: Id<"events">, index: number) {
       importPages({ eventId, pages: list.map((p) => ({ paper: p.paper, elements: p.elements.map(asArg) })) }),
     refreshPage: (pageId: PageId) => refresh({ eventId, pageId }).catch(fail),
   };
-}
+};
 
 // An element as the server takes it: ids typed as the tables'.
-export function asArg(e: JournalElement) {
+export const asArg = (e: JournalElement) => {
   return { ...e, mediaId: e.mediaId as Id<"media"> | undefined, momentId: e.momentId as Id<"moments"> | undefined };
-}
+};
 
 export type Journal = ReturnType<typeof useJournal>;

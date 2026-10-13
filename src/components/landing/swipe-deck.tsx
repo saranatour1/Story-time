@@ -13,7 +13,7 @@ const LEAVE_MS = 260;
 // The prints under the top one, as they lie in the pile.
 const PILE = ["rotate-[5deg] translate-y-3 scale-[0.94]", "-rotate-[4deg] translate-y-1.5 scale-[0.97]"];
 
-export function SwipeDeck() {
+export const SwipeDeck = () => {
   const reduced = useReducedMotion();
   const surface = useRef<HTMLDivElement>(null);
   const [top, setTop] = useState(0);
@@ -125,4 +125,4 @@ export function SwipeDeck() {
       </div>
     </div>
   );
-}
+};

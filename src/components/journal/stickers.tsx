@@ -10,26 +10,26 @@ import { FONTS, INK, LIFT, MUSTARD, NAVY, ROSE, RUST, TEAL } from "./look";
 const CREAM = "#f6ecd6";
 const PAPER = "#fffdf6";
 
-function Lifted({ children, view = "0 0 100 100" }: { children: ReactNode; view?: string }) {
+const Lifted = ({ children, view = "0 0 100 100" }: { children: ReactNode; view?: string }) => {
   return (
     <svg viewBox={view} className="size-full overflow-visible" style={LIFT}>
       {children}
     </svg>
   );
-}
+};
 
 // A cut-out: drawn on, then trimmed with a white edge, the way food and
 // flowers come in a sticker pack.
-function Cutout({ children, view = "0 0 100 100" }: { children: ReactNode; view?: string }) {
+const Cutout = ({ children, view = "0 0 100 100" }: { children: ReactNode; view?: string }) => {
   return (
     <svg viewBox={view} className="size-full overflow-visible" style={{ filter: `drop-shadow(2.5px 0 0 ${PAPER}) drop-shadow(-2.5px 0 0 ${PAPER}) drop-shadow(0 2.5px 0 ${PAPER}) drop-shadow(0 -2.5px 0 ${PAPER}) ${LIFT.filter}` }}>
       {children}
     </svg>
   );
-}
+};
 
 // Two dots and a smile, for the cuter ones.
-function Face({ x, y }: { x: number; y: number }) {
+const Face = ({ x, y }: { x: number; y: number }) => {
   return (
     <g>
       <circle cx={x - 8} cy={y} r="2.5" fill={INK} />
@@ -39,22 +39,22 @@ function Face({ x, y }: { x: number; y: number }) {
       <ellipse cx={x + 13} cy={y + 5} rx="4" ry="2.5" fill={ROSE} opacity=".7" />
     </g>
   );
-}
+};
 
 // The rows of a tier list, best to worst.
 const TIER_COLOURS: Record<string, string> = { S: "#e2725b", A: "#eea25a", B: "#efd06a", C: "#a9c97a", D: "#7fb2c9", F: "#c9a7d6" };
 
 // Words set to fill a box, in a given type.
-function Words({ text, x, y, w, size, font = FONTS.typewriter, color = INK, weight }: { text: string; x: number; y: number; w: number; size: number; font?: string; color?: string; weight?: number }) {
+const Words = ({ text, x, y, w, size, font = FONTS.typewriter, color = INK, weight }: { text: string; x: number; y: number; w: number; size: number; font?: string; color?: string; weight?: number }) => {
   const fitted = Math.min(size, (w / Math.max(1, text.length)) * 1.7);
   return (
     <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontFamily={font} fontSize={fitted} fill={color} fontWeight={weight}>
       {text}
     </text>
   );
-}
+};
 
-export function MoreSticker({ e }: { e: JournalElement }): ReactNode {
+export const MoreSticker = ({ e }: { e: JournalElement }): ReactNode => {
   const words = e.text?.trim();
   switch (e.style) {
     case "airmail":
@@ -378,7 +378,7 @@ export function MoreSticker({ e }: { e: JournalElement }): ReactNode {
     default:
       return null;
   }
-}
+};
 
 // Gingham, as a strip of tape.
 export const GINGHAM = `repeating-linear-gradient(0deg, rgba(196,85,47,.45) 0 6px, transparent 6px 12px), repeating-linear-gradient(90deg, rgba(196,85,47,.45) 0 6px, transparent 6px 12px)`;

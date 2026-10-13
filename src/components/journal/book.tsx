@@ -1,5 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
-import { useAction, useConvex, useMutation, useQuery } from "convex/react";
+import { useAction, useConvex, useMutation } from "convex/react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -27,7 +28,8 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -49,6 +51,7 @@ import { PageEditor, writable } from "./editor";
 import { pathThrough, readDrawing, writeDrawing } from "./elements";
 import type { Idea } from "./ideas";
 import { download, fileName, journalFile, journalPdf, pagePng, readJournalFile, waitForPage, wholeJournalPdfLabel } from "./export";
+import { PdfCancelled } from "./pdf-book";
 import { DRAW_NAMES, DRAW_WIDTH, FONTS, GRAIN, INKS, paperLook } from "./look";
 import { JournalMenu, type Layer } from "./menu";
 import { contentsByDay } from "./contents";
@@ -56,6 +59,7 @@ import { JournalPage, type PageData } from "./page";
 import { AddTray, Inspector } from "./panel";
 import { Reader } from "./reader";
 import { useJournal } from "./use-journal";
+import { trackAi } from "@/lib/analytics";
 
 type PageId = Id<"journalPages">;
 
@@ -64,7 +68,7 @@ let clipboard: JournalElement | null = null;
 
 // A picture's size, and whether it has see-through parts (then it is a
 // sticker, not a photo).
-async function measure(file: File): Promise<{ w: number; h: number; clear: boolean }> {
+const measure = async (file: File): Promise<{ w: number; h: number; clear: boolean }> => {
   const bitmap = await createImageBitmap(file);
   const { width: w, height: h } = bitmap;
   let clear = false;
@@ -84,7 +88,7 @@ async function measure(file: File): Promise<{ w: number; h: number; clear: boole
   }
   bitmap.close();
   return { w, h, clear };
-}
+};
 
 const isUrl = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
 
@@ -94,12 +98,12 @@ const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isConte
 // middle, and what to add (or what to do with the picked thing) on the right.
 // Read turns it into a book; the menu prints it, saves it as a file, or brings
 // one back.
-export function JournalBook({ event, momentId }: { event: EventView; momentId?: string }) {
+export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: string }) => {
   const [index, setIndex] = useState(0);
   const journal = useJournal(event._id, index);
   const convex = useConvex();
-  const moments = useQuery(api.moments.list, { eventId: event._id });
-  const stickers = useQuery(api.journal.stickers, { eventId: event._id }) ?? [];
+  const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
+  const stickers = useQuery(queries.journal.stickers({ eventId: event._id })).data ?? [];
   const momentById = useMemo(() => new Map<string, MomentView>((moments ?? []).map((m) => [m._id, m])), [moments]);
   const photos = useMemo(
     () => (moments ?? []).flatMap((m) => [m.blocks, ...m.stops.map((s) => s.blocks)].flat().flatMap((b) => (b.type === "photo" ? [b.mediaId as string] : []))),
@@ -145,6 +149,7 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
   // The panel as a sheet, on a phone.
   const [sheet, setSheet] = useState(false);
   const [printing, setPrinting] = useState<{ done: number; total: number } | null>(null);
+  const printJob = useRef<AbortController | null>(null);
   const [locking, setLocking] = useState(false);
   const [sheetPage, setSheetPage] = useState<PageData | null>(null);
   const importer = useRef<HTMLInputElement>(null);
@@ -469,7 +474,7 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
 
   const offstage = useRef<HTMLDivElement>(null);
   // Pages that share the open page's day. A page with no moment exports alone.
-  function pagesForDay(): PageId[] {
+  const pagesForDay = (): PageId[] => {
     if (!summary) return [];
     const moment = summary.momentId ? momentById.get(summary.momentId) : undefined;
     if (!moment) return [summary._id as PageId];
@@ -478,16 +483,18 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
       const onDay = p.momentId ? momentById.get(p.momentId) : undefined;
       return onDay && dayKey(onDay.startsAt, onDay.tzOffsetMinutes) === key ? [p._id as PageId] : [];
     });
-  }
-  async function drawPage(pageId: PageId) {
+  };
+  const drawPage = async (pageId: PageId) => {
     const loaded = await convex.query(api.journal.page, { pageId });
     if (!loaded) throw new Error("The page couldn't be drawn.");
     setSheetPage(loaded as PageData);
     const node = await waitForPage(() => offstage.current, loaded._id);
     return { node, hasMap: false, paper: paperLook(loaded.paper).color };
-  }
+  };
   // Pages drawn one at a time offstage into one PDF, with the count shown.
-  async function makePdf(ids: PageId[]): Promise<Blob> {
+  const makePdf = async (ids: PageId[]): Promise<Blob> => {
+    const job = new AbortController();
+    printJob.current = job;
     setPrinting({ done: 0, total: ids.length });
     try {
       return await journalPdf(
@@ -497,22 +504,25 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
           return drawPage(ids[i]!);
         },
         (n) => setPrinting({ done: n, total: ids.length }),
+        job.signal,
       );
     } finally {
+      if (printJob.current === job) printJob.current = null;
       setPrinting(null);
       setSheetPage(null);
     }
-  }
-  async function printPdf(ids: PageId[], done: string) {
+  };
+  const printPdf = async (ids: PageId[], done: string) => {
     if (ids.length === 0) return;
     try {
       download(await makePdf(ids), `${fileName(event.title)}.pdf`);
       toast.success(done);
     } catch (e) {
+      if (e instanceof PdfCancelled) return;
       toast.error(errorMessage(e));
     }
-  }
-  async function printPage() {
+  };
+  const printPage = async () => {
     if (!page) return;
     setPrinting({ done: 0, total: 1 });
     try {
@@ -525,8 +535,8 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
       setPrinting(null);
       setSheetPage(null);
     }
-  }
-  async function bringBack(file: File | undefined) {
+  };
+  const bringBack = async (file: File | undefined) => {
     if (!file) return;
     try {
       const list = await readJournalFile(file);
@@ -537,7 +547,7 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
     } catch (e) {
       toast.error(errorMessage(e));
     }
-  }
+  };
 
   // ---- The page -------------------------------------------------------------------
 
@@ -590,7 +600,7 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
       onDuplicate={() => duplicate()}
       onDelete={() => remove()}
       onCut={() => setCutting({ open: true, photo: chosen.mediaId })}
-      onSuggest={page?.momentId && journal.canEdit ? () => suggestTitle({ pageId, current: chosen.text }) : undefined}
+      onSuggest={page?.momentId && journal.canEdit ? () => trackAi("title", suggestTitle({ pageId, current: chosen.text })) : undefined}
     />
   ) : (
     <AddTray
@@ -724,6 +734,11 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
               {journal.locked ? <LockIcon aria-hidden /> : <UnlockIcon aria-hidden />} {journal.locked ? "Locked" : "Lock"}
             </Button>
           )}
+          {printing && printJob.current && (
+            <Button size="sm" variant="ghost" onClick={() => printJob.current?.abort()}>
+              Cancel
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline" disabled={printing !== null}>
@@ -731,25 +746,31 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-60">
-              <DropdownMenuItem onSelect={() => void printPdf([pageId], "This page is ready")}>
+              <DropdownMenuItem data-track="journal_exported" data-format="pdf_page" onSelect={() => void printPdf([pageId], "This page is ready")}>
                 <FileDownIcon /> This page as a PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void printPdf(pagesForDay(), "This day is ready")}>
+              <DropdownMenuItem data-track="journal_exported" data-format="pdf_day" onSelect={() => void printPdf(pagesForDay(), "This day is ready")}>
                 <FileDownIcon /> This day as a PDF ({pagesForDay().length} {pagesForDay().length === 1 ? "page" : "pages"})
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void printPdf(pages.map((p) => p._id as PageId), "Your journal is ready")}>
+              <DropdownMenuItem
+                data-track="journal_exported"
+                data-format="pdf_journal"
+                onSelect={() => void printPdf(pages.map((p) => p._id as PageId), "Your journal is ready")}
+              >
                 <FileDownIcon /> {wholeJournalPdfLabel(pages.length)}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void printPage()}>
+              <DropdownMenuItem data-track="journal_exported" data-format="picture" onSelect={() => void printPage()}>
                 <ImageDownIcon /> This page as a picture
               </DropdownMenuItem>
               {journal.canEdit && (
-                <DropdownMenuItem onSelect={() => setLocking(true)}>
+                <DropdownMenuItem data-track="journal_exported" data-format="locked_pdf" onSelect={() => setLocking(true)}>
                   <LockKeyholeIcon /> Share as a locked PDF…
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
+                data-track="journal_exported"
+                data-format="journal_file"
                 onSelect={() =>
                   void convex.query(api.journal.get, { eventId: event._id }).then(
                     (book) => download(journalFile(event.title, book.pages), `${fileName(event.title)}.journal.json`),
@@ -1043,13 +1064,13 @@ export function JournalBook({ event, momentId }: { event: EventView; momentId?: 
         )}
     </div>
   );
-}
+};
 
 const THUMB = 96 / PAGE.w;
 
 // The open page and the one on either side are drawn. Every other contents
 // entry stays the paper colour and its label.
-function StripFace({
+const StripFace = ({
   pageId,
   paper,
   label,
@@ -1061,8 +1082,8 @@ function StripFace({
   label: string;
   draw: boolean;
   moments: ReadonlyMap<string, MomentView>;
-}) {
-  const loaded = useQuery(api.journal.page, draw ? { pageId: pageId as PageId } : "skip");
+}) => {
+  const { data: loaded } = useQuery(queries.journal.page(draw ? { pageId: pageId as PageId } : "skip"));
   if (draw && loaded) return <JournalPage page={loaded} moments={moments} scale={THUMB} live={false} />;
   return (
     <span
@@ -1072,4 +1093,4 @@ function StripFace({
       {label}
     </span>
   );
-}
+};

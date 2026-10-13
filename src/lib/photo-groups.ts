@@ -21,39 +21,39 @@ export const MAX_STOPS = 10;
 export const MAX_PHOTOS_PER_STOP = 20;
 
 // Great-circle distance, good enough at city scale.
-export function distanceMeters(a: Geo, b: Geo): number {
+export const distanceMeters = (a: Geo, b: Geo): number => {
   const rad = Math.PI / 180;
   const dLat = (b.lat - a.lat) * rad;
   const dLng = (b.lng - a.lng) * rad;
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
   return 2 * 6_371_000 * Math.asin(Math.min(1, Math.sqrt(h)));
-}
+};
 
 // The clock where the photo was taken, as a Date to read in UTC: at the
 // camera's offset, else the browser's zone.
-export function localClock(ms: number, offsetMinutes?: number): Date {
+export const localClock = (ms: number, offsetMinutes?: number): Date => {
   return localParts(ms, offsetMinutes);
-}
+};
 
 // YYYY-MM-DD on that clock.
-export function dayKey(ms: number, offsetMinutes?: number): string {
+export const dayKey = (ms: number, offsetMinutes?: number): string => {
   return localClock(ms, offsetMinutes).toISOString().slice(0, 10);
-}
+};
 
 // The viewer's calendar day, as the same YYYY-MM-DD the lists already use.
-export function viewerDay(now = Date.now()): string {
+export const viewerDay = (now = Date.now()): string => {
   return dayKey(now, -new Date(now).getTimezoneOffset());
-}
+};
 
 const byTime = (a: PhotoPoint, b: PhotoPoint) => a.takenAt - b.takenAt || a.id.localeCompare(b.id);
 
-function median(values: number[]): number {
+const median = (values: number[]): number => {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = sorted.length >> 1;
   return sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
-}
+};
 
-export function toStop(photos: PhotoPoint[]): PhotoStop {
+export const toStop = (photos: PhotoPoint[]): PhotoStop => {
   const sorted = [...photos].sort(byTime);
   const geos = sorted.flatMap((p) => (p.geo ? [p.geo] : []));
   return {
@@ -61,7 +61,7 @@ export function toStop(photos: PhotoPoint[]): PhotoStop {
     startsAt: sorted[0]?.takenAt ?? 0,
     geo: geos.length > 0 ? { lat: median(geos.map((g) => g.lat)), lng: median(geos.map((g) => g.lng)) } : undefined,
   };
-}
+};
 
 const chunk = <T>(list: T[], size: number): T[][] =>
   Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, (i + 1) * size));
@@ -71,10 +71,10 @@ const chunk = <T>(list: T[], size: number): T[][] =>
 // the stop began (when both are known). A day with more than 10 stops merges
 // the neighbours closest in time until it fits; if the per-stop cap stops
 // that, the rest spills into a second moment for the day.
-export function groupPhotos(
+export const groupPhotos = (
   points: PhotoPoint[],
   { gapMs = STOP_GAP_MS, radiusM = STOP_RADIUS_M, maxStops = MAX_STOPS, maxPhotos = MAX_PHOTOS_PER_STOP } = {},
-): PhotoDay[] {
+): PhotoDay[] => {
   const sorted = [...points].sort(byTime);
 
   const runs: PhotoPoint[][] = [];
@@ -120,4 +120,4 @@ export function groupPhotos(
     }
     return { day, moments: chunk(stops, maxStops) };
   });
-}
+};

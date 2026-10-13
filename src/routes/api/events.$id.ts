@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { env } from "cloudflare:workers";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { bearerToken, convexAs, json } from "@/server/r2";
 

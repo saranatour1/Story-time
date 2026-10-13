@@ -17,7 +17,7 @@ export type MapPoint = {
 };
 
 // Every stop with coordinates, in time order: by moment, then by stop.
-export function mapPoints(moments: StoryMoment[]): MapPoint[] {
+export const mapPoints = (moments: StoryMoment[]): MapPoint[] => {
   return [...moments]
     .sort((a, b) => a.startsAt - b.startsAt)
     .flatMap((moment) =>
@@ -37,11 +37,11 @@ export function mapPoints(moments: StoryMoment[]): MapPoint[] {
         ];
       }),
     );
-}
+};
 
 // The box around the points as MapLibre takes it, southwest then northeast.
 // One point gives a box with no size; no points gives null.
-export function bounds(points: MapPoint[]): [[number, number], [number, number]] | null {
+export const bounds = (points: MapPoint[]): [[number, number], [number, number]] | null => {
   if (points.length === 0) return null;
   const lngs = points.map((p) => p.lng);
   const lats = points.map((p) => p.lat);
@@ -49,4 +49,4 @@ export function bounds(points: MapPoint[]): [[number, number], [number, number]]
     [Math.min(...lngs), Math.min(...lats)],
     [Math.max(...lngs), Math.max(...lats)],
   ];
-}
+};

@@ -16,17 +16,17 @@ export const MAP_HEIGHT = 60;
 export const sheetSize = (o: Orientation) =>
   o === "portrait" ? { w: MAP_HEIGHT, h: MAP_WIDTH } : { w: MAP_WIDTH, h: MAP_HEIGHT };
 
-function hash(s: string): number {
+const hash = (s: string): number => {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
   return (h >>> 0) / 4294967295;
-}
+};
 
 // Positions for an ordered list of unique place labels.
-export function layoutPlaces(labels: string[], orientation: Orientation = "landscape"): Map<string, MapPoint> {
+export const layoutPlaces = (labels: string[], orientation: Orientation = "landscape"): Map<string, MapPoint> => {
   const unique = [...new Set(labels)];
   const points = new Map<string, MapPoint>();
   const n = unique.length;
@@ -43,13 +43,13 @@ export function layoutPlaces(labels: string[], orientation: Orientation = "lands
     points.set(label, { x: round(p.x), y: round(p.y) });
   });
   return points;
-}
+};
 
 const round = (v: number) => Math.round(v * 100) / 100;
 
 // A single leg as an SVG path. Planes arc high, boats roll, everything else
 // bends a little so the icon has somewhere to go.
-export function legPath(from: MapPoint, to: MapPoint, transport: string): string {
+export const legPath = (from: MapPoint, to: MapPoint, transport: string): string => {
   const mx = (from.x + to.x) / 2;
   const my = (from.y + to.y) / 2;
   const dx = to.x - from.x;
@@ -70,10 +70,10 @@ export function legPath(from: MapPoint, to: MapPoint, transport: string): string
   }
   const bend = Math.min(len * 0.2, 8);
   return `M ${from.x} ${from.y} Q ${round(mx + nx * bend)} ${round(my + ny * bend)} ${to.x} ${to.y}`;
-}
+};
 
 // Seconds the icon takes to cross a leg.
-export function legDuration(transport: string): number {
+export const legDuration = (transport: string): number => {
   switch (transport) {
     case "walk":
       return 4;
@@ -86,7 +86,7 @@ export function legDuration(transport: string): number {
     default:
       return 3;
   }
-}
+};
 
 // A place's name as drawn beside its dot: its text and side, and the box the
 // estimate works from (about 1.3 units a letter, 3 units tall).
@@ -100,7 +100,7 @@ export type DrawnName = {
 // How far apart drawn names are kept, in sheet units.
 const NAME_PAD = 0.5;
 
-function nameAt(label: string, p: MapPoint, sheet: number, portrait: boolean, active: boolean): DrawnName {
+const nameAt = (label: string, p: MapPoint, sheet: number, portrait: boolean, active: boolean): DrawnName => {
   // A label beside its place stays clear of the legs: across, they run left
   // to right, so it sits on the right (on the left near the right edge);
   // upright, they zigzag down the middle, so it sits on the outer side.
@@ -115,16 +115,16 @@ function nameAt(label: string, p: MapPoint, sheet: number, portrait: boolean, ac
   const width = text.length * (active ? 1.43 : 1.3);
   const x = left ? p.x - gap - width / 2 : p.x + gap + width / 2;
   return { text, left, gap, box: { x, y: p.y + 0.25, width, height: 3 } };
-}
+};
 
 // The names that show, each with where it sits. The place in focus keeps its
 // name first, then the origin (the diamond), then the places already visited,
 // then the rest. A name that would crowd one already kept is left out, and its
 // place keeps just its dot.
-export function placeNames(
+export const placeNames = (
   points: Map<string, MapPoint>,
   { sheet, portrait, active, origin, visited }: { sheet: number; portrait: boolean; active?: string; origin?: string; visited: Set<string> },
-): Map<string, DrawnName> {
+): Map<string, DrawnName> => {
   const laid = [...points].map(([label, p]) => [label, nameAt(label, p, sheet, portrait, label === active)] as const);
   const boxes: LabelBox[] = laid.map(([label, name]) => ({
     id: label,
@@ -133,4 +133,4 @@ export function placeNames(
   }));
   const kept = thinLabels(boxes, NAME_PAD);
   return new Map(laid.filter(([label]) => kept.has(label)));
-}
+};

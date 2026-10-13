@@ -1,19 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
+import { useConvexAuth } from "convex/react";
 import { PlayIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { z } from "zod";
-import { api } from "../../convex/_generated/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../convex/_generated/dataModel";
 import { pageForPlay, playSurface } from "@/components/journal/play";
 import { Reader } from "@/components/journal/reader";
 import { SignInScreen } from "@/components/sign-in-screen";
-import { StoryPlayer } from "@/components/story/story-player";
-import { StoryScroll } from "@/components/story/story-scroll";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { buildStorySteps, stepForMoment } from "@/lib/story-steps";
+
+const StoryPlayer = lazy(() => import("@/components/story/story-player").then((m) => ({ default: m.StoryPlayer })));
+const StoryScroll = lazy(() => import("@/components/story/story-scroll").then((m) => ({ default: m.StoryScroll })));
 
 const search = z.object({
   // The scene in view, kept up to date as the film plays or the story scrolls.
@@ -28,22 +30,16 @@ const search = z.object({
   back: z.enum(["words"]).optional().catch(undefined),
 });
 
-// Outside `_app`, so there's no sidebar or header: the story fills the window.
-export const Route = createFileRoute("/e/$id/story")({
-  validateSearch: search,
-  component: StoryPage,
-});
-
-function StoryPage() {
+const StoryPage = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const { id } = Route.useParams();
   const { step, page, momentId, mode } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const eventId = id as Id<"events">;
-  const event = useQuery(api.events.get, isAuthenticated ? { eventId } : "skip");
-  const moments = useQuery(api.moments.list, event ? { eventId } : "skip");
-  const book = useQuery(api.journal.outline, event && mode === "read" ? { eventId } : "skip");
-  const me = useQuery(api.users.getCurrentUser, isAuthenticated ? {} : "skip");
+  const { data: event } = useQuery(queries.events.get(isAuthenticated ? { eventId } : "skip"));
+  const { data: moments } = useQuery(queries.moments.list(event ? { eventId } : "skip"));
+  const { data: book } = useQuery(queries.journal.outline(event && mode === "read" ? { eventId } : "skip"));
+  const { data: me } = useQuery(queries.users.getCurrentUser(isAuthenticated ? {} : "skip"));
   useDocumentTitle(event ? `${event.title} · Story-time` : undefined);
   const momentById = useMemo(() => new Map((moments ?? []).map((moment) => [moment._id, moment])), [moments]);
   const stage = useRef<HTMLDivElement>(null);
@@ -91,14 +87,20 @@ function StoryPage() {
   const start = momentId ? stepForMoment(buildStorySteps(event.title, listed), momentId) : step;
   if (mode === "film") {
     return (
-      <StoryPlayer event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onClose={closeFilm} />
+      <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
+        <StoryPlayer event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onClose={closeFilm} />
+      </Suspense>
     );
   }
   const pages = book?.pages ?? [];
   const surface = mode === "words" ? "story" : book === undefined ? "loading" : playSurface(pages, momentId);
   if (surface === "loading") return <Skeleton className="h-svh w-full rounded-none" />;
   if (surface === "story") {
-    return <StoryScroll event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onPlayFilm={playFilm} />;
+    return (
+      <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
+        <StoryScroll event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onPlayFilm={playFilm} />
+      </Suspense>
+    );
   }
   const at = momentId ? pageForPlay(pages, momentId) : page;
   const openMoment = pages[at]?.momentId;
@@ -123,9 +125,9 @@ function StoryPage() {
       </BookStage>
     </div>
   );
-}
+};
 
-function BookStage({
+const BookStage = ({
   stage,
   setSize,
   children,
@@ -133,7 +135,7 @@ function BookStage({
   stage: RefObject<HTMLDivElement | null>;
   setSize: (size: { w: number; h: number }) => void;
   children: ReactNode;
-}) {
+}) => {
   useEffect(() => {
     const el = stage.current;
     if (!el) return;
@@ -148,4 +150,17 @@ function BookStage({
       {children}
     </div>
   );
-}
+};
+
+// Outside `_app`, so there's no sidebar or header: the story fills the window.
+export const Route = createFileRoute("/e/$id/story")({
+  validateSearch: search,
+  // Signed-in readers only; the page asks again once it knows.
+  loader: ({ context: { prefetch }, params }) => {
+    const eventId = params.id as Id<"events">;
+    prefetch(queries.events.get({ eventId }));
+    prefetch(queries.moments.list({ eventId }));
+    prefetch(queries.users.getCurrentUser());
+  },
+  component: StoryPage,
+});

@@ -1,8 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftIcon, PlayIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { api } from "../../../convex/_generated/api";
+import { queries } from "@/lib/queries";
 import { EventActionsMenu } from "@/components/event/event-actions-menu";
 import { eventDates } from "@/components/event/event-dates";
 import { QuickAddButton } from "@/components/event/quick-add";
@@ -15,7 +15,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 // An experience, loaded once for whichever of its sections is open (moments,
 // journal, sharing, activity): the not-found and loading states, and, unless
 // `bare`, the header with its name and its Play, Add and More.
-export function ExperienceShell({
+export const ExperienceShell = ({
   id,
   section,
   bare = false,
@@ -25,9 +25,9 @@ export function ExperienceShell({
   section?: string;
   bare?: boolean;
   children: (event: EventView) => ReactNode;
-}) {
+}) => {
   const navigate = useNavigate();
-  const event = useQuery(api.events.get, { eventId: id });
+  const { data: event } = useQuery(queries.events.get({ eventId: id }));
   useDocumentTitle(event ? `${section ? `${section} · ` : ""}${event.title} · Story-time` : undefined);
 
   if (event === undefined) {
@@ -77,7 +77,7 @@ export function ExperienceShell({
         <div className="flex items-center gap-2">
           {event.momentCount > 0 && (
             <Button asChild className="bg-amber-300 text-stone-950 shadow-sm hover:bg-amber-200 dark:bg-amber-200 dark:hover:bg-amber-100">
-              <Link to="/e/$id/story" params={{ id }} search={{ step: 0 }}>
+              <Link to="/e/$id/story" params={{ id }} search={{ step: 0 }} data-track="story_played" data-from="experience">
                 <PlayIcon className="fill-current" /> Play story
               </Link>
             </Button>
@@ -89,4 +89,4 @@ export function ExperienceShell({
       {children(event)}
     </div>
   );
-}
+};

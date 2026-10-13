@@ -1,4 +1,12 @@
-# Invite and story links stay crawlable so chat apps can show their preview
-# card; with server rendering off, crawlers only ever see the public shell.
+# Only the home page is meant for search. Every other page needs a sign-in,
+# or is a private link that answers noindex. Shared and invite pages stay
+# fetchable so chat apps can show their preview card. For AI agents: /llms.txt
 User-agent: *
 Allow: /
+Disallow: /api/
+
+# Cloudflare's content signals (contentsignals.org): search and AI answers may
+# use the public pages; training may not.
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+
+Sitemap: https://story-time.saranatour.dev/sitemap.xml

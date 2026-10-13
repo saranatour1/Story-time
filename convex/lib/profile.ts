@@ -4,12 +4,12 @@ export const MAX_DISPLAY_NAME = 60;
 export const MAX_EMAIL = 254;
 
 // "" clears a field, so users can remove what they added.
-export function cleanUsername(raw: string): string | undefined {
+export const cleanUsername = (raw: string): string | undefined => {
   const value = raw.trim().toLowerCase();
   return value === "" ? undefined : value;
-}
+};
 
-export function cleanEmail(raw: string): string | undefined {
+export const cleanEmail = (raw: string): string | undefined => {
   const value = raw.trim().toLowerCase();
   return value === "" ? undefined : value;
-}
+};

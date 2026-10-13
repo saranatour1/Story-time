@@ -247,6 +247,12 @@ export default defineSchema({
     r2Key: v.string(),
     size: v.number(),
     mime: v.string(),
+    // A smaller JPEG for lists and thumbnails. Absent on uploads from before
+    // thumbnails, which fall back to the original.
+    thumbR2Key: v.optional(v.string()),
+    thumbSize: v.optional(v.number()),
+    width: v.optional(v.number()),
+    height: v.optional(v.number()),
     sha256: v.optional(v.string()),
     keyVersion: v.number(),
     status: v.union(
