@@ -10,7 +10,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-const SECTION_NAMES: Record<string, string> = { "/journal": "Journal", "/shared": "Shared", "/activity": "Activity" };
+const SECTION_NAMES: Record<string, string> = {
+  "/journal": "Journal",
+  "/guestbook": "Guestbook",
+  "/shared": "Shared",
+  "/activity": "Activity",
+};
 
 // Navbar trail for the experiences side: Experiences › <experience> › <section>.
 export const AppBreadcrumb = () => {
