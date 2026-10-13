@@ -6,6 +6,7 @@ import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import emailSchema from "../components/email/schema";
 import schema from "../schema";
+import { SHARE_EMAILS_PER_DAY } from "../lib/limits";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 const emailModules = import.meta.glob([
@@ -362,12 +363,12 @@ describe("share links", () => {
     // eslint-disable-next-line @convex-dev/no-process-env -- test setup
     Object.assign(process.env, cf);
     try {
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < SHARE_EMAILS_PER_DAY; i++) {
         expect((await send(`friend${i}@example.com`)).emailed).toBe(true);
       }
       await expect(send("one-more@example.com")).rejects.toThrow(/RATE_LIMITED/);
       const rows = await t.run((ctx) => ctx.db.query("shareEmails").collect());
-      expect(rows).toHaveLength(20);
+      expect(rows).toHaveLength(SHARE_EMAILS_PER_DAY);
       expect(JSON.stringify(rows)).not.toContain("friend");
       const changes = await t.run((ctx) => ctx.db.query("changes").collect());
       const logged = JSON.stringify(changes);

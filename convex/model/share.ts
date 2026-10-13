@@ -16,6 +16,7 @@ import { contentsOf, pageInEvent } from "./journal";
 import { MAX_JOURNAL_PAGES } from "../lib/journal";
 import { isSharedPdf } from "../lib/sharedPdf";
 import { listForEvent, type PlainBlock, vMomentView } from "./moments";
+import { SHARE_EMAILS_PER_DAY } from "../lib/limits";
 
 // "Anyone with the link can watch". The link carries a random token in its
 // fragment, which browsers never send to a server, so it stays out of logs.
@@ -35,7 +36,7 @@ const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,64}$/;
 const linkFor = (token: string) => `${appOrigin()}/s#${token}`;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const EMAILS_PER_DAY = 20;
+const EMAILS_PER_DAY = SHARE_EMAILS_PER_DAY;
 
 // Counts share-link emails per sender over a rolling day. The address itself
 // is not stored.

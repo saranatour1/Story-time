@@ -107,7 +107,7 @@ I read "subs" as their own plans and bills: Convex usage, storage, the AI gatewa
 
 - **AI fill-ins** use the Convex AI Gateway on their team. If their plan has none, enrichment fails quietly and the moment is still saved, which is how failures behave today.
 - **Invite emails** need `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN` and `EMAIL_FROM`, all optional already. Without them, invites are copy-link only.
-- **Limits** (the 120 AI fill-ins an hour, 50 waiting invites, upload caps) are per deployment. The owner can change the numbers on their own deployment.
+- **Limits** (10 AI uses a day, 20 waiting invites, upload caps, all in `convex/lib/limits.ts`) are per deployment. The owner can change the numbers on their own deployment.
 
 ## What the Data & privacy page must say
 
