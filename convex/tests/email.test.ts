@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -20,6 +21,7 @@ beforeAll(() => {
 
 const setup = async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   t.registerComponent("email", emailSchema, emailModules);
   t.registerComponent("invites", invitesSchema, invitesModules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));

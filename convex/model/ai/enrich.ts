@@ -5,7 +5,7 @@ import type { Id } from "../../_generated/dataModel";
 import { action, internalQuery } from "../../_generated/server";
 import { assertNotArchived, requireEventAccess } from "../../lib/access";
 import { MAX_COMMAND_CHARS } from "../../lib/limits";
-import { rateLimiter } from "../../lib/rateLimit";
+import { takeAi } from "../../lib/rateLimit";
 import { captionMoment, vThumb } from "./scribe";
 
 export const workflow = new WorkflowManager(components.workflow);
@@ -42,7 +42,7 @@ export const authorize = internalQuery({
 
 // Called right after a moment is saved. Photos (as 512px JPEGs) go to Scribe
 // first, when the caller sends them; then the workflow runs. False when this
-// hour's fill-ins are used up: the moment stays as saved, and the client stops
+// day's AI allowance is used up: the moment stays as saved, and the client stops
 // sending photos for a while.
 const enrich = action({
   args: {
@@ -53,8 +53,7 @@ const enrich = action({
   },
   handler: async (ctx, args): Promise<boolean> => {
     const userId: Id<"users"> = await ctx.runQuery(internal.model.ai.enrich.authorize, { momentId: args.momentId });
-    const { ok } = await rateLimiter.limit(ctx, "enrich", { key: userId });
-    if (!ok) return false;
+    if (!(await takeAi(ctx, userId))) return false;
     if (args.thumbs !== undefined && args.thumbs.length > 0) {
       await captionMoment(ctx, {
         momentId: args.momentId,

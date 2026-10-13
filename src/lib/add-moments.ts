@@ -170,11 +170,11 @@ export const samplePhotos = <T extends { file: File }>(photos: T[]): T[] => {
 
 export type Enrich = (args: { momentId: Id<"moments">; thumbs: Thumb[]; hint?: string }) => Promise<unknown>;
 
-// Once the server says this hour's AI fill-ins are used up, new moments skip
-// the thumbnails and the request for a while, from any form on the page: the
-// allowance is the person's. It refills steadily; ten minutes brings back
-// about 20.
-const PAUSE_MS = 10 * 60_000;
+// Once the server says the day's AI uses are spent, new moments skip the
+// thumbnails and the request, from any form on the page: the allowance is the
+// person's. It comes back at midnight UTC; asking again after an hour costs
+// one cheap refusal at most.
+const PAUSE_MS = 60 * 60_000;
 let pausedUntil = 0;
 
 // Asks the server to draft a saved moment's note, labels, transport and link
@@ -198,8 +198,8 @@ export const enrichMoment = (
     .then((admitted) => {
       if (admitted !== false || Date.now() < pausedUntil) return;
       pausedUntil = Date.now() + PAUSE_MS;
-      toast.info("Notes paused for a few minutes", {
-        description: "You've used this hour's AI fill-ins. New moments are saved without drafted notes until it refills.",
+      toast.info("No more AI notes today", {
+        description: "You've used today's 10 AI uses. New moments still save, without a drafted note. They come back at midnight UTC.",
       });
     })
     .catch((error: unknown) => console.warn("Couldn't draft the moment's notes:", error));

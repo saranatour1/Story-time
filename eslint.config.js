@@ -24,6 +24,10 @@ export default defineConfig([
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
   {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: { globals: globals.node },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     // Functions are arrow functions: `const name = () => {}`, never
     // `function name() {}`. A rare exception (a generator, an overload, an

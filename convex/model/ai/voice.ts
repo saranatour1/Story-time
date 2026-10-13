@@ -3,7 +3,7 @@ import { getServiceToken } from "convex/server";
 import { z } from "zod";
 import { action } from "../../_generated/server";
 import { MAX_COMMAND_CHARS, MAX_VOICE_BYTES } from "../../lib/limits";
-import { rateLimiter } from "../../lib/rateLimit";
+import { AI_LIMIT_MESSAGE, takeAi } from "../../lib/rateLimit";
 import { TRANSCRIPTION_MODEL } from "../../lib/ai/models";
 
 // Turns a short recording into text for the box above the itinerary. The clip
@@ -50,9 +50,8 @@ const transcribe = action({
     if (args.audio.byteLength > MAX_VOICE_BYTES) {
       throw new ConvexError({ code: "INVALID", message: "That recording is too long. Keep it under a minute." });
     }
-    const { ok } = await rateLimiter.limit(ctx, "voice", { key: identity.subject });
-    if (!ok) {
-      throw new ConvexError({ code: "RATE_LIMITED", message: "That's a lot of recordings this hour. Type it instead, or try again later." });
+    if (!(await takeAi(ctx, identity.subject))) {
+      throw new ConvexError({ code: "RATE_LIMITED", message: `${AI_LIMIT_MESSAGE} You can still type it.` });
     }
 
     const res = await fetch(GATEWAY, {

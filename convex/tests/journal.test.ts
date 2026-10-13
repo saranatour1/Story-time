@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import type { FunctionArgs } from "convex/server";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
@@ -27,6 +28,7 @@ const JUNE_1 = Date.UTC(2026, 5, 1, 12);
 
 const setup = async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   t.registerComponent("invites", invitesSchema, invitesModules);
   t.registerComponent("email", emailSchema, emailModules);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
