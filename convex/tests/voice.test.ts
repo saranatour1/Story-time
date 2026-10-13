@@ -7,6 +7,7 @@ import { promptFor } from "../model/ai/scribe";
 import { api } from "../_generated/api";
 import { MAX_VOICE_BYTES } from "../lib/limits";
 import { rateLimiter } from "../lib/rateLimit";
+import { AI_PER_DAY } from "../lib/limits";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
@@ -69,8 +70,8 @@ describe("transcribe is refused before anything is sent", () => {
 
   test("once the person's allowance is spent", async () => {
     const { t, userId, person } = await setup();
-    for (let i = 0; i < 40; i++) await t.run((ctx) => rateLimiter.limit(ctx, "voice", { key: userId }));
-    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("a lot of recordings");
+    for (let i = 0; i < AI_PER_DAY; i++) await t.run((ctx) => rateLimiter.limit(ctx, "ai", { key: userId }));
+    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("You can still type it");
   });
 });
 

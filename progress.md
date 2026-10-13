@@ -5,6 +5,10 @@ What has landed, newest first. One line per change; the PR has the detail.
 ## 2026-10-13
 
 - Analytics with Databuddy, on production builds only: page views, Web Vitals and errors, without cookies. Trip ids and invite codes in paths are masked, the share link's `#` key is never read, nobody is identified, and click and outgoing-link tracking are off because they send labels and link text that can name a trip. Settings → Data & privacy says so.
+- Limits. Each person gets 10 AI uses a day, shared by everything that calls a model: a note drafted for a moment, a typed or spoken request, a journal title. The day starts at midnight UTC. After that, moments still save without a drafted note, and the box and voice say so. Link previews have their own hourly limit, since they aren't AI. Every change a person makes passes one limit (300 a minute, refilling), which stops a client stuck in a loop. Settings → Account shows AI uses left today, storage against the 2 GB, and experiences against the 20.
+- Search and link previews. Every page now has its own title, description and 1200×630 preview card for X, Reddit, Discord, Slack, iMessage and WhatsApp: the site, a shared trip, and an invite. Cards are drawn by `scripts/og-images.mjs`, in the style of a dark card with hairline frame. A shared trip's card never names the trip. Only the home page is indexed: the rest answer `noindex` in a tag and an `X-Robots-Tag` header. There's a sitemap, and `robots.txt` adds content signals (search and AI answers yes, training no).
+- For AI agents: `/llms.txt` says what Story-time is, what's private and what agents should leave alone, and the home page answers `Accept: text/markdown` with the same text.
+- The home page's first screen comes in the HTML, so it shows before the script loads (server rendering is still off); someone already signed in doesn't see it on the way to /home. Grey text on the landing page is lighter, for contrast. Lighthouse on mobile: accessibility 96 → 100, SEO and best practices 100.
 
 ## 2026-10-12
 

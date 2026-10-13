@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { beforeAll, describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -14,6 +15,7 @@ beforeAll(() => {
 
 const setup = async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [aId, bId] = [await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
@@ -235,6 +237,7 @@ describe("profile images", () => {
 describe("oauth contact email", () => {
   test("a verified GitHub or Google email is copied, and the name and picture are not", async () => {
     const t = convexTest(schema, modules);
+    rateLimiterTest.register(t);
     const githubId = await t.mutation(internal.model.users.createGithubUser, {
       provider: {
         name: "github",
@@ -274,6 +277,7 @@ describe("oauth contact email", () => {
 
   test("an unverified or unusable address is not copied", async () => {
     const t = convexTest(schema, modules);
+    rateLimiterTest.register(t);
     const unverified = await t.mutation(internal.model.users.createGithubUser, {
       provider: {
         name: "github",

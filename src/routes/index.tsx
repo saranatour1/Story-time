@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { DuskScene, useScrollDepth } from "@/components/landing/dusk";
+import { HERO_LEAD, HERO_NOTE, LandingFirstPaint } from "@/components/landing/first-paint";
 import { FilmDemo } from "@/components/landing/film-demo";
 import { MapFrame } from "@/components/landing/frames";
 import {
@@ -28,7 +29,7 @@ import {
 import { useInView, useReducedMotion } from "@/components/landing/paper";
 import { SwipeDeck } from "@/components/landing/swipe-deck";
 import { SignInButtons } from "@/components/login-form";
-import { Logo, LogoSplash } from "@/components/logo";
+import { Logo } from "@/components/logo";
 import { CONTAINER } from "@/components/sign-in-screen";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,9 +41,9 @@ const Landing = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
 
   if (isAuthenticated) return <Navigate to="/home" replace />;
-  // Until auth settles a returning visitor looks signed out; don't flash
-  // the sign-in at them on the way to /home.
-  if (isLoading) return <LogoSplash className="bg-[#141210]" />;
+  // Until auth settles, the same first screen the server sent. It stays hidden
+  // for someone with a session, so they don't see sign-in on the way to /home.
+  if (isLoading) return <LandingFirstPaint />;
 
   // Always story mode's dark room: `dark` gives the app's own buttons and
   // cards their dark colours inside.
@@ -212,21 +213,16 @@ const Hero = () => {
               <span className="block">in the order it happened.</span>
             </span>
           </h1>
-          <p className="mt-6 max-w-[50ch] text-base leading-relaxed text-pretty text-white/70 sm:text-lg">
-            Everyone who was there adds what they caught. Story-time puts it in order and plays it back as a little
-            film, with your route drawn on a map.
-          </p>
+          <p className="mt-6 max-w-[50ch] text-base leading-relaxed text-pretty text-white/70 sm:text-lg">{HERO_LEAD}</p>
           <div id="sign-in" className="mt-9 w-full max-w-md [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]">
             <SignInButtons prominent groupClassName="sm:flex-row sm:justify-center" />
           </div>
-          <p className="mt-4 text-sm text-white/60 [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]">
-            New here? Signing in creates your account. It's private until you share it.
-          </p>
+          <p className="mt-4 text-sm text-white/60 [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]">{HERO_NOTE}</p>
         </div>
 
         <div className="mt-16 w-full max-w-5xl sm:mt-24">
           <FilmDemo />
-          <p className="mt-4 text-sm text-stone-500">A sample story, playing on its own. Tap either side to step through it.</p>
+          <p className="mt-4 text-sm text-stone-400">A sample story, playing on its own. Tap either side to step through it.</p>
         </div>
 
         <nav aria-label="On this page" className="mt-16 w-full max-w-5xl sm:mt-20">
@@ -328,7 +324,7 @@ const Photos = () => {
         <div className="mx-auto w-full max-w-[19rem]">
           <CameraRollFragment />
         </div>
-        <div aria-hidden className="flex flex-col items-center gap-2 text-stone-500">
+        <div aria-hidden className="flex flex-col items-center gap-2 text-stone-400">
           <span className="font-mono text-[10px] tracking-[0.22em] uppercase">Add</span>
           <ArrowRightIcon className="hidden size-5 lg:block" />
           <ArrowDownIcon className="size-5 lg:hidden" />
@@ -423,7 +419,7 @@ const Maps = () => {
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-2">
           <div className="px-3 pt-3 pb-2">
             <p className="font-display text-xl text-stone-100">Six weeks, Porto to Tokyo</p>
-            <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-stone-500 uppercase">6 stops · 5 legs</p>
+            <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-stone-400 uppercase">6 stops · 5 legs</p>
           </div>
           <ol aria-label="Legs of the trip" className="relative">
             <span aria-hidden className="absolute top-8 bottom-8 left-[1.875rem] border-l border-dashed border-white/15" />
@@ -434,9 +430,9 @@ const Maps = () => {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-display text-[1.0625rem] text-stone-100">
-                    {leg.from} <span className="text-stone-500">→</span> {leg.to}
+                    {leg.from} <span className="text-stone-400">→</span> {leg.to}
                   </span>
-                  <span className="font-mono text-[10.5px] tracking-[0.18em] text-stone-500 uppercase">{leg.by}</span>
+                  <span className="font-mono text-[10.5px] tracking-[0.18em] text-stone-400 uppercase">{leg.by}</span>
                 </span>
                 <span className="font-mono text-xs text-stone-400 tabular-nums">{leg.time}</span>
               </li>
@@ -585,7 +581,7 @@ const Footer = () => {
           </ul>
         </nav>
       </div>
-      <div className={cn(RAILS, "flex flex-wrap items-center justify-between gap-2 border-t border-white/10 py-6 text-xs text-stone-500")}>
+      <div className={cn(RAILS, "flex flex-wrap items-center justify-between gap-2 border-t border-white/10 py-6 text-xs text-stone-400")}>
         <span>© {new Date().getFullYear()} Story-time</span>
         <SectionLink id="top" className="font-mono tracking-[0.18em] uppercase transition-colors hover:text-stone-300">
           Back to top ↑
