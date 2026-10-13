@@ -59,7 +59,7 @@ const suggest = action({
         messages: [{ role: "user", content: [promptFor(details).replace("The photos are this moment.", ""), current ? `The page's title now, write a different one: ${current}` : "", "Write the title."].filter(Boolean).join("\n") }],
         jsonInstructions: JSON_INSTRUCTIONS,
         maxOutputTokens: 100,
-      });
+      }, { userId, feature: "title" });
       return title.replace(/^["'“”]+|["'“”.]+$/g, "").trim().slice(0, 60);
     } catch (error) {
       console.warn("No title suggestion:", skipReason(error));

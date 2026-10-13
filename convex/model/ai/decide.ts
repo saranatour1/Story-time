@@ -12,7 +12,8 @@ import { decryptGeo, decryptText, type Encrypted, type Geo } from "../../lib/cry
 import { distanceMeters } from "../../lib/geo";
 import { momentsToRead } from "../../lib/limits";
 import { vTransport } from "../../schema";
-import { jevModel, skipReason } from "../../lib/ai/models";
+import { JEV, jevModel, skipReason } from "../../lib/ai/models";
+import { metered } from "../../lib/ai/budget";
 
 type Transport = Infer<typeof vTransport>;
 
@@ -55,6 +56,8 @@ type Leg = Infer<typeof vLeg>;
 
 const vLegs = v.object({
   eventId: v.id("events"),
+  // Who added the moment: the person its transport guess is metered to.
+  authorId: v.id("users"),
   // The places of the moment's stops in order: context for the label question.
   route: v.array(v.string()),
   labels: v.array(v.string()),
@@ -145,7 +148,7 @@ export const legsOf = internalQuery({
     }
 
     const route = points.flatMap((p) => (p.place !== undefined ? [p.place] : []));
-    return { eventId: event._id, route, labels: [...labels].sort(), legs };
+    return { eventId: event._id, authorId: moment.authorId, route, labels: [...labels].sort(), legs };
   },
 });
 
@@ -206,7 +209,7 @@ const choiceOf = (
 };
 
 export const readDecisions = (
-  found: LegsOf,
+  found: Omit<LegsOf, "authorId">,
   answers: Record<string, Experimental_DecisionAnswer<Experimental_DecisionQuestion>>,
 ): Decided => {
   const transports: Record<string, Transport> = {};
@@ -257,12 +260,11 @@ export const decideTransport = internalAction({
 
     let decided: Decided;
     try {
-      const result = await experimental_decide({
-        model: jevModel(),
-        state: { route: found.route, legs: found.legs.map(legState) },
-        questions,
+      const answers = await metered(ctx, { userId: found.authorId, feature: "transport", model: JEV }, async () => {
+        const out = await experimental_decide({ model: jevModel(), state: { route: found.route, legs: found.legs.map(legState) }, questions });
+        return { result: out.answers, usage: out.usage, providerMetadata: out.providerMetadata };
       });
-      decided = readDecisions(found, result.answers);
+      decided = readDecisions(found, answers);
     } catch (error) {
       console.warn("Jev skipped the transport decision:", skipReason(error));
       decided = heuristic(found.legs);

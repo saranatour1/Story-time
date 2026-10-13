@@ -15,7 +15,8 @@ const DataSettings = () => {
               When you add photos, small copies of up to four photos from each moment go through Convex's AI gateway to
               Anthropic to draft the first note and labels, along with any words you typed about them; the copies aren't kept.
               Every AI request except voice goes only to zero-data-retention endpoints, where the provider keeps nothing
-              it's sent.
+              it's sent. For each request Story-time keeps a usage record (which model, which feature, your account id,
+              tokens, cost), never what was sent or written back.
             </li>
             <li>
               When you type in the box above the moments, your words go through the same gateway. TypeSafe's Jev model
