@@ -59,6 +59,7 @@ import { JournalPage, type PageData } from "./page";
 import { AddTray, Inspector } from "./panel";
 import { Reader } from "./reader";
 import { useJournal } from "./use-journal";
+import { trackAi } from "@/lib/analytics";
 
 type PageId = Id<"journalPages">;
 
@@ -599,7 +600,7 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
       onDuplicate={() => duplicate()}
       onDelete={() => remove()}
       onCut={() => setCutting({ open: true, photo: chosen.mediaId })}
-      onSuggest={page?.momentId && journal.canEdit ? () => suggestTitle({ pageId, current: chosen.text }) : undefined}
+      onSuggest={page?.momentId && journal.canEdit ? () => trackAi("title", suggestTitle({ pageId, current: chosen.text })) : undefined}
     />
   ) : (
     <AddTray
@@ -745,25 +746,31 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-60">
-              <DropdownMenuItem onSelect={() => void printPdf([pageId], "This page is ready")}>
+              <DropdownMenuItem data-track="journal_exported" data-format="pdf_page" onSelect={() => void printPdf([pageId], "This page is ready")}>
                 <FileDownIcon /> This page as a PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void printPdf(pagesForDay(), "This day is ready")}>
+              <DropdownMenuItem data-track="journal_exported" data-format="pdf_day" onSelect={() => void printPdf(pagesForDay(), "This day is ready")}>
                 <FileDownIcon /> This day as a PDF ({pagesForDay().length} {pagesForDay().length === 1 ? "page" : "pages"})
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void printPdf(pages.map((p) => p._id as PageId), "Your journal is ready")}>
+              <DropdownMenuItem
+                data-track="journal_exported"
+                data-format="pdf_journal"
+                onSelect={() => void printPdf(pages.map((p) => p._id as PageId), "Your journal is ready")}
+              >
                 <FileDownIcon /> {wholeJournalPdfLabel(pages.length)}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void printPage()}>
+              <DropdownMenuItem data-track="journal_exported" data-format="picture" onSelect={() => void printPage()}>
                 <ImageDownIcon /> This page as a picture
               </DropdownMenuItem>
               {journal.canEdit && (
-                <DropdownMenuItem onSelect={() => setLocking(true)}>
+                <DropdownMenuItem data-track="journal_exported" data-format="locked_pdf" onSelect={() => setLocking(true)}>
                   <LockKeyholeIcon /> Share as a locked PDF…
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
+                data-track="journal_exported"
+                data-format="journal_file"
                 onSelect={() =>
                   void convex.query(api.journal.get, { eventId: event._id }).then(
                     (book) => download(journalFile(event.title, book.pages), `${fileName(event.title)}.journal.json`),

@@ -3,7 +3,8 @@ import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 import { readDecisions, transportFromSpeed, withDistance } from "../model/ai/decide";
 import { titleFromHtml } from "../model/ai/unfurl";
-import { rateLimiter } from "../lib/rateLimit";
+import { limitWrites, rateLimiter, takeAi } from "../lib/rateLimit";
+import { AI_PER_DAY } from "../lib/limits";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -27,6 +28,7 @@ const FARO = { lat: 37.0194, lng: -7.9322 };
 
 const setup = async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, helperId, viewerId] = [await make(), await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
@@ -231,23 +233,49 @@ describe("decideTransport: without Jev, speed decides", () => {
   });
 });
 
-describe("enrich: an hourly allowance per person", () => {
-  test("120 fill-ins at once, then a refusal, then it refills over the hour", async () => {
+describe("AI: ten uses a day per person, across every feature", () => {
+  test("ten, then a refusal until midnight UTC; someone else's are their own", async () => {
     vi.useFakeTimers();
+    vi.setSystemTime(Date.UTC(2026, 9, 13, 9, 0));
     try {
       const t = convexTest(schema, modules);
       rateLimiterTest.register(t);
-      const take = (key: string) => t.run((ctx) => rateLimiter.limit(ctx, "enrich", { key }));
-      for (let i = 0; i < 120; i++) expect((await take("sara")).ok).toBe(true);
-      expect((await take("sara")).ok).toBe(false);
-      // Someone else's allowance is their own.
-      expect((await take("sam")).ok).toBe(true);
-      // Half an hour refills about half.
-      vi.advanceTimersByTime(HOUR / 2);
-      expect((await take("sara")).ok).toBe(true);
+      const take = (key: string) => t.run((ctx) => takeAi(ctx, key));
+      for (let i = 0; i < AI_PER_DAY; i++) expect(await take("sara")).toBe(true);
+      expect(await take("sara")).toBe(false);
+      expect(await take("sam")).toBe(true);
+      // Still the same day at 23:59 UTC; the next day starts fresh.
+      vi.setSystemTime(Date.UTC(2026, 9, 13, 23, 59));
+      expect(await take("sara")).toBe(false);
+      vi.setSystemTime(Date.UTC(2026, 9, 14, 0, 1));
+      expect(await take("sara")).toBe(true);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test("Settings shows what's left today, storage and experiences", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.UTC(2026, 9, 13, 9, 0));
+    try {
+      const { t, ownerId, owner } = await setup();
+      for (let i = 0; i < 3; i++) await t.run((ctx) => takeAi(ctx, ownerId));
+      const usage = await owner.query(api.api.users.usage, {});
+      expect(usage?.ai).toEqual({ left: AI_PER_DAY - 3, limit: AI_PER_DAY, resetsAt: Date.UTC(2026, 9, 14) });
+      expect(usage?.experiences.used).toBe(1);
+      expect(usage?.storage.used).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("a client changing things in a loop is stopped", async () => {
+    const t = convexTest(schema, modules);
+    rateLimiterTest.register(t);
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 300; i++) await limitWrites(ctx, "sara");
+      await expect(limitWrites(ctx, "sara")).rejects.toThrow("a lot of changes");
+    });
   });
 });
 
@@ -380,13 +408,12 @@ describe("enrich: who may ask", () => {
 
   test("once the person's allowance is spent, enrich says no and does nothing", async () => {
     const { t, ownerId, owner, eventId } = await setup();
-    rateLimiterTest.register(t);
     const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: T0,
       blocks: [{ type: "note", text: "one too many" }],
     });
-    for (let i = 0; i < 120; i++) await t.run((ctx) => rateLimiter.limit(ctx, "enrich", { key: ownerId }));
+    for (let i = 0; i < AI_PER_DAY; i++) await t.run((ctx) => rateLimiter.limit(ctx, "ai", { key: ownerId }));
     // Past the limit it returns before captions or the workflow (which isn't
     // registered here, so going on would throw).
     expect(await owner.action(api.api.ai.enrich.enrich, { momentId })).toBe(false);

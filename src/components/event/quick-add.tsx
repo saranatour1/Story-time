@@ -60,6 +60,7 @@ export const QuickAddButton = ({
         size={size}
         disabled={busy || !token}
         aria-label="Add photos and videos"
+        data-track="add_photos_clicked"
         onClick={() => input.current?.click()}
       >
         <ImagePlusIcon /> {children}

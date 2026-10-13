@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { beforeAll, describe, expect, test } from "vitest";
 import { api } from "../_generated/api";
 import schema from "../schema";
@@ -13,6 +14,7 @@ beforeAll(() => {
 
 const setup = async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   const ownerId = await t.run((ctx) => ctx.db.insert("users", {}));
   const otherId = await t.run((ctx) => ctx.db.insert("users", {}));
   const owner = t.withIdentity({ subject: ownerId });

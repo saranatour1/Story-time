@@ -95,12 +95,14 @@ export const EventActionsMenu = ({
           )}
           {event.momentCount > 0 && (
             <DropdownMenuItem
+              data-track="story_played"
+              data-from="menu"
               onSelect={() => void navigate({ to: "/e/$id/story", params: { id: event._id }, search: { step: 0 } })}
             >
               <PlayIcon /> Play story
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onSelect={() => void copyLink()}>
+          <DropdownMenuItem data-track="link_copied" onSelect={() => void copyLink()}>
             <LinkIcon /> Copy link
           </DropdownMenuItem>
           {isOwner && (

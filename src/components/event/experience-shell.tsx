@@ -77,7 +77,7 @@ export const ExperienceShell = ({
         <div className="flex items-center gap-2">
           {event.momentCount > 0 && (
             <Button asChild className="bg-amber-300 text-stone-950 shadow-sm hover:bg-amber-200 dark:bg-amber-200 dark:hover:bg-amber-100">
-              <Link to="/e/$id/story" params={{ id }} search={{ step: 0 }}>
+              <Link to="/e/$id/story" params={{ id }} search={{ step: 0 }} data-track="story_played" data-from="experience">
                 <PlayIcon className="fill-current" /> Play story
               </Link>
             </Button>

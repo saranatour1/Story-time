@@ -30,21 +30,27 @@ import {
 // under-counted (a flood of tiny files would otherwise hide the rest).
 const BUDGET_SCAN = 5000;
 
-// One person's live bytes across every experience, so one account can't fill
-// the bucket. Profile images count too. Deleted uploads don't, so removing
-// frees room.
-export const assertUploadBudget = async (ctx: MutationCtx, userId: Id<"users">, size: number) => {
-  let liveBytes = 0;
-  let uncounted = false;
+// One person's live bytes across every experience. Profile images count too.
+// Deleted uploads don't, so removing frees room. `complete` is false when
+// there were too many rows to count.
+export const liveUploadBytes = async (ctx: QueryCtx, userId: Id<"users">) => {
+  let bytes = 0;
+  let complete = true;
   for (const status of ["ready", "reserved"] as const) {
     const rows = await ctx.db
       .query("media")
       .withIndex("by_uploader_and_status", (q) => q.eq("uploaderId", userId).eq("status", status))
       .take(BUDGET_SCAN + 1);
-    if (rows.length > BUDGET_SCAN) uncounted = true;
-    for (const row of rows) liveBytes += row.size + (row.thumbSize ?? 0);
+    if (rows.length > BUDGET_SCAN) complete = false;
+    for (const row of rows) bytes += row.size + (row.thumbSize ?? 0);
   }
-  if (uncounted || liveBytes + size > MAX_LIVE_UPLOAD_BYTES) {
+  return { bytes, complete };
+};
+
+// So one account can't fill the bucket.
+export const assertUploadBudget = async (ctx: MutationCtx, userId: Id<"users">, size: number) => {
+  const { bytes, complete } = await liveUploadBytes(ctx, userId);
+  if (!complete || bytes + size > MAX_LIVE_UPLOAD_BYTES) {
     throw new ConvexError({
       code: "UPLOAD_BUDGET",
       message:

@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 /* eslint-disable @convex-dev/no-process-env -- this test switches the deployment variables seed:japan checks */
 import { convexTest } from "convex-test";
+import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 import { api, internal } from "../_generated/api";
 import schema from "../schema";
@@ -18,6 +19,7 @@ afterEach(() => vi.useRealTimers());
 
 test("the Japan trip seeds a whole experience, and its journal follows", async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   const userId = await t.run((ctx) => ctx.db.insert("users", {}));
   const eventId = await t.mutation(internal.model.seed.japan, { userId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -35,6 +37,7 @@ test("the Japan trip seeds a whole experience, and its journal follows", async (
 
 test("seed:japan requires a dev deployment and the account you name", async () => {
   const t = convexTest(schema, modules);
+  rateLimiterTest.register(t);
   const older = await t.run((ctx) => ctx.db.insert("users", {}));
   const newer = await t.run((ctx) => ctx.db.insert("users", {}));
   const saved = process.env.CONVEX_DEPLOYMENT;

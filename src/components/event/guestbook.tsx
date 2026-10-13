@@ -50,7 +50,7 @@ export const Guestbook = ({ eventId, archived }: { eventId: Id<"events">; archiv
             placeholder="A line for the book"
             onChange={(e) => setText(e.target.value)}
           />
-          <Button type="submit" variant="outline" disabled={sending || text.trim() === ""}>
+          <Button type="submit" variant="outline" data-track="guestbook_note_left" disabled={sending || text.trim() === ""}>
             Leave a note
           </Button>
         </form>

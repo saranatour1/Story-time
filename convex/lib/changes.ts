@@ -2,6 +2,7 @@ import type { Infer } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import type { vChangeAction, vChangeEntity } from "../schema";
+import { limitWrites } from "./rateLimit";
 
 type Snapshot = Record<string, string | number | boolean | null>;
 
@@ -24,5 +25,8 @@ export const recordChange = async (
     after?: Snapshot;
   },
 ): Promise<void> => {
+  // Every change a person makes passes here, so it's where a runaway client
+  // is stopped. An agent's change is counted against the AI allowance instead.
+  if (change.actorId !== undefined && change.agent === undefined) await limitWrites(ctx, change.actorId);
   await ctx.db.insert("changes", { ...change, at: Date.now() });
 };

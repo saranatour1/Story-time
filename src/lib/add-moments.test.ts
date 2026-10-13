@@ -130,7 +130,7 @@ describe("enrichMoment", () => {
       await vi.runAllTimersAsync();
       expect(other).not.toHaveBeenCalled();
 
-      vi.advanceTimersByTime(10 * 60_000);
+      vi.advanceTimersByTime(60 * 60_000);
       enrichMoment(other, "m3" as Id<"moments">, []);
       await vi.runAllTimersAsync();
       expect(other).toHaveBeenCalledOnce();

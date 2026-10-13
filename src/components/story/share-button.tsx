@@ -68,6 +68,7 @@ export const ShareButton = ({ event, label, className }: { event: StoryEvent; la
       variant="ghost"
       size="icon"
       aria-label={canShareLink ? "Share with a link" : "Copy link"}
+      data-track="story_shared"
       onClick={() => void share()}
       disabled={busy}
       className={cn("text-white hover:bg-white/10 hover:text-white", className)}

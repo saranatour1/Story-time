@@ -190,6 +190,9 @@ importers:
       '@convex-dev/workpool':
         specifier: ^0.4.13
         version: 0.4.13(convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(convex@1.46.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(zod@4.6.5))(convex@1.46.0(react@19.3.0))(react@19.3.0)
+      '@databuddy/sdk':
+        specifier: ^3.2.1
+        version: 3.2.1(react@19.3.0)
       '@fontsource-variable/caveat':
         specifier: ^5.3.0
         version: 5.3.0
@@ -649,6 +652,17 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
+
+  '@databuddy/sdk@3.2.1':
+    resolution: {integrity: sha512-/j2KPAkguKPcTJPA7Ql4xqPGsMnhumcngEAwqbrdlAffIQohkTbNUO8hU4bIc3BistLPsgS4vVKI+1xn8WNPdg==}
+    peerDependencies:
+      react: '>=18'
+      vue: '>=3'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      vue:
+        optional: true
 
   '@daybrush/utils@1.13.0':
     resolution: {integrity: sha512-ALK12C6SQNNHw1enXK+UO8bdyQ+jaWNQ1Af7Z3FNxeAwjYhQT7do+TRE4RASAJ3ObaS2+TJ7TXR3oz2Gzbw0PQ==}
@@ -5470,6 +5484,10 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
+
+  '@databuddy/sdk@3.2.1(react@19.3.0)':
+    optionalDependencies:
+      react: 19.3.0
 
   '@daybrush/utils@1.13.0': {}
 
