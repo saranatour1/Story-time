@@ -12,9 +12,10 @@ import { appOrigin } from "../lib/appUrl";
 import { emailConfigured, replyAddress } from "../lib/emailAddress";
 import { recordChange } from "../lib/changes";
 import { vRole } from "../schema";
+import { INVITE_EMAILS_PER_DAY, MAX_WAITING_INVITES } from "../lib/limits";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const EMAILS_PER_DAY = 20;
+const EMAILS_PER_DAY = INVITE_EMAILS_PER_DAY;
 
 // Counts invite emails per sender over a rolling day, so the form can't be
 // used to mail arbitrary addresses in bulk.
@@ -44,7 +45,6 @@ const chargeInviteEmail = async (ctx: MutationCtx, userId: Id<"users">) => {
 };
 
 // Invites waiting to be opened, per experience. The list shows them all.
-const MAX_WAITING_INVITES = 50;
 
 // Owner creates an invite. The link is returned once; if an email address is
 // given, it is passed to the email component and not stored by us.

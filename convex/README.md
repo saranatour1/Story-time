@@ -88,6 +88,7 @@ the `…Api` object of the `model/` file with the same path.
 | `model/invites.ts` | Invites: making, accepting, dismissing, invite emails. |
 | `model/sessions.ts` | Who has access to an experience, and revoking it. |
 | `model/users.ts` | Profile, settings, email confirmation, the memory reminder, and the users sign-in creates. |
+| `model/aiBudget.ts` | AI Budget's one-time setup (no prompts or responses kept) and a spend summary for the CLI. |
 | `model/changes.ts` | The Activity log, and its unread count. |
 | `model/guestNotes.ts` | The guestbook invited people sign. |
 | `model/onThisDay.ts` | The daily "a memory is waiting" email (opt-in). |
@@ -124,5 +125,6 @@ the `…Api` object of the `model/` file with the same path.
 | `lib/rateLimit.ts` | Per-person rate limits. |
 | `lib/seeded.ts` | Repeatable randomness from an id. |
 | `lib/sharedPdf.ts` | Whether an upload is the journal's locked PDF. |
+| `lib/ai/budget.ts` | AI Budget: `metered()` records each AI call's model, person, feature, tokens and cost. Dashboard at `/aibudget`. |
 | `lib/ai/generate.ts` | Structured output from Haiku, with a JSON fallback. |
 | `lib/ai/models.ts` | Which models the AI features use. |

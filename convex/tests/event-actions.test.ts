@@ -7,6 +7,7 @@ import type { Id } from "../_generated/dataModel";
 import emailSchema from "../components/email/schema";
 import invitesSchema from "../components/invites/schema";
 import schema from "../schema";
+import { MAX_EVENTS_PER_USER } from "../lib/limits";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 const invitesModules = import.meta.glob(["../components/invites/**/*.ts", "../components/invites/**/*.js"]);
@@ -202,9 +203,9 @@ describe("media.listKeysForEvent", () => {
 });
 
 describe("events.createDraft", () => {
-  test("an owner can have 20 experiences; deleting one frees its slot", async () => {
+  test("an owner can have MAX_EVENTS_PER_USER experiences; deleting one frees its slot", async () => {
     const { t, owner, eventId } = await setup();
-    for (let i = 1; i < 20; i++) await owner.mutation(api.api.events.createDraft, {});
+    for (let i = 1; i < MAX_EVENTS_PER_USER; i++) await owner.mutation(api.api.events.createDraft, {});
     await expect(owner.mutation(api.api.events.createDraft, {})).rejects.toThrow(/EVENT_LIMIT/);
     await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);

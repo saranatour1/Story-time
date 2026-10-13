@@ -81,7 +81,7 @@ export const LINK_STYLES = ["card", "tag"] as const;
 export const DECO_WORDS = new Set<string>(["ticket", "postmark", "luggage-tag", "ribbon", "speech", "tier"]);
 
 // How much a journal holds.
-export const MAX_JOURNAL_PAGES = 400;
+export { MAX_JOURNAL_PAGES } from "./limits";
 export const MAX_PAGE_ELEMENTS = 120;
 export const MAX_ELEMENT_TEXT = 1000;
 // A drawing keeps its strokes as SVG path data; a link keeps its preview.

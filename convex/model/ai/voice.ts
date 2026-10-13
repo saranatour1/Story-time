@@ -5,6 +5,7 @@ import { action } from "../../_generated/server";
 import { MAX_COMMAND_CHARS, MAX_VOICE_BYTES } from "../../lib/limits";
 import { AI_LIMIT_MESSAGE, takeAi } from "../../lib/rateLimit";
 import { TRANSCRIPTION_MODEL } from "../../lib/ai/models";
+import { metered } from "../../lib/ai/budget";
 
 // Turns a short recording into text for the box above the itinerary. The clip
 // goes to the gateway's speech-to-text model and nowhere else: it isn't stored,
@@ -54,7 +55,8 @@ const transcribe = action({
       throw new ConvexError({ code: "RATE_LIMITED", message: `${AI_LIMIT_MESSAGE} You can still type it.` });
     }
 
-    const res = await fetch(GATEWAY, {
+    const res = await metered(ctx, { userId: identity.subject, feature: "voice", model: TRANSCRIPTION_MODEL }, async () => {
+      const out = await fetch(GATEWAY, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${await getServiceToken("ai-gateway")}`,
@@ -67,6 +69,12 @@ const transcribe = action({
         // unsupported parameter), so voice is the one model call that can't
         // ask for zero-data-retention endpoints yet.
       }),
+      });
+      // The gateway's cost, from a clone: the body is read again below.
+      const body: unknown = out.ok ? await out.clone().json() : undefined;
+      const usage: unknown = typeof body === "object" && body !== null && "usage" in body ? body.usage : undefined;
+      const cost = typeof usage === "object" && usage !== null && "cost" in usage && typeof usage.cost === "number" ? usage.cost : undefined;
+      return { result: out, costUsd: cost };
     });
     // Status only: an error body can echo the request, and the request is the recording.
     if (!res.ok) {

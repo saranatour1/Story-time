@@ -7,6 +7,7 @@ import type { Id } from "../_generated/dataModel";
 import emailSchema from "../components/email/schema";
 import invitesSchema from "../components/invites/schema";
 import schema from "../schema";
+import { INVITE_EMAILS_PER_DAY, MAX_WAITING_INVITES } from "../lib/limits";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 const invitesModules = import.meta.glob([
@@ -44,9 +45,9 @@ const tokenOf = (link: string) => link.split("/invite#")[1]!;
 const firstPage = { numItems: 25, cursor: null };
 
 describe("invites", () => {
-  test("an experience holds at most 50 waiting invites; cancelling one makes room", async () => {
+  test("an experience holds at most MAX_WAITING_INVITES waiting invites; cancelling one makes room", async () => {
     const { owner, eventId } = await setup();
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < MAX_WAITING_INVITES; i++) {
       await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
     }
     await expect(owner.mutation(api.api.invites.create, { eventId, role: "viewer" })).rejects.toThrow(
@@ -54,7 +55,7 @@ describe("invites", () => {
     );
 
     const waiting = await owner.query(api.api.invites.listForEvent, { eventId });
-    expect(waiting).toHaveLength(50);
+    expect(waiting).toHaveLength(MAX_WAITING_INVITES);
     await owner.mutation(api.api.invites.dismiss, { eventId, inviteId: waiting[0]!.inviteId });
     await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
   });
@@ -180,7 +181,7 @@ describe("invites", () => {
     // eslint-disable-next-line @convex-dev/no-process-env -- test setup
     Object.assign(process.env, cf);
     try {
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < INVITE_EMAILS_PER_DAY; i++) {
         expect((await send(`friend${i}@example.com`)).emailed).toBe(true);
       }
       await expect(send("one-more@example.com")).rejects.toThrow(/RATE_LIMITED/);

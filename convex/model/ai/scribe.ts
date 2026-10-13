@@ -42,6 +42,8 @@ type Caption = z.infer<typeof captionSchema>;
 export const vThumb = v.object({ mediaId: v.id("media"), jpeg: v.string() });
 
 const vScribeContext = v.object({
+  // Who added the moment: the person its AI note is metered to.
+  authorId: v.id("users"),
   title: v.string(),
   description: v.optional(v.string()),
   startsAt: v.number(),
@@ -79,6 +81,7 @@ export const context = internalQuery({
     const everyone = await listForEvent(ctx, event);
     const places = [mine.place, ...mine.stops.map((s) => s.place)];
     return {
+      authorId: moment.authorId,
       title: event.title,
       description: await readText(event._id, event.description),
       startsAt: mine.startsAt,
@@ -106,7 +109,7 @@ const zoneLabel = (offset: number | undefined): string => {
   return `UTC${offset < 0 ? "-" : "+"}${hours}:${minutes}`;
 };
 
-export const promptFor = (c: ScribeContext, hint?: string): string => {
+export const promptFor = (c: Omit<ScribeContext, "authorId">, hint?: string): string => {
   // The clock where it happened, in the zone it happened in.
   const when = new Date(c.startsAt + (c.tzOffsetMinutes ?? 0) * 60_000).toISOString().slice(0, 16).replace("T", " ");
   const lines: Array<string | undefined> = [
@@ -126,13 +129,14 @@ export const promptFor = (c: ScribeContext, hint?: string): string => {
   return lines.filter((line): line is string => line !== undefined).join("\n");
 };
 
-const writeCaption = (ctx: ActionCtx, threadId: string, messages: ModelMessage[]): Promise<Caption> => {
-  return generateStructured(ctx, scribe, threadId, {
-    schema: captionSchema,
-    messages,
-    jsonInstructions: JSON_INSTRUCTIONS,
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
-  });
+const writeCaption = (ctx: ActionCtx, threadId: string, messages: ModelMessage[], userId: string): Promise<Caption> => {
+  return generateStructured(
+    ctx,
+    scribe,
+    threadId,
+    { schema: captionSchema, messages, jsonInstructions: JSON_INSTRUCTIONS, maxOutputTokens: MAX_OUTPUT_TOKENS },
+    { userId, feature: "note" },
+  );
 };
 
 // Writes the diary line and labels from the photos, then hands them to `apply`,
@@ -157,7 +161,7 @@ export const captionMoment = async (
     }));
     const text: TextPart = { type: "text", text: promptFor(found, args.hint) };
     const messages: ModelMessage[] = [{ role: "user", content: [...images, text] }];
-    draft = await writeCaption(ctx, threadId, messages);
+    draft = await writeCaption(ctx, threadId, messages, found.authorId);
   } catch (error) {
     // The moment is already saved; the caption is just skipped.
     console.warn("Scribe skipped a caption:", skipReason(error));

@@ -18,7 +18,8 @@ import {
   IMAGE_MIME_TYPES,
   MAX_AVATAR_BYTES,
   MAX_LIVE_UPLOAD_BYTES,
-  MAX_MEDIA_PER_EVENT,
+  MAX_PHOTOS_PER_EVENT,
+  MAX_VIDEOS_PER_EVENT,
   MAX_THUMB_BYTES,
   MAX_UPLOAD_BYTES,
   MAX_VIDEO_BYTES,
@@ -29,6 +30,8 @@ import {
 // this the total can't be known, so the upload is refused instead of
 // under-counted (a flood of tiny files would otherwise hide the rest).
 const BUDGET_SCAN = 5000;
+// Live rows read per status when counting an experience's photos and videos.
+const MEDIA_SCAN = 500;
 
 // One person's live bytes across every experience. Profile images count too.
 // Deleted uploads don't, so removing frees room. `complete` is false when
@@ -89,23 +92,29 @@ const reserveUpload = mutation({
         maxBytes,
       });
     }
-    // Stops one contributor reserving unlimited objects. Deleted uploads
-    // don't count, so removing photos frees room.
-    const cap = MAX_MEDIA_PER_EVENT;
-    let live = 0;
+    // Photos and videos have their own caps. Deleted uploads don't count, so
+    // removing one frees room. The scan is bounded: an experience from before
+    // these caps can hold more, and is full either way.
+    let photos = 0;
+    let videos = 0;
     for (const status of ["reserved", "ready"] as const) {
       const rows = await ctx.db
         .query("media")
-        .withIndex("by_event_and_status", (q) =>
-          q.eq("eventId", args.eventId).eq("status", status),
-        )
-        .take(cap);
-      live += rows.length;
+        .withIndex("by_event_and_status", (q) => q.eq("eventId", args.eventId).eq("status", status))
+        .take(MEDIA_SCAN);
+      for (const row of rows) {
+        // Stickers and a locked PDF are stored here too, but aren't photos.
+        if (row.purpose !== undefined) continue;
+        if (VIDEO_MIME_TYPES.includes(row.mime)) videos++;
+        else photos++;
+      }
     }
-    if (live >= cap) {
+    if (isVideo ? videos >= MAX_VIDEOS_PER_EVENT : photos >= MAX_PHOTOS_PER_EVENT) {
       throw new ConvexError({
         code: "MEDIA_LIMIT",
-        message: "This experience has reached its upload limit",
+        message: isVideo
+          ? `An experience holds up to ${MAX_VIDEOS_PER_EVENT} videos. Delete one to add another.`
+          : `An experience holds up to ${MAX_PHOTOS_PER_EVENT} photos. Delete one to add another.`,
       });
     }
     await assertUploadBudget(ctx, userId, args.size);

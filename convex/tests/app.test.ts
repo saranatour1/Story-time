@@ -5,7 +5,7 @@ import type { FunctionReturnType } from "convex/server";
 import { beforeAll, describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { MAX_MEDIA_PER_EVENT, MOMENT_LIMIT } from "../lib/limits";
+import { MAX_LIVE_UPLOAD_BYTES, MAX_PHOTOS_PER_EVENT, MAX_VIDEOS_PER_EVENT, MOMENT_LIMIT } from "../lib/limits";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
@@ -56,7 +56,7 @@ const changeCount = async (
 
 describe("the moment limit", () => {
   test("one more than the limit is rejected", async () => {
-    expect(MOMENT_LIMIT).toBe(300);
+    expect(MOMENT_LIMIT).toBe(100);
     const { t, owner } = await setup();
     const eventId = await owner.mutation(api.api.events.createDraft, {});
     // Counted up to the limit, not added one by one: that would make the test slow.
@@ -295,27 +295,30 @@ describe("uploads", () => {
   test("deleted uploads don't count toward the upload cap", async () => {
     const { t, owner, ownerId } = await setup();
     const eventId = await owner.mutation(api.api.events.createDraft, {});
-    const fill = (status: "ready" | "deleted", n: number) =>
+    const fill = (status: "ready" | "deleted", n: number, mime = "image/png") =>
       t.run(async (ctx) => {
         for (let i = 0; i < n; i++) {
           await ctx.db.insert("media", {
             eventId,
             uploaderId: ownerId,
-            r2Key: `events/${eventId}/${status}${i}`,
+            r2Key: `events/${eventId}/${status}${mime}${i}`,
             size: 100,
-            mime: "image/png",
+            mime,
             keyVersion: 1,
             status,
           });
         }
       });
-    const reserve = () =>
-      owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime: "image/png" });
+    const reserve = (mime = "image/png") => owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime });
     // Deleted uploads don't count towards the cap.
     await fill("deleted", 60);
-    await fill("ready", MAX_MEDIA_PER_EVENT - 1);
+    await fill("ready", MAX_PHOTOS_PER_EVENT - 1);
     await reserve();
-    await expect(reserve()).rejects.toThrow(/MEDIA_LIMIT/);
+    await expect(reserve()).rejects.toThrow(`up to ${MAX_PHOTOS_PER_EVENT} photos`);
+    // Videos have their own cap, so a full photo count doesn't stop one.
+    await fill("ready", MAX_VIDEOS_PER_EVENT - 1, "video/mp4");
+    await reserve("video/mp4");
+    await expect(reserve("video/mp4")).rejects.toThrow(`up to ${MAX_VIDEOS_PER_EVENT} videos`);
   });
 
   test("a deleted upload can't be confirmed back to life", async () => {
@@ -367,7 +370,7 @@ describe("uploads", () => {
     const { t, owner, ownerId } = await setup();
     const first = await owner.mutation(api.api.events.createDraft, {});
     const second = await owner.mutation(api.api.events.createDraft, {});
-    const CAP = 2 * 1024 ** 3;
+    const CAP = MAX_LIVE_UPLOAD_BYTES;
     const big = await t.run((ctx) =>
       ctx.db.insert("media", {
         eventId: first,
