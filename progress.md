@@ -4,6 +4,8 @@ What has landed, newest first. One line per change; the PR has the detail.
 
 ## 2026-10-12
 
+- **Link-preview image.** `public/og.png` is redrawn in the dark landing style ("Your trip, in order.") with a "Built on Convex" mark. It is a static PNG, so it shows on shared links only after the next deploy.
+
 - A confirmed email is the reply address and the place a memory reminder goes (PR #49). Sign-in copies a verified address. One typed in Settings waits until its link is opened. Share links can be emailed. Once a day, if a past year has this date and the owner asked, the mail says a memory is waiting and links home, with nothing about the memory.
 - A share link can leave photos out. Pictures, stickers, a link card's preview image — including an http one — and the locked PDF's id stay off the public payload. The owner still sees them, and switching it off brings them back.
 - **Share the journal as a locked PDF.** Export → "Share as a locked PDF…" prints the whole book in the browser, locks it with the PDF standard's AES-256 encryption and a password (generated, or your own), and puts it on the share link, where a PDF button downloads it. Any reader asks for the password; the link never gives it out. The file is stored encrypted like photos; the password is kept under the experience's key so the owner can copy it again, replace the PDF or take it off. Also fixed: exporting a PDF stopped on its first page (the offstage sheet was looked up before it existed).
