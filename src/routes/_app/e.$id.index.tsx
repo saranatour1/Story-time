@@ -59,7 +59,7 @@ const EventPage = () => {
           /* The moments, and beside them whatever is being edited, else the
              picked moment's journal page. Stacked on narrow screens, the
              editor first; the page is for wide screens only. */
-          <div className="grid max-w-[80rem] gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-start">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-start">
             {panel !== "outline" ? (
               <div className="min-w-0 lg:sticky lg:top-4 lg:order-2 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:overscroll-contain">
                 <EditorPanel event={event} panel={panel} momentId={editId} canEditMoment={canEditMoment} onClose={() => openPanel("outline")} />

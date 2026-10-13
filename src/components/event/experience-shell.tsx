@@ -59,10 +59,10 @@ export const ExperienceShell = ({
   const dates = eventDates(event);
   const archived = event.status === "archived";
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-[80rem] space-y-5">
       {/* The experience's name, dates and size. Playing it as a story is the
           payoff, so that button leads. */}
-      <header className="flex max-w-[80rem] flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 space-y-1">
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-balance break-words sm:text-3xl">{event.title}</h1>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
