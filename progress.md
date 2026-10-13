@@ -4,6 +4,7 @@ What has landed, newest first. One line per change; the PR has the detail.
 
 ## 2026-10-13
 
+- AI Budget (`@convex-dev/ai-budget`) measures every AI call: model, person, feature (note, transport, intent, plan, voice, title), tokens and the gateway's own cost, with no prompts or responses kept. Its dashboard is at `<deployment>.convex.site/aibudget` behind a token, and `model/aiBudget:spend` prints totals. It caps nothing; the 10-a-day allowance stays.
 - AI requests go only to zero-data-retention endpoints (`{ zdr: true }`, `@convex-dev/ai-sdk-provider` 0.3.0): Haiku and Jev, checked against dev. Voice can't yet: the gateway's transcription route refuses the setting, and Settings → Data & privacy says so.
 - A journal photo on paper (polaroid, print, deckle) shows the whole photo instead of filling its frame and cutting the top and bottom off a tall one; the paper fills the gap. Stamps and cut-out shapes still fill theirs.
 - The guestbook moved out of the journal into its own section, Guestbook, in the experience's sidebar between Journal and Shared. The journal is only the book now.

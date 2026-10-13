@@ -28,6 +28,7 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_actors from "../lib/actors.js";
+import type * as lib_ai_budget from "../lib/ai/budget.js";
 import type * as lib_ai_generate from "../lib/ai/generate.js";
 import type * as lib_ai_models from "../lib/ai/models.js";
 import type * as lib_appUrl from "../lib/appUrl.js";
@@ -54,6 +55,7 @@ import type * as model_ai_scribe from "../model/ai/scribe.js";
 import type * as model_ai_title from "../model/ai/title.js";
 import type * as model_ai_unfurl from "../model/ai/unfurl.js";
 import type * as model_ai_voice from "../model/ai/voice.js";
+import type * as model_aiBudget from "../model/aiBudget.js";
 import type * as model_changes from "../model/changes.js";
 import type * as model_events from "../model/events.js";
 import type * as model_guestNotes from "../model/guestNotes.js";
@@ -96,6 +98,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/access": typeof lib_access;
   "lib/actors": typeof lib_actors;
+  "lib/ai/budget": typeof lib_ai_budget;
   "lib/ai/generate": typeof lib_ai_generate;
   "lib/ai/models": typeof lib_ai_models;
   "lib/appUrl": typeof lib_appUrl;
@@ -122,6 +125,7 @@ declare const fullApi: ApiFromModules<{
   "model/ai/title": typeof model_ai_title;
   "model/ai/unfurl": typeof model_ai_unfurl;
   "model/ai/voice": typeof model_ai_voice;
+  "model/aiBudget": typeof model_aiBudget;
   "model/changes": typeof model_changes;
   "model/events": typeof model_events;
   "model/guestNotes": typeof model_guestNotes;
@@ -174,4 +178,5 @@ export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  aiBudget: import("@convex-dev/ai-budget/_generated/component.js").ComponentApi<"aiBudget">;
 };

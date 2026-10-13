@@ -6,7 +6,7 @@ import { z } from "zod";
 import { components, internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import type { MutationCtx } from "../../_generated/server";
-import { action, internalQuery, mutation } from "../../_generated/server";
+import { type ActionCtx, action, internalQuery, mutation } from "../../_generated/server";
 import { assertNotArchived, requireEventAccess } from "../../lib/access";
 import { invalid } from "../../lib/blocks";
 import {
@@ -31,7 +31,8 @@ import {
 } from "../moments";
 import { vGeo, vTransport } from "../../schema";
 import { generateStructured } from "../../lib/ai/generate";
-import { jevModel, scribeModel, skipReason } from "../../lib/ai/models";
+import { JEV, jevModel, scribeModel, skipReason } from "../../lib/ai/models";
+import { metered } from "../../lib/ai/budget";
 
 // One sentence in the box above the itinerary can add, change or remove
 // things. Two models read it, each for what it is good at:
@@ -186,9 +187,10 @@ export const readVerdict = (answers: Answers): Verdict => {
   };
 };
 
-const judge = async (text: string, open: boolean): Promise<Verdict> => {
+const judge = async (ctx: ActionCtx, userId: string, text: string, open: boolean): Promise<Verdict> => {
   try {
-    const { answers } = await experimental_decide({
+    const answers = await metered(ctx, { userId, feature: "intent", model: JEV }, async () => {
+      const out = await experimental_decide({
       model: jevModel(),
       state: { text, momentOpenOnScreen: open },
       questions: {
@@ -203,6 +205,8 @@ const judge = async (text: string, open: boolean): Promise<Verdict> => {
             "Does `text` ask to delete or remove something that is already saved (a moment, a stop, a note or a label)?",
         },
       },
+      });
+      return { result: out.answers, usage: out.usage, providerMetadata: out.providerMetadata };
     });
     return readVerdict(answers);
   } catch (error) {
@@ -488,7 +492,7 @@ const propose = action({
     }
 
     const t0 = Date.now();
-    const verdict = await judge(text, found.open !== undefined);
+    const verdict = await judge(ctx, found.userId, text, found.open !== undefined);
     const judged = Date.now() - t0;
     // Just something that happened: no plan, no preview. The app saves it as a
     // moment, as it always did.
@@ -507,12 +511,13 @@ const propose = action({
     const threadId = await createThread(ctx, components.agent);
     let plan: RawPlan;
     try {
-      plan = await generateStructured(ctx, planner, threadId, {
-        schema: rawPlan,
-        messages: [{ role: "user", content: prompt }],
-        jsonInstructions: JSON_INSTRUCTIONS,
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-      });
+      plan = await generateStructured(
+        ctx,
+        planner,
+        threadId,
+        { schema: rawPlan, messages: [{ role: "user", content: prompt }], jsonInstructions: JSON_INSTRUCTIONS, maxOutputTokens: MAX_OUTPUT_TOKENS },
+        { userId: found.userId, feature: "plan" },
+      );
     } catch (error) {
       console.warn("Scribe couldn't plan a request:", skipReason(error));
       throw new ConvexError({

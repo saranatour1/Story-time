@@ -8,6 +8,7 @@ import authAnonymous from "@convex-dev/auth/providers/anonymous/convex.config.js
 import agent from "@convex-dev/agent/convex.config";
 import workflow from "@convex-dev/workflow/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
+import aiBudget from "@convex-dev/ai-budget/convex.config";
 
 const app = defineApp({
   env: {
@@ -70,5 +71,7 @@ app.use(agent);
 app.use(workflow);
 // Per-person allowances (convex/lib/rateLimit.ts).
 app.use(rateLimiter);
+// Measures every AI call's cost and usage (lib/ai/budget.ts).
+app.use(aiBudget);
 
 export default app;
