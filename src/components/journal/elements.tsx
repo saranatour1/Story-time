@@ -37,16 +37,16 @@ const paragraphSize = (text: string, w: number, h: number, perChar: number, line
 
 // ---- Titles ----------------------------------------------------------------------------
 
-type LetterPaper = { bg: string; fg: string; font: string; weight: number; italic?: boolean; caps?: boolean };
+type LetterPaper = { bg: string; fg: string; font: string; weight: number; italic?: boolean };
 const LETTERS: LetterPaper[] = [
-  { bg: "#1b1714", fg: "#f4ecda", font: FONTS.dada, weight: 700, caps: true },
+  { bg: "#1b1714", fg: "#f4ecda", font: FONTS.dada, weight: 700 },
   { bg: "#f6efdd", fg: "#1b1714", font: FONTS.caslon, weight: 700 },
-  { bg: RUST, fg: "#fbf3e4", font: FONTS.dada, weight: 600, caps: true },
+  { bg: RUST, fg: "#fbf3e4", font: FONTS.dada, weight: 600 },
   { bg: "#2f6da3", fg: "#f6efde", font: FONTS.caslon, weight: 400, italic: true },
-  { bg: MUSTARD, fg: "#1c1710", font: FONTS.dada, weight: 700, caps: true },
+  { bg: MUSTARD, fg: "#1c1710", font: FONTS.dada, weight: 700 },
   { bg: TEAL, fg: "#f7f1e1", font: FONTS.typewriter, weight: 400 },
   { bg: "#ece4cf", fg: RUST, font: FONTS.caslon, weight: 700, italic: true },
-  { bg: ROSE, fg: "#2c1419", font: FONTS.typewriter, weight: 400, caps: true },
+  { bg: ROSE, fg: "#2c1419", font: FONTS.typewriter, weight: 400 },
 ];
 
 const Ransom = ({ id, text, w, h }: { id: string; text: string; w: number; h: number }) => {
@@ -79,7 +79,8 @@ const Ransom = ({ id, text, w, h }: { id: string; text: string; w: number; h: nu
                   ...LIFT,
                 }}
               >
-                {look.caps ? char.toUpperCase() : char}
+                {/* Always a capital: mixed case read as a typo, not a cut-out. */}
+                {char.toUpperCase()}
               </span>
             );
           })}
@@ -117,24 +118,15 @@ const Typewriter = ({ id, text, w, h }: { id: string; text: string; w: number; h
   );
 };
 
-// Letters of two sizes, as on a Dada letterhead: MoUvEmEnT.
-const Dada = ({ id, text, w, h, ink }: { id: string; text: string; w: number; h: number; ink: string }) => {
-  const size = fitSize(text, w, h, 0.5, 1.05);
-  const rnd = seeded(id);
+// Tall condensed capitals, one size, like a poster's. (Letters of two sizes,
+// MoUvEmEnT, read as broken type in a title.)
+const Dada = ({ text, w, h, ink }: { text: string; w: number; h: number; ink: string }) => {
   return (
     <div
-      className="flex size-full flex-wrap content-center items-end justify-center leading-[0.95]"
-      style={{ color: ink, fontFamily: FONTS.dada, fontWeight: 600, columnGap: size * 0.28 }}
+      className="grid size-full place-items-center text-center leading-[1.02]"
+      style={{ color: ink, fontFamily: FONTS.dada, fontWeight: 600, fontSize: fitSize(text, w, h, 0.5, 1.02) }}
     >
-      {text.toUpperCase().split(/\s+/).filter(Boolean).map((word, wi) => (
-        <span key={wi} className="inline-flex flex-nowrap items-end">
-          {[...word].map((char, i) => (
-            <span key={i} style={{ fontSize: size * (rnd() < 0.42 ? 0.58 : 1) }}>
-              {char}
-            </span>
-          ))}
-        </span>
-      ))}
+      <span className="text-balance">{text.toUpperCase()}</span>
     </div>
   );
 };
@@ -200,7 +192,7 @@ export const Title = ({ e, ink }: { e: JournalElement; ink: string }) => {
     case "ransom":
       return <Ransom id={e.id} text={text} w={w} h={h} />;
     case "dada":
-      return <Dada id={e.id} text={text} w={w} h={h} ink={ink} />;
+      return <Dada text={text} w={w} h={h} ink={ink} />;
     case "caslon":
       return <Plain text={text} w={w} h={h} perChar={0.46} style={{ fontFamily: FONTS.caslon, fontStyle: "italic", color: ink }} />;
     case "hand":
