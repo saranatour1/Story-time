@@ -89,6 +89,8 @@ export const SignInButtons = ({
           type="button"
           disabled={isLoading}
           className={size}
+          data-track="sign_in_started"
+          data-provider="google"
           onClick={() => void signInGoogle(options).catch(() => {})}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden>
@@ -108,6 +110,8 @@ export const SignInButtons = ({
             prominent &&
               "border-stone-900/20 bg-transparent hover:bg-stone-900/5 dark:border-white/20 dark:bg-transparent dark:hover:bg-white/5",
           )}
+          data-track="sign_in_started"
+          data-provider="github"
           onClick={() => void signInGithub(options).catch(() => {})}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden>

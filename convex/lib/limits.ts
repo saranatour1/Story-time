@@ -1,3 +1,5 @@
+// AI uses one person gets a day, across every AI feature (see lib/rateLimit.ts).
+export const AI_PER_DAY = 10;
 // Moments an experience holds. One number, the same for everyone.
 export const MOMENT_LIMIT = 300;
 // How many moments to read for an experience: all of them. One given more

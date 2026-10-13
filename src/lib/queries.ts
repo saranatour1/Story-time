@@ -50,6 +50,7 @@ export const queries = {
   },
   users: {
     getCurrentUser: (args: Args<typeof api.users.getCurrentUser> = {}) => convexQuery(api.users.getCurrentUser, args),
+    usage: () => convexQuery(api.users.usage, {}),
   },
 };
 

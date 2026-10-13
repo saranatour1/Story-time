@@ -84,7 +84,7 @@ const Home = () => {
     <div className="@container mx-auto w-full max-w-6xl space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-serif text-3xl font-semibold tracking-tight">Experiences</h1>
-        <Button onClick={() => void start()} disabled={starting}>
+        <Button onClick={() => void start()} disabled={starting} data-track="new_experience_clicked">
           <PlusIcon /> New experience
         </Button>
       </header>
@@ -168,7 +168,7 @@ const ExperienceCard = ({ event: e }: { event: Experience }) => {
               asChild
               className="relative z-10 bg-amber-300 text-stone-950 hover:bg-amber-200 dark:bg-amber-200 dark:hover:bg-amber-100"
             >
-              <Link to="/e/$id/story" params={{ id: e._id }} search={{ step: 0 }} aria-label={`Play story: ${e.title}`}>
+              <Link to="/e/$id/story" params={{ id: e._id }} search={{ step: 0 }} aria-label={`Play story: ${e.title}`} data-track="story_played" data-from="home">
                 <PlayIcon className="fill-current" /> Play story
               </Link>
             </Button>

@@ -7,6 +7,7 @@ import { MAX_VOICE_BYTES, MAX_VOICE_SECONDS } from "../../../convex/lib/limits";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 import { canRecord, formatOfMime, micProblem, pickMime } from "@/lib/voice";
+import { trackAi } from "@/lib/analytics";
 
 // Speech for the box above the moments. Press to record, press again to stop;
 // the clip goes to the server, comes back as text and lands in the box, where
@@ -43,7 +44,7 @@ export const VoiceButton = ({ onText, disabled, quiet = false }: { onText: (text
     }
     setPhase("sending");
     try {
-      onText(await transcribe({ audio: await clip.arrayBuffer(), format }));
+      onText(await trackAi("voice", transcribe({ audio: await clip.arrayBuffer(), format })));
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {

@@ -5,7 +5,7 @@ import { components, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { action, internalQuery } from "../../_generated/server";
 import { assertNotArchived, requireEventAccess } from "../../lib/access";
-import { rateLimiter } from "../../lib/rateLimit";
+import { AI_LIMIT_MESSAGE, takeAi } from "../../lib/rateLimit";
 import { generateStructured } from "../../lib/ai/generate";
 import { scribeModel, skipReason } from "../../lib/ai/models";
 import { promptFor } from "./scribe";
@@ -49,8 +49,7 @@ const suggest = action({
   args: { pageId: v.id("journalPages"), current: v.optional(v.string()) },
   handler: async (ctx, args): Promise<string> => {
     const { userId, momentId }: { userId: Id<"users">; momentId: Id<"moments"> } = await ctx.runQuery(internal.model.ai.title.pageMoment, { pageId: args.pageId });
-    const { ok } = await rateLimiter.limit(ctx, "enrich", { key: userId });
-    if (!ok) throw new ConvexError({ code: "RATE_LIMITED", message: "That's a lot of titles this hour. Try again a little later." });
+    if (!(await takeAi(ctx, userId))) throw new ConvexError({ code: "RATE_LIMITED", message: AI_LIMIT_MESSAGE });
     const details = await ctx.runQuery(internal.model.ai.scribe.context, { momentId });
     const current = args.current?.trim().slice(0, 80);
     const threadId = await createThread(ctx, components.agent);

@@ -2,7 +2,11 @@ import { ConvexError, v } from "convex/values";
 import { env, internalMutation, mutation, query } from "../_generated/server";
 import { vGithubProfile } from "@convex-dev/auth/providers/oauth/github";
 import { vGoogleProfile } from "@convex-dev/auth/providers/oauth/google";
-import { requireUserId } from "../lib/access";
+import { calculateRateLimit, DAY } from "@convex-dev/rate-limiter";
+import { getUserId, requireUserId } from "../lib/access";
+import { AI_PER_DAY, MAX_EVENTS_PER_USER, MAX_LIVE_UPLOAD_BYTES } from "../lib/limits";
+import { rateLimiter } from "../lib/rateLimit";
+import { liveUploadBytes } from "./media";
 import { appOrigins } from "../lib/appUrl";
 import { emailKeyFor } from "../lib/crypto";
 import { emailConfigured, issueEmailCheck } from "../lib/emailAddress";
@@ -266,5 +270,28 @@ const setOnThisDay = mutation({
   },
 });
 
+// How much of each allowance the signed-in person has used, for Settings.
+// `ai.resetsAt` is when the day's AI uses come back (midnight UTC).
+const usage = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getUserId(ctx);
+    if (userId === null) return null;
+    const stored = await rateLimiter.getValue(ctx, "ai", { key: userId });
+    const now = Date.now();
+    const today = calculateRateLimit(stored, stored.config, now);
+    const { bytes } = await liveUploadBytes(ctx, userId);
+    const owned = await ctx.db
+      .query("events")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .take(MAX_EVENTS_PER_USER);
+    return {
+      ai: { left: Math.max(0, Math.floor(today.value)), limit: AI_PER_DAY, resetsAt: (today.windowStart ?? now) + DAY },
+      storage: { used: bytes, limit: MAX_LIVE_UPLOAD_BYTES },
+      experiences: { used: owned.length, limit: MAX_EVENTS_PER_USER },
+    };
+  },
+});
+
 // What the app calls. Registered once, by convex/api/users.ts, which re-exports it.
-export const usersApi = { getCurrentUser, updateSettings, verifyEmail, resendEmailVerification, setOnThisDay };
+export const usersApi = { getCurrentUser, updateSettings, verifyEmail, resendEmailVerification, setOnThisDay, usage };

@@ -18,7 +18,7 @@ import {
   MAX_STOPS_PER_MOMENT,
   MAX_TEXT_LENGTH,
 } from "../../lib/limits";
-import { rateLimiter } from "../../lib/rateLimit";
+import { AI_LIMIT_MESSAGE, takeAi } from "../../lib/rateLimit";
 import { TRANSPORTS } from "../../schema";
 import {
   createMoment,
@@ -483,12 +483,8 @@ const propose = action({
       eventId: args.eventId,
       openMomentId: args.openMomentId,
     });
-    const { ok } = await rateLimiter.limit(ctx, "command", { key: found.userId });
-    if (!ok) {
-      throw new ConvexError({
-        code: "RATE_LIMITED",
-        message: "That's a lot of requests this hour. Try again a little later, or save it as a moment with \"Add as a moment\".",
-      });
+    if (!(await takeAi(ctx, found.userId))) {
+      throw new ConvexError({ code: "RATE_LIMITED", message: `${AI_LIMIT_MESSAGE} You can still save it as a moment with "Add as a moment".` });
     }
 
     const t0 = Date.now();
