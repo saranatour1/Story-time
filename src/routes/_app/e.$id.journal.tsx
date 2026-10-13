@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { ExperienceShell } from "@/components/event/experience-shell";
-import { Guestbook } from "@/components/event/guestbook";
 import { JournalBook } from "@/components/journal/book";
 import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
@@ -12,12 +11,7 @@ const JournalPage = () => {
   const { momentId } = Route.useSearch();
   return (
     <ExperienceShell id={id} section="Journal" bare>
-      {(event) => (
-        <>
-          <JournalBook event={event} momentId={momentId} />
-          <Guestbook eventId={event._id} archived={event.status === "archived"} />
-        </>
-      )}
+      {(event) => <JournalBook event={event} momentId={momentId} />}
     </ExperienceShell>
   );
 };
