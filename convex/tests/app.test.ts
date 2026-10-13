@@ -152,6 +152,20 @@ describe("change tracking", () => {
   });
 });
 
+describe("paged moments", () => {
+  test("pages come oldest first and run out", async () => {
+    const { owner } = await setup();
+    const eventId = await owner.mutation(api.api.events.createDraft, {});
+    for (const text of ["a", "b", "c"]) await addMoment(owner, eventId, text);
+    const first = await owner.query(api.api.moments.page, { eventId, paginationOpts: { numItems: 2, cursor: null } });
+    expect(first.page).toHaveLength(2);
+    expect(first.isDone).toBe(false);
+    const rest = await owner.query(api.api.moments.page, { eventId, paginationOpts: { numItems: 2, cursor: first.continueCursor } });
+    expect(rest.page).toHaveLength(1);
+    expect(rest.isDone).toBe(true);
+  });
+});
+
 describe("access and revoke", () => {
   test("strangers see nothing; a granted viewer reads; revoke removes access", async () => {
     const { t, owner, friend, friendId, ownerId } = await setup();

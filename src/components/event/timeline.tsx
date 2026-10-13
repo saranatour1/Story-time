@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
-import { useMutation } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import { PencilIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -21,6 +21,8 @@ import { viewerDay } from "@/lib/photo-groups";
 import { firstLine, groupByDay } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
+const PAGE = 30;
+
 // The moments of an experience, by day, with a search box. Picking one hands
 // it to the page, which edits it or opens it in the story. Each row you may
 // change has its own Edit and Delete buttons.
@@ -39,10 +41,16 @@ export const Timeline = ({
   canEdit: (authorId: string) => boolean;
   onEdit: (moment: MomentView) => void;
 }) => {
-  const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
+  const [query, setQuery] = useState("");
+  const searching = query.trim() !== "";
+  // Thirty at a time, oldest first. Searching needs every moment (places and
+  // notes are encrypted, so only the browser can match them), so it reads them
+  // all, and only while something is typed.
+  const paged = usePaginatedQuery(api.moments.page, { eventId: event._id }, { initialNumItems: PAGE });
+  const { data: all } = useQuery(queries.moments.list(searching ? { eventId: event._id } : "skip"));
+  const moments = searching ? all : paged.status === "LoadingFirstPage" ? undefined : paged.results;
   const { data: leftOut } = useQuery(queries.journal.unpaged({ eventId: event._id }));
   const unpaged = new Set(leftOut?.full ? leftOut.momentIds : []);
-  const [query, setQuery] = useState("");
   const remove = useMutation(api.moments.remove);
   const token = useAuthToken();
   const [deleting, setDeleting] = useState<MomentView | null>(null);
@@ -59,11 +67,15 @@ export const Timeline = ({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // The moment named in the address comes into view.
+  // The moment named in the address comes into view, loading more until it is there.
   useEffect(() => {
     if (!selectedMomentId || moments === undefined) return;
+    if (!searching && paged.status === "CanLoadMore" && !moments.some((m) => m._id === selectedMomentId)) {
+      paged.loadMore(PAGE);
+      return;
+    }
     document.querySelector(`[data-moment-id="${CSS.escape(selectedMomentId)}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [selectedMomentId, moments]);
+  }, [selectedMomentId, moments, searching, paged]);
 
   const search = (
     <div className="relative">
@@ -164,6 +176,11 @@ export const Timeline = ({
           </ul>
         </section>
       ))}
+      {!searching && paged.status !== "Exhausted" && (
+        <Button type="button" variant="outline" size="sm" className="w-full" disabled={paged.status !== "CanLoadMore"} onClick={() => paged.loadMore(PAGE)}>
+          {paged.status === "LoadingMore" ? "Loading…" : `Show more (${event.momentCount - moments.length} left)`}
+        </Button>
+      )}
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}

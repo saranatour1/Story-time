@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import type { Infer, ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
@@ -266,6 +267,20 @@ const list = query({
   },
 });
 
+// The same moments, oldest first, one page at a time: the moments list asks
+// for these, and only reads them all while searching.
+const page = query({
+  args: { eventId: v.id("events"), paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
+    const result = await ctx.db
+      .query("moments")
+      .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
+      .paginate(args.paginationOpts);
+    return { ...result, page: await Promise.all(result.page.map((m) => viewMoment(ctx, event, m))) };
+  },
+});
+
 // What an edit can change. `update` takes these with the moment's id; the AI
 // enrichment passes the same shape to `writeMomentUpdate`.
 const momentEdit = {
@@ -516,4 +531,4 @@ export const deleteMoment = async (
 };
 
 // What the app calls. Registered once, by convex/api/moments.ts, which re-exports it.
-export const momentsApi = { create, list, update, remove };
+export const momentsApi = { create, list, page, update, remove };

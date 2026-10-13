@@ -24,11 +24,11 @@ for callers in `api/`, without losing jump-to-definition.
 
 - **`model/<feature>.ts`** writes the queries, mutations and actions. Public
   ones are not exported one by one: they leave the file only inside one
-  object, `export const momentsApi = { create, list, update, remove }`.
+  object, `export const momentsApi = { create, list, page, update, remove }`.
   Convex doesn't register functions inside an object, so they exist once,
   where `api/` re-exports them. Internal functions are exported directly and
   stay at `internal.model.<feature>.<name>`.
-- **`api/<feature>.ts`** is one line: `export const { create, list, update, remove } = momentsApi;`.
+- **`api/<feature>.ts`** is one line: `export const { create, list, page, update, remove } = momentsApi;`.
   That is what registers them. Jump to definition goes `api/` → `model/` in
   one hop.
 - **The root** keeps only the files Convex reads from there. `auth.ts` stays
