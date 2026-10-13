@@ -31,9 +31,10 @@ export const Guestbook = ({ eventId, archived }: { eventId: Id<"events">; archiv
   };
 
   return (
-    <section aria-label="Guestbook" className="mx-auto w-full max-w-xl space-y-3 px-4 pb-10">
+    <section aria-label="Guestbook" className="w-full max-w-xl space-y-3">
       <h2 className="font-semibold">Guestbook</h2>
       <p className="text-sm text-muted-foreground">Leave a short note. The owner sees it in Activity.</p>
+      {notes?.length === 0 && <p className="text-sm text-muted-foreground italic">No notes yet.</p>}
       {notes?.map((note) => (
         <p key={note._id} className="text-sm">
           <span className="font-medium">{note.authorName ?? "Someone"}</span>

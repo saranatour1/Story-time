@@ -14,6 +14,8 @@ const DataSettings = () => {
             <li>
               When you add photos, small copies of up to four photos from each moment go through Convex's AI gateway to
               Anthropic to draft the first note and labels, along with any words you typed about them; the copies aren't kept.
+              Every AI request except voice goes only to zero-data-retention endpoints, where the provider keeps nothing
+              it's sent.
             </li>
             <li>
               When you type in the box above the moments, your words go through the same gateway. TypeSafe's Jev model
@@ -23,7 +25,8 @@ const DataSettings = () => {
             </li>
             <li>
               When you speak into the box, the recording goes through the same gateway to a speech-to-text model
-              (Whisper) and comes back as text you can fix before sending. The recording isn't kept.
+              (Whisper) and comes back as text you can fix before sending. Story-time doesn't keep the recording. Unlike
+              the models above, the gateway can't yet ask Whisper's provider for a zero-data-retention endpoint.
             </li>
             <li>
               Place search and the names of photo locations use OpenStreetMap data from photon.komoot.io; your typed text

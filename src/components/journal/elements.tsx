@@ -330,17 +330,21 @@ export const Photo = ({ e }: { e: JournalElement }) => {
   const paper = "#fffdf6";
   const caption = e.text?.trim();
   switch (e.style) {
+    // Photos on paper (polaroid, print, deckle) show the whole photo: a frame's
+    // shape comes from the page's layout, not the photo, so filling it would
+    // cut a tall photo's top and bottom. The paper fills the rest. Stamps and
+    // cut-out shapes (postage, torn, round, heart, plain) fill theirs.
     case "print":
       return (
         <div className="size-full" style={{ background: paper, padding: Math.max(5, w * 0.035), ...LIFT }}>
-          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
+          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} contain />
         </div>
       );
     case "deckle":
       return (
         <div className="size-full" style={LIFT}>
           <div className="size-full" style={{ background: paper, padding: Math.max(8, w * 0.06), clipPath: DECKLE }}>
-            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
+            <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} contain />
           </div>
         </div>
       );
@@ -403,7 +407,7 @@ export const Photo = ({ e }: { e: JournalElement }) => {
       const foot = Math.max(edge * 3, h * 0.17);
       return (
         <div className="relative size-full" style={{ background: paper, padding: `${edge}px ${edge}px ${foot}px`, ...LIFT }}>
-          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} />
+          <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={tone} contain />
           {caption && (
             <div
               className="absolute inset-x-0 bottom-0 grid place-items-center truncate px-2"
