@@ -173,8 +173,8 @@ importers:
         specifier: ^0.7.7
         version: 0.7.7(@ai-sdk/provider-utils@5.0.58(zod@4.6.5))(@ai-sdk/provider@4.0.26)(ai@7.0.137(zod@4.6.5))(convex-helpers@0.1.128(@standard-schema/spec@1.1.0)(convex@1.46.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(zod@4.6.5))(convex@1.46.0(react@19.3.0))(react@19.3.0)
       '@convex-dev/ai-sdk-provider':
-        specifier: ^0.2.1
-        version: 0.2.1(ai@7.0.137(zod@4.6.5))(convex@1.46.0(react@19.3.0))
+        specifier: ^0.3.0
+        version: 0.3.0(ai@7.0.137(zod@4.6.5))(convex@1.46.0(react@19.3.0))
       '@convex-dev/auth':
         specifier: 2.0.0-alpha.2
         version: 2.0.0-alpha.2(@standard-schema/spec@1.1.0)(convex@1.46.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(zod@4.6.5)
@@ -571,8 +571,8 @@ packages:
       react:
         optional: true
 
-  '@convex-dev/ai-sdk-provider@0.2.1':
-    resolution: {integrity: sha512-w8Ps0a4E6+w+J7tBCM84CIEb0zmJD9yiGM1QTFo9zm/USpREmFDEgzdQKV8rPicfu6EvJoYR0RumZWBj9X14iw==}
+  '@convex-dev/ai-sdk-provider@0.3.0':
+    resolution: {integrity: sha512-0ENjkOgiCBybI/luPW8d9rszpb01FIXaU88Ff/5nXHRfFAVj0Xc1UW7XMtmq39rPlSPqyOdimJ+66AoFN7pzsw==}
     engines: {node: '>=22'}
     peerDependencies:
       ai: ^7.0.105
@@ -5375,7 +5375,7 @@ snapshots:
       '@ungap/structured-clone': 1.4.0
       react: 19.3.0
 
-  '@convex-dev/ai-sdk-provider@0.2.1(ai@7.0.137(zod@4.6.5))(convex@1.46.0(react@19.3.0))':
+  '@convex-dev/ai-sdk-provider@0.3.0(ai@7.0.137(zod@4.6.5))(convex@1.46.0(react@19.3.0))':
     dependencies:
       '@ai-sdk/anthropic': 4.0.40(zod@4.6.5)
       '@ai-sdk/openai': 4.0.45(zod@4.6.5)

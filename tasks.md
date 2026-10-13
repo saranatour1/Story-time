@@ -21,6 +21,7 @@ After the eight, in this order. Each one stays inside "photos or a sentence in, 
 
 ## Later
 
+- Voice with zero data retention: turn on `provider.zdr` in `convex/model/ai/voice.ts` once the gateway's transcription route accepts it (it answers 400 today).
 - Databuddy: after the next production deploy, check the dashboard shows the first page view (localhost is ignored).
 - The AI allowance (10 a day, `AI_PER_DAY` in `convex/lib/limits.ts`) includes the notes drafted for imported photos, so one big import uses the day's 10. Decide whether drafted notes get their own, larger allowance.
 - Lighthouse on a slow phone: the landing page's first screen now comes in the HTML, but the 120 KB core script still holds performance near 70. Server-rendering the landing page, or a smaller core bundle, would get it to 90.

@@ -63,6 +63,9 @@ const transcribe = action({
       body: JSON.stringify({
         model: TRANSCRIPTION_MODEL,
         input_audio: { data: toBase64(new Uint8Array(args.audio)), format: args.format },
+        // No `provider.zdr` here: the transcription route refuses it (400,
+        // unsupported parameter), so voice is the one model call that can't
+        // ask for zero-data-retention endpoints yet.
       }),
     });
     // Status only: an error body can echo the request, and the request is the recording.
