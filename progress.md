@@ -4,6 +4,8 @@ What has landed, newest first. One line per change; the PR has the detail.
 
 ## 2026-10-13
 
+- **The experience page is centered on wide screens.** Header and moments sit in one 80rem column, centered.
+
 - **The moments list is paged.** Thirty at a time, oldest first, with a "Show more" button; a deep link loads more until it finds its moment. Searching reads every moment (places and notes are encrypted, so only the browser can match them), and only while something is typed. The story, journal and box still read the whole list.
 
 - **Edit and Delete on each moment row.** A pencil and a trash can sit at the end of every row you may change (your own moments, or any if you own the trip), so you no longer open a moment to find Delete at the bottom of the form. Delete asks first and clears the photos, as the form does.
