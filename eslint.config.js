@@ -46,7 +46,8 @@ export default defineConfig([
             {
               name: "convex/react",
               importNames: ["useQuery", "useQueries"],
-              message: "Use useQuery(queries.x.y(args)) from @tanstack/react-query; the factories are in src/lib/queries.ts.",
+              message:
+                "Use useQuery(queries.x.y(args)) from @tanstack/react-query; the factories are in src/lib/queries.ts.",
             },
           ],
         },

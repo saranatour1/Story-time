@@ -6,13 +6,8 @@ const MAX_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 const vRole = v.union(v.literal("viewer"), v.literal("contributor"));
 
 const sha256Hex = async (text: string): Promise<string> => {
-  const buf = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(text),
-  );
-  return [...new Uint8Array(buf)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
 const newToken = (): string => {

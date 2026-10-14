@@ -47,14 +47,19 @@ const VerifyEmail = () => {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
-  const returnTo = typeof window !== "undefined" && kept(token) ? `${window.location.origin}/verify-email` : undefined;
+  const returnTo =
+    typeof window !== "undefined" && kept(token)
+      ? `${window.location.origin}/verify-email`
+      : undefined;
   return <VerifyBody key={token} token={token} returnTo={returnTo} />;
 };
 
 const VerifyBody = ({ token, returnTo }: { token: string; returnTo?: string }) => {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const verify = useMutation(api.users.verifyEmail);
-  const [error, setError] = useState<string | null>(token ? null : "This confirmation link is missing its code.");
+  const [error, setError] = useState<string | null>(
+    token ? null : "This confirmation link is missing its code.",
+  );
   const [done, setDone] = useState(false);
   const started = useRef(false);
 
@@ -85,7 +90,11 @@ const VerifyBody = ({ token, returnTo }: { token: string; returnTo?: string }) =
             <h1 className="font-display text-3xl tracking-tight">That link didn't confirm</h1>
             <p>{error}</p>
             <Button variant="outline" asChild>
-              {isAuthenticated ? <Link to="/settings/profile">Back to settings</Link> : <Link to="/">Go to Story-time</Link>}
+              {isAuthenticated ? (
+                <Link to="/settings/profile">Back to settings</Link>
+              ) : (
+                <Link to="/">Go to Story-time</Link>
+              )}
             </Button>
           </div>
         ) : isLoading || isAuthenticated ? (

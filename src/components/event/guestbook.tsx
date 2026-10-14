@@ -33,7 +33,9 @@ export const Guestbook = ({ eventId, archived }: { eventId: Id<"events">; archiv
   return (
     <section aria-label="Guestbook" className="w-full max-w-xl space-y-3">
       <h2 className="font-semibold">Guestbook</h2>
-      <p className="text-sm text-muted-foreground">Leave a short note. The owner sees it in Activity.</p>
+      <p className="text-sm text-muted-foreground">
+        Leave a short note. The owner sees it in Activity.
+      </p>
       {notes?.length === 0 && <p className="text-sm text-muted-foreground italic">No notes yet.</p>}
       {notes?.map((note) => (
         <p key={note._id} className="text-sm">
@@ -51,7 +53,12 @@ export const Guestbook = ({ eventId, archived }: { eventId: Id<"events">; archiv
             placeholder="A line for the book"
             onChange={(e) => setText(e.target.value)}
           />
-          <Button type="submit" variant="outline" data-track="guestbook_note_left" disabled={sending || text.trim() === ""}>
+          <Button
+            type="submit"
+            variant="outline"
+            data-track="guestbook_note_left"
+            disabled={sending || text.trim() === ""}
+          >
             Leave a note
           </Button>
         </form>

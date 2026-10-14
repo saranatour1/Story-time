@@ -16,7 +16,10 @@ export const emailConfigured = (): boolean => {
 };
 
 // The address we may put on a message: confirmed, and never an unverified one.
-export const replyAddress = async (ctx: MutationCtx, userId: Id<"users">): Promise<string | undefined> => {
+export const replyAddress = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+): Promise<string | undefined> => {
   const user = await ctx.db.get("users", userId);
   if (user?.emailVerified !== true || user.email === undefined) return undefined;
   return user.email;
@@ -51,7 +54,11 @@ const chargeEmailCheck = async (ctx: MutationCtx, userId: Id<"users">) => {
 
 // Stores the address as waiting, and mails a link when email is configured.
 // The token stays in the link fragment. Only its hash is kept.
-export const issueEmailCheck = async (ctx: MutationCtx, userId: Id<"users">, to: string): Promise<"sent" | "waiting"> => {
+export const issueEmailCheck = async (
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  to: string,
+): Promise<"sent" | "waiting"> => {
   const token = newToken();
   await ctx.db.patch("users", userId, {
     pendingEmail: to,

@@ -5,5 +5,5 @@
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "observability": { "enabled": true },
-  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "story-time-media" }]
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "story-time-media" }],
 }

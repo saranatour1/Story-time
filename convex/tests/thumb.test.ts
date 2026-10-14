@@ -56,7 +56,9 @@ describe("thumbnails", () => {
 
   test("someone else cannot attach a thumb, and the key has to belong to this photo", async () => {
     const { owner, other, mediaId } = await setup();
-    await expect(other.mutation(api.api.media.reserveThumb, { mediaId, size: 100 })).rejects.toThrow(/not found/i);
+    await expect(
+      other.mutation(api.api.media.reserveThumb, { mediaId, size: 100 }),
+    ).rejects.toThrow(/not found/i);
     await expect(
       owner.mutation(api.api.media.attachThumb, {
         mediaId,

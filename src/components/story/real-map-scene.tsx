@@ -28,7 +28,12 @@ type Placed = { name: string; geo: LatLng };
 const lngLat = (g: LatLng): Point => [g.lng, g.lat];
 // How long a leg in view waits for the basemap before showing the drawn map.
 const LOAD_TIMEOUT_MS = 6000;
-const PAST = { "line-color": "#e7e5e4", "line-opacity": 0.3, "line-width": 1.5, "line-dasharray": [2, 2] };
+const PAST = {
+  "line-color": "#e7e5e4",
+  "line-opacity": 0.3,
+  "line-width": 1.5,
+  "line-dasharray": [2, 2],
+};
 // Where an arrival comes to rest, close enough to read the streets.
 const ARRIVE_ZOOM = 12.5;
 // Where an arrival opens when it is the only place on the map.
@@ -93,7 +98,9 @@ export const RealMapScene = ({
     const done = legs.slice(0, current).flatMap((l, id) => {
       if (!l.fromGeo || !l.toGeo) return [];
       const road = cachedPath(l.fromGeo, l.toGeo, l.transport);
-      return [{ id, from: lngLat(l.fromGeo), to: lngLat(l.toGeo), plane: l.transport === "plane", road }];
+      return [
+        { id, from: lngLat(l.fromGeo), to: lngLat(l.toGeo), plane: l.transport === "plane", road },
+      ];
     });
     return {
       flown: done.filter((l) => l.plane),
@@ -101,7 +108,10 @@ export const RealMapScene = ({
       roads: done.flatMap((l) => (l.road === undefined ? [] : [{ id: l.id, path: l.road }])),
     };
   }, [legs, current]);
-  const visited = useMemo(() => new Set(legs.slice(0, current + 1).flatMap((l) => [l.from, l.to])), [legs, current]);
+  const visited = useMemo(
+    () => new Set(legs.slice(0, current + 1).flatMap((l) => [l.from, l.to])),
+    [legs, current],
+  );
 
   useEffect(() => {
     if (!departs || !animate || !active || !settled) return;
@@ -124,24 +134,69 @@ export const RealMapScene = ({
   if (gaveUp && !loaded) return fallback;
 
   return (
-    <section aria-label={`${transport?.phrase ?? "Travelling"} from ${leg.from} to ${leg.to}`} className="relative flex-1">
+    <section
+      aria-label={`${transport?.phrase ?? "Travelling"} from ${leg.from} to ${leg.to}`}
+      className="relative flex-1"
+    >
       {/* Full bleed, up under the header; it fades in once the basemap is drawn. */}
-      <div className={cn("absolute inset-x-0 -top-12 bottom-0 transition-opacity duration-700", loaded ? "opacity-100" : "opacity-0")}>
+      <div
+        className={cn(
+          "absolute inset-x-0 -top-12 bottom-0 transition-opacity duration-700",
+          loaded ? "opacity-100" : "opacity-0",
+        )}
+      >
         <RealMap theme="dark" interactive={false} center={lngLat(from ?? to)} zoom={11}>
           <Loaded onLoad={setLoaded} />
           {from ? (
-            <Camera from={from} to={to} route={route} seconds={seconds} animate={animate} active={active} ready={settled} />
+            <Camera
+              from={from}
+              to={to}
+              route={route}
+              seconds={seconds}
+              animate={animate}
+              active={active}
+              ready={settled}
+            />
           ) : (
             <Arrival to={to} places={places} seconds={seconds} animate={animate} active={active} />
           )}
-          <MapArc id="flown" data={behind.flown} curvature={bend("plane")} paint={PAST} interactive={false} />
-          <MapArc id="went" data={behind.went} curvature={bend("walk")} paint={PAST} interactive={false} />
+          <MapArc
+            id="flown"
+            data={behind.flown}
+            curvature={bend("plane")}
+            paint={PAST}
+            interactive={false}
+          />
+          <MapArc
+            id="went"
+            data={behind.went}
+            curvature={bend("walk")}
+            paint={PAST}
+            interactive={false}
+          />
           {behind.roads.map((r) => (
-            <MapRoute key={r.id} id={`behind-${r.id}`} coordinates={r.path} color="#e7e5e4" opacity={0.3} width={1.5} dashArray={[2, 2]} interactive={false} />
+            <MapRoute
+              key={r.id}
+              id={`behind-${r.id}`}
+              coordinates={r.path}
+              color="#e7e5e4"
+              opacity={0.3}
+              width={1.5}
+              dashArray={[2, 2]}
+              interactive={false}
+            />
           ))}
           <PlaceMarkers places={places} from={leg.from} to={leg.to} visited={visited} />
           {from ? (
-            <MapRoute coordinates={route} color="#e7e5e4" opacity={0.3} width={2} dashArray={[1, 2]} progress={progress} interactive={false}>
+            <MapRoute
+              coordinates={route}
+              color="#e7e5e4"
+              opacity={0.3}
+              width={2}
+              dashArray={[1, 2]}
+              progress={progress}
+              interactive={false}
+            >
               <RouteProgress color="#fde68a" opacity={1} width={4} />
               <RouteMarker at="progress">
                 <MarkerContent>
@@ -170,7 +225,11 @@ export const RealMapScene = ({
           {transport?.phrase}
         </p>
         <h2 className="font-serif text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
-          {leg.from} <span aria-hidden className="text-white/50">→</span> {leg.to}
+          {leg.from}{" "}
+          <span aria-hidden className="text-white/50">
+            →
+          </span>{" "}
+          {leg.to}
         </h2>
       </div>
     </section>
@@ -182,7 +241,12 @@ export const RealMapScene = ({
 const Badge = ({ Icon, pulse = false }: { Icon?: LucideIcon; pulse?: boolean }) => {
   return (
     <span className="relative grid size-9 place-items-center">
-      {pulse && <span aria-hidden className="absolute -inset-1.5 animate-pulse rounded-full border-2 border-[#c2410c]/40" />}
+      {pulse && (
+        <span
+          aria-hidden
+          className="absolute -inset-1.5 animate-pulse rounded-full border-2 border-[#c2410c]/40"
+        />
+      )}
       <span className="grid size-9 place-items-center rounded-full border-2 border-[#c2410c] bg-[#f3e9d6] shadow-lg">
         {Icon && <Icon aria-hidden className="size-4 text-[#c2410c]" />}
       </span>
@@ -193,7 +257,17 @@ const Badge = ({ Icon, pulse = false }: { Icon?: LucideIcon; pulse?: boolean }) 
 // Every located place is marked, but a name shows only where it fits clear of
 // the others. The destination's name comes first, then where the leg set off
 // from, then the places already visited; the rest give way.
-const PlaceMarkers = ({ places, from, to, visited }: { places: Placed[]; from: string; to: string; visited: Set<string> }) => {
+const PlaceMarkers = ({
+  places,
+  from,
+  to,
+  visited,
+}: {
+  places: Placed[];
+  from: string;
+  to: string;
+  visited: Set<string>;
+}) => {
   const { map, isLoaded } = useMap();
   const [named, setNamed] = useState<Set<string>>(() => new Set());
   useEffect(() => {
@@ -217,7 +291,9 @@ const PlaceMarkers = ({ places, from, to, visited }: { places: Placed[]; from: s
               <span
                 className={cn(
                   "block rounded-full border",
-                  dest ? "size-3 border-[#c2410c] bg-amber-200" : "size-2 border-stone-900 bg-stone-300",
+                  dest
+                    ? "size-3 border-[#c2410c] bg-amber-200"
+                    : "size-2 border-stone-900 bg-stone-300",
                   !dest && !visited.has(p.name) && "opacity-50",
                 )}
               />
@@ -243,7 +319,13 @@ const PlaceMarkers = ({ places, from, to, visited }: { places: Placed[]; from: s
 
 // The names that fit clear of one another where the map is now. A place off
 // the screen has no name to place; its dot is simply not on the map.
-const namesThatFit = (map: MapLibre, places: Placed[], from: string, to: string, visited: Set<string>): Set<string> => {
+const namesThatFit = (
+  map: MapLibre,
+  places: Placed[],
+  from: string,
+  to: string,
+  visited: Set<string>,
+): Set<string> => {
   const { clientWidth: w, clientHeight: h } = map.getContainer();
   const boxes: LabelBox[] = [];
   for (const p of places) {
@@ -310,7 +392,8 @@ const Camera = ({
     }
     const zoom = map.cameraForBounds(bounds, fit)?.zoom ?? 10;
     map.jumpTo({ center: [from.lng, from.lat], zoom: Math.min(zoom + 2, 14) });
-    if (active) map.fitBounds(bounds, { ...fit, duration: Math.min(2500, seconds * 700), essential: true });
+    if (active)
+      map.fitBounds(bounds, { ...fit, duration: Math.min(2500, seconds * 700), essential: true });
     // Keyed on the leg's ends and its route, not their objects, so a data refresh doesn't restart it.
   }, [map, from.lat, from.lng, to.lat, to.lng, route, animate, active, ready]);
   return null;
@@ -350,7 +433,14 @@ const Arrival = ({
     } else {
       map.jumpTo({ center: destination, zoom: LONE_ZOOM, padding });
     }
-    if (active) map.flyTo({ center: destination, zoom: ARRIVE_ZOOM, padding, duration: seconds * 1000, essential: true });
+    if (active)
+      map.flyTo({
+        center: destination,
+        zoom: ARRIVE_ZOOM,
+        padding,
+        duration: seconds * 1000,
+        essential: true,
+      });
   }, [map, to.lat, to.lng, spots, seconds, animate, active]);
   return null;
 };

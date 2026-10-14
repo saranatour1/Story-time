@@ -16,9 +16,7 @@ const emailModules = import.meta.glob([
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
-  process.env.ENCRYPTION_MASTER_KEY = btoa(
-    String.fromCharCode(...new Uint8Array(32).fill(7)),
-  );
+  process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
 const setup = async () => {
@@ -47,7 +45,10 @@ const momentWithPhoto = async (owner: Owner, eventId: Id<"events">) => {
     eventId,
     startsAt: Date.UTC(2026, 5, 1, 12),
     place: "Lisbon",
-    blocks: [{ type: "photo", mediaId }, { type: "note", text: "Tram 28" }],
+    blocks: [
+      { type: "photo", mediaId },
+      { type: "note", text: "Tram 28" },
+    ],
   });
   return mediaId;
 };
@@ -73,7 +74,11 @@ describe("share links", () => {
     expect((await owner.query(api.api.events.get, { eventId }))?.visibility).toBe("link");
 
     const story = await t.query(api.api.share.get, { token: tokenOf(link) });
-    expect(story?.event).toMatchObject({ _id: eventId, title: "Untitled experience", momentCount: 1 });
+    expect(story?.event).toMatchObject({
+      _id: eventId,
+      title: "Untitled experience",
+      momentCount: 1,
+    });
     expect(story?.moments).toHaveLength(1);
     expect(story?.moments[0]?.place).toBe("Lisbon");
     expect(story?.moments[0]?.blocks.map((b) => b.type)).toEqual(["photo", "note"]);
@@ -86,7 +91,11 @@ describe("share links", () => {
     const { t, owner, eventId } = await setup();
     await momentWithPhoto(owner, eventId);
     await t.finishAllScheduledFunctions(() => undefined);
-    const { mediaId: shelf } = await owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime: "image/png" });
+    const { mediaId: shelf } = await owner.mutation(api.api.media.reserveUpload, {
+      eventId,
+      size: 100,
+      mime: "image/png",
+    });
     await owner.mutation(api.api.media.confirmUpload, { mediaId: shelf });
     await owner.mutation(api.api.journal.keepSticker, { mediaId: shelf });
     const token = tokenOf(await owner.mutation(api.api.share.enable, { eventId }));
@@ -105,7 +114,9 @@ describe("share links", () => {
     const foreign = await owner.mutation(api.api.journal.addPage, { eventId: other });
     expect(await t.query(api.api.share.page, { token, pageId: foreign })).toBeNull();
     expect(await t.query(api.api.share.journal, { token: "A".repeat(32) })).toBeNull();
-    expect(await t.query(api.api.share.page, { token: "A".repeat(32), pageId: momentPage!._id })).toBeNull();
+    expect(
+      await t.query(api.api.share.page, { token: "A".repeat(32), pageId: momentPage!._id }),
+    ).toBeNull();
     await owner.mutation(api.api.share.disable, { eventId });
     expect(await t.query(api.api.share.journal, { token })).toBeNull();
     expect(await t.query(api.api.share.page, { token, pageId: momentPage!._id })).toBeNull();
@@ -151,7 +162,14 @@ describe("share links", () => {
     const { t, owner, eventId } = await setup();
     const token = tokenOf(await owner.mutation(api.api.share.enable, { eventId }));
     const mediaId = await momentWithPhoto(owner, eventId);
-    const bad = ["", "short", "x".repeat(65), `${token}=`, "bad token with spaces!", token.slice(1)];
+    const bad = [
+      "",
+      "short",
+      "x".repeat(65),
+      `${token}=`,
+      "bad token with spaces!",
+      token.slice(1),
+    ];
     for (const candidate of bad) {
       expect(await t.query(api.api.share.get, { token: candidate })).toBeNull();
       expect(await t.query(api.api.share.mediaForShare, { token: candidate, mediaId })).toBeNull();
@@ -186,7 +204,11 @@ describe("share links", () => {
   test("a sticker is readable through a link only when a page of that experience shows it", async () => {
     const { t, owner, eventId } = await setup();
     const upload = async (id: Id<"events">) => {
-      const { mediaId } = await owner.mutation(api.api.media.reserveUpload, { eventId: id, size: 100, mime: "image/png" });
+      const { mediaId } = await owner.mutation(api.api.media.reserveUpload, {
+        eventId: id,
+        size: 100,
+        mime: "image/png",
+      });
       await owner.mutation(api.api.media.confirmUpload, { mediaId });
       await owner.mutation(api.api.journal.keepSticker, { mediaId });
       return mediaId;
@@ -196,20 +218,51 @@ describe("share links", () => {
     const pageId = await owner.mutation(api.api.journal.addPage, { eventId });
     await owner.mutation(api.api.journal.savePage, {
       pageId,
-      elements: [{ id: "s1", kind: "sticker", x: 10, y: 10, w: 80, h: 80, rotation: 0, z: 1, mediaId: onPage }],
+      elements: [
+        {
+          id: "s1",
+          kind: "sticker",
+          x: 10,
+          y: 10,
+          w: 80,
+          h: 80,
+          rotation: 0,
+          z: 1,
+          mediaId: onPage,
+        },
+      ],
     });
     const other = await owner.mutation(api.api.events.createDraft, {});
     const foreign = await upload(other);
     const foreignPage = await owner.mutation(api.api.journal.addPage, { eventId: other });
     await owner.mutation(api.api.journal.savePage, {
       pageId: foreignPage,
-      elements: [{ id: "s2", kind: "sticker", x: 10, y: 10, w: 80, h: 80, rotation: 0, z: 1, mediaId: foreign }],
+      elements: [
+        {
+          id: "s2",
+          kind: "sticker",
+          x: 10,
+          y: 10,
+          w: 80,
+          h: 80,
+          rotation: 0,
+          z: 1,
+          mediaId: foreign,
+        },
+      ],
     });
-    const { mediaId: loose } = await owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime: "image/jpeg" });
+    const { mediaId: loose } = await owner.mutation(api.api.media.reserveUpload, {
+      eventId,
+      size: 100,
+      mime: "image/jpeg",
+    });
     await owner.mutation(api.api.media.confirmUpload, { mediaId: loose });
     const token = tokenOf(await owner.mutation(api.api.share.enable, { eventId }));
 
-    expect(await t.query(api.api.share.mediaForShare, { token, mediaId: onPage })).toMatchObject({ mime: "image/png", keyScope: eventId });
+    expect(await t.query(api.api.share.mediaForShare, { token, mediaId: onPage })).toMatchObject({
+      mime: "image/png",
+      keyScope: eventId,
+    });
     expect(await t.query(api.api.share.mediaForShare, { token, mediaId: shelf })).toBeNull();
     expect(await t.query(api.api.share.mediaForShare, { token, mediaId: foreign })).toBeNull();
     expect(await t.query(api.api.share.mediaForShare, { token, mediaId: loose })).toBeNull();
@@ -217,7 +270,9 @@ describe("share links", () => {
 
   test("only the owner can switch a link on, and archived experiences can't", async () => {
     const { owner, guest, eventId } = await setup();
-    await expect(guest.mutation(api.api.share.enable, { eventId })).rejects.toThrow(/Event not found/);
+    await expect(guest.mutation(api.api.share.enable, { eventId })).rejects.toThrow(
+      /Event not found/,
+    );
     await expect(guest.query(api.api.share.link, { eventId })).rejects.toThrow(/Event not found/);
 
     await owner.mutation(api.api.events.update, { eventId, status: "archived" });
@@ -266,9 +321,39 @@ describe("share links", () => {
     await owner.mutation(api.api.journal.savePage, {
       pageId,
       elements: [
-        { id: "p1", kind: "photo", x: 40, y: 40, w: 200, h: 200, rotation: 0, z: 1, mediaId: photo },
-        { id: "s1", kind: "sticker", x: 80, y: 80, w: 80, h: 80, rotation: 0, z: 2, mediaId: sticker },
-        { id: "n1", kind: "note", x: 40, y: 300, w: 300, h: 80, rotation: 0, z: 3, text: "Tram 28" },
+        {
+          id: "p1",
+          kind: "photo",
+          x: 40,
+          y: 40,
+          w: 200,
+          h: 200,
+          rotation: 0,
+          z: 1,
+          mediaId: photo,
+        },
+        {
+          id: "s1",
+          kind: "sticker",
+          x: 80,
+          y: 80,
+          w: 80,
+          h: 80,
+          rotation: 0,
+          z: 2,
+          mediaId: sticker,
+        },
+        {
+          id: "n1",
+          kind: "note",
+          x: 40,
+          y: 300,
+          w: 300,
+          h: 80,
+          rotation: 0,
+          z: 3,
+          text: "Tram 28",
+        },
         {
           id: "l1",
           kind: "link",
@@ -305,7 +390,9 @@ describe("share links", () => {
     });
 
     expect(await owner.query(api.api.share.hidePhotos, { eventId })).toBe(false);
-    await expect(guest.mutation(api.api.share.setHidePhotos, { eventId, hide: true })).rejects.toThrow(/Event not found/);
+    await expect(
+      guest.mutation(api.api.share.setHidePhotos, { eventId, hide: true }),
+    ).rejects.toThrow(/Event not found/);
     const link = await owner.mutation(api.api.share.enable, { eventId });
     const token = tokenOf(link);
     // The ordinary link still carries the picture, so hiding is a choice.
@@ -326,10 +413,17 @@ describe("share links", () => {
     expect(payload).not.toContain(image);
     expect(payload).not.toContain(httpImage);
     expect(payload).not.toMatch(/https?:\/\/[^"\\]+\.(jpg|jpeg|png|gif|webp|svg)/i);
-    expect(story?.moments.flatMap((m) => m.blocks.map((b) => b.type)).sort()).toEqual(["note", "note"]);
+    expect(story?.moments.flatMap((m) => m.blocks.map((b) => b.type)).sort()).toEqual([
+      "note",
+      "note",
+    ]);
     expect(page?.elements.map((e) => e.kind).sort()).toEqual(["link", "link", "note"]);
     expect(page?.elements.find((e) => e.kind === "note")?.text).toBe("Tram 28");
-    const linkText = page?.elements.filter((e) => e.kind === "link").map((e) => e.text).join("\n") ?? "";
+    const linkText =
+      page?.elements
+        .filter((e) => e.kind === "link")
+        .map((e) => e.text)
+        .join("\n") ?? "";
     expect(linkText).toContain("https://example.com/tram");
     expect(linkText).toContain("https://example.com/night");
     expect(linkText).not.toContain("image");
@@ -342,7 +436,9 @@ describe("share links", () => {
     const shown = JSON.stringify(await t.query(api.api.share.page, { token, pageId }));
     expect(shown).toContain(photo);
     expect(shown).toContain(httpImage);
-    expect(await t.query(api.api.share.mediaForShare, { token, mediaId: photo })).toMatchObject({ mime: "image/jpeg" });
+    expect(await t.query(api.api.share.mediaForShare, { token, mediaId: photo })).toMatchObject({
+      mime: "image/jpeg",
+    });
   });
 
   test("the share link can be emailed, only when it is on and email is configured", async () => {
@@ -352,14 +448,17 @@ describe("share links", () => {
     const link = await owner.mutation(api.api.share.enable, { eventId });
     const token = tokenOf(link);
     await expect(send("not-an-email")).rejects.toThrow(/Enter a valid email/);
-    await expect(guest.mutation(api.api.share.emailLink, { eventId, to: "friend@example.com" })).rejects.toThrow(
-      /Event not found/,
-    );
+    await expect(
+      guest.mutation(api.api.share.emailLink, { eventId, to: "friend@example.com" }),
+    ).rejects.toThrow(/Event not found/);
     expect((await send("friend@example.com")).emailed).toBe(false);
 
     const cf = { CF_ACCOUNT_ID: "acct", CF_EMAIL_TOKEN: "token", EMAIL_FROM: "a@example.com" };
     vi.useFakeTimers();
-    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ result: {} })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ result: {} })),
+    );
     // eslint-disable-next-line @convex-dev/no-process-env -- test setup
     Object.assign(process.env, cf);
     try {

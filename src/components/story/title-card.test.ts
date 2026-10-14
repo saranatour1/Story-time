@@ -24,9 +24,12 @@ const moment = (over: Partial<StoryMoment>): StoryMoment => ({
 });
 
 test("the owner's dates read as they are, and a single day reads once", () => {
-  expect(dateRange(trip({ startsAt: new Date(2025, 10, 9).getTime(), endsAt: new Date(2025, 10, 12).getTime() }), [])).toBe(
-    "Nov 9, 2025 – Nov 12, 2025",
-  );
+  expect(
+    dateRange(
+      trip({ startsAt: new Date(2025, 10, 9).getTime(), endsAt: new Date(2025, 10, 12).getTime() }),
+      [],
+    ),
+  ).toBe("Nov 9, 2025 – Nov 12, 2025");
   expect(dateRange(trip({ startsAt: new Date(2025, 10, 9).getTime() }), [])).toBe("Nov 9, 2025");
 });
 

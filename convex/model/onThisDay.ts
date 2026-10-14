@@ -16,7 +16,9 @@ export const prepare = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     if (!emailConfigured()) return null;
-    const page = await ctx.db.query("moments").paginate({ numItems: BATCH, cursor: args.cursor ?? null });
+    const page = await ctx.db
+      .query("moments")
+      .paginate({ numItems: BATCH, cursor: args.cursor ?? null });
     for (const moment of page.page) {
       const monthDay = monthDayOf(moment.startsAt, moment.tzOffsetMinutes);
       if (moment.monthDay !== monthDay) {
@@ -24,7 +26,9 @@ export const prepare = internalMutation({
       }
     }
     if (!page.isDone) {
-      await ctx.scheduler.runAfter(0, internal.model.onThisDay.prepare, { cursor: page.continueCursor });
+      await ctx.scheduler.runAfter(0, internal.model.onThisDay.prepare, {
+        cursor: page.continueCursor,
+      });
     } else {
       await ctx.scheduler.runAfter(0, internal.model.onThisDay.send, {});
     }
@@ -63,7 +67,8 @@ export const send = internalMutation({
     const home = `${appOrigin()}/home`;
     for (const userId of owners) {
       const user = await ctx.db.get("users", userId);
-      if (user?.onThisDay !== true || user.emailVerified !== true || user.email === undefined) continue;
+      if (user?.onThisDay !== true || user.emailVerified !== true || user.email === undefined)
+        continue;
       const already = await ctx.db
         .query("memoryMails")
         .withIndex("by_user_and_day", (q) => q.eq("userId", userId).eq("day", day))

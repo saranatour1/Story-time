@@ -5,18 +5,32 @@ import readme from "../README.md?raw";
 // The rules in convex/README.md, checked, so the folder stays the way the map
 // says and the map stays complete.
 
-const sources = import.meta.glob(["../**/*.ts", "!../_generated/**", "!../components/**", "!../tests/**"], {
-  query: "?raw",
-  import: "default",
-  eager: true,
-}) as Record<string, string>;
+const sources = import.meta.glob(
+  ["../**/*.ts", "!../_generated/**", "!../components/**", "!../tests/**"],
+  {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  },
+) as Record<string, string>;
 
-const files = Object.entries(sources).map(([path, text]) => ({ path: path.replace(/^\.\.\//, ""), text }));
+const files = Object.entries(sources).map(([path, text]) => ({
+  path: path.replace(/^\.\.\//, ""),
+  text,
+}));
 const under = (folder: string) => files.filter((f) => f.path.startsWith(`${folder}/`));
 
-const DEFINES = /=\s*(query|mutation|action|internalQuery|internalMutation|internalAction|httpAction)\(/;
+const DEFINES =
+  /=\s*(query|mutation|action|internalQuery|internalMutation|internalAction|httpAction)\(/;
 const PUBLIC_EXPORT = /^export const \w+ = (query|mutation|action)\(/m;
-const ROOT = new Set(["schema.ts", "convex.config.ts", "auth.ts", "auth.config.ts", "http.ts", "crons.ts"]);
+const ROOT = new Set([
+  "schema.ts",
+  "convex.config.ts",
+  "auth.ts",
+  "auth.config.ts",
+  "http.ts",
+  "crons.ts",
+]);
 
 describe("convex/ layout", () => {
   test("it reads the folder (so the checks below aren't vacuous)", () => {
@@ -35,7 +49,10 @@ describe("convex/ layout", () => {
       // A formatter may wrap the statement; join it back into one line.
       const code = text
         .split("\n")
-        .filter((line) => line.trim() !== "" && !line.trim().startsWith("//") && !line.startsWith("import "))
+        .filter(
+          (line) =>
+            line.trim() !== "" && !line.trim().startsWith("//") && !line.startsWith("import "),
+        )
         .map((line) => line.trim())
         .join(" ");
       expect(code, path).toMatch(/^export const \{ ?[\w, ]+ ?\} = \w+Api;$/);
@@ -51,7 +68,9 @@ describe("convex/ layout", () => {
   });
 
   test("the map in convex/README.md names every file", () => {
-    const missing = [...under("api"), ...under("model"), ...under("lib")].map((f) => f.path).filter((p) => !readme.includes(`\`${p}\``));
+    const missing = [...under("api"), ...under("model"), ...under("lib")]
+      .map((f) => f.path)
+      .filter((p) => !readme.includes(`\`${p}\``));
     expect(missing).toEqual([]);
   });
 });

@@ -13,12 +13,18 @@ export type AiFeature = "note" | "box" | "voice" | "title";
 
 const outcomeOf = (error: unknown): "limit" | "error" => {
   const data: unknown = error instanceof ConvexError ? error.data : undefined;
-  return typeof data === "object" && data !== null && "code" in data && data.code === "RATE_LIMITED" ? "limit" : "error";
+  return typeof data === "object" && data !== null && "code" in data && data.code === "RATE_LIMITED"
+    ? "limit"
+    : "error";
 };
 
 // Counts one AI request: which feature, and how it ended ("ok", "limit",
 // "error", or what `outcome` reads from the result).
-export const trackAi = async <T,>(feature: AiFeature, request: Promise<T>, outcome?: (result: T) => string): Promise<T> => {
+export const trackAi = async <T>(
+  feature: AiFeature,
+  request: Promise<T>,
+  outcome?: (result: T) => string,
+): Promise<T> => {
   try {
     const result = await request;
     track("ai_used", { feature, result: outcome?.(result) ?? "ok" });

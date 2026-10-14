@@ -18,6 +18,9 @@ export const configure = internalMutation({
 export const spend = internalQuery({
   args: {},
   handler: async (ctx) => {
-    return { global: await aiBudget.global.status(ctx), features: await aiBudget.tag("feature").list(ctx) };
+    return {
+      global: await aiBudget.global.status(ctx),
+      features: await aiBudget.tag("feature").list(ctx),
+    };
   },
 });

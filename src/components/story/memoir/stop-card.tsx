@@ -30,7 +30,8 @@ export const StopCard = ({
 }) => {
   const { stop } = scene;
   // On the clock where the stop happened.
-  const at = stop.startsAt === undefined ? undefined : formatTime(stop.startsAt, scene.tzOffsetMinutes);
+  const at =
+    stop.startsAt === undefined ? undefined : formatTime(stop.startsAt, scene.tzOffsetMinutes);
   // Headed by the place; without one, by its time, else its number in the story.
   const heading = stop.place || at || scene.place;
   const transport = transportOf(stop.transport);
@@ -60,8 +61,14 @@ export const StopCard = ({
     >
       <div className="flex items-start gap-4">
         <div className="min-w-0 flex-1 border-l-2 border-[#c2410c] pl-4">
-          <h3 className="font-serif text-2xl leading-tight font-semibold text-balance sm:text-3xl">{heading}</h3>
-          {meta && <p className="mt-1.5 text-xs tracking-wide text-stone-600 dark:text-muted-foreground">{meta}</p>}
+          <h3 className="font-serif text-2xl leading-tight font-semibold text-balance sm:text-3xl">
+            {heading}
+          </h3>
+          {meta && (
+            <p className="mt-1.5 text-xs tracking-wide text-stone-600 dark:text-muted-foreground">
+              {meta}
+            </p>
+          )}
         </div>
         <Button
           variant="outline"
@@ -78,7 +85,10 @@ export const StopCard = ({
       {scene.labels.length > 0 && scene.stopIndex === 0 && (
         <ul aria-label="Labels" className="mt-4 flex flex-wrap gap-1.5">
           {scene.labels.map((l) => (
-            <li key={l} className="rounded-full border border-[#5b4a3a]/25 px-2.5 py-0.5 text-xs text-stone-700 dark:text-muted-foreground">
+            <li
+              key={l}
+              className="rounded-full border border-[#5b4a3a]/25 px-2.5 py-0.5 text-xs text-stone-700 dark:text-muted-foreground"
+            >
               {l}
             </li>
           ))}
@@ -106,14 +116,22 @@ export const StopCard = ({
           {media.map((b, i) =>
             b.type === "video" ? (
               <li key={i} className="col-span-full">
-                <Near placeholder={<div className="aspect-video animate-pulse rounded-md bg-muted" />}>
+                <Near
+                  placeholder={<div className="aspect-video animate-pulse rounded-md bg-muted" />}
+                >
                   <AuthVideo mediaId={b.mediaId} label={`Video at ${heading}`} />
                 </Near>
               </li>
             ) : (
               <li key={i}>
-                <Near placeholder={<div className="aspect-square animate-pulse rounded-lg bg-muted" />}>
-                  <AuthImage mediaId={b.mediaId} alt={`Photo at ${heading}`} className="aspect-square rounded-lg" />
+                <Near
+                  placeholder={<div className="aspect-square animate-pulse rounded-lg bg-muted" />}
+                >
+                  <AuthImage
+                    mediaId={b.mediaId}
+                    alt={`Photo at ${heading}`}
+                    className="aspect-square rounded-lg"
+                  />
                 </Near>
               </li>
             ),

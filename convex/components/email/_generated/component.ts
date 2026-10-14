@@ -21,32 +21,31 @@ import type { FunctionReference } from "convex/server";
  * }
  * ```
  */
-export type ComponentApi<Name extends string | undefined = string | undefined> =
-  {
-    lib: {
-      send: FunctionReference<
-        "mutation",
-        "internal",
-        {
-          html: string;
-          replyTo?: string;
-          subject: string;
-          text?: string;
-          to: string;
-        },
-        string,
-        Name
-      >;
-      status: FunctionReference<
-        "query",
-        "internal",
-        { id: string },
-        null | {
-          attempts: number;
-          error?: string;
-          status: "queued" | "sent" | "failed";
-        },
-        Name
-      >;
-    };
+export type ComponentApi<Name extends string | undefined = string | undefined> = {
+  lib: {
+    send: FunctionReference<
+      "mutation",
+      "internal",
+      {
+        html: string;
+        replyTo?: string;
+        subject: string;
+        text?: string;
+        to: string;
+      },
+      string,
+      Name
+    >;
+    status: FunctionReference<
+      "query",
+      "internal",
+      { id: string },
+      null | {
+        attempts: number;
+        error?: string;
+        status: "queued" | "sent" | "failed";
+      },
+      Name
+    >;
   };
+};

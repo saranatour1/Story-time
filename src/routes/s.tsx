@@ -13,7 +13,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { MediaAuthContext } from "@/lib/use-media-url";
 
-const StoryPlayer = lazy(() => import("@/components/story/story-player").then((m) => ({ default: m.StoryPlayer })));
+const StoryPlayer = lazy(() =>
+  import("@/components/story/story-player").then((m) => ({ default: m.StoryPlayer })),
+);
 
 const search = z.object({
   // Where the film is, when Play is open.
@@ -38,7 +40,10 @@ const SharedStoryPage = () => {
   const { data: pdf } = useQuery(queries.share.pdf(token ? { token } : "skip"));
   const [fetching, setFetching] = useState(false);
   useDocumentTitle(shared ? `${shared.event.title} · Story-time` : undefined);
-  const moments = useMemo(() => new Map((shared?.moments ?? []).map((m) => [m._id, m])), [shared?.moments]);
+  const moments = useMemo(
+    () => new Map((shared?.moments ?? []).map((m) => [m._id, m])),
+    [shared?.moments],
+  );
   const stage = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 900 });
   useEffect(() => {
@@ -52,7 +57,13 @@ const SharedStoryPage = () => {
   }, [shared, book, mode]);
 
   const onPage = useCallback(
-    (next: number) => void navigate({ search: (prev) => ({ ...prev, page: next }), hash: true, replace: true, resetScroll: false }),
+    (next: number) =>
+      void navigate({
+        search: (prev) => ({ ...prev, page: next }),
+        hash: true,
+        replace: true,
+        resetScroll: false,
+      }),
     [navigate],
   );
   const playFilm = useCallback(
@@ -60,21 +71,41 @@ const SharedStoryPage = () => {
     [navigate],
   );
   const closeFilm = useCallback(
-    (next: number) => void navigate({ search: (prev) => ({ ...prev, step: next, mode: "book" }), hash: true, replace: true, resetScroll: false }),
+    (next: number) =>
+      void navigate({
+        search: (prev) => ({ ...prev, step: next, mode: "book" }),
+        hash: true,
+        replace: true,
+        resetScroll: false,
+      }),
     [navigate],
   );
   const onStep = useCallback(
-    (next: number) => void navigate({ search: (prev) => ({ ...prev, step: next }), hash: true, replace: true, resetScroll: false }),
+    (next: number) =>
+      void navigate({
+        search: (prev) => ({ ...prev, step: next }),
+        hash: true,
+        replace: true,
+        resetScroll: false,
+      }),
     [navigate],
   );
 
   if (!token || shared === null || book === null) return <NotShared />;
-  if (shared === undefined || book === undefined) return <Skeleton className="h-svh w-full rounded-none" />;
+  if (shared === undefined || book === undefined)
+    return <Skeleton className="h-svh w-full rounded-none" />;
   return (
     <MediaAuthContext.Provider value={{ kind: "share", token }}>
       {mode === "film" ? (
         <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
-          <StoryPlayer event={shared.event} moments={shared.moments} meId={undefined} step={step} onStep={onStep} onClose={closeFilm} />
+          <StoryPlayer
+            event={shared.event}
+            moments={shared.moments}
+            meId={undefined}
+            step={step}
+            onStep={onStep}
+            onClose={closeFilm}
+          />
         </Suspense>
       ) : (
         <div className="flex h-svh flex-col bg-[#e9dfcb] text-[#1f1a16]">
@@ -87,9 +118,15 @@ const SharedStoryPage = () => {
                   size="sm"
                   disabled={fetching}
                   title="Opens with the password the person who shared it gave you"
-                  onClick={() => void downloadPdf(token, pdf.mediaId, shared.event.title, setFetching)}
+                  onClick={() =>
+                    void downloadPdf(token, pdf.mediaId, shared.event.title, setFetching)
+                  }
                 >
-                  {fetching ? <LoaderCircleIcon aria-hidden className="animate-spin" /> : <FileLockIcon aria-hidden />}
+                  {fetching ? (
+                    <LoaderCircleIcon aria-hidden className="animate-spin" />
+                  ) : (
+                    <FileLockIcon aria-hidden />
+                  )}
                   PDF
                 </Button>
               )}
@@ -107,7 +144,14 @@ const SharedStoryPage = () => {
                 <p className="font-serif text-lg">This journal has no pages yet.</p>
               </div>
             ) : (
-              <Reader pages={book.pages} moments={moments} size={size} start={page} onPage={onPage} token={token} />
+              <Reader
+                pages={book.pages}
+                moments={moments}
+                size={size}
+                start={page}
+                onPage={onPage}
+                token={token}
+              />
             )}
           </div>
         </div>
@@ -135,10 +179,17 @@ const NotShared = () => {
 
 // The locked PDF, fetched with the link's token the way its pictures are, and
 // saved. It opens with the password its owner sends separately.
-const downloadPdf = async (token: string, mediaId: string, title: string, busy: (on: boolean) => void) => {
+const downloadPdf = async (
+  token: string,
+  mediaId: string,
+  title: string,
+  busy: (on: boolean) => void,
+) => {
   busy(true);
   try {
-    const res = await fetch(`/api/media/${mediaId}`, { headers: { Authorization: `Share ${token}` } });
+    const res = await fetch(`/api/media/${mediaId}`, {
+      headers: { Authorization: `Share ${token}` },
+    });
     if (!res.ok) throw new Error("The PDF couldn't be fetched. Try again in a moment.");
     download(await res.blob(), `${fileName(title)}.pdf`);
     toast.success("Saved. It opens with the password you were sent.");

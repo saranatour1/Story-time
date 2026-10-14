@@ -27,7 +27,9 @@ const LOOKUP_GAP_MS = 1100;
 // Names each located stop from its coordinates, so the moments get a place
 // and a map pin. Runs while the uploads do; a stop it can't name stays unnamed.
 const namePlaces = async (days: PhotoDay[]): Promise<PlannedDay[]> => {
-  const located = days.flatMap((d) => d.moments.flat()).flatMap((s) => (s.geo ? [{ stop: s, geo: s.geo }] : []));
+  const located = days
+    .flatMap((d) => d.moments.flat())
+    .flatMap((s) => (s.geo ? [{ stop: s, geo: s.geo }] : []));
   const names = new Map<PhotoStop, string>();
   for (const [i, { stop, geo }] of located.entries()) {
     if (i > 0) await new Promise((resolve) => setTimeout(resolve, LOOKUP_GAP_MS));
@@ -68,7 +70,10 @@ export const addPhotos = async (args: {
     let n = 0;
     const { picked, problems: skipped } = await readPicked(files, new Set(), () => `p${n++}`);
     if (picked.length === 0) {
-      toast.error(`Nothing to add · ${plural(skipped.length, "problem")}`, { id: toastId, description: details(skipped) });
+      toast.error(`Nothing to add · ${plural(skipped.length, "problem")}`, {
+        id: toastId,
+        description: details(skipped),
+      });
       return false;
     }
     const days = groupPhotos(picked.map((p) => p.point));
@@ -84,7 +89,8 @@ export const addPhotos = async (args: {
     }
 
     const pickedOf = new Map<string, Picked>(picked.map((p) => [p.point.id, p]));
-    const picksOf = (stops: PhotoStop[]) => stops.flatMap((s) => s.photos).flatMap((p) => pickedOf.get(p.id) ?? []);
+    const picksOf = (stops: PhotoStop[]) =>
+      stops.flatMap((s) => s.photos).flatMap((p) => pickedOf.get(p.id) ?? []);
     // The AI's thumbnails and the place names are made while the uploads run.
     for (const stops of days.flatMap((d) => d.moments)) {
       for (const p of samplePhotos(picksOf(stops))) void thumbnail(p.file);
@@ -95,7 +101,8 @@ export const addPhotos = async (args: {
       picked.map((p) => ({ id: p.point.id, file: p.file })),
       event._id,
       () => args.token() ?? token,
-      (done, total) => toast.loading(`Uploading ${Math.min(done + 1, total)} of ${total}…`, { id: toastId }),
+      (done, total) =>
+        toast.loading(`Uploading ${Math.min(done + 1, total)} of ${total}…`, { id: toastId }),
     );
 
     const problems = [...skipped, ...failures];
@@ -113,7 +120,9 @@ export const addPhotos = async (args: {
       try {
         // The person's words go on the first moment made, after its photos.
         const first = created === 0 && words !== undefined;
-        const create = first ? { ...m.create, blocks: [...m.create.blocks, { type: "note" as const, text: words }] } : m.create;
+        const create = first
+          ? { ...m.create, blocks: [...m.create.blocks, { type: "note" as const, text: words }] }
+          : m.create;
         const momentId = await createMoment({ eventId: event._id, ...create });
         created++;
         for (const u of m.uses) used.add(u.mediaId);
@@ -135,9 +144,15 @@ export const addPhotos = async (args: {
     if (unused.length > 0) await deletePhotos(unused, args.token() ?? token);
     const added = `Added ${plural(created, "moment")}`;
     if (created === 0) {
-      toast.error(`No moments were added · ${plural(problems.length, "problem")}`, { id: toastId, description: details(problems) });
+      toast.error(`No moments were added · ${plural(problems.length, "problem")}`, {
+        id: toastId,
+        description: details(problems),
+      });
     } else if (problems.length > 0) {
-      toast.warning(`${added} · ${plural(problems.length, "problem")}`, { id: toastId, description: details(problems) });
+      toast.warning(`${added} · ${plural(problems.length, "problem")}`, {
+        id: toastId,
+        description: details(problems),
+      });
     } else {
       toast.success(`${added} · writing the notes…`, { id: toastId });
     }

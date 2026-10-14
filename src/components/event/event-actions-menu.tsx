@@ -97,7 +97,13 @@ export const EventActionsMenu = ({
             <DropdownMenuItem
               data-track="story_played"
               data-from="menu"
-              onSelect={() => void navigate({ to: "/e/$id/story", params: { id: event._id }, search: { step: 0 } })}
+              onSelect={() =>
+                void navigate({
+                  to: "/e/$id/story",
+                  params: { id: event._id },
+                  search: { step: 0 },
+                })
+              }
             >
               <PlayIcon /> Play story
             </DropdownMenuItem>

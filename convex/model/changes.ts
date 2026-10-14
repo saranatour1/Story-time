@@ -79,7 +79,9 @@ const listForEvent = query({
     // A page is small, so look each person up once however many rows name them.
     const ids = new Set(page.page.flatMap((c) => (c.actorId === undefined ? [] : [c.actorId])));
     const names = new Map<Id<"users">, string | undefined>(
-      await Promise.all([...ids].map(async (id) => [id, (await ctx.db.get("users", id))?.displayName] as const)),
+      await Promise.all(
+        [...ids].map(async (id) => [id, (await ctx.db.get("users", id))?.displayName] as const),
+      ),
     );
     return {
       ...page,

@@ -1,5 +1,14 @@
 import { useAuthToken } from "@convex-dev/auth/react";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type RefCallback } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type RefCallback,
+} from "react";
 import { evictUnused } from "./image-load";
 
 export type MediaVariant = "full" | "thumb";
@@ -37,7 +46,11 @@ const cacheKey = (mediaId: string, variant: MediaVariant): string => {
   return `${mediaId}:${variant}`;
 };
 
-const load = (mediaId: string, auth: MediaAuth | null, variant: MediaVariant): Entry | undefined => {
+const load = (
+  mediaId: string,
+  auth: MediaAuth | null,
+  variant: MediaVariant,
+): Entry | undefined => {
   const key = cacheKey(mediaId, variant);
   const hit = cache.get(key);
   cache.delete(key);
@@ -55,7 +68,10 @@ const load = (mediaId: string, auth: MediaAuth | null, variant: MediaVariant): E
   };
   const authorization = auth.kind === "share" ? `Share ${auth.token}` : `Bearer ${auth.token}`;
   const query = variant === "thumb" ? "?variant=thumb" : "";
-  fetch(`/api/media/${mediaId}${query}`, { headers: { Authorization: authorization }, signal: entry.abort.signal })
+  fetch(`/api/media/${mediaId}${query}`, {
+    headers: { Authorization: authorization },
+    signal: entry.abort.signal,
+  })
     .then((r) => (r.ok ? r.blob() : Promise.reject(new Error("failed"))))
     .then((blob) => {
       if (!entry.abort.signal.aborted) settle({ url: URL.createObjectURL(blob), failed: false });
@@ -91,7 +107,10 @@ export const clearMediaCache = () => {
 
 // Private media can't use a plain <img src>, so fetch it with the viewer's
 // token and hand back a blob URL. `failed` is set when it can't be shown.
-export const useMediaUrl = (mediaId: string | undefined, variant: MediaVariant = "full"): MediaState => {
+export const useMediaUrl = (
+  mediaId: string | undefined,
+  variant: MediaVariant = "full",
+): MediaState => {
   const auth = useMediaAuth();
   const authRef = useRef(auth);
   authRef.current = auth;
@@ -111,7 +130,11 @@ export const useMediaUrl = (mediaId: string | undefined, variant: MediaVariant =
     [mediaId, kind, variant],
   );
   const key = mediaId ? cacheKey(mediaId, variant) : "";
-  return useSyncExternalStore(subscribe, () => (key && cache.get(key)?.state) || IDLE, () => IDLE);
+  return useSyncExternalStore(
+    subscribe,
+    () => (key && cache.get(key)?.state) || IDLE,
+    () => IDLE,
+  );
 };
 
 // True once `node` has intersected the viewport (with a margin), or immediately
@@ -120,25 +143,28 @@ export const useMediaUrl = (mediaId: string | undefined, variant: MediaVariant =
 export const useWhenSeen = (): [RefCallback<Element>, boolean] => {
   const [seen, setSeen] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
-  const ref = useCallback<RefCallback<Element>>((node) => {
-    observer.current?.disconnect();
-    if (!node || seen) return;
-    if (typeof IntersectionObserver !== "function") {
-      setSeen(true);
-      return;
-    }
-    const next = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setSeen(true);
-          next.disconnect();
-        }
-      },
-      { rootMargin: "200px" },
-    );
-    next.observe(node);
-    observer.current = next;
-  }, [seen]);
+  const ref = useCallback<RefCallback<Element>>(
+    (node) => {
+      observer.current?.disconnect();
+      if (!node || seen) return;
+      if (typeof IntersectionObserver !== "function") {
+        setSeen(true);
+        return;
+      }
+      const next = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            setSeen(true);
+            next.disconnect();
+          }
+        },
+        { rootMargin: "200px" },
+      );
+      next.observe(node);
+      observer.current = next;
+    },
+    [seen],
+  );
   return [ref, seen];
 };
 

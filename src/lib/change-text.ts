@@ -33,7 +33,8 @@ const fieldWords = (entity: string, fields: string[]): string => {
   return [...words].join(", ");
 };
 
-const onlyField = (fields: string[], field: string) => fields.length > 0 && fields.every((f) => f === field);
+const onlyField = (fields: string[], field: string) =>
+  fields.length > 0 && fields.every((f) => f === field);
 
 export const describeChange = (c: { entity: string; action: string; fields: string[] }): string => {
   const { entity, action, fields } = c;

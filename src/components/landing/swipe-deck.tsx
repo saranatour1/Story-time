@@ -11,7 +11,10 @@ import { cn } from "@/lib/utils";
 
 const LEAVE_MS = 260;
 // The prints under the top one, as they lie in the pile.
-const PILE = ["rotate-[5deg] translate-y-3 scale-[0.94]", "-rotate-[4deg] translate-y-1.5 scale-[0.97]"];
+const PILE = [
+  "rotate-[5deg] translate-y-3 scale-[0.94]",
+  "-rotate-[4deg] translate-y-1.5 scale-[0.97]",
+];
 
 export const SwipeDeck = () => {
   const reduced = useReducedMotion();
@@ -59,7 +62,10 @@ export const SwipeDeck = () => {
 
   const photo = PHOTOS[top]!;
   const topStyle = leaving
-    ? { transform: `translateX(${leaving === "left" ? "-130%" : "130%"}) rotate(${leaving === "left" ? -16 : 16}deg)`, opacity: 0 }
+    ? {
+        transform: `translateX(${leaving === "left" ? "-130%" : "130%"}) rotate(${leaving === "left" ? -16 : 16}deg)`,
+        opacity: 0,
+      }
     : drag
       ? { transform: `translateX(${drag}px) rotate(${drag * 0.05}deg)`, transition: "none" }
       : undefined;
@@ -76,7 +82,10 @@ export const SwipeDeck = () => {
           return (
             <div
               key={`${p.kind}-${depth}`}
-              className={cn("col-start-1 row-start-1 w-full rounded-[3px] bg-[#f4efe4] p-[3.5%] pb-[11%] shadow-xl transition-transform duration-300", PILE[2 - depth])}
+              className={cn(
+                "col-start-1 row-start-1 w-full rounded-[3px] bg-[#f4efe4] p-[3.5%] pb-[11%] shadow-xl transition-transform duration-300",
+                PILE[2 - depth],
+              )}
             >
               <DrawnPhoto kind={p.kind} className="aspect-[4/3] w-full" />
             </div>
@@ -87,15 +96,22 @@ export const SwipeDeck = () => {
           style={topStyle}
           className={cn(
             "col-start-1 row-start-1 w-full -rotate-1 rounded-[3px] bg-[#fbf7ef] p-[3.5%] pb-[11%] shadow-2xl transition-[transform,opacity] duration-[260ms] ease-out",
-            arrived === "back" && !reduced && "animate-in fade-in-0 slide-in-from-right-12 duration-300",
+            arrived === "back" &&
+              !reduced &&
+              "animate-in fade-in-0 slide-in-from-right-12 duration-300",
           )}
         >
           <DrawnPhoto kind={photo.kind} className="aspect-[4/3] w-full" />
-          <p className="mt-[5%] text-center font-serif text-sm text-stone-600 italic">{photo.place}</p>
+          <p className="mt-[5%] text-center font-serif text-sm text-stone-600 italic">
+            {photo.place}
+          </p>
         </div>
       </div>
 
-      <p className="mt-7 max-w-[30ch] text-center text-sm leading-relaxed text-stone-300" aria-live="polite">
+      <p
+        className="mt-7 max-w-[30ch] text-center text-sm leading-relaxed text-stone-300"
+        aria-live="polite"
+      >
         <span className="font-serif text-base text-stone-50">{photo.place}</span>
         <span className="text-stone-500"> · {photo.time}</span>
         <br />

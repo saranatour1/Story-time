@@ -1,4 +1,11 @@
-import { HeadContent, Scripts, ScriptOnce, createRootRouteWithContext, Outlet, useRouterState } from "@tanstack/react-router";
+import {
+  HeadContent,
+  Scripts,
+  ScriptOnce,
+  createRootRouteWithContext,
+  Outlet,
+  useRouterState,
+} from "@tanstack/react-router";
 import type { RouterContext } from "@/router";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -92,8 +99,20 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
         { rel: "manifest", href: "/site.webmanifest" },
-        { rel: "preload", href: manropeLatin, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
-        { rel: "preload", href: newsreaderLatin, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
+        {
+          rel: "preload",
+          href: manropeLatin,
+          as: "font",
+          type: "font/woff2",
+          crossOrigin: "anonymous",
+        },
+        {
+          rel: "preload",
+          href: newsreaderLatin,
+          as: "font",
+          type: "font/woff2",
+          crossOrigin: "anonymous",
+        },
         { rel: "stylesheet", href: appCss },
       ],
     };

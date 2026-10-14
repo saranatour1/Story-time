@@ -25,7 +25,9 @@ export const distanceMeters = (a: Geo, b: Geo): number => {
   const rad = Math.PI / 180;
   const dLat = (b.lat - a.lat) * rad;
   const dLng = (b.lng - a.lng) * rad;
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
   return 2 * 6_371_000 * Math.asin(Math.min(1, Math.sqrt(h)));
 };
 
@@ -59,12 +61,17 @@ export const toStop = (photos: PhotoPoint[]): PhotoStop => {
   return {
     photos: sorted,
     startsAt: sorted[0]?.takenAt ?? 0,
-    geo: geos.length > 0 ? { lat: median(geos.map((g) => g.lat)), lng: median(geos.map((g) => g.lng)) } : undefined,
+    geo:
+      geos.length > 0
+        ? { lat: median(geos.map((g) => g.lat)), lng: median(geos.map((g) => g.lng)) }
+        : undefined,
   };
 };
 
 const chunk = <T>(list: T[], size: number): T[][] =>
-  Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, (i + 1) * size));
+  Array.from({ length: Math.ceil(list.length / size) }, (_, i) =>
+    list.slice(i * size, (i + 1) * size),
+  );
 
 // Sorts photos into days, moments and stops. A new stop starts after a gap
 // of more than 45 minutes, or when a photo was taken over 1 km from where
@@ -73,7 +80,12 @@ const chunk = <T>(list: T[], size: number): T[][] =>
 // that, the rest spills into a second moment for the day.
 export const groupPhotos = (
   points: PhotoPoint[],
-  { gapMs = STOP_GAP_MS, radiusM = STOP_RADIUS_M, maxStops = MAX_STOPS, maxPhotos = MAX_PHOTOS_PER_STOP } = {},
+  {
+    gapMs = STOP_GAP_MS,
+    radiusM = STOP_RADIUS_M,
+    maxStops = MAX_STOPS,
+    maxPhotos = MAX_PHOTOS_PER_STOP,
+  } = {},
 ): PhotoDay[] => {
   const sorted = [...points].sort(byTime);
 
@@ -83,7 +95,8 @@ export const groupPhotos = (
   let anchor: Geo | undefined;
   for (const p of sorted) {
     const last = current.at(-1);
-    const moved = p.geo !== undefined && anchor !== undefined && distanceMeters(anchor, p.geo) > radiusM;
+    const moved =
+      p.geo !== undefined && anchor !== undefined && distanceMeters(anchor, p.geo) > radiusM;
     if (last && (p.takenAt - last.takenAt > gapMs || moved)) {
       runs.push(current);
       current = [];

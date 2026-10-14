@@ -115,7 +115,10 @@ export const StoryPlayer = ({
   const deck = useRef<PhotoDeckHandle>(null);
   const sections = useRef<Array<HTMLElement | null>>([]);
   const fill = useRef<HTMLSpanElement>(null);
-  const titleTypingMs = useMemo(() => (reduced ? 0 : typingMs(event, moments)), [reduced, event, moments]);
+  const titleTypingMs = useMemo(
+    () => (reduced ? 0 : typingMs(event, moments)),
+    [reduced, event, moments],
+  );
 
   // The scene last aimed at, ahead of the scroll, so quick presses each count.
   const at = useRef(current);
@@ -125,7 +128,9 @@ export const StoryPlayer = ({
       if (next === at.current) return;
       at.current = next;
       // Neighbours glide; longer jumps cut, so the scenes between don't load.
-      sections.current[next]?.scrollIntoView({ behavior: reduced || Math.abs(delta) > 1 ? "auto" : "smooth" });
+      sections.current[next]?.scrollIntoView({
+        behavior: reduced || Math.abs(delta) > 1 ? "auto" : "smooth",
+      });
     },
     [steps, reduced],
   );
@@ -179,9 +184,14 @@ export const StoryPlayer = ({
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey) return;
       const el = e.target instanceof HTMLElement ? e.target : null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable))
+        return;
       // Enter and Space press the focused button or link, not the page.
-      if ((e.key === " " || e.key === "Enter") && el?.closest("button, a, [role=button], select, summary")) return;
+      if (
+        (e.key === " " || e.key === "Enter") &&
+        el?.closest("button, a, [role=button], select, summary")
+      )
+        return;
       const delta = NEXT_KEYS.includes(e.key) ? 1 : PREV_KEYS.includes(e.key) ? -1 : 0;
       if (delta) {
         e.preventDefault();
@@ -211,7 +221,9 @@ export const StoryPlayer = ({
     const t = setTimeout(() => go(1), dwell);
     const el = fill.current;
     el?.getAnimations().forEach((a) => a.cancel());
-    const a = reduced ? undefined : el?.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], dwell);
+    const a = reduced
+      ? undefined
+      : el?.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], dwell);
     return () => {
       clearTimeout(t);
       a?.pause();
@@ -235,13 +247,22 @@ export const StoryPlayer = ({
 
   // The next stop's pictures load while this scene shows.
   const upcoming = steps.slice(current + 1).find((s) => s.kind === "stop");
-  usePrefetchMedia(upcoming?.kind === "stop" ? upcoming.stop.blocks.flatMap((b) => ("mediaId" in b ? [b.mediaId] : [])) : []);
+  usePrefetchMedia(
+    upcoming?.kind === "stop"
+      ? upcoming.stop.blocks.flatMap((b) => ("mediaId" in b ? [b.mediaId] : []))
+      : [],
+  );
 
   // Clicking a scene moves the story: left third back, the rest forward.
   // Buttons and links inside it keep their own behaviour.
   const onStageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as Element;
-    if (target.closest("button, a, input, textarea, select, summary, details, video, [data-no-advance]")) return;
+    if (
+      target.closest(
+        "button, a, input, textarea, select, summary, details, video, [data-no-advance]",
+      )
+    )
+      return;
     const { left, width } = e.currentTarget.getBoundingClientRect();
     go(e.clientX - left < width / 3 ? -1 : 1);
   };
@@ -257,18 +278,21 @@ export const StoryPlayer = ({
   const canEdit =
     scene.kind === "stop" &&
     !archived &&
-    (event.role === "owner" || (event.role === "contributor" && meId !== undefined && scene.authorId === meId));
+    (event.role === "owner" ||
+      (event.role === "contributor" && meId !== undefined && scene.authorId === meId));
   const legs = useMemo(() => steps.filter((s) => s.kind === "travel"), [steps]);
   // Places in story order. The experience's own name is one only when the
   // first leg sets off from it.
   const places = useMemo(
-    () => steps.flatMap((s) => (s.kind === "travel" ? [s.from] : s.kind === "stop" ? [s.place] : [])),
+    () =>
+      steps.flatMap((s) => (s.kind === "travel" ? [s.from] : s.kind === "stop" ? [s.place] : [])),
     [steps],
   );
   // The places picked on a map, a repeated name keeping its first spot.
   const located = useMemo(() => {
     const spots = new Map<string, LatLng>();
-    for (const s of steps) if (s.kind === "stop" && s.stop.geo && !spots.has(s.place)) spots.set(s.place, s.stop.geo);
+    for (const s of steps)
+      if (s.kind === "stop" && s.stop.geo && !spots.has(s.place)) spots.set(s.place, s.stop.geo);
     return [...spots].map(([name, geo]) => ({ name, geo }));
   }, [steps]);
 
@@ -284,7 +308,9 @@ export const StoryPlayer = ({
         return <TitleCard event={event} moments={moments} animate={!reduced} />;
       case "end":
         // Built on arrival, so its prints are dealt out in view.
-        return active && <EndCard event={event} moments={moments} onReplay={() => restart(!reduced)} />;
+        return (
+          active && <EndCard event={event} moments={moments} onReplay={() => restart(!reduced)} />
+        );
       case "travel":
         if (!near) return null;
         return (
@@ -303,7 +329,9 @@ export const StoryPlayer = ({
         const pic = picturesOf(s.stop)[photoAt[i] ?? 0];
         return (
           <>
-            {near && pic?.type === "photo" && <SceneBackdrop key={pic.mediaId} mediaId={pic.mediaId} />}
+            {near && pic?.type === "photo" && (
+              <SceneBackdrop key={pic.mediaId} mediaId={pic.mediaId} />
+            )}
             <div className="relative min-h-0 flex-1">
               {near && (
                 <PhotoDeck
@@ -326,8 +354,15 @@ export const StoryPlayer = ({
   };
 
   return (
-    <div ref={stage} className="relative h-svh w-full overflow-hidden bg-[#141210] text-stone-100 select-none" style={{ colorScheme: "dark" }}>
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,228,180,0.08),transparent_60%)]" />
+    <div
+      ref={stage}
+      className="relative h-svh w-full overflow-hidden bg-[#141210] text-stone-100 select-none"
+      style={{ colorScheme: "dark" }}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,228,180,0.08),transparent_60%)]"
+      />
 
       <div
         ref={scroller}
@@ -363,11 +398,17 @@ export const StoryPlayer = ({
           onPaper ? "text-stone-900" : "text-white",
         )}
       >
-        <ol aria-label="Progress" className={cn("mr-2 flex min-w-0 flex-1", steps.length > 30 ? "gap-px" : "gap-1")}>
+        <ol
+          aria-label="Progress"
+          className={cn("mr-2 flex min-w-0 flex-1", steps.length > 30 ? "gap-px" : "gap-1")}
+        >
           {steps.map((s, i) => (
             <li
               key={i}
-              className={cn("h-1 flex-1 overflow-hidden rounded-full transition-colors duration-500", onPaper ? "bg-stone-900/15" : "bg-white/15")}
+              className={cn(
+                "h-1 flex-1 overflow-hidden rounded-full transition-colors duration-500",
+                onPaper ? "bg-stone-900/15" : "bg-white/15",
+              )}
             >
               <button
                 type="button"
@@ -381,13 +422,24 @@ export const StoryPlayer = ({
                 title={s.kind}
               >
                 {i === current && (
-                  <span ref={fill} className={cn("block h-full origin-left", onPaper ? "bg-[#c2410c]" : "bg-amber-200")} />
+                  <span
+                    ref={fill}
+                    className={cn(
+                      "block h-full origin-left",
+                      onPaper ? "bg-[#c2410c]" : "bg-amber-200",
+                    )}
+                  />
                 )}
               </button>
             </li>
           ))}
         </ol>
-        <span className={cn("mr-1 hidden text-xs tabular-nums sm:inline", onPaper ? "text-stone-600" : "text-white/60")}>
+        <span
+          className={cn(
+            "mr-1 hidden text-xs tabular-nums sm:inline",
+            onPaper ? "text-stone-600" : "text-white/60",
+          )}
+        >
           {current + 1} / {steps.length}
         </span>
         <Button
@@ -426,7 +478,13 @@ export const StoryPlayer = ({
             {full ? <Minimize2Icon /> : <Maximize2Icon />}
           </Button>
         )}
-        <Button variant="ghost" size="icon" aria-label="Close story" onClick={exit} className={chrome}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Close story"
+          onClick={exit}
+          className={chrome}
+        >
           <XIcon />
         </Button>
       </header>
@@ -449,7 +507,12 @@ export const StoryPlayer = ({
           <ChevronUpIcon />
         </Button>
         {current === 0 && (
-          <p className={cn("flex items-center gap-1.5 text-xs", onPaper ? "text-stone-600" : "text-white/50")}>
+          <p
+            className={cn(
+              "flex items-center gap-1.5 text-xs",
+              onPaper ? "text-stone-600" : "text-white/50",
+            )}
+          >
             <span className="pointer-coarse:hidden">Scroll, or use the arrow keys</span>
             <span className="hidden pointer-coarse:inline">Swipe up</span>
             <ChevronDownIcon aria-hidden className="size-3.5 animate-bounce" />

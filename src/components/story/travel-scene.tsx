@@ -29,10 +29,26 @@ export type TravelSceneProps = {
 
 // One leg of the journey, on a real map when it can be and on the drawn one
 // otherwise. The film player only mounts the scenes next to the one in view.
-export const TravelScene = ({ leg, legs, places, located, animate, active, idle, webgl }: TravelSceneProps) => {
+export const TravelScene = ({
+  leg,
+  legs,
+  places,
+  located,
+  animate,
+  active,
+  idle,
+  webgl,
+}: TravelSceneProps) => {
   const current = legs.indexOf(leg);
   const drawn = (
-    <MapScene key={active ? "on" : "off"} places={places} legs={legs} current={current} animate={animate && active} idle={idle} />
+    <MapScene
+      key={active ? "on" : "off"}
+      places={places}
+      legs={legs}
+      current={current}
+      animate={animate && active}
+      idle={idle}
+    />
   );
   // Any leg whose stop is on the map gets the real map, even when where it set
   // off from isn't: that one arrives instead.

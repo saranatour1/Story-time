@@ -9,9 +9,17 @@ const jpeg = ({ zone, lngRef = "W" }: { zone?: string; lngRef?: string }): Array
   const tiff = new DataView(new ArrayBuffer(200));
   const u16 = (at: number, v: number) => tiff.setUint16(at, v, true);
   const u32 = (at: number, v: number) => tiff.setUint32(at, v, true);
-  const text = (at: number, s: string) => [...s].forEach((c, i) => tiff.setUint8(at + i, c.charCodeAt(0)));
+  const text = (at: number, s: string) =>
+    [...s].forEach((c, i) => tiff.setUint8(at + i, c.charCodeAt(0)));
   // IFD entry `i` of the IFD at `ifd`: tag, type, count, value or offset.
-  const entry = (ifd: number, i: number, tag: number, type: number, count: number, value: number) => {
+  const entry = (
+    ifd: number,
+    i: number,
+    tag: number,
+    type: number,
+    count: number,
+    value: number,
+  ) => {
     const e = ifd + 2 + i * 12;
     u16(e, tag);
     u16(e + 2, type);
@@ -43,7 +51,8 @@ const jpeg = ({ zone, lngRef = "W" }: { zone?: string; lngRef?: string }): Array
 
   const app1 = [..."Exif\0\0"].map((c) => c.charCodeAt(0)).concat(...new Uint8Array(tiff.buffer));
   const length = app1.length + 2;
-  return new Uint8Array([0xff, 0xd8, 0xff, 0xe1, length >> 8, length & 0xff, ...app1, 0xff, 0xd9]).buffer;
+  return new Uint8Array([0xff, 0xd8, 0xff, 0xe1, length >> 8, length & 0xff, ...app1, 0xff, 0xd9])
+    .buffer;
 };
 
 test("reads where and when a JPEG was taken from its EXIF", () => {

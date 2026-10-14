@@ -107,7 +107,16 @@ export const useSwipeSurface = (
     const onDown = (e: PointerEvent) => {
       if (gesture || e.button !== 0 || !e.isPrimary || ownsPointer(e.target, el)) return;
       if (touchOnly && e.pointerType === "mouse") return;
-      gesture = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp, dx: 0, dy: 0, axis: null, locked: false };
+      gesture = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        t: e.timeStamp,
+        dx: 0,
+        dy: 0,
+        axis: null,
+        locked: false,
+      };
     };
 
     const onMove = (e: PointerEvent) => {

@@ -7,7 +7,9 @@ import { stopsOf } from "@/lib/story-steps";
 
 // The story's first photo in time order: the picture on the cover.
 const firstPhoto = (moments: StoryMoment[]): string | undefined => {
-  const blocks = [...moments].sort((a, b) => a.startsAt - b.startsAt).flatMap((m) => stopsOf(m).flatMap((s) => s.blocks));
+  const blocks = [...moments]
+    .sort((a, b) => a.startsAt - b.startsAt)
+    .flatMap((m) => stopsOf(m).flatMap((s) => s.blocks));
   const photo = blocks.find((b) => b.type === "photo");
   return photo?.type === "photo" ? photo.mediaId : undefined;
 };
@@ -39,7 +41,10 @@ export const Cover = ({
       <p className="text-xs tracking-[0.2em] text-orange-800 uppercase dark:text-orange-400">
         {range ? `A story · ${range}` : "A story"}
       </p>
-      <h1 id="story-title" className="mt-3 font-serif text-4xl leading-tight font-semibold text-balance sm:text-5xl">
+      <h1
+        id="story-title"
+        className="mt-3 font-serif text-4xl leading-tight font-semibold text-balance sm:text-5xl"
+      >
         {event.title}
       </h1>
       {event.description && (
@@ -47,9 +52,21 @@ export const Cover = ({
           {event.description}
         </p>
       )}
-      {photo && <AuthImage mediaId={photo} alt="" variant="full" sizes="(min-width: 768px) 640px, 100vw" className="mt-8 aspect-[3/2] w-full rounded-2xl object-cover" />}
+      {photo && (
+        <AuthImage
+          mediaId={photo}
+          alt=""
+          variant="full"
+          sizes="(min-width: 768px) 640px, 100vw"
+          className="mt-8 aspect-[3/2] w-full rounded-2xl object-cover"
+        />
+      )}
       <div className="mt-6 flex flex-wrap items-center gap-4">
-        <Button size="lg" className="rounded-full bg-[#c2410c] px-5 text-white hover:bg-[#c2410c]/90" onClick={onPlayFilm}>
+        <Button
+          size="lg"
+          className="rounded-full bg-[#c2410c] px-5 text-white hover:bg-[#c2410c]/90"
+          onClick={onPlayFilm}
+        >
           <PlayIcon /> Play as film
         </Button>
         <p className="text-sm text-stone-600 dark:text-muted-foreground">{counts}</p>

@@ -27,7 +27,9 @@ export const thumbnail = (file: File): Promise<string | undefined> => {
 
 // A JPEG small enough for a shelf or a card, plus the original's pixel size
 // so the layout can reserve the right box. Videos give undefined.
-export const displayThumbnail = (file: File): Promise<{ blob: Blob; width: number; height: number } | undefined> => {
+export const displayThumbnail = (
+  file: File,
+): Promise<{ blob: Blob; width: number; height: number } | undefined> => {
   if (!file.type.startsWith("image/")) return Promise.resolve(undefined);
   const job = turn.then(() => makeDisplay(file));
   turn = job.then(
@@ -37,12 +39,18 @@ export const displayThumbnail = (file: File): Promise<{ blob: Blob; width: numbe
   return job;
 };
 
-const makeDisplay = async (file: File): Promise<{ blob: Blob; width: number; height: number } | undefined> => {
+const makeDisplay = async (
+  file: File,
+): Promise<{ blob: Blob; width: number; height: number } | undefined> => {
   let bitmap: ImageBitmap | undefined;
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     const scale = Math.min(1, DISPLAY_SIDE / Math.max(bitmap.width, bitmap.height));
-    const blob = await encode(bitmap, Math.max(1, Math.round(bitmap.width * scale)), Math.max(1, Math.round(bitmap.height * scale)));
+    const blob = await encode(
+      bitmap,
+      Math.max(1, Math.round(bitmap.width * scale)),
+      Math.max(1, Math.round(bitmap.height * scale)),
+    );
     return blob ? { blob, width: bitmap.width, height: bitmap.height } : undefined;
   } catch {
     return undefined;

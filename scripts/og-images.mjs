@@ -11,7 +11,9 @@ import { pathToFileURL } from "node:url";
 
 const CHROME = process.env.CHROME ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const root = resolve(import.meta.dirname, "..");
-const font = pathToFileURL(join(root, "node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2"));
+const font = pathToFileURL(
+  join(root, "node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2"),
+);
 const logo = readFileSync(join(root, "public/favicon.svg"), "utf8");
 
 // Each card: a title, two lines under it, and a small line at the foot.
@@ -69,15 +71,19 @@ for (const card of CARDS) {
   const html = join(dir, card.file.replace(".png", ".html"));
   writeFileSync(html, page(card));
   const out = join(root, "public", card.file);
-  execFileSync(CHROME, [
-    "--headless",
-    "--disable-gpu",
-    "--hide-scrollbars",
-    "--force-device-scale-factor=1",
-    "--window-size=1200,630",
-    "--virtual-time-budget=2000",
-    `--screenshot=${out}`,
-    pathToFileURL(html).href,
-  ], { stdio: "ignore" });
+  execFileSync(
+    CHROME,
+    [
+      "--headless",
+      "--disable-gpu",
+      "--hide-scrollbars",
+      "--force-device-scale-factor=1",
+      "--window-size=1200,630",
+      "--virtual-time-budget=2000",
+      `--screenshot=${out}`,
+      pathToFileURL(html).href,
+    ],
+    { stdio: "ignore" },
+  );
   console.log(`public/${card.file}`);
 }

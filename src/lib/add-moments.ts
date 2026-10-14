@@ -21,7 +21,12 @@ export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" :
 
 export const dayLabel = (day: string) => {
   const [y = 0, m = 1, d = 1] = day.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 };
 
 // A picked photo or video, read on this device. `guessed` marks a time taken
@@ -43,11 +48,15 @@ export const readPicked = async (
       const key = `${file.name}|${file.size}|${file.lastModified}`;
       if (!video && !IMAGE_MIME_TYPES.includes(file.type)) {
         const heic = /hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
-        problems.push(`${file.name}: ${heic ? "HEIC photos aren't supported yet; export them as JPEG" : "not a photo or video that can be added"}`);
+        problems.push(
+          `${file.name}: ${heic ? "HEIC photos aren't supported yet; export them as JPEG" : "not a photo or video that can be added"}`,
+        );
         return null;
       }
       if (file.size > (video ? MAX_VIDEO_BYTES : MAX_UPLOAD_BYTES)) {
-        problems.push(`${file.name}: ${video ? "videos can be at most 50 MB" : "photos can be at most 5 MB"}`);
+        problems.push(
+          `${file.name}: ${video ? "videos can be at most 50 MB" : "photos can be at most 5 MB"}`,
+        );
         return null;
       }
       if (seen.has(key)) return null;
@@ -57,7 +66,12 @@ export const readPicked = async (
         file,
         kind: video ? "video" : "photo",
         guessed: meta.takenAt === undefined,
-        point: { id: nextId(), takenAt: meta.takenAt ?? file.lastModified, offsetMinutes: meta.offsetMinutes, geo: meta.geo },
+        point: {
+          id: nextId(),
+          takenAt: meta.takenAt ?? file.lastModified,
+          offsetMinutes: meta.offsetMinutes,
+          geo: meta.geo,
+        },
       };
     }),
   );
@@ -100,7 +114,9 @@ export const uploadAll = async (
   };
   await Promise.all(Array.from({ length: UPLOADS_AT_ONCE }, worker));
   if (full && done < items.length) {
-    failures.push(`${plural(items.length - done, "more file")} weren't uploaded: the upload limit has been reached`);
+    failures.push(
+      `${plural(items.length - done, "more file")} weren't uploaded: the upload limit has been reached`,
+    );
   }
   return { uploaded, failures, full };
 };
@@ -115,7 +131,11 @@ type CreateArgs = FunctionArgs<typeof api.moments.create>;
 export type PlannedUse = { photoId: string; mediaId: Id<"media">; kind: "photo" | "video" };
 // `create` is the moment as `api.moments.create` takes it, without the event.
 // It's undefined when none of the moment's photos uploaded.
-export type PlannedMoment = { label: string; create?: Omit<CreateArgs, "eventId">; uses: PlannedUse[] };
+export type PlannedMoment = {
+  label: string;
+  create?: Omit<CreateArgs, "eventId">;
+  uses: PlannedUse[];
+};
 
 // The moments a plan creates. A stop keeps only the photos that uploaded, and
 // is left out when none did. Coordinates go only with a place. The moment's
@@ -151,7 +171,8 @@ export const momentsFromPlan = (
         create: {
           startsAt: first.s.startsAt,
           // The camera's zone when it said, so the day is the trip's.
-          tzOffsetMinutes: first.s.photos[0]?.offsetMinutes ?? -new Date(first.s.startsAt).getTimezoneOffset(),
+          tzOffsetMinutes:
+            first.s.photos[0]?.offsetMinutes ?? -new Date(first.s.startsAt).getTimezoneOffset(),
           ...where(first.s),
           blocks: first.blocks,
           stops: rest.map(({ s, blocks }) => ({ startsAt: s.startsAt, ...where(s), blocks })),
@@ -168,7 +189,11 @@ export const samplePhotos = <T extends { file: File }>(photos: T[]): T[] => {
   return photos.filter((p) => p.file.type.startsWith("image/")).slice(0, THUMBS_PER_MOMENT);
 };
 
-export type Enrich = (args: { momentId: Id<"moments">; thumbs: Thumb[]; hint?: string }) => Promise<unknown>;
+export type Enrich = (args: {
+  momentId: Id<"moments">;
+  thumbs: Thumb[];
+  hint?: string;
+}) => Promise<unknown>;
 
 // Once the server says the day's AI uses are spent, new moments skip the
 // thumbnails and the request, from any form on the page: the allowance is the
@@ -194,12 +219,17 @@ export const enrichMoment = (
       return jpeg ? [{ mediaId, jpeg }] : [];
     }),
   )
-    .then((made) => trackAi("note", enrich({ momentId, thumbs: made.flat(), hint }), (admitted) => (admitted === false ? "limit" : "ok")))
+    .then((made) =>
+      trackAi("note", enrich({ momentId, thumbs: made.flat(), hint }), (admitted) =>
+        admitted === false ? "limit" : "ok",
+      ),
+    )
     .then((admitted) => {
       if (admitted !== false || Date.now() < pausedUntil) return;
       pausedUntil = Date.now() + PAUSE_MS;
       toast.info("No more AI notes today", {
-        description: "You've used today's 10 AI uses. New moments still save, without a drafted note. They come back at midnight UTC.",
+        description:
+          "You've used today's 10 AI uses. New moments still save, without a drafted note. They come back at midnight UTC.",
       });
     })
     .catch((error: unknown) => console.warn("Couldn't draft the moment's notes:", error));

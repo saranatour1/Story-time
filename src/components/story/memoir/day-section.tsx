@@ -28,7 +28,13 @@ export const DaySection = ({
       {day.stops.map(({ step, scene, leg }) => (
         <Fragment key={step}>
           {leg && <TravelDivider step={step - 1} leg={leg} minutes={minutes.get(step)} />}
-          <StopCard step={step} number={numbers.get(step) ?? 0} scene={scene} meId={meId} onPlayFilm={onPlayFilm} />
+          <StopCard
+            step={step}
+            number={numbers.get(step) ?? 0}
+            scene={scene}
+            meId={meId}
+            onPlayFilm={onPlayFilm}
+          />
         </Fragment>
       ))}
     </section>

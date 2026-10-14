@@ -6,7 +6,12 @@ import type { LookupFunction } from "node:net";
 import { Readable } from "node:stream";
 import { v } from "convex/values";
 import { internalAction } from "../../_generated/server";
-import { connectLookup, readPublicPage, type WebFetch, type WebResponse } from "../../lib/publicWeb";
+import {
+  connectLookup,
+  readPublicPage,
+  type WebFetch,
+  type WebResponse,
+} from "../../lib/publicWeb";
 
 const headerValue = (value: string | string[] | undefined): string | null => {
   if (value === undefined) return null;
@@ -17,19 +22,22 @@ const headerValue = (value: string | string[] | undefined): string | null => {
 // A pin that cannot be built refuses the connection.
 const fetchPinned: WebFetch = (url, init) => {
   const lookup = connectLookup(init.addresses);
-  if (lookup === undefined) return Promise.reject(new Error("Refusing a connection that is not pinned to public addresses"));
+  if (lookup === undefined)
+    return Promise.reject(
+      new Error("Refusing a connection that is not pinned to public addresses"),
+    );
   return new Promise((resolve, reject) => {
     const onResponse = (res: http.IncomingMessage) => {
-        const status = res.statusCode ?? 0;
-        const body = Readable.toWeb(res) as ReadableStream<Uint8Array>;
-        const response: WebResponse = {
-          status,
-          ok: status >= 200 && status < 300,
-          url: url.href,
-          headers: { get: (name) => headerValue(res.headers[name.toLowerCase()]) },
-          body,
-        };
-        resolve(response);
+      const status = res.statusCode ?? 0;
+      const body = Readable.toWeb(res) as ReadableStream<Uint8Array>;
+      const response: WebResponse = {
+        status,
+        ok: status >= 200 && status < 300,
+        url: url.href,
+        headers: { get: (name) => headerValue(res.headers[name.toLowerCase()]) },
+        body,
+      };
+      resolve(response);
     };
     const options = {
       method: "GET" as const,

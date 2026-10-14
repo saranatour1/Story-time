@@ -1,9 +1,19 @@
 import { describe, expect, test } from "vitest";
-import { atEdge, clampIndex, dwellMs, nextIndex, PHOTO_MS, tapDelta, tiltOf } from "./photo-deck-math";
+import {
+  atEdge,
+  clampIndex,
+  dwellMs,
+  nextIndex,
+  PHOTO_MS,
+  tapDelta,
+  tiltOf,
+} from "./photo-deck-math";
 
 describe("picture index", () => {
   test("clampIndex holds an index inside the pictures", () => {
-    expect([clampIndex(-1, 3), clampIndex(1, 3), clampIndex(5, 3), clampIndex(0, 0)]).toEqual([0, 1, 2, 0]);
+    expect([clampIndex(-1, 3), clampIndex(1, 3), clampIndex(5, 3), clampIndex(0, 0)]).toEqual([
+      0, 1, 2, 0,
+    ]);
   });
 
   test("nextIndex steps one picture and stays at the ends", () => {
@@ -20,7 +30,12 @@ describe("picture index", () => {
   });
 
   test("a stop with one picture or none has no steps", () => {
-    expect([atEdge(0, 1, 1), atEdge(0, 1, -1), atEdge(0, 0, 1), atEdge(0, 0, -1)]).toEqual([true, true, true, true]);
+    expect([atEdge(0, 1, 1), atEdge(0, 1, -1), atEdge(0, 0, 1), atEdge(0, 0, -1)]).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
   });
 });
 

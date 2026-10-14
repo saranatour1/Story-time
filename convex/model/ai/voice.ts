@@ -43,47 +43,75 @@ const transcribe = action({
   args: { audio: v.bytes(), format: v.string() },
   handler: async (ctx, args): Promise<string> => {
     const identity = await ctx.auth.getUserIdentity();
-    if (identity === null) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Sign in to use your voice." });
+    if (identity === null)
+      throw new ConvexError({ code: "UNAUTHENTICATED", message: "Sign in to use your voice." });
     if (!isFormat(args.format)) {
-      throw new ConvexError({ code: "INVALID", message: "This browser recorded in a format I can't read." });
+      throw new ConvexError({
+        code: "INVALID",
+        message: "This browser recorded in a format I can't read.",
+      });
     }
-    if (args.audio.byteLength === 0) throw new ConvexError({ code: "INVALID", message: "That recording was empty." });
+    if (args.audio.byteLength === 0)
+      throw new ConvexError({ code: "INVALID", message: "That recording was empty." });
     if (args.audio.byteLength > MAX_VOICE_BYTES) {
-      throw new ConvexError({ code: "INVALID", message: "That recording is too long. Keep it under a minute." });
+      throw new ConvexError({
+        code: "INVALID",
+        message: "That recording is too long. Keep it under a minute.",
+      });
     }
     if (!(await takeAi(ctx, identity.subject))) {
-      throw new ConvexError({ code: "RATE_LIMITED", message: `${AI_LIMIT_MESSAGE} You can still type it.` });
+      throw new ConvexError({
+        code: "RATE_LIMITED",
+        message: `${AI_LIMIT_MESSAGE} You can still type it.`,
+      });
     }
 
-    const res = await metered(ctx, { userId: identity.subject, feature: "voice", model: TRANSCRIPTION_MODEL }, async () => {
-      const out = await fetch(GATEWAY, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${await getServiceToken("ai-gateway")}`,
-        "Content-Type": "application/json",
+    const res = await metered(
+      ctx,
+      { userId: identity.subject, feature: "voice", model: TRANSCRIPTION_MODEL },
+      async () => {
+        const out = await fetch(GATEWAY, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${await getServiceToken("ai-gateway")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: TRANSCRIPTION_MODEL,
+            input_audio: { data: toBase64(new Uint8Array(args.audio)), format: args.format },
+            // No `provider.zdr` here: the transcription route refuses it (400,
+            // unsupported parameter), so voice is the one model call that can't
+            // ask for zero-data-retention endpoints yet.
+          }),
+        });
+        // The gateway's cost, from a clone: the body is read again below.
+        const body: unknown = out.ok ? await out.clone().json() : undefined;
+        const usage: unknown =
+          typeof body === "object" && body !== null && "usage" in body ? body.usage : undefined;
+        const cost =
+          typeof usage === "object" &&
+          usage !== null &&
+          "cost" in usage &&
+          typeof usage.cost === "number"
+            ? usage.cost
+            : undefined;
+        return { result: out, costUsd: cost };
       },
-      body: JSON.stringify({
-        model: TRANSCRIPTION_MODEL,
-        input_audio: { data: toBase64(new Uint8Array(args.audio)), format: args.format },
-        // No `provider.zdr` here: the transcription route refuses it (400,
-        // unsupported parameter), so voice is the one model call that can't
-        // ask for zero-data-retention endpoints yet.
-      }),
-      });
-      // The gateway's cost, from a clone: the body is read again below.
-      const body: unknown = out.ok ? await out.clone().json() : undefined;
-      const usage: unknown = typeof body === "object" && body !== null && "usage" in body ? body.usage : undefined;
-      const cost = typeof usage === "object" && usage !== null && "cost" in usage && typeof usage.cost === "number" ? usage.cost : undefined;
-      return { result: out, costUsd: cost };
-    });
+    );
     // Status only: an error body can echo the request, and the request is the recording.
     if (!res.ok) {
       console.warn(`Transcription failed with status ${res.status}`);
-      throw new ConvexError({ code: "AI_UNAVAILABLE", message: "I couldn't make that out just now. Try again, or type it." });
+      throw new ConvexError({
+        code: "AI_UNAVAILABLE",
+        message: "I couldn't make that out just now. Try again, or type it.",
+      });
     }
     const text = readTranscript(await res.json());
     if (text === undefined || text === "") {
-      throw new ConvexError({ code: "NO_SPEECH", message: "I didn't catch any words. Try again a little closer to the mic." });
+      throw new ConvexError({
+        code: "NO_SPEECH",
+        message: "I didn't catch any words. Try again a little closer to the mic.",
+      });
     }
     return text;
   },

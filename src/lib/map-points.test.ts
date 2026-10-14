@@ -23,7 +23,12 @@ describe("mapPoints", () => {
   });
 
   test("orders by moment time, then by stop within a moment", () => {
-    const later = moment({ _id: "late" as Id<"moments">, startsAt: 20, place: "Porto", geo: porto });
+    const later = moment({
+      _id: "late" as Id<"moments">,
+      startsAt: 20,
+      place: "Porto",
+      geo: porto,
+    });
     const earlier = moment({
       _id: "early" as Id<"moments">,
       startsAt: 10,
@@ -63,13 +68,33 @@ describe("mapPoints", () => {
       stops: [{ startsAt: 9, place: "Sintra", geo: sintra, transport: "bus", blocks: [] }],
     });
     expect(mapPoints([trip])).toEqual([
-      { momentId: "m1", stopIndex: 0, lat: lisbon.lat, lng: lisbon.lng, place: "Lisbon", startsAt: 5, tzOffsetMinutes: 60, transport: "train" },
-      { momentId: "m1", stopIndex: 1, lat: sintra.lat, lng: sintra.lng, place: "Sintra", startsAt: 9, tzOffsetMinutes: 60, transport: "bus" },
+      {
+        momentId: "m1",
+        stopIndex: 0,
+        lat: lisbon.lat,
+        lng: lisbon.lng,
+        place: "Lisbon",
+        startsAt: 5,
+        tzOffsetMinutes: 60,
+        transport: "train",
+      },
+      {
+        momentId: "m1",
+        stopIndex: 1,
+        lat: sintra.lat,
+        lng: sintra.lng,
+        place: "Sintra",
+        startsAt: 9,
+        tzOffsetMinutes: 60,
+        transport: "bus",
+      },
     ]);
   });
 
   test("a moment with places but no coordinates has no points", () => {
-    expect(mapPoints([moment({ place: "Nowhere", stops: [{ place: "Somewhere", blocks: [] }] })])).toEqual([]);
+    expect(
+      mapPoints([moment({ place: "Nowhere", stops: [{ place: "Somewhere", blocks: [] }] })]),
+    ).toEqual([]);
   });
 });
 

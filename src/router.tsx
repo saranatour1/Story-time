@@ -1,5 +1,10 @@
 import { createRouter, Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
-import { QueryClient, QueryClientProvider, type FetchQueryOptions, type QueryKey } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  type FetchQueryOptions,
+  type QueryKey,
+} from "@tanstack/react-query";
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { ConvexReactClient, useConvexAuth } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";

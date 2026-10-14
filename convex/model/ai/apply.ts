@@ -54,7 +54,13 @@ export const apply = internalMutation({
     for (const { stopIndex, blockIndex, title } of args.linkTitles ?? []) {
       const list = stopIndex === 0 ? blocks : stops[stopIndex - 1]?.blocks;
       const block = list?.[blockIndex];
-      if (list === undefined || block?.type !== "link" || block.title !== undefined || title.trim() === "") continue;
+      if (
+        list === undefined ||
+        block?.type !== "link" ||
+        block.title !== undefined ||
+        title.trim() === ""
+      )
+        continue;
       list[blockIndex] = { ...block, title };
       if (stopIndex === 0) blocksChanged = true;
       else stopsChanged = true;

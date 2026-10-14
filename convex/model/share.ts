@@ -1,12 +1,7 @@
 import { ConvexError, v, type Infer } from "convex/values";
 import { components } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import {
-  mutation,
-  query,
-  type MutationCtx,
-  type QueryCtx,
-} from "../_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { assertNotArchived, requireEventAccess } from "../lib/access";
 import { appOrigin } from "../lib/appUrl";
 import { emailConfigured, replyAddress } from "../lib/emailAddress";
@@ -249,7 +244,11 @@ const emailLink = mutation({
     }
     const to = args.to.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || to.length > 254) {
-      throw new ConvexError({ code: "INVALID", field: "to", message: "Enter a valid email address" });
+      throw new ConvexError({
+        code: "INVALID",
+        field: "to",
+        message: "Enter a valid email address",
+      });
     }
     if (!emailConfigured()) return { emailed: false };
     await chargeShareEmail(ctx, userId);
@@ -364,7 +363,8 @@ const mediaForShare = query({
         .query("journalPages")
         .withIndex("by_event_and_order", (q) => q.eq("eventId", event._id))
         .take(MAX_JOURNAL_PAGES);
-      if (!pages.some((page) => page.elements.some((element) => element.mediaId === media._id))) return null;
+      if (!pages.some((page) => page.elements.some((element) => element.mediaId === media._id)))
+        return null;
     }
     const thumbKey = args.variant === "thumb" ? media.thumbR2Key : undefined;
     return {
@@ -377,4 +377,17 @@ const mediaForShare = query({
 });
 
 // What the app calls. Registered once, by convex/api/share.ts, which re-exports it.
-export const shareApi = { hidePhotos, setHidePhotos, link, enable, disable, rotate, emailLink, get, journal, page, pdf, mediaForShare };
+export const shareApi = {
+  hidePhotos,
+  setHidePhotos,
+  link,
+  enable,
+  disable,
+  rotate,
+  emailLink,
+  get,
+  journal,
+  page,
+  pdf,
+  mediaForShare,
+};

@@ -32,8 +32,10 @@ const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
   const uploaderId = await t.run((ctx) => ctx.db.insert("users", {}));
-  const insert = (status: "reserved" | "ready") => t.run((ctx) => ctx.db.insert("media", row(uploaderId, status)));
-  const statusOf = (id: Id<"media">) => t.run(async (ctx) => (await ctx.db.get("media", id))?.status);
+  const insert = (status: "reserved" | "ready") =>
+    t.run((ctx) => ctx.db.insert("media", row(uploaderId, status)));
+  const statusOf = (id: Id<"media">) =>
+    t.run(async (ctx) => (await ctx.db.get("media", id))?.status);
   return { t, uploaderId, insert, statusOf };
 };
 
@@ -63,11 +65,17 @@ describe("sweepReservedUploads", () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
     const stillReserved = await t.run((ctx) =>
-      ctx.db.query("media").withIndex("by_status", (q) => q.eq("status", "reserved")).take(1),
+      ctx.db
+        .query("media")
+        .withIndex("by_status", (q) => q.eq("status", "reserved"))
+        .take(1),
     );
     expect(stillReserved).toEqual([]);
     const swept = await t.run((ctx) =>
-      ctx.db.query("media").withIndex("by_status", (q) => q.eq("status", "deleted")).collect(),
+      ctx.db
+        .query("media")
+        .withIndex("by_status", (q) => q.eq("status", "deleted"))
+        .collect(),
     );
     expect(swept).toHaveLength(250);
   });

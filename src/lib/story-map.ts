@@ -26,7 +26,10 @@ const hash = (s: string): number => {
 };
 
 // Positions for an ordered list of unique place labels.
-export const layoutPlaces = (labels: string[], orientation: Orientation = "landscape"): Map<string, MapPoint> => {
+export const layoutPlaces = (
+  labels: string[],
+  orientation: Orientation = "landscape",
+): Map<string, MapPoint> => {
   const unique = [...new Set(labels)];
   const points = new Map<string, MapPoint>();
   const n = unique.length;
@@ -100,7 +103,13 @@ export type DrawnName = {
 // How far apart drawn names are kept, in sheet units.
 const NAME_PAD = 0.5;
 
-const nameAt = (label: string, p: MapPoint, sheet: number, portrait: boolean, active: boolean): DrawnName => {
+const nameAt = (
+  label: string,
+  p: MapPoint,
+  sheet: number,
+  portrait: boolean,
+  active: boolean,
+): DrawnName => {
   // A label beside its place stays clear of the legs: across, they run left
   // to right, so it sits on the right (on the left near the right edge);
   // upright, they zigzag down the middle, so it sits on the outer side.
@@ -123,9 +132,17 @@ const nameAt = (label: string, p: MapPoint, sheet: number, portrait: boolean, ac
 // place keeps just its dot.
 export const placeNames = (
   points: Map<string, MapPoint>,
-  { sheet, portrait, active, origin, visited }: { sheet: number; portrait: boolean; active?: string; origin?: string; visited: Set<string> },
+  {
+    sheet,
+    portrait,
+    active,
+    origin,
+    visited,
+  }: { sheet: number; portrait: boolean; active?: string; origin?: string; visited: Set<string> },
 ): Map<string, DrawnName> => {
-  const laid = [...points].map(([label, p]) => [label, nameAt(label, p, sheet, portrait, label === active)] as const);
+  const laid = [...points].map(
+    ([label, p]) => [label, nameAt(label, p, sheet, portrait, label === active)] as const,
+  );
   const boxes: LabelBox[] = laid.map(([label, name]) => ({
     id: label,
     ...name.box,

@@ -2,7 +2,6 @@
   "name": "story-time",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.6.0",
   "imports": {
     "#/*": "./src/*"
   },
@@ -88,5 +87,6 @@
     "vite-plus": "^1.0.0",
     "vitest": "^5.0.3",
     "wrangler": "^4.147.0"
-  }
+  },
+  "packageManager": "pnpm@12.6.0"
 }

@@ -36,9 +36,7 @@ export const getEventAccessFor = async (
   if (event.ownerId === userId) return { userId, event, role: "owner" };
   const session = await ctx.db
     .query("sessions")
-    .withIndex("by_event_and_user", (q) =>
-      q.eq("eventId", eventId).eq("userId", userId),
-    )
+    .withIndex("by_event_and_user", (q) => q.eq("eventId", eventId).eq("userId", userId))
     .unique();
   if (session === null || session.revokedAt !== undefined) return null;
   return { userId, event, role: session.role };
@@ -67,11 +65,7 @@ export const requireEventAccessFor = async (
   return allow(await getEventAccessFor(ctx, userId, eventId), min);
 };
 
-export const requireEventAccess = async (
-  ctx: Ctx,
-  eventId: Id<"events">,
-  min: EventRole,
-) => {
+export const requireEventAccess = async (ctx: Ctx, eventId: Id<"events">, min: EventRole) => {
   return allow(await getEventAccess(ctx, eventId), min);
 };
 

@@ -1,5 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { addressesToPin, connectLookup, isPrivateIp, isPublicWebUrl, readPublicPage, type WebFetch, type WebResponse } from "../lib/publicWeb";
+import {
+  addressesToPin,
+  connectLookup,
+  isPrivateIp,
+  isPublicWebUrl,
+  readPublicPage,
+  type WebFetch,
+  type WebResponse,
+} from "../lib/publicWeb";
 
 const page = (html: string, status = 200, headers?: HeadersInit, url = ""): WebResponse => {
   const response = new Response(html, { status, headers });
@@ -123,12 +131,15 @@ describe("readPublicPage", () => {
       }
       return Promise.resolve(page("<title>Hello</title>", 200, undefined, url.href));
     };
-    const resolve = (host: string) => Promise.resolve(host === "ok.test" || host === "good.test" ? ["1.1.1.1"] : ["10.0.0.1"]);
+    const resolve = (host: string) =>
+      Promise.resolve(host === "ok.test" || host === "good.test" ? ["1.1.1.1"] : ["10.0.0.1"]);
 
     const read = await readPublicPage("https://good.test/day", 1024, { resolve, fetch: fetchPage });
     expect(read).toEqual({ html: "<title>Hello</title>", url: "https://good.test/day" });
 
-    expect(await readPublicPage("https://ok.test/go", 1024, { resolve, fetch: fetchPage })).toBeNull();
+    expect(
+      await readPublicPage("https://ok.test/go", 1024, { resolve, fetch: fetchPage }),
+    ).toBeNull();
     expect(fetched).toEqual(["https://good.test/day", "https://ok.test/go"]);
   });
 
@@ -148,7 +159,8 @@ describe("readPublicPage", () => {
   test("a response that lands on a private address is dropped", async () => {
     const read = await readPublicPage("https://start.test/", 1024, {
       resolve: () => Promise.resolve(["1.1.1.1"]),
-      fetch: () => Promise.resolve(page("<title>secret</title>", 200, undefined, "http://127.0.0.1/secret")),
+      fetch: () =>
+        Promise.resolve(page("<title>secret</title>", 200, undefined, "http://127.0.0.1/secret")),
     });
     expect(read).toBeNull();
   });
@@ -156,7 +168,8 @@ describe("readPublicPage", () => {
   test("the connection is given only the addresses that passed the check", async () => {
     const pinned: string[][] = [];
     const read = await readPublicPage("https://good.test/a", 1024, {
-      resolve: (host) => Promise.resolve(host === "good.test" ? ["1.1.1.1", "8.8.8.8"] : ["9.9.9.9"]),
+      resolve: (host) =>
+        Promise.resolve(host === "good.test" ? ["1.1.1.1", "8.8.8.8"] : ["9.9.9.9"]),
       fetch: (url, init) => {
         pinned.push([...init.addresses]);
         if (url.hostname === "good.test") {
@@ -166,10 +179,7 @@ describe("readPublicPage", () => {
       },
     });
     expect(read?.html).toBe("<title>Hi</title>");
-    expect(pinned).toEqual([
-      ["1.1.1.1", "8.8.8.8"],
-      ["9.9.9.9"],
-    ]);
+    expect(pinned).toEqual([["1.1.1.1", "8.8.8.8"], ["9.9.9.9"]]);
   });
 
   test("only the first bytes of a page are kept", async () => {

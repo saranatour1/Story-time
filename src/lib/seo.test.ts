@@ -4,7 +4,15 @@ import { pageMeta } from "./seo";
 describe("pageMeta", () => {
   test("only the home page is indexed", () => {
     expect(pageMeta("/").index).toBe(true);
-    for (const path of ["/home", "/e/abc", "/e/abc/journal", "/settings/profile", "/s", "/invite/tok", "/verify-email"]) {
+    for (const path of [
+      "/home",
+      "/e/abc",
+      "/e/abc/journal",
+      "/settings/profile",
+      "/s",
+      "/invite/tok",
+      "/verify-email",
+    ]) {
       expect(pageMeta(path).index, path).toBe(false);
     }
   });

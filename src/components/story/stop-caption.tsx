@@ -47,18 +47,26 @@ export const StopCaption = ({ scene, meId }: { scene: StopScene; meId: string | 
         {showTime && (author ? `${time} · ` : time)}
         {author && `by ${author}`}
       </p>
-      <h2 className="font-serif text-2xl font-semibold tracking-tight text-balance sm:text-3xl">{heading}</h2>
+      <h2 className="font-serif text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+        {heading}
+      </h2>
       {scene.labels.length > 0 && scene.stopIndex === 0 && (
         <ul aria-label="Labels" className="flex flex-wrap justify-center gap-1.5">
           {scene.labels.map((l) => (
-            <li key={l} className="rounded-full border border-white/20 px-2 py-0.5 text-xs text-white/70">
+            <li
+              key={l}
+              className="rounded-full border border-white/20 px-2 py-0.5 text-xs text-white/70"
+            >
               {l}
             </li>
           ))}
         </ul>
       )}
       {text.length > 0 && (
-        <div className="mx-auto max-h-24 max-w-xl space-y-1.5 overflow-y-auto text-sm text-white/80 sm:max-h-32" data-no-advance="">
+        <div
+          className="mx-auto max-h-24 max-w-xl space-y-1.5 overflow-y-auto text-sm text-white/80 sm:max-h-32"
+          data-no-advance=""
+        >
           {text.map((b, i) =>
             b.type === "note" ? (
               <p key={i} className="whitespace-pre-wrap">

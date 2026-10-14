@@ -24,14 +24,26 @@ const SpreadPage = ({
   token?: string;
   eventId?: string;
 }) => {
-  const { data: member } = useQuery(queries.journal.page(token ? "skip" : { pageId: pageId as Id<"journalPages"> }));
-  const { data: shared } = useQuery(queries.share.page(token ? { token, pageId: pageId as Id<"journalPages"> } : "skip"));
+  const { data: member } = useQuery(
+    queries.journal.page(token ? "skip" : { pageId: pageId as Id<"journalPages"> }),
+  );
+  const { data: shared } = useQuery(
+    queries.share.page(token ? { token, pageId: pageId as Id<"journalPages"> } : "skip"),
+  );
   const page = token ? shared : member;
   if (page === undefined || page === null) {
-    return <div className="animate-pulse bg-[#efe6d2]" style={{ width: PAGE.w * scale, height: PAGE.h * scale }} />;
+    return (
+      <div
+        className="animate-pulse bg-[#efe6d2]"
+        style={{ width: PAGE.w * scale, height: PAGE.h * scale }}
+      />
+    );
   }
   const moment = page.momentId === undefined ? undefined : moments.get(page.momentId);
-  const cut = noteWasCut(page.elements.find((element) => element.kind === "note")?.text, firstNote(moment));
+  const cut = noteWasCut(
+    page.elements.find((element) => element.kind === "note")?.text,
+    firstNote(moment),
+  );
   return (
     <div className="flex flex-col items-center gap-2">
       <JournalPage page={page} moments={moments} scale={scale} reading />
@@ -54,10 +66,17 @@ const SpreadPage = ({
 // A page that no longer matches its moment. The words only; the button lives
 // in make mode, where the owner can ask.
 const PageNotice = ({ page }: { page: { gone: boolean; stale: boolean } }) => {
-  const line = page.gone ? "This moment was taken out of the trip." : page.stale ? "The moment changed." : null;
+  const line = page.gone
+    ? "This moment was taken out of the trip."
+    : page.stale
+      ? "The moment changed."
+      : null;
   if (line === null) return null;
   return (
-    <p className="max-w-sm text-center text-stone-700" style={{ fontFamily: FONTS.hand, fontSize: 22 }}>
+    <p
+      className="max-w-sm text-center text-stone-700"
+      style={{ fontFamily: FONTS.hand, fontSize: 22 }}
+    >
       {line}
     </p>
   );
@@ -86,8 +105,19 @@ export const Reader = ({
 }) => {
   const pair = size.w >= 900;
   // Spreads: the cover alone, then pages side by side.
-  const spreads = pair ? [[0], ...Array.from({ length: Math.ceil((pages.length - 1) / 2) }, (_, i) => [1 + i * 2, 2 + i * 2].filter((n) => n < pages.length))] : pages.map((_, i) => [i]);
-  const spreadOf = (page: number) => Math.max(0, spreads.findIndex((s) => s.includes(page)));
+  const spreads = pair
+    ? [
+        [0],
+        ...Array.from({ length: Math.ceil((pages.length - 1) / 2) }, (_, i) =>
+          [1 + i * 2, 2 + i * 2].filter((n) => n < pages.length),
+        ),
+      ]
+    : pages.map((_, i) => [i]);
+  const spreadOf = (page: number) =>
+    Math.max(
+      0,
+      spreads.findIndex((s) => s.includes(page)),
+    );
   const [at, setAt] = useState(() => spreadOf(start));
   const [turn, setTurn] = useState<"next" | "back">("next");
   const go = (step: number) => {
@@ -118,26 +148,60 @@ export const Reader = ({
       }}
     >
       <div className="flex items-center gap-4">
-        <Button size="icon" variant="ghost" aria-label="Turn back" disabled={at === 0} onClick={() => go(-1)}>
+        <Button
+          size="icon"
+          variant="ghost"
+          aria-label="Turn back"
+          disabled={at === 0}
+          onClick={() => go(-1)}
+        >
           <ChevronLeftIcon />
         </Button>
         <div
           key={at}
           className="flex shadow-[0_20px_50px_rgba(40,28,10,.35)]"
-          style={{ animation: `${turn === "next" ? "journal-turn-in" : "journal-turn-back"} 420ms ease-out`, transformOrigin: turn === "next" ? "left center" : "right center", perspective: 1600 }}
+          style={{
+            animation: `${turn === "next" ? "journal-turn-in" : "journal-turn-back"} 420ms ease-out`,
+            transformOrigin: turn === "next" ? "left center" : "right center",
+            perspective: 1600,
+          }}
         >
-          {pair && shown.length === 1 && at > 0 && <div style={{ width: PAGE.w * scale, height: PAGE.h * scale }} className="bg-[#efe6d2]" />}
+          {pair && shown.length === 1 && at > 0 && (
+            <div
+              style={{ width: PAGE.w * scale, height: PAGE.h * scale }}
+              className="bg-[#efe6d2]"
+            />
+          )}
           {shown.map((i, k) => (
             <div key={pages[i]!._id} className="relative">
-              <SpreadPage pageId={pages[i]!._id} moments={moments} scale={scale} token={token} eventId={eventId} />
+              <SpreadPage
+                pageId={pages[i]!._id}
+                moments={moments}
+                scale={scale}
+                token={token}
+                eventId={eventId}
+              />
               {/* The fold down the middle of a spread. */}
               {pair && shown.length === 2 && (
-                <div aria-hidden className="pointer-events-none absolute inset-y-0 w-10" style={{ [k === 0 ? "right" : "left"]: 0, background: `linear-gradient(${k === 0 ? "to left" : "to right"}, rgba(60,40,15,.28), transparent)` }} />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-y-0 w-10"
+                  style={{
+                    [k === 0 ? "right" : "left"]: 0,
+                    background: `linear-gradient(${k === 0 ? "to left" : "to right"}, rgba(60,40,15,.28), transparent)`,
+                  }}
+                />
               )}
             </div>
           ))}
         </div>
-        <Button size="icon" variant="ghost" aria-label="Turn the page" disabled={at === spreads.length - 1} onClick={() => go(1)}>
+        <Button
+          size="icon"
+          variant="ghost"
+          aria-label="Turn the page"
+          disabled={at === spreads.length - 1}
+          onClick={() => go(1)}
+        >
           <ChevronRightIcon />
         </Button>
       </div>

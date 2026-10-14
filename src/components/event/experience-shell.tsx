@@ -28,7 +28,9 @@ export const ExperienceShell = ({
 }) => {
   const navigate = useNavigate();
   const { data: event } = useQuery(queries.events.get({ eventId: id }));
-  useDocumentTitle(event ? `${section ? `${section} · ` : ""}${event.title} · Story-time` : undefined);
+  useDocumentTitle(
+    event ? `${section ? `${section} · ` : ""}${event.title} · Story-time` : undefined,
+  );
 
   if (event === undefined) {
     return (
@@ -45,7 +47,9 @@ export const ExperienceShell = ({
     return (
       <div className="mx-auto flex max-w-sm flex-col items-center gap-3 py-24 text-center">
         <h1 className="font-serif text-2xl font-semibold tracking-tight">Experience not found</h1>
-        <p className="text-sm text-muted-foreground">It may have been deleted, or you no longer have access.</p>
+        <p className="text-sm text-muted-foreground">
+          It may have been deleted, or you no longer have access.
+        </p>
         <Button variant="outline" className="mt-2" asChild>
           <Link to="/home">
             <ArrowLeftIcon /> Back to experiences
@@ -64,7 +68,9 @@ export const ExperienceShell = ({
           payoff, so that button leads. */}
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0 space-y-1">
-          <h1 className="font-serif text-2xl font-semibold tracking-tight text-balance break-words sm:text-3xl">{event.title}</h1>
+          <h1 className="font-serif text-2xl font-semibold tracking-tight text-balance break-words sm:text-3xl">
+            {event.title}
+          </h1>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <p className="text-sm text-muted-foreground">
               {dates && <>{dates} · </>}
@@ -76,14 +82,28 @@ export const ExperienceShell = ({
         </div>
         <div className="flex items-center gap-2">
           {event.momentCount > 0 && (
-            <Button asChild className="bg-amber-300 text-stone-950 shadow-sm hover:bg-amber-200 dark:bg-amber-200 dark:hover:bg-amber-100">
-              <Link to="/e/$id/story" params={{ id }} search={{ step: 0 }} data-track="story_played" data-from="experience">
+            <Button
+              asChild
+              className="bg-amber-300 text-stone-950 shadow-sm hover:bg-amber-200 dark:bg-amber-200 dark:hover:bg-amber-100"
+            >
+              <Link
+                to="/e/$id/story"
+                params={{ id }}
+                search={{ step: 0 }}
+                data-track="story_played"
+                data-from="experience"
+              >
                 <PlayIcon className="fill-current" /> Play story
               </Link>
             </Button>
           )}
           <QuickAddButton event={event} variant={event.momentCount > 0 ? "outline" : "default"} />
-          <EventActionsMenu event={event} onEditDetails={() => void navigate({ to: "/e/$id", params: { id }, search: { panel: "details" } })} />
+          <EventActionsMenu
+            event={event}
+            onEditDetails={() =>
+              void navigate({ to: "/e/$id", params: { id }, search: { panel: "details" } })
+            }
+          />
         </div>
       </header>
       {children(event)}

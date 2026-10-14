@@ -123,7 +123,16 @@ const v4FromGroups = (hi: number, lo: number): [number, number, number, number] 
 };
 
 const v6Private = (groups: readonly number[]): boolean => {
-  const [g0, g1, g2, g3, g4, g5, g6, g7] = groups as [number, number, number, number, number, number, number, number];
+  const [g0, g1, g2, g3, g4, g5, g6, g7] = groups as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
   const restZero = g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0 && g6 === 0;
   if (g0 === 0 && restZero) return true;
   if ((g0 & 0xfe00) === 0xfc00) return true;
@@ -131,10 +140,12 @@ const v6Private = (groups: readonly number[]): boolean => {
   if ((g0 & 0xff00) === 0xff00) return true;
   if (g0 === 0x2001 && g1 === 0x0db8) return true;
   // IPv4-mapped (::ffff:0:0/96) and 6to4 (2002::/16): the embedded address decides.
-  if (g0 === 0 && g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0xffff) return v4Private(v4FromGroups(g6, g7));
+  if (g0 === 0 && g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0xffff)
+    return v4Private(v4FromGroups(g6, g7));
   if (g0 === 0x2002) return v4Private(v4FromGroups(g1, g2));
   // NAT64 well-known prefix 64:ff9b::/96.
-  if (g0 === 0x0064 && g1 === 0xff9b && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0) return v4Private(v4FromGroups(g6, g7));
+  if (g0 === 0x0064 && g1 === 0xff9b && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0)
+    return v4Private(v4FromGroups(g6, g7));
   return false;
 };
 
@@ -170,7 +181,9 @@ export type PinnedAddress = { address: string; family: 4 | 6 };
 
 // The addresses a connection may use. Empty, mixed, or private answers pin
 // nothing: the caller must fail closed instead of looking the name up again.
-export const addressesToPin = (addresses: readonly string[]): readonly PinnedAddress[] | undefined => {
+export const addressesToPin = (
+  addresses: readonly string[],
+): readonly PinnedAddress[] | undefined => {
   if (addresses.length === 0) return undefined;
   const pinned: PinnedAddress[] = [];
   for (const address of addresses) {
@@ -187,7 +200,11 @@ export const connectLookup = (
   | ((
       hostname: string,
       options: { all?: boolean },
-      callback: (err: Error | null, address: string | readonly PinnedAddress[], family?: number) => void,
+      callback: (
+        err: Error | null,
+        address: string | readonly PinnedAddress[],
+        family?: number,
+      ) => void,
     ) => void)
   | undefined => {
   const pinned = addressesToPin(addresses);
@@ -209,7 +226,10 @@ export const connectLookup = (
 
 // Every address the name resolves to must be a public one. A lookup that fails
 // or returns nothing is treated as private: the page is not fetched.
-const publicAddresses = async (url: URL, resolve: WebLookup): Promise<readonly string[] | undefined> => {
+const publicAddresses = async (
+  url: URL,
+  resolve: WebLookup,
+): Promise<readonly string[] | undefined> => {
   if (!isPublicWebUrl(url)) return undefined;
   let addresses: readonly string[];
   try {
@@ -273,7 +293,10 @@ export const readPublicPage = async (
 };
 
 // Reads up to `limit` bytes, then stops the download.
-export const readHead = async (body: ReadableStream<Uint8Array>, limit: number): Promise<string> => {
+export const readHead = async (
+  body: ReadableStream<Uint8Array>,
+  limit: number,
+): Promise<string> => {
   const reader = body.getReader();
   const buffer = new Uint8Array(limit);
   let filled = 0;

@@ -49,7 +49,10 @@ export const FilmDemo = () => {
                     style={
                       reduced
                         ? undefined
-                        : { animation: `landing-fill ${SCENE_MS[i]}ms linear forwards`, animationPlayState: running ? "running" : "paused" }
+                        : {
+                            animation: `landing-fill ${SCENE_MS[i]}ms linear forwards`,
+                            animationPlayState: running ? "running" : "paused",
+                          }
                     }
                   />
                 )}
@@ -68,14 +71,23 @@ export const FilmDemo = () => {
             aria-label={playing ? "Pause the sample story" : "Play the sample story"}
             className="grid size-7 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:outline-none"
           >
-            {playing ? <PauseIcon className="size-3.5 fill-current" /> : <PlayIcon className="size-3.5 fill-current" />}
+            {playing ? (
+              <PauseIcon className="size-3.5 fill-current" />
+            ) : (
+              <PlayIcon className="size-3.5 fill-current" />
+            )}
           </button>
         </div>
 
         <div className="relative aspect-[4/5] sm:aspect-[16/9]">
           <Scene active={scene === 0}>
             <div className="flex size-full items-center justify-center px-5 sm:px-16">
-              <TitlePage key={take} animate={scene === 0 && !reduced} size="lg" className="max-w-xl shadow-2xl" />
+              <TitlePage
+                key={take}
+                animate={scene === 0 && !reduced}
+                size="lg"
+                className="max-w-xl shadow-2xl"
+              />
             </div>
           </Scene>
           <Scene active={scene === 1}>
@@ -111,7 +123,10 @@ const Scene = ({ active, children }: { active: boolean; children: React.ReactNod
     <div
       aria-hidden={!active}
       inert={!active}
-      className={cn("absolute inset-0 transition-opacity duration-700 ease-out", active ? "opacity-100" : "pointer-events-none opacity-0")}
+      className={cn(
+        "absolute inset-0 transition-opacity duration-700 ease-out",
+        active ? "opacity-100" : "pointer-events-none opacity-0",
+      )}
     >
       {children}
     </div>
@@ -126,9 +141,17 @@ const LAND = "#1b1b1b";
 const Leg = ({ play }: { play: boolean }) => {
   return (
     <div className="relative size-full">
-      <svg aria-hidden viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 size-full">
+      <svg
+        aria-hidden
+        viewBox="0 0 160 90"
+        preserveAspectRatio="xMidYMid slice"
+        className="absolute inset-0 size-full"
+      >
         <rect width="160" height="90" fill="#10161b" />
-        <path d="M66 0 C63 10 61 22 62 32 C60 44 55 54 54 64 C52 72 50 80 51 90 H160 V0 Z" fill={LAND} />
+        <path
+          d="M66 0 C63 10 61 22 62 32 C60 44 55 54 54 64 C52 72 50 80 51 90 H160 V0 Z"
+          fill={LAND}
+        />
         <g fill="none" stroke="#2a2a2a" strokeWidth="0.25">
           <path d="M70 8 L160 4 M64 26 L160 22 M60 44 L160 40 M56 62 L160 60 M52 80 L160 78" />
           <path d="M90 0 L86 90 M110 0 L108 90 M130 0 L131 90 M150 0 L148 90" />
@@ -140,33 +163,105 @@ const Leg = ({ play }: { play: boolean }) => {
           { name: "LEIRIA", x: 80, y: 55 },
           { name: "SANTARÉM", x: 92, y: 66 },
         ].map((d) => (
-          <text key={d.name} x={d.x} y={d.y} textAnchor="middle" className="font-sans" fontSize="1.9" letterSpacing="0.35" fill="#6b6b6b">
+          <text
+            key={d.name}
+            x={d.x}
+            y={d.y}
+            textAnchor="middle"
+            className="font-sans"
+            fontSize="1.9"
+            letterSpacing="0.35"
+            fill="#6b6b6b"
+          >
             {d.name}
           </text>
         ))}
         <text x="36" y="46" className="font-sans" fontSize="2.4" fontStyle="italic" fill="#3b4a55">
           Atlantic
         </text>
-        <path d={RAIL} fill="none" stroke="#e7e5e4" strokeOpacity="0.25" strokeWidth="0.45" strokeDasharray="0.5 1" />
-        <path d={RAIL} pathLength={1} fill="none" stroke="#fde68a" strokeWidth="0.9" strokeLinecap="round" strokeDasharray="1" strokeDashoffset={play ? 1 : 0}>
-          {play && <animate attributeName="stroke-dashoffset" from="1" to="0" dur="3s" begin="0.4s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1" />}
+        <path
+          d={RAIL}
+          fill="none"
+          stroke="#e7e5e4"
+          strokeOpacity="0.25"
+          strokeWidth="0.45"
+          strokeDasharray="0.5 1"
+        />
+        <path
+          d={RAIL}
+          pathLength={1}
+          fill="none"
+          stroke="#fde68a"
+          strokeWidth="0.9"
+          strokeLinecap="round"
+          strokeDasharray="1"
+          strokeDashoffset={play ? 1 : 0}
+        >
+          {play && (
+            <animate
+              attributeName="stroke-dashoffset"
+              from="1"
+              to="0"
+              dur="3s"
+              begin="0.4s"
+              fill="freeze"
+              calcMode="spline"
+              keyTimes="0;1"
+              keySplines="0.4 0 0.2 1"
+            />
+          )}
         </path>
         <circle cx="74" cy="16" r="0.9" fill="#d6d3d1" stroke="#1c1917" strokeWidth="0.3" />
-        <text x="76.5" y="14.6" className="font-serif" fontSize="2.8" fill="#d6d3d1" stroke="#141210" strokeWidth="0.5" paintOrder="stroke">
+        <text
+          x="76.5"
+          y="14.6"
+          className="font-serif"
+          fontSize="2.8"
+          fill="#d6d3d1"
+          stroke="#141210"
+          strokeWidth="0.5"
+          paintOrder="stroke"
+        >
           Porto
         </text>
         <circle cx="58" cy="74" r="1.2" fill="#fde68a" stroke="#c2410c" strokeWidth="0.35" />
-        <text x="61" y="76.5" className="font-serif" fontSize="3.2" fontWeight="600" fill="#fde68a" stroke="#141210" strokeWidth="0.6" paintOrder="stroke">
+        <text
+          x="61"
+          y="76.5"
+          className="font-serif"
+          fontSize="3.2"
+          fontWeight="600"
+          fill="#fde68a"
+          stroke="#141210"
+          strokeWidth="0.6"
+          paintOrder="stroke"
+        >
           Lisbon
         </text>
         <g>
           {play ? (
-            <animateMotion dur="3s" begin="0.4s" fill="freeze" path={RAIL} calcMode="spline" keyTimes="0;1" keyPoints="0;1" keySplines="0.4 0 0.2 1" />
+            <animateMotion
+              dur="3s"
+              begin="0.4s"
+              fill="freeze"
+              path={RAIL}
+              calcMode="spline"
+              keyTimes="0;1"
+              keyPoints="0;1"
+              keySplines="0.4 0 0.2 1"
+            />
           ) : (
             <animateMotion dur="0.01s" fill="freeze" path={RAIL} keyTimes="0;1" keyPoints="1;1" />
           )}
           <circle r="2.6" fill="#f3e9d6" stroke="#c2410c" strokeWidth="0.45" />
-          <TrainFrontIcon x={-1.5} y={-1.5} width={3} height={3} color="#c2410c" strokeWidth={2.4} />
+          <TrainFrontIcon
+            x={-1.5}
+            y={-1.5}
+            width={3}
+            height={3}
+            color="#c2410c"
+            strokeWidth={2.4}
+          />
         </g>
       </svg>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,#0e0d0c_100%)]" />
@@ -210,7 +305,10 @@ const Deck = ({ dealt, reduced }: { dealt: boolean; reduced: boolean }) => {
         ))}
       </div>
       <div
-        className={cn("space-y-1 text-center transition-opacity duration-700", dealt || reduced ? "opacity-100" : "opacity-0")}
+        className={cn(
+          "space-y-1 text-center transition-opacity duration-700",
+          dealt || reduced ? "opacity-100" : "opacity-0",
+        )}
         style={{ transitionDelay: dealt && !reduced ? "1500ms" : "0ms" }}
       >
         <p className="text-[0.625rem] tracking-[0.2em] text-amber-200/85 uppercase sm:text-[0.6875rem]">
@@ -236,7 +334,9 @@ const ContactSheet = ({ onReplay }: { onReplay: () => void }) => {
       </div>
       <div className="space-y-1 text-center">
         <p className="font-serif text-2xl font-semibold text-stone-50">{SAMPLE.title}</p>
-        <p className="font-mono text-[11px] tracking-[0.18em] text-white/50 uppercase">{SAMPLE.counts} · 4 people</p>
+        <p className="font-mono text-[11px] tracking-[0.18em] text-white/50 uppercase">
+          {SAMPLE.counts} · 4 people
+        </p>
       </div>
       <button
         type="button"

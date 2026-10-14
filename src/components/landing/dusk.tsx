@@ -89,10 +89,20 @@ export const DuskScene = () => {
   const id = (name: string) => `${uid}-${name}`;
 
   return (
-    <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-[max(100svh,60rem)] overflow-hidden">
+    <div
+      aria-hidden
+      className="absolute inset-x-0 top-0 -z-10 h-[max(100svh,60rem)] overflow-hidden"
+    >
       <svg width="0" height="0" className="absolute">
         <defs>
-          <linearGradient id={id("sky")} x1="0" y1="0" x2="0" y2={HORIZON} gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id={id("sky")}
+            x1="0"
+            y1="0"
+            x2="0"
+            y2={HORIZON}
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0" stopColor="#04050d" />
             <stop offset="0.32" stopColor="#0c1132" />
             <stop offset="0.55" stopColor="#231a4a" />
@@ -101,22 +111,48 @@ export const DuskScene = () => {
             <stop offset="0.93" stopColor="#e07a4a" />
             <stop offset="1" stopColor="#f6b066" />
           </linearGradient>
-          <radialGradient id={id("glow")} cx="720" cy={HORIZON} r="700" gradientUnits="userSpaceOnUse">
+          <radialGradient
+            id={id("glow")}
+            cx="720"
+            cy={HORIZON}
+            r="700"
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0" stopColor="#ffd29a" stopOpacity="0.7" />
             <stop offset="0.3" stopColor="#f08a5a" stopOpacity="0.26" />
             <stop offset="1" stopColor="#f08a5a" stopOpacity="0" />
           </radialGradient>
-          <radialGradient id={id("sun")} cx="720" cy={HORIZON} r="150" gradientUnits="userSpaceOnUse">
+          <radialGradient
+            id={id("sun")}
+            cx="720"
+            cy={HORIZON}
+            r="150"
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0" stopColor="#fff8e6" />
             <stop offset="0.55" stopColor="#ffd890" />
             <stop offset="1" stopColor="#f7a23b" />
           </radialGradient>
-          <linearGradient id={id("sea")} x1="0" y1={HORIZON} x2="0" y2={H} gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id={id("sea")}
+            x1="0"
+            y1={HORIZON}
+            x2="0"
+            y2={H}
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0" stopColor="#7d3a52" />
             <stop offset="0.25" stopColor="#3b2246" />
             <stop offset="1" stopColor="#141210" />
           </linearGradient>
-          <linearGradient id={id("far")} x1="0" y1="640" x2="0" y2={HORIZON} gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id={id("far")}
+            x1="0"
+            y1="640"
+            x2="0"
+            y2={HORIZON}
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0" stopColor="#5a2f5e" />
             <stop offset="1" stopColor="#3b2147" />
           </linearGradient>
@@ -131,7 +167,14 @@ export const DuskScene = () => {
         <rect width={W} height={H} fill={`url(#${id("sky")})`} />
         <g fill="#fff">
           {STARS.map((s, i) => (
-            <circle key={i} cx={s.x} cy={s.y} r={s.r} opacity={s.opacity} className={s.twinkles ? "motion-safe:animate-pulse" : undefined} />
+            <circle
+              key={i}
+              cx={s.x}
+              cy={s.y}
+              r={s.r}
+              opacity={s.opacity}
+              className={s.twinkles ? "motion-safe:animate-pulse" : undefined}
+            />
           ))}
         </g>
         {/* Thin clouds catching the last light. */}
@@ -149,8 +192,14 @@ export const DuskScene = () => {
 
       <Layer drift={24}>
         {/* Hazy far hills, then the two headlands down to the water. */}
-        <path d="M0 720 L120 690 L230 706 L330 676 L430 700 L500 694 L560 772 L0 772 Z" fill={`url(#${id("far")})`} />
-        <path d="M900 772 L940 704 L1030 684 L1130 700 L1240 668 L1340 690 L1440 676 V772 Z" fill={`url(#${id("far")})`} />
+        <path
+          d="M0 720 L120 690 L230 706 L330 676 L430 700 L500 694 L560 772 L0 772 Z"
+          fill={`url(#${id("far")})`}
+        />
+        <path
+          d="M900 772 L940 704 L1030 684 L1130 700 L1240 668 L1340 690 L1440 676 V772 Z"
+          fill={`url(#${id("far")})`}
+        />
         <rect y={HORIZON} width={W} height={H - HORIZON} fill={`url(#${id("sea")})`} />
         <path d={`M560 ${HORIZON} H880`} stroke="#ffd29a" strokeOpacity="0.55" strokeWidth="1.5" />
         <g fill="#ffe2b0">
@@ -163,25 +212,52 @@ export const DuskScene = () => {
               height="1.6"
               rx="0.8"
               opacity={reduced ? 0.55 : undefined}
-              style={reduced ? undefined : { animation: `landing-shimmer 3.2s ease-in-out ${g.delay}s infinite` }}
+              style={
+                reduced
+                  ? undefined
+                  : { animation: `landing-shimmer 3.2s ease-in-out ${g.delay}s infinite` }
+              }
             />
           ))}
         </g>
-        <path d="M0 780 C80 770 160 778 250 784 C330 790 400 772 470 770 L520 900 H0 Z" fill="#231733" />
-        <path d="M1440 770 C1360 762 1280 774 1200 778 C1120 782 1060 768 980 770 L920 900 H1440 Z" fill="#231733" />
+        <path
+          d="M0 780 C80 770 160 778 250 784 C330 790 400 772 470 770 L520 900 H0 Z"
+          fill="#231733"
+        />
+        <path
+          d="M1440 770 C1360 762 1280 774 1200 778 C1120 782 1060 768 980 770 L920 900 H1440 Z"
+          fill="#231733"
+        />
         <path d="M0 850 C120 826 240 836 380 846 L430 900 H0 Z" fill="#141210" />
         <path d="M1440 842 C1320 822 1200 830 1060 842 L1010 900 H1440 Z" fill="#141210" />
       </Layer>
 
       <Layer drift={0}>
         {[LEFT_ROUTE, RIGHT_ROUTE].map((d) => (
-          <path key={d} d={d} fill="none" stroke="#fcd9a0" strokeOpacity="0.85" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="0.5 10" />
+          <path
+            key={d}
+            d={d}
+            fill="none"
+            stroke="#fcd9a0"
+            strokeOpacity="0.85"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray="0.5 10"
+          />
         ))}
         {STOPS.map((s) => (
           <g key={s.name}>
             <circle cx={s.x} cy={s.y} r="16" fill={`url(#${id("halo")})`} />
             <circle cx={s.x} cy={s.y} r="4.5" fill="#fde68a" stroke="#141210" strokeWidth="2" />
-            <text x={s.x} y={s.y - 16} textAnchor="middle" className="font-serif" fontSize="16" fill="#fff" fillOpacity="0.78">
+            <text
+              x={s.x}
+              y={s.y - 16}
+              textAnchor="middle"
+              className="font-serif"
+              fontSize="16"
+              fill="#fff"
+              fillOpacity="0.78"
+            >
               {s.name}
             </text>
           </g>
@@ -195,7 +271,10 @@ export const DuskScene = () => {
         )}
       </Layer>
 
-      <div className="absolute inset-0 opacity-[0.08] mix-blend-overlay" style={{ backgroundImage: GRAIN }} />
+      <div
+        className="absolute inset-0 opacity-[0.08] mix-blend-overlay"
+        style={{ backgroundImage: GRAIN }}
+      />
       {/* The scene fades into the page under the player. */}
       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[#141210]" />
     </div>

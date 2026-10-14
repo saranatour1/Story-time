@@ -1,7 +1,23 @@
 import { MoveHorizontalIcon } from "lucide-react";
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AuthImage, AuthVideo } from "@/components/auth-image";
-import { atEdge, clampIndex, nextIndex, picturesOf, tapDelta, tiltOf, wordsOf } from "@/components/story/photo-deck-math";
+import {
+  atEdge,
+  clampIndex,
+  nextIndex,
+  picturesOf,
+  tapDelta,
+  tiltOf,
+  wordsOf,
+} from "@/components/story/photo-deck-math";
 import type { Stop } from "@/lib/story-steps";
 import { isForward, SWIPE_PX, type SwipeDirection, useSwipeSurface } from "@/lib/use-swipe";
 import { cn } from "@/lib/utils";
@@ -53,12 +69,20 @@ export const PhotoDeck = forwardRef<
     // The picture now on top, so the scene can wash itself in its colours.
     onIndexChange?(index: number): void;
   }
->(function PhotoDeck({ stop, active, autoplayMs, reduced, onEdge, onInteract: interacted, onIndexChange }, ref) {
+>(function PhotoDeck(
+  { stop, active, autoplayMs, reduced, onEdge, onInteract: interacted, onIndexChange },
+  ref,
+) {
   const media = useMemo(() => picturesOf(stop), [stop]);
   const words = useMemo(() => wordsOf(stop), [stop]);
   // A line or two is set large, so a short note fills its page; a long one smaller.
   const written = words.reduce((n, b) => n + b.text.length, 0);
-  const wordSize = written < 90 ? "text-2xl sm:text-4xl" : written < 240 ? "text-xl sm:text-3xl" : "text-lg sm:text-2xl";
+  const wordSize =
+    written < 90
+      ? "text-2xl sm:text-4xl"
+      : written < 240
+        ? "text-xl sm:text-3xl"
+        : "text-lg sm:text-2xl";
   const count = media.length;
   const root = useRef<HTMLDivElement>(null);
   const cards = useRef(new Map<number, HTMLDivElement>());
@@ -158,10 +182,16 @@ export const PhotoDeck = forwardRef<
     el.style.willChange = "";
     el.style.transform = REST;
     if (!reduced) {
-      el.animate([{ transform: now.transform, opacity: now.opacity }, { transform: REST, opacity: "1" }], {
-        duration: SETTLE_MS,
-        easing: SPRING,
-      });
+      el.animate(
+        [
+          { transform: now.transform, opacity: now.opacity },
+          { transform: REST, opacity: "1" },
+        ],
+        {
+          duration: SETTLE_MS,
+          easing: SPRING,
+        },
+      );
     }
   };
 
@@ -245,12 +275,19 @@ export const PhotoDeck = forwardRef<
         if (i === aim.current) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150 });
         continue;
       }
-      const was = enter && enter.index === i ? { transform: FLY[enter.dir], opacity: "1" } : start.get(i);
+      const was =
+        enter && enter.index === i ? { transform: FLY[enter.dir], opacity: "1" } : start.get(i);
       if (!was || (was.transform === now.transform && was.opacity === now.opacity)) continue;
-      el.animate([{ transform: was.transform, opacity: was.opacity }, { transform: now.transform, opacity: now.opacity }], {
-        duration: FLIGHT_MS,
-        easing: "ease-out",
-      });
+      el.animate(
+        [
+          { transform: was.transform, opacity: was.opacity },
+          { transform: now.transform, opacity: now.opacity },
+        ],
+        {
+          duration: FLIGHT_MS,
+          easing: "ease-out",
+        },
+      );
     }
   }, [index]);
 
@@ -264,7 +301,9 @@ export const PhotoDeck = forwardRef<
   };
 
   // The top three are built, plus the card on its way out; the rest wait.
-  const shown = [...new Set([index - 1, index, index + 1, index + 2, ...flying.map((f) => f.index)])]
+  const shown = [
+    ...new Set([index - 1, index, index + 1, index + 2, ...flying.map((f) => f.index)]),
+  ]
     .filter((i) => i >= 0 && i < count)
     .sort((a, b) => a - b);
 
@@ -288,14 +327,22 @@ export const PhotoDeck = forwardRef<
           {words.length > 0 ? (
             <div className="space-y-4">
               {words.map((b, i) => (
-                <p key={i} className={cn("leading-relaxed whitespace-pre-wrap text-pretty sm:leading-relaxed", wordSize)}>
+                <p
+                  key={i}
+                  className={cn(
+                    "leading-relaxed whitespace-pre-wrap text-pretty sm:leading-relaxed",
+                    wordSize,
+                  )}
+                >
                   {b.type === "feeling" && b.mood ? `${b.mood} ` : ""}
                   {b.text}
                 </p>
               ))}
             </div>
           ) : (
-            <p className="text-center text-sm text-stone-500">Nothing written down here, just the place.</p>
+            <p className="text-center text-sm text-stone-500">
+              Nothing written down here, just the place.
+            </p>
           )}
         </div>
       ) : (
@@ -333,7 +380,14 @@ export const PhotoDeck = forwardRef<
                         <AuthVideo mediaId={pic.mediaId} label={`Video ${i + 1}`} />
                       </div>
                     )}
-                    {(live || leaving) && pic?.type === "photo" && <AuthImage mediaId={pic.mediaId} alt={`Picture ${i + 1}`} variant="full" sizes="100vw" />}
+                    {(live || leaving) && pic?.type === "photo" && (
+                      <AuthImage
+                        mediaId={pic.mediaId}
+                        alt={`Picture ${i + 1}`}
+                        variant="full"
+                        sizes="100vw"
+                      />
+                    )}
                   </div>
                 </div>
               );
@@ -343,7 +397,9 @@ export const PhotoDeck = forwardRef<
             <p className="pointer-events-none absolute bottom-16 z-50 flex items-center gap-2 rounded-full bg-black/65 px-3.5 py-1.5 text-xs text-white shadow-lg backdrop-blur-sm animate-in fade-in slide-in-from-bottom-1 duration-500 sm:bottom-20">
               <MoveHorizontalIcon aria-hidden className="size-4" />
               <span className="pointer-coarse:hidden">Drag a picture aside, or press ← →</span>
-              <span className="hidden pointer-coarse:inline">Swipe the picture to see the next</span>
+              <span className="hidden pointer-coarse:inline">
+                Swipe the picture to see the next
+              </span>
             </p>
           )}
           <p className="sr-only" aria-live="polite">
@@ -358,7 +414,10 @@ export const PhotoDeck = forwardRef<
                   aria-label={`Show picture ${i + 1} of ${count}`}
                   aria-pressed={i === index}
                   onClick={() => jump(i)}
-                  className={cn("size-2.5 rounded-full transition-colors", i === index ? "bg-[#f3e9d6]" : "bg-white/30 hover:bg-white/60")}
+                  className={cn(
+                    "size-2.5 rounded-full transition-colors",
+                    i === index ? "bg-[#f3e9d6]" : "bg-white/30 hover:bg-white/60",
+                  )}
                 />
               ))}
               <span className="ml-2 text-xs text-white/50">

@@ -1,6 +1,15 @@
 import { useId, useSyncExternalStore } from "react";
 import { transportOf } from "@/components/event/transport";
-import { layoutPlaces, legDuration, legPath, placeNames, sheetSize, type DrawnName, type MapPoint, type Orientation } from "@/lib/story-map";
+import {
+  layoutPlaces,
+  legDuration,
+  legPath,
+  placeNames,
+  sheetSize,
+  type DrawnName,
+  type MapPoint,
+  type Orientation,
+} from "@/lib/story-map";
 import type { StoryStep } from "@/lib/story-steps";
 
 type Leg = Extract<StoryStep, { kind: "travel" }>;
@@ -63,16 +72,29 @@ export const MapScene = ({
     }
   }
   // Names that would crowd another are left out; their places keep a dot.
-  const names = placeNames(points, { sheet: w, portrait: orientation === "portrait", active: leg.to, origin: places[0], visited });
+  const names = placeNames(points, {
+    sheet: w,
+    portrait: orientation === "portrait",
+    active: leg.to,
+    origin: places[0],
+    visited,
+  });
 
   return (
-    <section aria-label={`${transport?.phrase ?? "Travelling"} from ${leg.from} to ${leg.to}`} className="flex flex-1 flex-col items-center justify-center gap-4 px-4">
+    <section
+      aria-label={`${transport?.phrase ?? "Travelling"} from ${leg.from} to ${leg.to}`}
+      className="flex flex-1 flex-col items-center justify-center gap-4 px-4"
+    >
       <p className="text-xs tracking-[0.25em] text-amber-200/80 uppercase">
         {Icon && <Icon aria-hidden className="mr-1.5 inline size-3.5 align-[-2px]" />}
         {transport?.phrase}
       </p>
       <h2 className="font-serif text-2xl font-semibold tracking-tight text-balance text-center sm:text-3xl">
-        {leg.from} <span aria-hidden className="text-white/40">→</span> {leg.to}
+        {leg.from}{" "}
+        <span aria-hidden className="text-white/40">
+          →
+        </span>{" "}
+        {leg.to}
       </h2>
       {/* As wide as fits, but never taller than 60% of the screen. */}
       <svg
@@ -84,7 +106,13 @@ export const MapScene = ({
       >
         <defs>
           <pattern id={`grid-${uid}`} width="5" height="5" patternUnits="userSpaceOnUse">
-            <path d="M 5 0 L 0 0 0 5" fill="none" stroke={INK} strokeOpacity="0.08" strokeWidth="0.15" />
+            <path
+              d="M 5 0 L 0 0 0 5"
+              fill="none"
+              stroke={INK}
+              strokeOpacity="0.08"
+              strokeWidth="0.15"
+            />
           </pattern>
           <filter id={`paper-${uid}`}>
             <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="noise" />
@@ -97,7 +125,16 @@ export const MapScene = ({
         </defs>
         <rect width={w} height={h} fill={PAPER} filter={`url(#paper-${uid})`} />
         <rect width={w} height={h} fill={`url(#grid-${uid})`} />
-        <rect x="1" y="1" width={w - 2} height={h - 2} fill="none" stroke={INK} strokeOpacity="0.4" strokeWidth="0.3" />
+        <rect
+          x="1"
+          y="1"
+          width={w - 2}
+          height={h - 2}
+          fill="none"
+          stroke={INK}
+          strokeOpacity="0.4"
+          strokeWidth="0.3"
+        />
         <Compass x={w - 7} y={7} />
 
         {legs.slice(0, current).map((l, i) => {
@@ -120,7 +157,15 @@ export const MapScene = ({
           strokeDashoffset={animate || idle ? 1 : 0}
         >
           {animate && (
-            <animate attributeName="stroke-dashoffset" from="1" to="0" dur={`${seconds}s`} fill="freeze" calcMode="spline" keySplines="0.4 0 0.2 1" />
+            <animate
+              attributeName="stroke-dashoffset"
+              from="1"
+              to="0"
+              dur={`${seconds}s`}
+              fill="freeze"
+              calcMode="spline"
+              keySplines="0.4 0 0.2 1"
+            />
           )}
         </path>
 
@@ -138,9 +183,23 @@ export const MapScene = ({
         {Icon && (
           <g>
             {animate ? (
-              <animateMotion dur={`${seconds}s`} fill="freeze" path={d} calcMode="spline" keySplines="0.4 0 0.2 1" keyTimes="0;1" keyPoints="0;1" />
+              <animateMotion
+                dur={`${seconds}s`}
+                fill="freeze"
+                path={d}
+                calcMode="spline"
+                keySplines="0.4 0 0.2 1"
+                keyTimes="0;1"
+                keyPoints="0;1"
+              />
             ) : (
-              <animateMotion dur="0.01s" fill="freeze" path={d} keyPoints={idle ? "0;0" : "1;1"} keyTimes="0;1" />
+              <animateMotion
+                dur="0.01s"
+                fill="freeze"
+                path={d}
+                keyPoints={idle ? "0;0" : "1;1"}
+                keyTimes="0;1"
+              />
             )}
             <circle r="3.2" fill={PAPER} stroke={ACCENT} strokeWidth="0.4" />
             <Icon x={-2} y={-2} width={4} height={4} color={ACCENT} strokeWidth={2.2} />
@@ -152,34 +211,117 @@ export const MapScene = ({
 };
 
 // The leg itself, styled by how it was travelled.
-const LegPath = ({ d, transport, faint = false }: { d: string; transport: string; faint?: boolean }) => {
+const LegPath = ({
+  d,
+  transport,
+  faint = false,
+}: {
+  d: string;
+  transport: string;
+  faint?: boolean;
+}) => {
   const opacity = faint ? 0.25 : 0.7;
   switch (transport) {
     case "walk":
-      return <path d={d} fill="none" stroke={INK} strokeOpacity={opacity} strokeWidth="0.6" strokeLinecap="round" strokeDasharray="0.1 1.2" />;
+      return (
+        <path
+          d={d}
+          fill="none"
+          stroke={INK}
+          strokeOpacity={opacity}
+          strokeWidth="0.6"
+          strokeLinecap="round"
+          strokeDasharray="0.1 1.2"
+        />
+      );
     case "bike":
-      return <path d={d} fill="none" stroke={INK} strokeOpacity={opacity} strokeWidth="0.4" strokeDasharray="1.5 1" />;
+      return (
+        <path
+          d={d}
+          fill="none"
+          stroke={INK}
+          strokeOpacity={opacity}
+          strokeWidth="0.4"
+          strokeDasharray="1.5 1"
+        />
+      );
     case "train":
       return (
         <>
-          <path d={d} fill="none" stroke={INK} strokeOpacity={opacity} strokeWidth="1.4" strokeLinecap="round" />
-          <path d={d} fill="none" stroke={PAPER} strokeOpacity={faint ? 0.5 : 0.9} strokeWidth="0.8" strokeDasharray="0.5 1.2" />
+          <path
+            d={d}
+            fill="none"
+            stroke={INK}
+            strokeOpacity={opacity}
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+          <path
+            d={d}
+            fill="none"
+            stroke={PAPER}
+            strokeOpacity={faint ? 0.5 : 0.9}
+            strokeWidth="0.8"
+            strokeDasharray="0.5 1.2"
+          />
         </>
       );
     case "car":
     case "bus":
       return (
         <>
-          <path d={d} fill="none" stroke={INK} strokeOpacity={opacity} strokeWidth="1.3" strokeLinecap="round" />
-          <path d={d} fill="none" stroke={PAPER} strokeOpacity={faint ? 0.5 : 0.9} strokeWidth="0.15" strokeDasharray="1.2 1" />
+          <path
+            d={d}
+            fill="none"
+            stroke={INK}
+            strokeOpacity={opacity}
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
+          <path
+            d={d}
+            fill="none"
+            stroke={PAPER}
+            strokeOpacity={faint ? 0.5 : 0.9}
+            strokeWidth="0.15"
+            strokeDasharray="1.2 1"
+          />
         </>
       );
     case "plane":
-      return <path d={d} fill="none" stroke={INK} strokeOpacity={opacity} strokeWidth="0.35" strokeDasharray="2 1.2" />;
+      return (
+        <path
+          d={d}
+          fill="none"
+          stroke={INK}
+          strokeOpacity={opacity}
+          strokeWidth="0.35"
+          strokeDasharray="2 1.2"
+        />
+      );
     case "boat":
-      return <path d={d} fill="none" stroke="#1d4ed8" strokeOpacity={opacity} strokeWidth="0.5" strokeLinecap="round" strokeDasharray="0.1 1" />;
+      return (
+        <path
+          d={d}
+          fill="none"
+          stroke="#1d4ed8"
+          strokeOpacity={opacity}
+          strokeWidth="0.5"
+          strokeLinecap="round"
+          strokeDasharray="0.1 1"
+        />
+      );
     default:
-      return <path d={d} fill="none" stroke={INK} strokeOpacity={opacity} strokeWidth="0.4" strokeDasharray="1 1" />;
+      return (
+        <path
+          d={d}
+          fill="none"
+          stroke={INK}
+          strokeOpacity={opacity}
+          strokeWidth="0.4"
+          strokeDasharray="1 1"
+        />
+      );
   }
 };
 
@@ -201,9 +343,25 @@ const Place = ({
     <g>
       {active && <circle cx={p.x} cy={p.y} r="2.2" fill={ACCENT} fillOpacity="0.15" />}
       {origin ? (
-        <rect x={p.x - 1} y={p.y - 1} width="2" height="2" fill={visited ? INK : PAPER} stroke={INK} strokeWidth="0.3" transform={`rotate(45 ${p.x} ${p.y})`} />
+        <rect
+          x={p.x - 1}
+          y={p.y - 1}
+          width="2"
+          height="2"
+          fill={visited ? INK : PAPER}
+          stroke={INK}
+          strokeWidth="0.3"
+          transform={`rotate(45 ${p.x} ${p.y})`}
+        />
       ) : (
-        <circle cx={p.x} cy={p.y} r="1.1" fill={visited ? (active ? ACCENT : INK) : PAPER} stroke={active ? ACCENT : INK} strokeWidth="0.3" />
+        <circle
+          cx={p.x}
+          cy={p.y}
+          r="1.1"
+          fill={visited ? (active ? ACCENT : INK) : PAPER}
+          stroke={active ? ACCENT : INK}
+          strokeWidth="0.3"
+        />
       )}
       {name && (
         <text
@@ -228,8 +386,21 @@ const Compass = ({ x, y }: { x: number; y: number }) => {
   return (
     <g stroke={INK} strokeOpacity="0.5" fill="none" strokeWidth="0.25">
       <circle cx={x} cy={y} r="3.5" />
-      <path d={`M ${x} ${y - 3} L ${x + 0.9} ${y} L ${x} ${y + 3} L ${x - 0.9} ${y} Z`} fill={INK} fillOpacity="0.5" />
-      <text x={x} y={y - 4.2} textAnchor="middle" fontSize="1.8" fill={INK} fillOpacity="0.6" stroke="none" fontFamily="ui-serif, Georgia, serif">
+      <path
+        d={`M ${x} ${y - 3} L ${x + 0.9} ${y} L ${x} ${y + 3} L ${x - 0.9} ${y} Z`}
+        fill={INK}
+        fillOpacity="0.5"
+      />
+      <text
+        x={x}
+        y={y - 4.2}
+        textAnchor="middle"
+        fontSize="1.8"
+        fill={INK}
+        fillOpacity="0.6"
+        stroke="none"
+        fontFamily="ui-serif, Georgia, serif"
+      >
         N
       </text>
     </g>

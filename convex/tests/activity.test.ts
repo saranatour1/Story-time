@@ -31,8 +31,12 @@ describe("activity badge", () => {
   test("counts new moments, pages and guestbook notes, then clears when opened", async () => {
     const { t, owner, viewer, stranger, eventId } = await setup();
     expect(await owner.query(api.api.changes.unreadCount, { eventId })).toBe(0);
-    await expect(stranger.query(api.api.changes.unreadCount, { eventId })).rejects.toThrow(/Event not found/);
-    await expect(viewer.query(api.api.changes.unreadCount, { eventId })).rejects.toThrow(/Event not found/);
+    await expect(stranger.query(api.api.changes.unreadCount, { eventId })).rejects.toThrow(
+      /Event not found/,
+    );
+    await expect(viewer.query(api.api.changes.unreadCount, { eventId })).rejects.toThrow(
+      /Event not found/,
+    );
 
     await owner.mutation(api.api.moments.create, {
       eventId,
@@ -59,8 +63,12 @@ describe("activity badge", () => {
     expect(changes.some((c) => c.entity === "guestNote" && c.action === "create")).toBe(true);
     expect(changes.some((c) => c.entity === "page" && c.action === "create")).toBe(true);
 
-    await expect(stranger.mutation(api.api.guestNotes.leave, { eventId, text: "Hello" })).rejects.toThrow(/Event not found/);
-    await expect(viewer.mutation(api.api.guestNotes.leave, { eventId, text: "   " })).rejects.toThrow(/500/);
+    await expect(
+      stranger.mutation(api.api.guestNotes.leave, { eventId, text: "Hello" }),
+    ).rejects.toThrow(/Event not found/);
+    await expect(
+      viewer.mutation(api.api.guestNotes.leave, { eventId, text: "   " }),
+    ).rejects.toThrow(/500/);
   });
 
   test("a burst of other changes does not hide a new note", async () => {

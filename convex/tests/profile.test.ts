@@ -30,30 +30,32 @@ describe("profile fields", () => {
       email: " Sara@Example.COM ",
     });
     const me = await a.query(api.api.users.getCurrentUser, {});
-    expect(me).toMatchObject({ username: "sara_01", pendingEmail: "sara@example.com", emailVerified: false });
+    expect(me).toMatchObject({
+      username: "sara_01",
+      pendingEmail: "sara@example.com",
+      emailVerified: false,
+    });
     expect(me?.email).toBeUndefined();
   });
 
   test("rejects bad usernames and emails with a field", async () => {
     const { a } = await setup();
     for (const username of ["ab", "has space", "UPPER-dash", "x".repeat(21)]) {
-      await expect(
-        a.mutation(api.api.users.updateSettings, { username }),
-      ).rejects.toThrow(/username/);
+      await expect(a.mutation(api.api.users.updateSettings, { username })).rejects.toThrow(
+        /username/,
+      );
     }
     for (const email of ["nope", "a@b", "a b@c.com", `${"x".repeat(250)}@a.co`]) {
-      await expect(
-        a.mutation(api.api.users.updateSettings, { email }),
-      ).rejects.toThrow(/email/);
+      await expect(a.mutation(api.api.users.updateSettings, { email })).rejects.toThrow(/email/);
     }
   });
 
   test("usernames are unique, case-insensitively, but you can keep your own", async () => {
     const { a, b } = await setup();
     await a.mutation(api.api.users.updateSettings, { username: "sara" });
-    await expect(
-      b.mutation(api.api.users.updateSettings, { username: "SARA" }),
-    ).rejects.toThrow(/taken/);
+    await expect(b.mutation(api.api.users.updateSettings, { username: "SARA" })).rejects.toThrow(
+      /taken/,
+    );
     await a.mutation(api.api.users.updateSettings, { username: "sara" });
   });
 
@@ -83,9 +85,7 @@ describe("profile fields", () => {
 
   test("signed-out callers are rejected", async () => {
     const { t } = await setup();
-    await expect(
-      t.mutation(api.api.users.updateSettings, { username: "sara" }),
-    ).rejects.toThrow();
+    await expect(t.mutation(api.api.users.updateSettings, { username: "sara" })).rejects.toThrow();
   });
 
   test("there is no password field on users", async () => {
@@ -144,9 +144,7 @@ describe("profile images", () => {
       b.mutation(api.api.media.setAvatar, { mediaId: reserved.mediaId }),
     ).rejects.toThrow(/available/);
     await a.mutation(api.api.media.setAvatar, { mediaId: reserved.mediaId });
-    expect((await a.query(api.api.users.getCurrentUser, {}))?.imageMediaId).toBe(
-      reserved.mediaId,
-    );
+    expect((await a.query(api.api.users.getCurrentUser, {}))?.imageMediaId).toBe(reserved.mediaId);
   });
 
   test("an experience photo can't be used as an avatar", async () => {
@@ -158,9 +156,9 @@ describe("profile images", () => {
       mime: "image/png",
     });
     await a.mutation(api.api.media.confirmUpload, { mediaId: photo.mediaId });
-    await expect(
-      a.mutation(api.api.media.setAvatar, { mediaId: photo.mediaId }),
-    ).rejects.toThrow(/available/);
+    await expect(a.mutation(api.api.media.setAvatar, { mediaId: photo.mediaId })).rejects.toThrow(
+      /available/,
+    );
   });
 
   test("replacing returns the old image; clearing returns the current one", async () => {

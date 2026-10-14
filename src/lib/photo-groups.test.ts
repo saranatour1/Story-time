@@ -1,17 +1,33 @@
 import { describe, expect, test } from "vitest";
-import { dayKey, distanceMeters, groupPhotos, type Geo, localClock, type PhotoPoint, toStop } from "./photo-groups";
+import {
+  dayKey,
+  distanceMeters,
+  groupPhotos,
+  type Geo,
+  localClock,
+  type PhotoPoint,
+  toStop,
+} from "./photo-groups";
 
 // Local times, so day boundaries hold in any time zone.
 const at = (day: number, h: number, m = 0) => new Date(2026, 6, day, h, m).getTime();
 let n = 0;
-const photo = (takenAt: number, geo?: Geo, offsetMinutes?: number): PhotoPoint => ({ id: `p${String(++n).padStart(3, "0")}`, takenAt, offsetMinutes, geo });
+const photo = (takenAt: number, geo?: Geo, offsetMinutes?: number): PhotoPoint => ({
+  id: `p${String(++n).padStart(3, "0")}`,
+  takenAt,
+  offsetMinutes,
+  geo,
+});
 
 // Roughly 0.009° of latitude is 1 km.
 const lisbon: Geo = { lat: 38.7, lng: -9.14 };
 const north = (km: number): Geo => ({ lat: lisbon.lat + km * 0.009, lng: lisbon.lng });
 
 const shape = (days: ReturnType<typeof groupPhotos>) =>
-  days.map((d) => ({ day: d.day, moments: d.moments.map((stops) => stops.map((s) => s.photos.length)) }));
+  days.map((d) => ({
+    day: d.day,
+    moments: d.moments.map((stops) => stops.map((s) => s.photos.length)),
+  }));
 
 describe("groupPhotos", () => {
   test("nothing in, nothing out", () => {
@@ -19,7 +35,12 @@ describe("groupPhotos", () => {
   });
 
   test("starts a stop after a gap of more than 45 minutes", () => {
-    const days = groupPhotos([photo(at(10, 9)), photo(at(10, 9, 45)), photo(at(10, 10, 31)), photo(at(10, 10, 40))]);
+    const days = groupPhotos([
+      photo(at(10, 9)),
+      photo(at(10, 9, 45)),
+      photo(at(10, 10, 31)),
+      photo(at(10, 10, 40)),
+    ]);
     expect(shape(days)).toEqual([{ day: "2026-07-10", moments: [[2, 2]] }]);
     expect(days[0]!.moments[0]![1]!.startsAt).toBe(at(10, 10, 31));
   });
@@ -38,7 +59,11 @@ describe("groupPhotos", () => {
   test("days follow the camera's zone when it recorded one, not the browser's", () => {
     // Tokyo (+09:00): 08:00 and 23:30 on the 10th, 00:30 on the 11th.
     const tokyo = (day: number, h: number, m = 0) => Date.UTC(2026, 6, day, h - 9, m);
-    const days = groupPhotos([photo(tokyo(10, 8), undefined, 540), photo(tokyo(10, 23, 30), undefined, 540), photo(tokyo(11, 0, 30), undefined, 540)]);
+    const days = groupPhotos([
+      photo(tokyo(10, 8), undefined, 540),
+      photo(tokyo(10, 23, 30), undefined, 540),
+      photo(tokyo(11, 0, 30), undefined, 540),
+    ]);
     expect(shape(days)).toEqual([
       { day: "2026-07-10", moments: [[1, 1]] },
       { day: "2026-07-11", moments: [[1]] },
@@ -56,7 +81,9 @@ describe("groupPhotos", () => {
   test("a day with more than 10 stops merges the neighbours closest in time", () => {
     // 12 stops an hour apart, except two that follow their neighbour by 50
     // and 46 minutes.
-    const times = [0, 60, 120, 170, 230, 290, 350, 410, 456, 516, 576, 636].map((m) => at(10, 7) + m * 60_000);
+    const times = [0, 60, 120, 170, 230, 290, 350, 410, 456, 516, 576, 636].map(
+      (m) => at(10, 7) + m * 60_000,
+    );
     const days = groupPhotos(times.map((t) => photo(t)));
     const stops = days[0]!.moments[0]!;
     expect(days[0]!.moments).toHaveLength(1);
@@ -82,9 +109,19 @@ describe("groupPhotos", () => {
 
 describe("toStop", () => {
   test("its time is the first photo's and its place the median location", () => {
-    const stop = toStop([photo(at(10, 10), north(0.2)), photo(at(10, 9), lisbon), photo(at(10, 11), north(0.1)), photo(at(10, 12))]);
+    const stop = toStop([
+      photo(at(10, 10), north(0.2)),
+      photo(at(10, 9), lisbon),
+      photo(at(10, 11), north(0.1)),
+      photo(at(10, 12)),
+    ]);
     expect(stop.startsAt).toBe(at(10, 9));
-    expect(stop.photos.map((p) => p.takenAt)).toEqual([at(10, 9), at(10, 10), at(10, 11), at(10, 12)]);
+    expect(stop.photos.map((p) => p.takenAt)).toEqual([
+      at(10, 9),
+      at(10, 10),
+      at(10, 11),
+      at(10, 12),
+    ]);
     expect(stop.geo).toEqual(north(0.1));
   });
 

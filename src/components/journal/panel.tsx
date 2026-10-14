@@ -1,7 +1,28 @@
-import { ArrowDownToLineIcon, ArrowUpToLineIcon, CopyIcon, ImagePlusIcon, LinkIcon, LoaderCircleIcon, LockIcon, PencilIcon, PenLineIcon, ScissorsIcon, SparklesIcon, Trash2Icon, UnlockIcon } from "lucide-react";
+import {
+  ArrowDownToLineIcon,
+  ArrowUpToLineIcon,
+  CopyIcon,
+  ImagePlusIcon,
+  LinkIcon,
+  LoaderCircleIcon,
+  LockIcon,
+  PencilIcon,
+  PenLineIcon,
+  ScissorsIcon,
+  SparklesIcon,
+  Trash2Icon,
+  UnlockIcon,
+} from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
-import { DECOS, type JournalElement, NOTE_STYLES, PAPERS, PRINT_STYLES, TITLE_STYLES } from "../../../convex/lib/journal";
+import {
+  DECOS,
+  type JournalElement,
+  NOTE_STYLES,
+  PAPERS,
+  PRINT_STYLES,
+  TITLE_STYLES,
+} from "../../../convex/lib/journal";
 import type { MomentView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,14 +53,39 @@ const Thumb = ({ mediaId, className }: { mediaId: string; className?: string }) 
   const [ref, seen] = useWhenSeen();
   const { url } = useMediaUrl(seen ? mediaId : undefined, "thumb");
   return (
-    <span ref={ref} className={cn("block size-full", !url && "animate-pulse bg-stone-200", className)}>
-      {url && <img src={url} alt="" width={96} height={96} sizes="96px" loading="lazy" decoding="async" draggable={false} className="size-full object-cover" />}
+    <span
+      ref={ref}
+      className={cn("block size-full", !url && "animate-pulse bg-stone-200", className)}
+    >
+      {url && (
+        <img
+          src={url}
+          alt=""
+          width={96}
+          height={96}
+          sizes="96px"
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          className="size-full object-cover"
+        />
+      )}
     </span>
   );
 };
 
 // A small drawing of a style, to pick it by sight.
-const Sample = ({ children, label, on, onClick }: { children: ReactNode; label: string; on?: boolean; onClick: () => void }) => {
+const Sample = ({
+  children,
+  label,
+  on,
+  onClick,
+}: {
+  children: ReactNode;
+  label: string;
+  on?: boolean;
+  onClick: () => void;
+}) => {
   return (
     <button
       type="button"
@@ -57,16 +103,43 @@ const Sample = ({ children, label, on, onClick }: { children: ReactNode; label: 
   );
 };
 
-const sample = (kind: JournalElement["kind"], style: string, text?: string): JournalElement => ({ id: `sample-${kind}-${style}`, kind, style, text, x: 0, y: 0, w: 120, h: 50, rotation: 0, z: 0 });
+const sample = (kind: JournalElement["kind"], style: string, text?: string): JournalElement => ({
+  id: `sample-${kind}-${style}`,
+  kind,
+  style,
+  text,
+  x: 0,
+  y: 0,
+  w: 120,
+  h: 50,
+  rotation: 0,
+  z: 0,
+});
 
 // Draws a title, note or bit at a small size inside a sample.
 // `room` is how wide the sample is.
-const Mini = ({ e, w, h, room = 118 }: { e: JournalElement; w: number; h: number; room?: number }) => {
+const Mini = ({
+  e,
+  w,
+  h,
+  room = 118,
+}: {
+  e: JournalElement;
+  w: number;
+  h: number;
+  room?: number;
+}) => {
   const scale = Math.min(room / w, 56 / h);
   return (
     <div style={{ width: w * scale, height: h * scale }}>
       <div style={{ width: w, height: h, transform: `scale(${scale})`, transformOrigin: "0 0" }}>
-        {e.kind === "title" ? <Title e={{ ...e, w, h }} ink={INK} /> : e.kind === "note" ? <Note e={{ ...e, w, h }} /> : <Deco e={{ ...e, w, h }} />}
+        {e.kind === "title" ? (
+          <Title e={{ ...e, w, h }} ink={INK} />
+        ) : e.kind === "note" ? (
+          <Note e={{ ...e, w, h }} />
+        ) : (
+          <Deco e={{ ...e, w, h }} />
+        )}
       </div>
     </div>
   );
@@ -74,7 +147,10 @@ const Mini = ({ e, w, h, room = 118 }: { e: JournalElement; w: number; h: number
 
 // ---- What to add -----------------------------------------------------------------------
 
-const photosOf = (m: MomentView): string[] => [m.blocks, ...m.stops.map((s) => s.blocks)].flat().flatMap((b) => (b.type === "photo" ? [b.mediaId] : []));
+const photosOf = (m: MomentView): string[] =>
+  [m.blocks, ...m.stops.map((s) => s.blocks)]
+    .flat()
+    .flatMap((b) => (b.type === "photo" ? [b.mediaId] : []));
 
 export const AddTray = ({
   moments,
@@ -105,28 +181,51 @@ export const AddTray = ({
   const days = groupByDay(moments);
   // What can be ranked: every place, every moment, or one moment's stops.
   const placeName = (p?: string) => p?.split(",")[0]!.trim() || undefined;
-  const placesOf = (m: MomentView) => [m.place, ...m.stops.map((s) => s.place)].map(placeName).filter((p): p is string => p !== undefined);
+  const placesOf = (m: MomentView) =>
+    [m.place, ...m.stops.map((s) => s.place)]
+      .map(placeName)
+      .filter((p): p is string => p !== undefined);
   const asItems = (names: string[]): TierItem[] => [...new Set(names)].map((text) => ({ text }));
   const tiers = [
     tierIdea("places", "every place we went", asItems(moments.flatMap(placesOf))),
-    tierIdea("moments", "every moment", moments.map((m) => ({ text: firstLine(m) ?? "A moment", mediaId: photosOf(m)[0] }))),
-    ...moments.filter((m) => new Set(placesOf(m)).size >= 2).map((m) => tierIdea(m._id, `the stops in ${placesOf(m)[0]}`, asItems(placesOf(m)))),
+    tierIdea(
+      "moments",
+      "every moment",
+      moments.map((m) => ({ text: firstLine(m) ?? "A moment", mediaId: photosOf(m)[0] })),
+    ),
+    ...moments
+      .filter((m) => new Set(placesOf(m)).size >= 2)
+      .map((m) => tierIdea(m._id, `the stops in ${placesOf(m)[0]}`, asItems(placesOf(m)))),
   ];
   const photos = moments.flatMap(photosOf);
-  const mapped = moments.filter((m) => [m.geo, ...m.stops.map((s) => s.geo)].filter(Boolean).length >= 1);
+  const mapped = moments.filter(
+    (m) => [m.geo, ...m.stops.map((s) => s.geo)].filter(Boolean).length >= 1,
+  );
   return (
     <div>
       <Section title="Words">
         <div className="grid grid-cols-2 gap-1.5">
           {TITLE_STYLES.map((s) => (
-            <Sample key={s} label={`Add a ${TITLE_NAMES[s]} title`} onClick={() => onAdd({ kind: "title", style: s, text: "Our trip", w: 0, h: 0 })}>
-              <Mini e={sample("title", s, s === "label" || s === "stamp" ? "Hello" : "Trip")} w={240} h={100} />
+            <Sample
+              key={s}
+              label={`Add a ${TITLE_NAMES[s]} title`}
+              onClick={() => onAdd({ kind: "title", style: s, text: "Our trip", w: 0, h: 0 })}
+            >
+              <Mini
+                e={sample("title", s, s === "label" || s === "stamp" ? "Hello" : "Trip")}
+                w={240}
+                h={100}
+              />
             </Sample>
           ))}
         </div>
         <div className="grid grid-cols-2 gap-1.5 pt-1">
           {NOTE_STYLES.map((s) => (
-            <Sample key={s} label={`Add a ${NOTE_NAMES[s]} note`} onClick={() => onAdd({ kind: "note", style: s, text: "", w: 0, h: 0 })}>
+            <Sample
+              key={s}
+              label={`Add a ${NOTE_NAMES[s]} note`}
+              onClick={() => onAdd({ kind: "note", style: s, text: "", w: 0, h: 0 })}
+            >
               <Mini e={sample("note", s, "Dear diary, today we…")} w={260} h={140} />
             </Sample>
           ))}
@@ -146,7 +245,9 @@ export const AddTray = ({
                 <button
                   type="button"
                   aria-label="Put this photo on the page"
-                  onClick={() => onAdd({ kind: "photo", style: "polaroid", mediaId: id, w: 0, h: 0 })}
+                  onClick={() =>
+                    onAdd({ kind: "photo", style: "polaroid", mediaId: id, w: 0, h: 0 })
+                  }
                   className="block aspect-square w-full overflow-hidden rounded-sm border-[3px] border-[#fffdf6] shadow-sm transition hover:-rotate-2 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#c4552f] focus-visible:outline-none"
                 >
                   <Thumb mediaId={id} />
@@ -158,7 +259,13 @@ export const AddTray = ({
       </Section>
 
       <Section title={`Stickers · ${stickers.length}`}>
-        <Button size="sm" variant="outline" className="w-full" onClick={onCut} disabled={photos.length === 0}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full"
+          onClick={onCut}
+          disabled={photos.length === 0}
+        >
           <ScissorsIcon aria-hidden /> Cut out a sticker
         </Button>
         {stickers.length > 0 && (
@@ -171,7 +278,13 @@ export const AddTray = ({
                   onClick={() => onAdd({ kind: "sticker", mediaId: id, w: 0, h: 0 })}
                   className="grid aspect-square w-full place-items-center rounded-md bg-[#e9dfc8] p-1 transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-[#c4552f] focus-visible:outline-none"
                 >
-                  <span className="size-full" style={{ filter: "drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)" }}>
+                  <span
+                    className="size-full"
+                    style={{
+                      filter:
+                        "drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)",
+                    }}
+                  >
                     <Thumb mediaId={id} className="object-contain" />
                   </span>
                 </button>
@@ -193,7 +306,11 @@ export const AddTray = ({
       <Section title="Bits and pieces">
         <div className="grid grid-cols-3 gap-1.5">
           {DECOS.map((d) => (
-            <Sample key={d} label={`Add ${DECO_NAMES[d]}`} onClick={() => onAdd({ kind: "deco", style: d, text: WORDED[d], w: 0, h: 0 })}>
+            <Sample
+              key={d}
+              label={`Add ${DECO_NAMES[d]}`}
+              onClick={() => onAdd({ kind: "deco", style: d, text: WORDED[d], w: 0, h: 0 })}
+            >
               <Mini e={sample("deco", d, WORDED[d])} {...sizeOf("deco", d)} room={56} />
             </Sample>
           ))}
@@ -213,8 +330,22 @@ export const AddTray = ({
             setUrl("");
           }}
         >
-          <Input value={url} onChange={(e) => setUrl(e.target.value)} type="url" inputMode="url" placeholder="Paste a link" aria-label="A link to put on the page" className="h-8 bg-white/70 text-xs" />
-          <Button size="sm" variant="outline" type="submit" aria-label="Add the link" disabled={!url.trim()}>
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            type="url"
+            inputMode="url"
+            placeholder="Paste a link"
+            aria-label="A link to put on the page"
+            className="h-8 bg-white/70 text-xs"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            type="submit"
+            aria-label="Add the link"
+            disabled={!url.trim()}
+          >
             <LinkIcon aria-hidden />
           </Button>
         </form>
@@ -244,10 +375,18 @@ export const AddTray = ({
             <span className="block text-sm text-stone-800" style={{ fontFamily: FONTS.hand }}>
               What we did that day
             </span>
-            <span className="block text-[11px] text-stone-600">That day's moments in order, with its photos</span>
+            <span className="block text-[11px] text-stone-600">
+              That day's moments in order, with its photos
+            </span>
             <div className="flex flex-wrap gap-1 pt-1.5">
               {days.map((d) => (
-                <Button key={d.day} size="xs" variant="outline" className="bg-white/70" onClick={() => onIdea(dayIdea(d))}>
+                <Button
+                  key={d.day}
+                  size="xs"
+                  variant="outline"
+                  className="bg-white/70"
+                  onClick={() => onIdea(dayIdea(d))}
+                >
                   {d.label}
                 </Button>
               ))}
@@ -259,10 +398,18 @@ export const AddTray = ({
             <span className="block text-sm text-stone-800" style={{ fontFamily: FONTS.hand }}>
               Tier list
             </span>
-            <span className="block text-[11px] text-stone-600">Rows S to F; drag each one up into its row</span>
+            <span className="block text-[11px] text-stone-600">
+              Rows S to F; drag each one up into its row
+            </span>
             <div className="flex flex-wrap gap-1 pt-1.5">
               {tiers.map((idea) => (
-                <Button key={idea.id} size="xs" variant="outline" className="bg-white/70" onClick={() => onIdea(idea)}>
+                <Button
+                  key={idea.id}
+                  size="xs"
+                  variant="outline"
+                  className="bg-white/70"
+                  onClick={() => onIdea(idea)}
+                >
                   {idea.hint[0]!.toUpperCase() + idea.hint.slice(1)}
                 </Button>
               ))}
@@ -298,7 +445,10 @@ export const AddTray = ({
               aria-label={`${PAPER_LOOKS[p]!.name} paper`}
               aria-pressed={paper === p}
               onClick={() => onPaper(p)}
-              className={cn("aspect-[3/4] rounded-sm border shadow-sm focus-visible:ring-2 focus-visible:ring-[#c4552f] focus-visible:outline-none", paper === p ? "border-[#c4552f] ring-2 ring-[#c4552f]/40" : "border-stone-300")}
+              className={cn(
+                "aspect-[3/4] rounded-sm border shadow-sm focus-visible:ring-2 focus-visible:ring-[#c4552f] focus-visible:outline-none",
+                paper === p ? "border-[#c4552f] ring-2 ring-[#c4552f]/40" : "border-stone-300",
+              )}
               style={{ ...PAPER_LOOKS[p]!.style, backgroundSize: undefined }}
             />
           ))}
@@ -310,7 +460,16 @@ export const AddTray = ({
 
 // ---- What to do with the picked thing ------------------------------------------------------
 
-const NAMES: Record<JournalElement["kind"], string> = { photo: "Photo", sticker: "Sticker", title: "Title", note: "Note", deco: "Decoration", map: "Map", drawing: "Drawing", link: "Link" };
+const NAMES: Record<JournalElement["kind"], string> = {
+  photo: "Photo",
+  sticker: "Sticker",
+  title: "Title",
+  note: "Note",
+  deco: "Decoration",
+  map: "Map",
+  drawing: "Drawing",
+  link: "Link",
+};
 
 export const Inspector = ({
   e,
@@ -342,7 +501,9 @@ export const Inspector = ({
         {e.locked && <LockIcon aria-label="Locked" className="size-4 text-stone-500" />}
       </div>
 
-      {(e.kind === "title" || e.kind === "note" || (e.kind === "deco" && (e.style === "ticket" || e.style === "postmark"))) && (
+      {(e.kind === "title" ||
+        e.kind === "note" ||
+        (e.kind === "deco" && (e.style === "ticket" || e.style === "postmark"))) && (
         <Section title="Words">
           <textarea
             value={e.text ?? ""}
@@ -357,14 +518,25 @@ export const Inspector = ({
         </Section>
       )}
 
-      {e.kind === "title" && onSuggest && !e.locked && <TryAnother key={e.id} ask={onSuggest} onUse={(text) => onChange({ text })} />}
+      {e.kind === "title" && onSuggest && !e.locked && (
+        <TryAnother key={e.id} ask={onSuggest} onUse={(text) => onChange({ text })} />
+      )}
 
       {e.kind === "title" && (
         <Section title="Style">
           <div className="grid grid-cols-2 gap-1.5">
             {TITLE_STYLES.map((s) => (
-              <Sample key={s} label={TITLE_NAMES[s]!} on={(e.style ?? "typewriter") === s} onClick={() => onChange({ style: s })}>
-                <Mini e={{ ...sample("title", s), text: (e.text ?? "").slice(0, 14) || "Title" }} w={240} h={100} />
+              <Sample
+                key={s}
+                label={TITLE_NAMES[s]!}
+                on={(e.style ?? "typewriter") === s}
+                onClick={() => onChange({ style: s })}
+              >
+                <Mini
+                  e={{ ...sample("title", s), text: (e.text ?? "").slice(0, 14) || "Title" }}
+                  w={240}
+                  h={100}
+                />
               </Sample>
             ))}
           </div>
@@ -375,8 +547,17 @@ export const Inspector = ({
         <Section title="Paper">
           <div className="grid grid-cols-2 gap-1.5">
             {NOTE_STYLES.map((s) => (
-              <Sample key={s} label={NOTE_NAMES[s]!} on={(e.style ?? "typed") === s} onClick={() => onChange({ style: s })}>
-                <Mini e={{ ...sample("note", s), text: (e.text ?? "").slice(0, 40) || "Dear diary…" }} w={260} h={140} />
+              <Sample
+                key={s}
+                label={NOTE_NAMES[s]!}
+                on={(e.style ?? "typed") === s}
+                onClick={() => onChange({ style: s })}
+              >
+                <Mini
+                  e={{ ...sample("note", s), text: (e.text ?? "").slice(0, 40) || "Dear diary…" }}
+                  w={260}
+                  h={140}
+                />
               </Sample>
             ))}
           </div>
@@ -388,7 +569,12 @@ export const Inspector = ({
           <Section title="Print">
             <div className="flex flex-wrap gap-1">
               {PRINT_STYLES.map((s) => (
-                <Button key={s} size="sm" variant={(e.style ?? "polaroid") === s ? "default" : "outline"} onClick={() => onChange({ style: s })}>
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={(e.style ?? "polaroid") === s ? "default" : "outline"}
+                  onClick={() => onChange({ style: s })}
+                >
                   {PRINT_NAMES[s]}
                 </Button>
               ))}
@@ -412,8 +598,19 @@ export const Inspector = ({
       {(e.kind === "photo" || e.kind === "sticker") && (
         <Section title="Tone">
           <div className="flex gap-1">
-            {([[undefined, "Colour"], ["sepia", "Sepia"], ["mono", "Black & white"]] as const).map(([tone, label]) => (
-              <Button key={label} size="sm" variant={e.tone === tone ? "default" : "outline"} onClick={() => onChange({ tone })}>
+            {(
+              [
+                [undefined, "Colour"],
+                ["sepia", "Sepia"],
+                ["mono", "Black & white"],
+              ] as const
+            ).map(([tone, label]) => (
+              <Button
+                key={label}
+                size="sm"
+                variant={e.tone === tone ? "default" : "outline"}
+                onClick={() => onChange({ tone })}
+              >
                 {label}
               </Button>
             ))}
@@ -430,7 +627,12 @@ export const Inspector = ({
         <Section title="Tape">
           <div className="grid grid-cols-2 gap-1.5">
             {DECOS.filter((d) => d.startsWith("tape")).map((d) => (
-              <Sample key={d} label={DECO_NAMES[d]!} on={e.style === d} onClick={() => onChange({ style: d })}>
+              <Sample
+                key={d}
+                label={DECO_NAMES[d]!}
+                on={e.style === d}
+                onClick={() => onChange({ style: d })}
+              >
                 <Mini e={sample("deco", d)} w={150} h={38} />
               </Sample>
             ))}
@@ -441,7 +643,12 @@ export const Inspector = ({
         <Section title="Colour">
           <div className="grid grid-cols-3 gap-1.5">
             {DECOS.filter((d) => d.startsWith("circle")).map((d) => (
-              <Sample key={d} label={DECO_NAMES[d]!} on={e.style === d} onClick={() => onChange({ style: d })}>
+              <Sample
+                key={d}
+                label={DECO_NAMES[d]!}
+                on={e.style === d}
+                onClick={() => onChange({ style: d })}
+              >
                 <Mini e={sample("deco", d)} w={120} h={120} />
               </Sample>
             ))}
@@ -451,23 +658,61 @@ export const Inspector = ({
 
       <div className="flex flex-wrap gap-1 px-3 py-3">
         {e.kind !== "map" && e.kind !== "sticker" && e.kind !== "photo" && (
-          <Button size="icon-sm" variant="outline" aria-label="Write" title="Write (double-click)" disabled={e.locked} onClick={onWrite}>
+          <Button
+            size="icon-sm"
+            variant="outline"
+            aria-label="Write"
+            title="Write (double-click)"
+            disabled={e.locked}
+            onClick={onWrite}
+          >
             <PenLineIcon aria-hidden />
           </Button>
         )}
-        <Button size="icon-sm" variant="outline" aria-label="Bring to the front" title="Bring to the front (])" onClick={() => onRestack("front")}>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          aria-label="Bring to the front"
+          title="Bring to the front (])"
+          onClick={() => onRestack("front")}
+        >
           <ArrowUpToLineIcon aria-hidden />
         </Button>
-        <Button size="icon-sm" variant="outline" aria-label="Send to the back" title="Send to the back ([)" onClick={() => onRestack("back")}>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          aria-label="Send to the back"
+          title="Send to the back ([)"
+          onClick={() => onRestack("back")}
+        >
           <ArrowDownToLineIcon aria-hidden />
         </Button>
-        <Button size="icon-sm" variant="outline" aria-label="Duplicate" title="Duplicate (⌘D)" onClick={onDuplicate}>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          aria-label="Duplicate"
+          title="Duplicate (⌘D)"
+          onClick={onDuplicate}
+        >
           <CopyIcon aria-hidden />
         </Button>
-        <Button size="icon-sm" variant="outline" aria-label={e.locked ? "Unlock it" : "Lock it in place"} title={e.locked ? "Unlock it" : "Lock it in place"} onClick={() => onChange({ locked: e.locked ? undefined : true })}>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          aria-label={e.locked ? "Unlock it" : "Lock it in place"}
+          title={e.locked ? "Unlock it" : "Lock it in place"}
+          onClick={() => onChange({ locked: e.locked ? undefined : true })}
+        >
           {e.locked ? <UnlockIcon aria-hidden /> : <LockIcon aria-hidden />}
         </Button>
-        <Button size="icon-sm" variant="outline" aria-label="Delete" title="Delete" className="ml-auto text-destructive" onClick={onDelete}>
+        <Button
+          size="icon-sm"
+          variant="outline"
+          aria-label="Delete"
+          title="Delete"
+          className="ml-auto text-destructive"
+          onClick={onDelete}
+        >
           <Trash2Icon aria-hidden />
         </Button>
       </div>
@@ -477,7 +722,13 @@ export const Inspector = ({
 
 // "Try another": a title from the moment, offered under the one there now.
 // Nothing changes until "Use it".
-const TryAnother = ({ ask, onUse }: { ask: () => Promise<string>; onUse: (text: string) => void }) => {
+const TryAnother = ({
+  ask,
+  onUse,
+}: {
+  ask: () => Promise<string>;
+  onUse: (text: string) => void;
+}) => {
   const [idea, setIdea] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const more = async () => {
@@ -493,7 +744,10 @@ const TryAnother = ({ ask, onUse }: { ask: () => Promise<string>; onUse: (text: 
   return (
     <Section title="Another title">
       {idea && (
-        <p className="rounded-md border border-dashed border-stone-400 bg-white/70 px-2 py-1.5 text-lg leading-snug" style={{ fontFamily: FONTS.hand }}>
+        <p
+          className="rounded-md border border-dashed border-stone-400 bg-white/70 px-2 py-1.5 text-lg leading-snug"
+          style={{ fontFamily: FONTS.hand }}
+        >
           {idea}
         </p>
       )}
@@ -503,8 +757,19 @@ const TryAnother = ({ ask, onUse }: { ask: () => Promise<string>; onUse: (text: 
             Use it
           </Button>
         )}
-        <Button size="sm" variant="outline" className="flex-1" disabled={busy} onClick={() => void more()}>
-          {busy ? <LoaderCircleIcon aria-hidden className="animate-spin" /> : <SparklesIcon aria-hidden />} {idea ? "Another" : "Try another"}
+        <Button
+          size="sm"
+          variant="outline"
+          className="flex-1"
+          disabled={busy}
+          onClick={() => void more()}
+        >
+          {busy ? (
+            <LoaderCircleIcon aria-hidden className="animate-spin" />
+          ) : (
+            <SparklesIcon aria-hidden />
+          )}{" "}
+          {idea ? "Another" : "Try another"}
         </Button>
       </div>
     </Section>

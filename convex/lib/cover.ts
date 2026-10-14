@@ -14,10 +14,15 @@ export const coverTitle = (event: Doc<"events">) => (event.title || "Our trip").
 
 // The date line the cover is given: the trip's dates, or its first moment to
 // its last when it has none. At most two reads, one at each end of the index.
-export const coverDates = async (ctx: QueryCtx, event: Doc<"events">): Promise<string | undefined> => {
-  const moments = () => ctx.db.query("moments").withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id));
+export const coverDates = async (
+  ctx: QueryCtx,
+  event: Doc<"events">,
+): Promise<string | undefined> => {
+  const moments = () =>
+    ctx.db.query("moments").withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id));
   const first = event.startsAt === undefined ? ((await moments().first()) ?? undefined) : undefined;
-  const last = event.endsAt === undefined ? ((await moments().order("desc").first()) ?? undefined) : undefined;
+  const last =
+    event.endsAt === undefined ? ((await moments().order("desc").first()) ?? undefined) : undefined;
   return tripDates(event, first, last);
 };
 
@@ -27,7 +32,12 @@ export const coverWords = async (ctx: QueryCtx, event: Doc<"events">): Promise<C
 
 // Until the owner retypes the cover, its name and dates follow the trip. A
 // line that no longer says what was last written is theirs, and stays.
-export const followCover = async (ctx: MutationCtx, event: Doc<"events">, before: CoverWords, after: CoverWords): Promise<void> => {
+export const followCover = async (
+  ctx: MutationCtx,
+  event: Doc<"events">,
+  before: CoverWords,
+  after: CoverWords,
+): Promise<void> => {
   if (before.title === after.title && before.dates === after.dates) return;
   const journal = await ctx.db
     .query("journals")
@@ -43,7 +53,11 @@ export const followCover = async (ctx: MutationCtx, event: Doc<"events">, before
     let changed = false;
     const elements = [];
     for (const element of page.elements) {
-      if (element.kind !== "title" || element.text === undefined || !element.id.startsWith("cover-")) {
+      if (
+        element.kind !== "title" ||
+        element.text === undefined ||
+        !element.id.startsWith("cover-")
+      ) {
         elements.push(element);
         continue;
       }
@@ -51,7 +65,10 @@ export const followCover = async (ctx: MutationCtx, event: Doc<"events">, before
       const next =
         plain === before.title && after.title !== before.title
           ? after.title
-          : before.dates !== undefined && after.dates !== undefined && plain === before.dates && after.dates !== before.dates
+          : before.dates !== undefined &&
+              after.dates !== undefined &&
+              plain === before.dates &&
+              after.dates !== before.dates
             ? after.dates
             : undefined;
       if (next === undefined) {
@@ -68,8 +85,12 @@ export const followCover = async (ctx: MutationCtx, event: Doc<"events">, before
 // Around a write that may move a dateless trip's first or last moment: the
 // cover's date line before it, then `after()` to follow it. A trip with both
 // dates set never changes this way, so it costs nothing there.
-export const datesBefore = async (ctx: QueryCtx, event: Doc<"events">): Promise<(ctx: MutationCtx) => Promise<void>> => {
+export const datesBefore = async (
+  ctx: QueryCtx,
+  event: Doc<"events">,
+): Promise<(ctx: MutationCtx) => Promise<void>> => {
   if (event.startsAt !== undefined && event.endsAt !== undefined) return async () => undefined;
   const before = await coverWords(ctx, event);
-  return async (mctx) => followCover(mctx, event, before, { title: before.title, dates: await coverDates(mctx, event) });
+  return async (mctx) =>
+    followCover(mctx, event, before, { title: before.title, dates: await coverDates(mctx, event) });
 };

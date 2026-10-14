@@ -28,10 +28,7 @@ const fromB64 = (s: string): Uint8Array<ArrayBuffer> => {
 const keys = new Map<string, CryptoKey>();
 let keysFor: string | undefined;
 
-const cached = async (
-  id: string,
-  derive: () => Promise<CryptoKey>,
-): Promise<CryptoKey> => {
+const cached = async (id: string, derive: () => Promise<CryptoKey>): Promise<CryptoKey> => {
   if (keysFor !== env.ENCRYPTION_MASTER_KEY) {
     keys.clear();
     keysFor = env.ENCRYPTION_MASTER_KEY;
@@ -46,13 +43,9 @@ const cached = async (
 
 const masterKey = async (): Promise<CryptoKey> => {
   return cached("master", () =>
-    crypto.subtle.importKey(
-      "raw",
-      fromB64(env.ENCRYPTION_MASTER_KEY),
-      "HKDF",
-      false,
-      ["deriveKey"],
-    ),
+    crypto.subtle.importKey("raw", fromB64(env.ENCRYPTION_MASTER_KEY), "HKDF", false, [
+      "deriveKey",
+    ]),
   );
 };
 
@@ -89,10 +82,7 @@ export const encryptText = async (
   return { iv: toB64(iv), ct: toB64(new Uint8Array(ct)), v: version };
 };
 
-export const decryptText = async (
-  eventId: string,
-  value: Encrypted,
-): Promise<string> => {
+export const decryptText = async (eventId: string, value: Encrypted): Promise<string> => {
   const pt = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: fromB64(value.iv) },
     await eventKey(eventId, value.v),
@@ -121,10 +111,7 @@ export const encryptGeo = async (
   return encryptText(eventId, version, `${geo.lat},${geo.lng}`);
 };
 
-export const decryptGeo = async (
-  eventId: string,
-  value: Encrypted,
-): Promise<Geo | undefined> => {
+export const decryptGeo = async (eventId: string, value: Encrypted): Promise<Geo | undefined> => {
   const [lat, lng] = (await decryptText(eventId, value)).split(",").map(Number);
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : undefined;
 };
@@ -171,4 +158,3 @@ export const emailKeyFor = async (token: string): Promise<string> => {
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(token));
   return toB64(new Uint8Array(sig)).slice(0, 22);
 };
-

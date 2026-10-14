@@ -8,10 +8,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { queries } from "@/lib/queries";
 import { clearMediaCache } from "@/lib/use-media-url";
 
-const bytes = (n: number) => (n >= 1024 ** 3 ? `${(n / 1024 ** 3).toFixed(1)} GB` : `${Math.round(n / 1024 ** 2)} MB`);
+const bytes = (n: number) =>
+  n >= 1024 ** 3 ? `${(n / 1024 ** 3).toFixed(1)} GB` : `${Math.round(n / 1024 ** 2)} MB`;
 
 // One allowance: what it is, how much is used, and a bar.
-const Meter = ({ label, used, limit, text }: { label: string; used: number; limit: number; text: string }) => {
+const Meter = ({
+  label,
+  used,
+  limit,
+  text,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+  text: string;
+}) => {
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-4 text-sm">
@@ -19,7 +30,10 @@ const Meter = ({ label, used, limit, text }: { label: string; used: number; limi
         <span className="text-muted-foreground tabular-nums">{text}</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-muted" role="presentation">
-        <div className="h-full rounded-full bg-foreground/70" style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} />
+        <div
+          className="h-full rounded-full bg-foreground/70"
+          style={{ width: `${Math.min(100, (used / limit) * 100)}%` }}
+        />
       </div>
     </div>
   );
@@ -32,7 +46,10 @@ const Usage = () => {
   // Past midnight UTC the day's uses are back, even before anything refreshes this.
   const fresh = Date.now() >= usage.ai.resetsAt;
   const aiLeft = fresh ? usage.ai.limit : usage.ai.left;
-  const backAt = new Date(usage.ai.resetsAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const backAt = new Date(usage.ai.resetsAt).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
   return (
     <div className="max-w-md space-y-5">
       <Meter
@@ -41,8 +58,18 @@ const Usage = () => {
         limit={usage.ai.limit}
         text={`${aiLeft} of ${usage.ai.limit} left${aiLeft < usage.ai.limit ? ` · back at ${backAt}` : ""}`}
       />
-      <Meter label="Photos and videos" used={usage.storage.used} limit={usage.storage.limit} text={`${bytes(usage.storage.used)} of ${bytes(usage.storage.limit)}`} />
-      <Meter label="Experiences" used={usage.experiences.used} limit={usage.experiences.limit} text={`${usage.experiences.used} of ${usage.experiences.limit}`} />
+      <Meter
+        label="Photos and videos"
+        used={usage.storage.used}
+        limit={usage.storage.limit}
+        text={`${bytes(usage.storage.used)} of ${bytes(usage.storage.limit)}`}
+      />
+      <Meter
+        label="Experiences"
+        used={usage.experiences.used}
+        limit={usage.experiences.limit}
+        text={`${usage.experiences.used} of ${usage.experiences.limit}`}
+      />
     </div>
   );
 };
@@ -51,7 +78,10 @@ const Account = () => {
   const { signOut } = useAuthActions();
 
   return (
-    <SettingsPage title="Account" description="How you sign in to Story-time, and what you've used.">
+    <SettingsPage
+      title="Account"
+      description="How you sign in to Story-time, and what you've used."
+    >
       <div className="space-y-10">
         <SettingsBlock
           title="Usage"

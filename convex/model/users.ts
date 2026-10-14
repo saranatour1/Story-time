@@ -24,7 +24,8 @@ import {
 const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string | undefined => {
   if (!profile.emailVerified || profile.email === undefined) return undefined;
   const email = cleanEmail(profile.email);
-  if (email === undefined || email.length > MAX_EMAIL || !EMAIL_PATTERN.test(email)) return undefined;
+  if (email === undefined || email.length > MAX_EMAIL || !EMAIL_PATTERN.test(email))
+    return undefined;
   return email;
 };
 
@@ -154,10 +155,7 @@ const updateSettings = mutation({
       const username = cleanUsername(args.username);
       if (username !== undefined) {
         if (!USERNAME_PATTERN.test(username)) {
-          invalid(
-            "username",
-            "Use 3 to 20 lowercase letters, numbers or underscores",
-          );
+          invalid("username", "Use 3 to 20 lowercase letters, numbers or underscores");
         }
         const taken = await ctx.db
           .query("users")
@@ -172,10 +170,7 @@ const updateSettings = mutation({
 
     if (args.email !== undefined) {
       const email = cleanEmail(args.email);
-      if (
-        email !== undefined &&
-        (email.length > MAX_EMAIL || !EMAIL_PATTERN.test(email))
-      ) {
+      if (email !== undefined && (email.length > MAX_EMAIL || !EMAIL_PATTERN.test(email))) {
         invalid("email", "Enter a valid email address");
       }
       if (email === undefined) {
@@ -189,7 +184,10 @@ const updateSettings = mutation({
         patch.pendingEmail = undefined;
         patch.emailVerifyKey = undefined;
         patch.emailVerifyExpires = undefined;
-      } else if (email === user.pendingEmail || (user.emailVerified !== true && email === user.email)) {
+      } else if (
+        email === user.pendingEmail ||
+        (user.emailVerified !== true && email === user.email)
+      ) {
         // Already waiting, or an older unconfirmed address. Resend is separate.
       } else {
         confirm = email;
@@ -286,7 +284,11 @@ const usage = query({
       .withIndex("by_owner", (q) => q.eq("ownerId", userId))
       .take(MAX_EVENTS_PER_USER);
     return {
-      ai: { left: Math.max(0, Math.floor(today.value)), limit: AI_PER_DAY, resetsAt: (today.windowStart ?? now) + DAY },
+      ai: {
+        left: Math.max(0, Math.floor(today.value)),
+        limit: AI_PER_DAY,
+        resetsAt: (today.windowStart ?? now) + DAY,
+      },
       storage: { used: bytes, limit: MAX_LIVE_UPLOAD_BYTES },
       experiences: { used: owned.length, limit: MAX_EVENTS_PER_USER },
     };
@@ -294,4 +296,11 @@ const usage = query({
 });
 
 // What the app calls. Registered once, by convex/api/users.ts, which re-exports it.
-export const usersApi = { getCurrentUser, updateSettings, verifyEmail, resendEmailVerification, setOnThisDay, usage };
+export const usersApi = {
+  getCurrentUser,
+  updateSettings,
+  verifyEmail,
+  resendEmailVerification,
+  setOnThisDay,
+  usage,
+};

@@ -1,6 +1,14 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BookHeartIcon, ChevronRightIcon, HistoryIcon, HomeIcon, ListIcon, MessageSquareHeartIcon, UsersIcon } from "lucide-react";
+import {
+  BookHeartIcon,
+  ChevronRightIcon,
+  HistoryIcon,
+  HomeIcon,
+  ListIcon,
+  MessageSquareHeartIcon,
+  UsersIcon,
+} from "lucide-react";
 import { queries } from "@/lib/queries";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -29,7 +37,13 @@ import {
 const SECTIONS = [
   { to: "/e/$id", label: "Moments", icon: ListIcon, path: "", owner: false },
   { to: "/e/$id/journal", label: "Journal", icon: BookHeartIcon, path: "/journal", owner: false },
-  { to: "/e/$id/guestbook", label: "Guestbook", icon: MessageSquareHeartIcon, path: "/guestbook", owner: false },
+  {
+    to: "/e/$id/guestbook",
+    label: "Guestbook",
+    icon: MessageSquareHeartIcon,
+    path: "/guestbook",
+    owner: false,
+  },
   { to: "/e/$id/shared", label: "Shared", icon: UsersIcon, path: "/shared", owner: true },
   { to: "/e/$id/activity", label: "Activity", icon: HistoryIcon, path: "/activity", owner: true },
 ] as const;
@@ -54,7 +68,9 @@ export const AppSidebar = () => {
             <SidebarMenuButton size="lg" asChild tooltip="Story-time">
               <Link to="/home">
                 <Logo className="size-7! shrink-0 group-data-[collapsible=icon]:size-8!" />
-                <span className="text-base font-bold tracking-tight group-data-[collapsible=icon]:hidden">Story-time</span>
+                <span className="text-base font-bold tracking-tight group-data-[collapsible=icon]:hidden">
+                  Story-time
+                </span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -77,7 +93,10 @@ export const AppSidebar = () => {
                 {events !== undefined && events.length > 0 && (
                   <>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuAction aria-label="Show or hide the experiences" className="transition-transform group-data-[state=open]/experiences:rotate-90">
+                      <SidebarMenuAction
+                        aria-label="Show or hide the experiences"
+                        className="transition-transform group-data-[state=open]/experiences:rotate-90"
+                      >
                         <ChevronRightIcon />
                       </SidebarMenuAction>
                     </CollapsibleTrigger>
@@ -114,7 +133,9 @@ export const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                   {s.path === "/activity" && unread !== undefined && unread > 0 && (
-                    <SidebarMenuBadge aria-label={`${unread} new`}>{unread > 99 ? "99+" : unread}</SidebarMenuBadge>
+                    <SidebarMenuBadge aria-label={`${unread} new`}>
+                      {unread > 99 ? "99+" : unread}
+                    </SidebarMenuBadge>
                   )}
                 </SidebarMenuItem>
               ))}

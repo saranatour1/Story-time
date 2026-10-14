@@ -53,7 +53,9 @@ describe("page load", () => {
     expect(exp).toContain('from "./pdf-book"');
     expect(exp).not.toContain('from "jspdf"');
     expect(exp).toContain('import("modern-screenshot")');
-    expect(source("src/components/journal/cutter.tsx")).toContain('import("@mediapipe/tasks-vision")');
+    expect(source("src/components/journal/cutter.tsx")).toContain(
+      'import("@mediapipe/tasks-vision")',
+    );
     expect(source("src/router.tsx")).toContain('defaultPreload: "intent"');
   });
 });

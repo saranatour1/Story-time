@@ -2,7 +2,13 @@ import { expect, test } from "vitest";
 import { stripExif, withoutExif } from "./strip-exif";
 
 // A segment: its marker, a two-byte length that counts itself, then the body.
-const segment = (marker: number, body: number[]) => [0xff, marker, (body.length + 2) >> 8, (body.length + 2) & 0xff, ...body];
+const segment = (marker: number, body: number[]) => [
+  0xff,
+  marker,
+  (body.length + 2) >> 8,
+  (body.length + 2) & 0xff,
+  ...body,
+];
 const text = (s: string) => [...s].map((c) => c.charCodeAt(0));
 
 const SOI = [0xff, 0xd8];
@@ -15,10 +21,18 @@ const SOS = segment(0xda, [1, 1, 0, 0, 63, 0]);
 const DATA = [0x12, 0x34, 0x56];
 const EOI = [0xff, 0xd9];
 
-const photo = () => new Uint8Array([...SOI, ...APP0, ...APP1, ...DQT, ...APP2, ...SOS, ...DATA, ...EOI]);
+const photo = () =>
+  new Uint8Array([...SOI, ...APP0, ...APP1, ...DQT, ...APP2, ...SOS, ...DATA, ...EOI]);
 
 test("drops the Exif and ICC segments and keeps everything else byte for byte", () => {
-  expect(Array.from(withoutExif(photo()) ?? [])).toEqual([...SOI, ...APP0, ...DQT, ...SOS, ...DATA, ...EOI]);
+  expect(Array.from(withoutExif(photo()) ?? [])).toEqual([
+    ...SOI,
+    ...APP0,
+    ...DQT,
+    ...SOS,
+    ...DATA,
+    ...EOI,
+  ]);
 });
 
 test("anything that isn't a clean JPEG is left alone", () => {

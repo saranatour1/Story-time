@@ -10,14 +10,18 @@ import schema from "../schema";
 import { MAX_EVENTS_PER_USER } from "../lib/limits";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
-const invitesModules = import.meta.glob(["../components/invites/**/*.ts", "../components/invites/**/*.js"]);
-const emailModules = import.meta.glob(["../components/email/**/*.ts", "../components/email/**/*.js"]);
+const invitesModules = import.meta.glob([
+  "../components/invites/**/*.ts",
+  "../components/invites/**/*.js",
+]);
+const emailModules = import.meta.glob([
+  "../components/email/**/*.ts",
+  "../components/email/**/*.js",
+]);
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
-  process.env.ENCRYPTION_MASTER_KEY = btoa(
-    String.fromCharCode(...new Uint8Array(32).fill(7)),
-  );
+  process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -48,7 +52,10 @@ const fill = async (owner: Awaited<ReturnType<typeof setup>>["owner"], eventId: 
   await owner.mutation(api.api.moments.create, {
     eventId,
     startsAt: Date.UTC(2026, 5, 1, 12),
-    blocks: [{ type: "photo", mediaId }, { type: "note", text: "hi" }],
+    blocks: [
+      { type: "photo", mediaId },
+      { type: "note", text: "hi" },
+    ],
   });
   await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
   return r2Key;
@@ -99,23 +106,57 @@ describe("events.remove", () => {
     await t.run((ctx) => ctx.db.insert("activityReads", { userId: ownerId, eventId, readAt: 1 }));
     await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const left = await t.run(async (ctx) => [(await ctx.db.query("guestNotes").collect()).length, (await ctx.db.query("activityReads").collect()).length]);
+    const left = await t.run(async (ctx) => [
+      (await ctx.db.query("guestNotes").collect()).length,
+      (await ctx.db.query("activityReads").collect()).length,
+    ]);
     expect(left).toEqual([0, 0]);
   });
 
   test("rows in the tables being retired go with the experience too", async () => {
     const { t, owner, ownerId, eventId } = await setup();
     await t.run(async (ctx) => {
-      const momentId = await ctx.db.insert("moments", { eventId, authorId: ownerId, startsAt: 0, blocks: [] });
-      await ctx.db.insert("itinerary", { eventId, momentId, startsAt: 0, dayKey: "2026-06-01", monthKey: "2026-06", position: 0 });
-      await ctx.db.insert("quotaRequests", { eventId, requestedBy: ownerId, extra: 10, status: "pending" });
+      const momentId = await ctx.db.insert("moments", {
+        eventId,
+        authorId: ownerId,
+        startsAt: 0,
+        blocks: [],
+      });
+      await ctx.db.insert("itinerary", {
+        eventId,
+        momentId,
+        startsAt: 0,
+        dayKey: "2026-06-01",
+        monthKey: "2026-06",
+        position: 0,
+      });
+      await ctx.db.insert("quotaRequests", {
+        eventId,
+        requestedBy: ownerId,
+        extra: 10,
+        status: "pending",
+      });
       const canvasId = await ctx.db.insert("canvases", { eventId, desk: "cork" });
-      await ctx.db.insert("canvasNodes", { canvasId, eventId, kind: "frame", x: 0, y: 0, w: 1, h: 1, rotation: 0, z: 0 });
+      await ctx.db.insert("canvasNodes", {
+        canvasId,
+        eventId,
+        kind: "frame",
+        x: 0,
+        y: 0,
+        w: 1,
+        h: 1,
+        rotation: 0,
+        z: 0,
+      });
     });
     await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     const left = await t.run(async (ctx) =>
-      Promise.all((["itinerary", "quotaRequests", "canvases", "canvasNodes"] as const).map(async (table) => (await ctx.db.query(table).collect()).length)),
+      Promise.all(
+        (["itinerary", "quotaRequests", "canvases", "canvasNodes"] as const).map(
+          async (table) => (await ctx.db.query(table).collect()).length,
+        ),
+      ),
     );
     expect(left).toEqual([0, 0, 0, 0]);
   });
@@ -205,7 +246,8 @@ describe("media.listKeysForEvent", () => {
 describe("events.createDraft", () => {
   test("an owner can have MAX_EVENTS_PER_USER experiences; deleting one frees its slot", async () => {
     const { t, owner, eventId } = await setup();
-    for (let i = 1; i < MAX_EVENTS_PER_USER; i++) await owner.mutation(api.api.events.createDraft, {});
+    for (let i = 1; i < MAX_EVENTS_PER_USER; i++)
+      await owner.mutation(api.api.events.createDraft, {});
     await expect(owner.mutation(api.api.events.createDraft, {})).rejects.toThrow(/EVENT_LIMIT/);
     await owner.mutation(api.api.events.remove, { eventId });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -218,7 +260,11 @@ describe("events.listMine, get and update", () => {
     const { owner, friend, eventId } = await setup();
     expect((await owner.query(api.api.events.listMine, {}))[0]?.coverMediaId).toBeUndefined();
     const upload = async (mime: string) => {
-      const { mediaId } = await owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime });
+      const { mediaId } = await owner.mutation(api.api.media.reserveUpload, {
+        eventId,
+        size: 100,
+        mime,
+      });
       await owner.mutation(api.api.media.confirmUpload, { mediaId });
       return mediaId;
     };

@@ -148,7 +148,13 @@ export const legsOf = internalQuery({
     }
 
     const route = points.flatMap((p) => (p.place !== undefined ? [p.place] : []));
-    return { eventId: event._id, authorId: moment.authorId, route, labels: [...labels].sort(), legs };
+    return {
+      eventId: event._id,
+      authorId: moment.authorId,
+      route,
+      labels: [...labels].sort(),
+      legs,
+    };
   },
 });
 
@@ -161,7 +167,8 @@ const isTransport = (value: string): value is Transport => {
 // drive. Trains, boats, planes and "other" stand as they are.
 export const withDistance = (transport: Transport, km: number | undefined): Transport => {
   if (km === undefined) return transport;
-  const ground = transport === "walk" || transport === "bike" || transport === "car" || transport === "bus";
+  const ground =
+    transport === "walk" || transport === "bike" || transport === "car" || transport === "bus";
   if (ground && km > FLIGHT_KM) return "plane";
   if ((transport === "walk" || transport === "bike") && km > ROAD_KM) return "car";
   return transport;
@@ -215,15 +222,18 @@ export const readDecisions = (
   const transports: Record<string, Transport> = {};
   for (const leg of found.legs) {
     const choice = choiceOf(answers[`transport_${leg.id}`]);
-    if (choice !== undefined && isTransport(choice)) transports[String(leg.stopIndex)] = withDistance(choice, leg.km);
+    if (choice !== undefined && isTransport(choice))
+      transports[String(leg.stopIndex)] = withDistance(choice, leg.km);
     // Unsure, Jev says nothing; a leg this long is a flight all the same, as
     // the fallback would say.
-    else if (leg.km !== undefined && leg.km > FLIGHT_KM) transports[String(leg.stopIndex)] = "plane";
+    else if (leg.km !== undefined && leg.km > FLIGHT_KM)
+      transports[String(leg.stopIndex)] = "plane";
   }
   const label = choiceOf(answers.label);
   return {
     transports,
-    label: label !== undefined && label !== "none" && found.labels.includes(label) ? label : undefined,
+    label:
+      label !== undefined && label !== "none" && found.labels.includes(label) ? label : undefined,
   };
 };
 
@@ -231,7 +241,9 @@ export const decideTransport = internalAction({
   args: { momentId: v.id("moments") },
   returns: vDecided,
   handler: async (ctx, args): Promise<Decided> => {
-    const found: LegsOf = await ctx.runQuery(internal.model.ai.decide.legsOf, { momentId: args.momentId });
+    const found: LegsOf = await ctx.runQuery(internal.model.ai.decide.legsOf, {
+      momentId: args.momentId,
+    });
 
     const questions: Record<string, Experimental_DecisionQuestion> = {};
     // A leg with no distance and no names is a blind guess; it stays unanswered.
@@ -252,7 +264,8 @@ export const decideTransport = internalAction({
       ];
       questions.label = {
         type: "choice",
-        instructions: "Which label from this experience fits the moment best? Its route is in the state.",
+        instructions:
+          "Which label from this experience fits the moment best? Its route is in the state.",
         criteria: Object.fromEntries(options),
       };
     }
@@ -260,10 +273,18 @@ export const decideTransport = internalAction({
 
     let decided: Decided;
     try {
-      const answers = await metered(ctx, { userId: found.authorId, feature: "transport", model: JEV }, async () => {
-        const out = await experimental_decide({ model: jevModel(), state: { route: found.route, legs: found.legs.map(legState) }, questions });
-        return { result: out.answers, usage: out.usage, providerMetadata: out.providerMetadata };
-      });
+      const answers = await metered(
+        ctx,
+        { userId: found.authorId, feature: "transport", model: JEV },
+        async () => {
+          const out = await experimental_decide({
+            model: jevModel(),
+            state: { route: found.route, legs: found.legs.map(legState) },
+            questions,
+          });
+          return { result: out.answers, usage: out.usage, providerMetadata: out.providerMetadata };
+        },
+      );
       decided = readDecisions(found, answers);
     } catch (error) {
       console.warn("Jev skipped the transport decision:", skipReason(error));

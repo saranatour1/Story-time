@@ -10,13 +10,7 @@ import { useAnonymousAuth } from "@convex-dev/auth/providers/anonymous/react";
 import { authApi } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // What a failed sign-in says when the server didn't send its own words.
 const FLOW_ERRORS: Record<OauthFlowErrorCode, string> = {
@@ -43,7 +37,9 @@ export const LoginForm = ({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="font-display text-2xl font-normal tracking-tight">{heading}</CardTitle>
+          <CardTitle className="font-display text-2xl font-normal tracking-tight">
+            {heading}
+          </CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -123,7 +119,9 @@ export const SignInButtons = ({
           Continue with GitHub
         </Button>
       </div>
-      {import.meta.env.DEV && <DevAnonymousSignIn className={prominent ? "self-start" : "self-center"} />}
+      {import.meta.env.DEV && (
+        <DevAnonymousSignIn className={prominent ? "self-start" : "self-center"} />
+      )}
       {showError && flowError !== null && (
         <p role="alert" className={cn("text-sm text-destructive", !prominent && "text-center")}>
           {flowError.message ?? FLOW_ERRORS[flowError.code]}

@@ -6,7 +6,13 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { errorMessage } from "@/lib/errors";
 import { uploadMedia } from "@/lib/upload";
 import { useMediaUrl, useWhenSeen } from "@/lib/use-media-url";
@@ -18,7 +24,8 @@ import { FONTS } from "./look";
 // cutting; it is downloaded once, and the photo never leaves the browser until
 // the finished sticker is saved like any other photo.
 
-const MODEL = "https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite";
+const MODEL =
+  "https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite";
 // The longest side of a sticker, in pixels: plenty for a page, small to save.
 const MAX_SIDE = 900;
 
@@ -34,7 +41,11 @@ const segmenter = (): Promise<Segmenter> => {
     ]);
     return InteractiveSegmenterLegacy.createFromOptions(
       { wasmLoaderPath: loader.default, wasmBinaryPath: binary.default },
-      { baseOptions: { modelAssetPath: MODEL }, outputConfidenceMasks: true, outputCategoryMask: false },
+      {
+        baseOptions: { modelAssetPath: MODEL },
+        outputConfidenceMasks: true,
+        outputCategoryMask: false,
+      },
     );
   })().catch((e: unknown) => {
     loading = null;
@@ -44,7 +55,12 @@ const segmenter = (): Promise<Segmenter> => {
 };
 
 // The picked thing as a transparent PNG, cropped to it, its edge softened.
-const cutOut = (img: HTMLImageElement, mask: Float32Array, mw: number, mh: number): Promise<Blob> => {
+const cutOut = (
+  img: HTMLImageElement,
+  mask: Float32Array,
+  mw: number,
+  mh: number,
+): Promise<Blob> => {
   const ratio = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
   const w = Math.round(img.naturalWidth * ratio);
   const h = Math.round(img.naturalHeight * ratio);
@@ -69,14 +85,22 @@ const cutOut = (img: HTMLImageElement, mask: Float32Array, mw: number, mh: numbe
       }
     }
   }
-  if (x1 <= x0 || y1 <= y0) return Promise.reject(new Error("Nothing was picked there. Try tapping the middle of it."));
+  if (x1 <= x0 || y1 <= y0)
+    return Promise.reject(new Error("Nothing was picked there. Try tapping the middle of it."));
   ctx.putImageData(pixels, 0, 0);
   const pad = 6;
   const crop = document.createElement("canvas");
   crop.width = x1 - x0 + pad * 2;
   crop.height = y1 - y0 + pad * 2;
-  crop.getContext("2d")!.drawImage(canvas, x0 - pad, y0 - pad, crop.width, crop.height, 0, 0, crop.width, crop.height);
-  return new Promise((resolve, reject) => crop.toBlob((b) => (b ? resolve(b) : reject(new Error("The sticker couldn't be made."))), "image/png"));
+  crop
+    .getContext("2d")!
+    .drawImage(canvas, x0 - pad, y0 - pad, crop.width, crop.height, 0, 0, crop.width, crop.height);
+  return new Promise((resolve, reject) =>
+    crop.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("The sticker couldn't be made."))),
+      "image/png",
+    ),
+  );
 };
 
 export const StickerCutter = ({
@@ -110,9 +134,12 @@ export const StickerCutter = ({
   const token = useAuthToken();
   const keep = useMutation(api.journal.keepSticker);
 
-  useEffect(() => () => {
-    if (preview) URL.revokeObjectURL(preview.url);
-  }, [preview]);
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview.url);
+    },
+    [preview],
+  );
 
   // Starts the model download as soon as the cutter opens.
   useEffect(() => {
@@ -138,7 +165,11 @@ export const StickerCutter = ({
           // The mask that is sure of the tapped spot is the thing; the other is the rest.
           const pick = masks
             .map((m) => ({ m, data: m.getAsFloat32Array() }))
-            .sort((a, b) => valueAt(b.data, b.m.width, b.m.height, at) - valueAt(a.data, a.m.width, a.m.height, at))[0];
+            .sort(
+              (a, b) =>
+                valueAt(b.data, b.m.width, b.m.height, at) -
+                valueAt(a.data, a.m.width, a.m.height, at),
+            )[0];
           if (!pick) return reject(new Error("Nothing was picked there."));
           cutOut(el, pick.data, pick.m.width, pick.m.height).then(resolve, reject);
         });
@@ -156,7 +187,10 @@ export const StickerCutter = ({
     const el = img.current;
     if (!el || phase !== "idle") return;
     const r = el.getBoundingClientRect();
-    const at = { x: clamp((ev.clientX - r.left) / r.width), y: clamp((ev.clientY - r.top) / r.height) };
+    const at = {
+      x: clamp((ev.clientX - r.left) / r.width),
+      y: clamp((ev.clientY - r.top) / r.height),
+    };
     setPoint(at);
     void cutAt(at);
   };
@@ -185,7 +219,11 @@ export const StickerCutter = ({
     if (!preview || !token) return;
     setPhase("saving");
     try {
-      const mediaId = await uploadMedia(new File([preview.blob], "sticker.png", { type: "image/png" }), eventId, token);
+      const mediaId = await uploadMedia(
+        new File([preview.blob], "sticker.png", { type: "image/png" }),
+        eventId,
+        token,
+      );
       await keep({ mediaId: mediaId as Id<"media"> });
       onMade(mediaId);
       setPreview(null);
@@ -202,9 +240,13 @@ export const StickerCutter = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="paper-scope max-w-2xl bg-[#f6efe0] text-[#1f1a16]">
         <DialogHeader>
-          <DialogTitle style={{ fontFamily: FONTS.hand, fontSize: 30, fontWeight: 400 }}>Cut out a sticker</DialogTitle>
+          <DialogTitle style={{ fontFamily: FONTS.hand, fontSize: 30, fontWeight: 400 }}>
+            Cut out a sticker
+          </DialogTitle>
           <DialogDescription>
-            Tap the thing you want to keep, or move the point with the arrow keys and press Enter. The scissors are a large download the first time, about 13 MB. The photo stays on this device until you keep the sticker.
+            Tap the thing you want to keep, or move the point with the arrow keys and press Enter.
+            The scissors are a large download the first time, about 13 MB. The photo stays on this
+            device until you keep the sticker.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
@@ -219,7 +261,10 @@ export const StickerCutter = ({
                   tabIndex={0}
                   onPointerDown={tap}
                   onKeyDown={nudge}
-                  className={cn("max-h-[50vh] w-auto cursor-crosshair select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c4552f]", phase !== "idle" && "opacity-60")}
+                  className={cn(
+                    "max-h-[50vh] w-auto cursor-crosshair select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c4552f]",
+                    phase !== "idle" && "opacity-60",
+                  )}
                   draggable={false}
                 />
                 <span
@@ -233,27 +278,38 @@ export const StickerCutter = ({
             )}
             {phase !== "idle" && phase !== "saving" && (
               <span className="absolute inset-x-0 bottom-3 mx-auto flex w-fit items-center gap-2 rounded-full bg-[#1f1a16] px-3 py-1 text-xs text-[#f3ead6]">
-                <LoaderCircleIcon className="size-3.5 animate-spin" /> {phase === "loading" ? "Getting the scissors…" : "Cutting…"}
+                <LoaderCircleIcon className="size-3.5 animate-spin" />{" "}
+                {phase === "loading" ? "Getting the scissors…" : "Cutting…"}
               </span>
             )}
           </div>
           <div className="space-y-3">
             <div
               className="grid aspect-square place-items-center rounded-lg border border-dashed border-stone-400 p-2"
-              style={{ backgroundImage: "repeating-conic-gradient(#ece3cf 0 25%, #f6efe0 0 50%)", backgroundSize: "16px 16px" }}
+              style={{
+                backgroundImage: "repeating-conic-gradient(#ece3cf 0 25%, #f6efe0 0 50%)",
+                backgroundSize: "16px 16px",
+              }}
             >
               {preview ? (
                 <img
                   src={preview.url}
                   alt="The sticker"
                   className="max-h-full max-w-full"
-                  style={{ filter: "drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff)" }}
+                  style={{
+                    filter:
+                      "drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff)",
+                  }}
                 />
               ) : (
                 <ScissorsIcon className="size-8 text-stone-400" aria-hidden />
               )}
             </div>
-            <Button className="w-full" disabled={!preview || phase === "saving"} onClick={() => void save()}>
+            <Button
+              className="w-full"
+              disabled={!preview || phase === "saving"}
+              onClick={() => void save()}
+            >
               {phase === "saving" ? "Saving…" : "Keep this sticker"}
             </Button>
           </div>
@@ -270,7 +326,10 @@ export const StickerCutter = ({
                     setPhoto(id);
                     setPreview(null);
                   }}
-                  className={cn("block size-14 overflow-hidden rounded-md border-2", photo === id ? "border-[#c4552f]" : "border-transparent")}
+                  className={cn(
+                    "block size-14 overflow-hidden rounded-md border-2",
+                    photo === id ? "border-[#c4552f]" : "border-transparent",
+                  )}
                 >
                   <ThumbOf id={id} />
                 </button>
@@ -288,7 +347,18 @@ const ThumbOf = ({ id }: { id: string }) => {
   const { url } = useMediaUrl(seen ? id : undefined, "thumb");
   return (
     <span ref={ref} className={cn("block size-full", !url && "animate-pulse bg-stone-200")}>
-      {url && <img src={url} alt="" width={56} height={56} sizes="56px" loading="lazy" decoding="async" className="size-full object-cover" />}
+      {url && (
+        <img
+          src={url}
+          alt=""
+          width={56}
+          height={56}
+          sizes="56px"
+          loading="lazy"
+          decoding="async"
+          className="size-full object-cover"
+        />
+      )}
     </span>
   );
 };

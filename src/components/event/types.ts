@@ -15,6 +15,14 @@ export type StoryEvent = Pick<
 // What a story reads of a moment. A shared story leaves out its author.
 export type StoryMoment = Pick<
   MomentView,
-  "_id" | "startsAt" | "tzOffsetMinutes" | "place" | "geo" | "blocks" | "transport" | "stops" | "labels"
+  | "_id"
+  | "startsAt"
+  | "tzOffsetMinutes"
+  | "place"
+  | "geo"
+  | "blocks"
+  | "transport"
+  | "stops"
+  | "labels"
 > &
   Partial<Pick<MomentView, "authorId" | "authorName" | "authorAgent">>;

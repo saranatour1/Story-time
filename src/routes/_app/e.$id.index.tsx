@@ -16,7 +16,10 @@ import { Button } from "@/components/ui/button";
 const search = z.object({
   // Sections that were tabs here are pages of their own now; links to them
   // are sent on (see beforeLoad).
-  tab: z.enum(["itinerary", "shared", "activity", "canvas", "journal", "settings"]).optional().catch(undefined),
+  tab: z
+    .enum(["itinerary", "shared", "activity", "canvas", "journal", "settings"])
+    .optional()
+    .catch(undefined),
   panel: z.enum(["outline", "details", "moment"]).default("outline").catch("outline"),
   // The moment picked in the list.
   momentId: z.string().optional().catch(undefined),
@@ -51,9 +54,11 @@ const EventPage = () => {
         // On a wide screen picking a moment shows its journal page beside the
         // list. On a phone it edits it when you may, else opens it in the story.
         const pick = (moment: { _id: string; authorId: string }) => {
-          if (window.matchMedia("(min-width: 64rem)").matches) void navigate({ search: (s) => ({ ...s, tab: undefined, momentId: moment._id }) });
+          if (window.matchMedia("(min-width: 64rem)").matches)
+            void navigate({ search: (s) => ({ ...s, tab: undefined, momentId: moment._id }) });
           else if (canEditMoment(moment.authorId)) openPanel("moment", moment._id);
-          else void navigate({ to: "/e/$id/story", params: { id }, search: { momentId: moment._id } });
+          else
+            void navigate({ to: "/e/$id/story", params: { id }, search: { momentId: moment._id } });
         };
         return (
           /* The moments, and beside them whatever is being edited, else the
@@ -62,10 +67,21 @@ const EventPage = () => {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-start">
             {panel !== "outline" ? (
               <div className="min-w-0 lg:sticky lg:top-4 lg:order-2 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:overscroll-contain">
-                <EditorPanel event={event} panel={panel} momentId={editId} canEditMoment={canEditMoment} onClose={() => openPanel("outline")} />
+                <EditorPanel
+                  event={event}
+                  panel={panel}
+                  momentId={editId}
+                  canEditMoment={canEditMoment}
+                  onClose={() => openPanel("outline")}
+                />
               </div>
             ) : (
-              <PickedPage event={event} momentId={momentId} canEditMoment={canEditMoment} onEdit={(id) => openPanel("moment", id)} />
+              <PickedPage
+                event={event}
+                momentId={momentId}
+                canEditMoment={canEditMoment}
+                onEdit={(id) => openPanel("moment", id)}
+              />
             )}
             <div className="min-w-0 space-y-4 lg:order-1">
               <CommandBar event={event} openMomentId={momentId} />
@@ -87,12 +103,24 @@ const EventPage = () => {
 
 // Beside the list on a wide screen: the picked moment's journal page with ways
 // on from it, or the cover when nothing is picked.
-const PickedPage = ({ event, momentId, canEditMoment, onEdit }: { event: EventView; momentId?: string; canEditMoment: (authorId: string) => boolean; onEdit: (id: Id<"moments">) => void }) => {
+const PickedPage = ({
+  event,
+  momentId,
+  canEditMoment,
+  onEdit,
+}: {
+  event: EventView;
+  momentId?: string;
+  canEditMoment: (authorId: string) => boolean;
+  onEdit: (id: Id<"moments">) => void;
+}) => {
   const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
   const moment = moments?.find((m) => m._id === momentId);
   // The aside is hidden below `lg`. Mounting it there would still subscribe
   // to the page, so a phone does not.
-  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 64rem)").matches);
+  const [wide, setWide] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 64rem)").matches,
+  );
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 64rem)");
     const sync = () => setWide(mq.matches);
@@ -102,7 +130,10 @@ const PickedPage = ({ event, momentId, canEditMoment, onEdit }: { event: EventVi
   }, []);
   if (!wide) return null;
   return (
-    <aside aria-label="Its journal page" className="hidden min-w-0 space-y-3 lg:sticky lg:top-4 lg:order-2 lg:block">
+    <aside
+      aria-label="Its journal page"
+      className="hidden min-w-0 space-y-3 lg:sticky lg:top-4 lg:order-2 lg:block"
+    >
       <JournalPreview event={event} momentId={moment?._id} scale={448 / 794} />
       <div className="flex flex-wrap gap-2">
         {moment && (
@@ -123,7 +154,9 @@ const PickedPage = ({ event, momentId, canEditMoment, onEdit }: { event: EventVi
           </Link>
         </Button>
       </div>
-      {!moment && event.momentCount > 0 && <p className="text-sm text-muted-foreground">Pick a moment to see its page.</p>}
+      {!moment && event.momentCount > 0 && (
+        <p className="text-sm text-muted-foreground">Pick a moment to see its page.</p>
+      )}
     </aside>
   );
 };
@@ -131,7 +164,9 @@ const PickedPage = ({ event, momentId, canEditMoment, onEdit }: { event: EventVi
 // Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/e/$id/")({
   // Old edit links name the moment in `momentId` only.
-  validateSearch: search.transform((s) => (s.panel === "moment" && !s.editId && s.momentId ? { ...s, editId: s.momentId } : s)),
+  validateSearch: search.transform((s) =>
+    s.panel === "moment" && !s.editId && s.momentId ? { ...s, editId: s.momentId } : s,
+  ),
   beforeLoad: ({ search: s, params }) => {
     if (s.tab === "shared") throw redirect({ to: "/e/$id/shared", params });
     if (s.tab === "activity") throw redirect({ to: "/e/$id/activity", params });

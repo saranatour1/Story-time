@@ -8,12 +8,27 @@ import type { Id } from "../_generated/dataModel";
 import emailSchema from "../components/email/schema";
 import invitesSchema from "../components/invites/schema";
 import { isPublicWebUrl, previewFromHtml, publicRedirect } from "../model/ai/unfurl";
-import { catchUpElements, coverPage, type JournalElement, momentPage, PAGE, rangeLabel, readLink, tripDates } from "../lib/journal";
+import {
+  catchUpElements,
+  coverPage,
+  type JournalElement,
+  momentPage,
+  PAGE,
+  rangeLabel,
+  readLink,
+  tripDates,
+} from "../lib/journal";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
-const invitesModules = import.meta.glob(["../components/invites/**/*.ts", "../components/invites/**/*.js"]);
-const emailModules = import.meta.glob(["../components/email/**/*.ts", "../components/email/**/*.js"]);
+const invitesModules = import.meta.glob([
+  "../components/invites/**/*.ts",
+  "../components/invites/**/*.js",
+]);
+const emailModules = import.meta.glob([
+  "../components/email/**/*.ts",
+  "../components/email/**/*.js",
+]);
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
@@ -37,9 +52,15 @@ const setup = async () => {
   const owner = as(ownerId);
   const eventId = await owner.mutation(api.api.events.createDraft, {});
   await owner.mutation(api.api.events.update, { eventId, title: "A week in Lisbon" });
-  await t.run((ctx) => ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }));
+  await t.run((ctx) =>
+    ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
+  );
   const photo = async (who = owner, event = eventId) => {
-    const { mediaId } = await who.mutation(api.api.media.reserveUpload, { eventId: event, size: 100, mime: "image/png" });
+    const { mediaId } = await who.mutation(api.api.media.reserveUpload, {
+      eventId: event,
+      size: 100,
+      mime: "image/png",
+    });
     await who.mutation(api.api.media.confirmUpload, { mediaId });
     return mediaId;
   };
@@ -72,7 +93,17 @@ const element = (over: Partial<ElementArg> = {}): ElementArg => ({
 describe("laying out pages", () => {
   test("a moment's page has its title, postmark, photos with tape and words, all on the page", () => {
     const page = momentPage(
-      { _id: "m1", startsAt: JUNE_1, place: "Lisbon, Portugal", blocks: [{ type: "photo", mediaId: "p1" }, { type: "photo", mediaId: "p2" }, { type: "note", text: "Pastéis" }], stops: [] },
+      {
+        _id: "m1",
+        startsAt: JUNE_1,
+        place: "Lisbon, Portugal",
+        blocks: [
+          { type: "photo", mediaId: "p1" },
+          { type: "photo", mediaId: "p2" },
+          { type: "note", text: "Pastéis" },
+        ],
+        stops: [],
+      },
       0,
     );
     const kinds = page.elements.map((e) => e.kind);
@@ -102,22 +133,47 @@ describe("laying out pages", () => {
   });
 
   test("a moment with only words gets no empty prints or stray tape", () => {
-    const page = momentPage({ _id: "m3", startsAt: JUNE_1, blocks: [{ type: "note", text: "Just words" }], stops: [] }, 1);
+    const page = momentPage(
+      { _id: "m3", startsAt: JUNE_1, blocks: [{ type: "note", text: "Just words" }], stops: [] },
+      1,
+    );
     expect(page.elements.filter((e) => e.kind === "photo")).toEqual([]);
-    expect(page.elements.filter((e) => e.kind === "deco" && e.style?.startsWith("tape"))).toEqual([]);
+    expect(page.elements.filter((e) => e.kind === "deco" && e.style?.startsWith("tape"))).toEqual(
+      [],
+    );
     expect(page.elements.find((e) => e.kind === "note")?.text).toBe("Just words");
   });
 
   test("the cover carries the title, dates and the first photo", () => {
-    const cover = coverPage({ id: "ev", title: "A week in Lisbon", dates: "1 Jun – 7 Jun 2026", photo: "p1" });
-    expect(cover.elements.filter((e) => e.kind === "title").map((e) => e.text)).toEqual(["A week in Lisbon", "1 Jun – 7 Jun 2026"]);
+    const cover = coverPage({
+      id: "ev",
+      title: "A week in Lisbon",
+      dates: "1 Jun – 7 Jun 2026",
+      photo: "p1",
+    });
+    expect(cover.elements.filter((e) => e.kind === "title").map((e) => e.text)).toEqual([
+      "A week in Lisbon",
+      "1 Jun – 7 Jun 2026",
+    ]);
     expect(cover.elements.find((e) => e.kind === "photo")?.mediaId).toBe("p1");
   });
 
   test("catching up replaces the layout and keeps what the owner added", () => {
-    const fresh = momentPage({ _id: "moment1", startsAt: JUNE_1, blocks: [{ type: "note", text: "Better" }], stops: [] }, 0).elements;
+    const fresh = momentPage(
+      { _id: "moment1", startsAt: JUNE_1, blocks: [{ type: "note", text: "Better" }], stops: [] },
+      0,
+    ).elements;
     const old = fresh.map((e) => (e.kind === "note" ? { ...e, text: "Old" } : e));
-    const sticker: JournalElement = { id: "mine", kind: "sticker", x: 12, y: 12, w: 40, h: 40, rotation: 0, z: 40 };
+    const sticker: JournalElement = {
+      id: "mine",
+      kind: "sticker",
+      x: 12,
+      y: 12,
+      w: 40,
+      h: 40,
+      rotation: 0,
+      z: 40,
+    };
     const merged = catchUpElements([...old, sticker], fresh, "moment1");
     expect(merged.find((e) => e.kind === "note")?.text).toBe("Better");
     expect(merged.find((e) => e.id === "mine")).toEqual(sticker);
@@ -129,8 +185,23 @@ describe("laying out pages", () => {
   });
 
   test("a layout piece whose words the owner changed is theirs and stays", () => {
-    const fresh = momentPage({ _id: "moment1", startsAt: JUNE_1, place: "Lisbon, Portugal", blocks: [{ type: "note", text: "Better" }], stops: [] }, 0).elements;
-    const retitled = fresh.map((e) => (e.kind === "title" ? { ...e, text: "Our best day", own: true } : e.kind === "note" ? { ...e, text: "Old" } : e));
+    const fresh = momentPage(
+      {
+        _id: "moment1",
+        startsAt: JUNE_1,
+        place: "Lisbon, Portugal",
+        blocks: [{ type: "note", text: "Better" }],
+        stops: [],
+      },
+      0,
+    ).elements;
+    const retitled = fresh.map((e) =>
+      e.kind === "title"
+        ? { ...e, text: "Our best day", own: true }
+        : e.kind === "note"
+          ? { ...e, text: "Old" }
+          : e,
+    );
     const merged = catchUpElements(retitled, fresh, "moment1");
     expect(merged.filter((e) => e.kind === "title").map((e) => e.text)).toEqual(["Our best day"]);
     expect(merged.find((e) => e.kind === "note")?.text).toBe("Better");
@@ -142,14 +213,26 @@ describe("laying out pages", () => {
     const osaka = { startsAt: Date.UTC(2025, 3, 10, 4, 40), tzOffsetMinutes: 540 };
     expect(tripDates({}, tokyo, osaka)).toBe("1 Apr – 10 Apr 2025");
     // Saved at local midnight in UTC+3 and in UTC−5: the same calendar days.
-    expect(tripDates({ startsAt: Date.UTC(2025, 2, 31, 21), endsAt: Date.UTC(2025, 3, 9, 21) })).toBe("1 Apr – 10 Apr 2025");
-    expect(tripDates({ startsAt: Date.UTC(2025, 3, 1, 5), endsAt: Date.UTC(2025, 3, 10, 5) })).toBe("1 Apr – 10 Apr 2025");
+    expect(
+      tripDates({ startsAt: Date.UTC(2025, 2, 31, 21), endsAt: Date.UTC(2025, 3, 9, 21) }),
+    ).toBe("1 Apr – 10 Apr 2025");
+    expect(tripDates({ startsAt: Date.UTC(2025, 3, 1, 5), endsAt: Date.UTC(2025, 3, 10, 5) })).toBe(
+      "1 Apr – 10 Apr 2025",
+    );
     // Local midnight in UTC+13 and just east of UTC+12 (Chatham, UTC+12:45).
-    expect(tripDates({ startsAt: Date.UTC(2025, 2, 31, 11), endsAt: Date.UTC(2025, 3, 9, 11) })).toBe("1 Apr – 10 Apr 2025");
-    expect(tripDates({ startsAt: Date.UTC(2025, 2, 31, 11, 15), endsAt: Date.UTC(2025, 3, 9, 11, 15) })).toBe("1 Apr – 10 Apr 2025");
+    expect(
+      tripDates({ startsAt: Date.UTC(2025, 2, 31, 11), endsAt: Date.UTC(2025, 3, 9, 11) }),
+    ).toBe("1 Apr – 10 Apr 2025");
+    expect(
+      tripDates({ startsAt: Date.UTC(2025, 2, 31, 11, 15), endsAt: Date.UTC(2025, 3, 9, 11, 15) }),
+    ).toBe("1 Apr – 10 Apr 2025");
     // Hawaii, UTC−10, keeps the day it picked. UTC+12 still rounds onto that day.
-    expect(tripDates({ startsAt: Date.UTC(2025, 3, 1, 10), endsAt: Date.UTC(2025, 3, 10, 10) })).toBe("1 Apr – 10 Apr 2025");
-    expect(tripDates({ startsAt: Date.UTC(2025, 2, 31, 12), endsAt: Date.UTC(2025, 3, 9, 12) })).toBe("1 Apr – 10 Apr 2025");
+    expect(
+      tripDates({ startsAt: Date.UTC(2025, 3, 1, 10), endsAt: Date.UTC(2025, 3, 10, 10) }),
+    ).toBe("1 Apr – 10 Apr 2025");
+    expect(
+      tripDates({ startsAt: Date.UTC(2025, 2, 31, 12), endsAt: Date.UTC(2025, 3, 9, 12) }),
+    ).toBe("1 Apr – 10 Apr 2025");
     expect(tripDates({})).toBeUndefined();
   });
 
@@ -172,8 +255,12 @@ describe("filling a journal", () => {
     expect(journal.pending).toBe(0);
     expect(journal.pages).toHaveLength(3);
     expect(journal.pages[0]!.momentId).toBeUndefined();
-    expect(journal.pages[0]!.elements.find((e) => e.kind === "title")?.text).toBe("A week in Lisbon");
-    expect(journal.pages[1]!.elements.find((e) => e.kind === "note")?.text).toBe("Pastéis by the river");
+    expect(journal.pages[0]!.elements.find((e) => e.kind === "title")?.text).toBe(
+      "A week in Lisbon",
+    );
+    expect(journal.pages[1]!.elements.find((e) => e.kind === "note")?.text).toBe(
+      "Pastéis by the river",
+    );
 
     // A second window filling at the same time makes nothing twice.
     expect(await owner.mutation(api.api.journal.fill, { eventId })).toBe(0);
@@ -190,7 +277,10 @@ describe("filling a journal", () => {
     expect((await owner.query(api.api.journal.get, { eventId })).pending).toBe(1);
     expect(await owner.mutation(api.api.journal.fill, { eventId })).toBe(1);
     const pages = (await owner.query(api.api.journal.get, { eventId })).pages;
-    expect(pages.map((p) => p.elements.find((e) => e.kind === "note")?.text)).toEqual([undefined, "Earlier, added later"]);
+    expect(pages.map((p) => p.elements.find((e) => e.kind === "note")?.text)).toEqual([
+      undefined,
+      "Earlier, added later",
+    ]);
   });
 
   test("a full book does not mark moments that never got a page as done", async () => {
@@ -200,7 +290,12 @@ describe("filling a journal", () => {
     await t.run(async (ctx) => {
       const count = (await ctx.db.query("journalPages").take(500)).length;
       for (let i = count; i < 400; i++) {
-        await ctx.db.insert("journalPages", { eventId, order: 1_000_000 + i, paper: "cream", elements: [] });
+        await ctx.db.insert("journalPages", {
+          eventId,
+          order: 1_000_000 + i,
+          paper: "cream",
+          elements: [],
+        });
       }
     });
     await moment(JUNE_1 + 86_400_000, "Left out");
@@ -218,7 +313,9 @@ describe("filling a journal", () => {
     expect(outline.pages[1]).not.toHaveProperty("elements");
     const one = await owner.query(api.api.journal.page, { pageId: outline.pages[1]!._id });
     expect(one?.elements.find((e) => e.kind === "note")?.text).toBe("Pastéis by the river");
-    expect((await owner.query(api.api.journal.pageForMoment, { eventId, momentId }))?._id).toBe(outline.pages[1]!._id);
+    expect((await owner.query(api.api.journal.pageForMoment, { eventId, momentId }))?._id).toBe(
+      outline.pages[1]!._id,
+    );
     await owner.mutation(api.api.journal.removePage, { pageId: outline.pages[1]!._id });
     expect(await owner.query(api.api.journal.pageForMoment, { eventId, momentId })).toBeNull();
   });
@@ -230,7 +327,9 @@ describe("filling a journal", () => {
     const journal = await owner.query(api.api.journal.get, { eventId });
     expect(journal.pending).toBe(0);
     expect(journal.pages.map((p) => p.momentId)).toEqual([undefined, first]);
-    expect(journal.pages[0]!.elements.find((e) => e.kind === "title")?.text).toBe("A week in Lisbon");
+    expect(journal.pages[0]!.elements.find((e) => e.kind === "title")?.text).toBe(
+      "A week in Lisbon",
+    );
 
     await moment(JUNE_1 + 86_400_000, "Sintra in the fog");
     await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -267,7 +366,10 @@ describe("filling a journal", () => {
     const locked = await owner.query(api.api.journal.get, { eventId });
     expect(locked.pages.some((p) => p.momentId === second)).toBe(false);
     const mark = await t.run(async (ctx) => {
-      const row = await ctx.db.query("journals").withIndex("by_event", (q) => q.eq("eventId", eventId)).unique();
+      const row = await ctx.db
+        .query("journals")
+        .withIndex("by_event", (q) => q.eq("eventId", eventId))
+        .unique();
       const made = await ctx.db.get("moments", second);
       return { filledAt: row?.filledAt, created: made?._creationTime };
     });
@@ -287,31 +389,48 @@ describe("filling a journal", () => {
     await t.run(async (ctx) => {
       const count = (await ctx.db.query("journalPages").take(500)).length;
       for (let i = count; i < 400; i++) {
-        await ctx.db.insert("journalPages", { eventId, order: 1_000_000 + i, paper: "cream", elements: [] });
+        await ctx.db.insert("journalPages", {
+          eventId,
+          order: 1_000_000 + i,
+          paper: "cream",
+          elements: [],
+        });
       }
     });
     const left = await moment(JUNE_1 + 86_400_000, "Left out");
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    expect(await owner.query(api.api.journal.unpaged, { eventId })).toEqual({ full: true, momentIds: [left] });
+    expect(await owner.query(api.api.journal.unpaged, { eventId })).toEqual({
+      full: true,
+      momentIds: [left],
+    });
     expect((await owner.query(api.api.journal.get, { eventId })).pending).toBe(1);
-    expect((await owner.query(api.api.journal.get, { eventId })).pages.some((p) => p.momentId === left)).toBe(false);
+    expect(
+      (await owner.query(api.api.journal.get, { eventId })).pages.some((p) => p.momentId === left),
+    ).toBe(false);
   });
 
   test("waiting pages are cut without a new moment, and a page taken out stays out", async () => {
     const { t, owner, eventId, moment } = await setup();
     const first = await moment(JUNE_1, "Pastéis by the river");
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const made = (await owner.query(api.api.journal.get, { eventId })).pages.find((p) => p.momentId === first);
+    const made = (await owner.query(api.api.journal.get, { eventId })).pages.find(
+      (p) => p.momentId === first,
+    );
     expect(made).toBeDefined();
     await owner.mutation(api.api.journal.removePage, { pageId: made!._id });
 
     await t.mutation(internal.model.journal.backfillWaiting, {});
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    expect((await owner.query(api.api.journal.get, { eventId })).pages.some((p) => p.momentId === first)).toBe(false);
+    expect(
+      (await owner.query(api.api.journal.get, { eventId })).pages.some((p) => p.momentId === first),
+    ).toBe(false);
 
     // Rewind the mark, as if this moment was saved and never paged.
     await t.run(async (ctx) => {
-      const journal = await ctx.db.query("journals").withIndex("by_event", (q) => q.eq("eventId", eventId)).unique();
+      const journal = await ctx.db
+        .query("journals")
+        .withIndex("by_event", (q) => q.eq("eventId", eventId))
+        .unique();
       if (journal === null) throw new Error("journal missing");
       await ctx.db.patch("journals", journal._id, { filledAt: 0 });
     });
@@ -327,12 +446,19 @@ describe("filling a journal", () => {
     const { t, owner, eventId, moment } = await setup();
     const id = await moment(JUNE_1, "Taken out");
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const page = (await owner.query(api.api.journal.get, { eventId })).pages.find((p) => p.momentId === id);
+    const page = (await owner.query(api.api.journal.get, { eventId })).pages.find(
+      (p) => p.momentId === id,
+    );
     await owner.mutation(api.api.journal.removePage, { pageId: page!._id });
-    expect(await owner.query(api.api.journal.unpaged, { eventId })).toEqual({ full: false, momentIds: [] });
+    expect(await owner.query(api.api.journal.unpaged, { eventId })).toEqual({
+      full: false,
+      momentIds: [],
+    });
     await moment(JUNE_1 + 86_400_000, "Next");
     await t.finishAllScheduledFunctions(vi.runAllTimers);
-    const notes = (await owner.query(api.api.journal.get, { eventId })).pages.map((p) => p.elements.find((e) => e.kind === "note")?.text);
+    const notes = (await owner.query(api.api.journal.get, { eventId })).pages.map(
+      (p) => p.elements.find((e) => e.kind === "note")?.text,
+    );
     expect(notes).toEqual([undefined, "Next"]);
   });
 
@@ -347,7 +473,10 @@ describe("filling a journal", () => {
     expect(before.elements.find((e) => e.kind === "note")?.text).toBe("First words");
 
     vi.setSystemTime(new Date("2026-06-01T12:01:00Z"));
-    await owner.mutation(api.api.moments.update, { momentId, blocks: [{ type: "note", text: "Better words" }] });
+    await owner.mutation(api.api.moments.update, {
+      momentId,
+      blocks: [{ type: "note", text: "Better words" }],
+    });
     expect((await owner.query(api.api.journal.outline, { eventId })).pages[1]!.stale).toBe(true);
     expect(await owner.mutation(api.api.journal.refresh, { eventId })).toBe(1);
     const caught = (await owner.query(api.api.journal.page, { pageId: before._id }))!;
@@ -374,11 +503,24 @@ describe("filling a journal", () => {
           ...(e.mediaId !== undefined ? { mediaId: e.mediaId } : {}),
           ...(e.momentId !== undefined ? { momentId: e.momentId } : {}),
         })),
-        { id: "mine", kind: "sticker" as const, x: 40, y: 900, w: 80, h: 80, rotation: 0, z: 40, mediaId: loose },
+        {
+          id: "mine",
+          kind: "sticker" as const,
+          x: 40,
+          y: 900,
+          w: 80,
+          h: 80,
+          rotation: 0,
+          z: 40,
+          mediaId: loose,
+        },
       ],
     });
     vi.setSystemTime(new Date("2026-06-01T12:02:00Z"));
-    await owner.mutation(api.api.moments.update, { momentId, blocks: [{ type: "note", text: "Later words" }] });
+    await owner.mutation(api.api.moments.update, {
+      momentId,
+      blocks: [{ type: "note", text: "Later words" }],
+    });
     expect(await owner.mutation(api.api.journal.refresh, { eventId })).toBe(0);
     const held = (await owner.query(api.api.journal.page, { pageId: before._id }))!;
     expect(held.edited).toBe(true);
@@ -403,7 +545,8 @@ describe("filling a journal", () => {
     await moment(JUNE_1, "First");
     await owner.mutation(api.api.journal.fill, { eventId });
     const cover = async () => (await owner.query(api.api.journal.get, { eventId })).pages[0]!;
-    const words = async () => (await cover()).elements.filter((e) => e.kind === "title").map((e) => e.text);
+    const words = async () =>
+      (await cover()).elements.filter((e) => e.kind === "title").map((e) => e.text);
     expect(await words()).toContain("A week in Lisbon");
     expect(await words()).toContain("1 Jun 2026");
 
@@ -412,7 +555,11 @@ describe("filling a journal", () => {
     expect(await words()).not.toContain("A week in Lisbon");
 
     // What a browser at UTC+3 saves for 1 and 7 June: their local midnights.
-    await owner.mutation(api.api.events.update, { eventId, startsAt: Date.UTC(2026, 4, 31, 21), endsAt: Date.UTC(2026, 5, 6, 21) });
+    await owner.mutation(api.api.events.update, {
+      eventId,
+      startsAt: Date.UTC(2026, 4, 31, 21),
+      endsAt: Date.UTC(2026, 5, 6, 21),
+    });
     expect(await words()).toContain("1 Jun – 7 Jun 2026");
     expect(await words()).not.toContain("1 Jun 2026");
 
@@ -429,7 +576,9 @@ describe("filling a journal", () => {
         rotation: e.rotation,
         z: e.z,
         ...(e.style !== undefined ? { style: e.style } : {}),
-        ...(e.text !== undefined ? { text: e.kind === "title" && e.text === "A week in Porto" ? "Our trip" : e.text } : {}),
+        ...(e.text !== undefined
+          ? { text: e.kind === "title" && e.text === "A week in Porto" ? "Our trip" : e.text }
+          : {}),
         ...(e.mediaId !== undefined ? { mediaId: e.mediaId } : {}),
         ...(e.momentId !== undefined ? { momentId: e.momentId } : {}),
       })),
@@ -441,7 +590,7 @@ describe("filling a journal", () => {
     expect(kept).toContain("1 Jun – 7 Jun 2026");
   });
 
-  test("a title the owner retyped stays through \"Update this page\"", async () => {
+  test('a title the owner retyped stays through "Update this page"', async () => {
     vi.setSystemTime(new Date("2026-06-01T12:00:00Z"));
     const { owner, eventId, moment } = await setup();
     const momentId = await moment(JUNE_1, "First words");
@@ -450,7 +599,10 @@ describe("filling a journal", () => {
     const title = page.elements.find((e) => e.kind === "title")!;
     await owner.mutation(api.api.journal.savePage, {
       pageId: page._id,
-      elements: page.elements.map((e) => ({ ...e, text: e.id === title.id ? "Our best day" : e.text })),
+      elements: page.elements.map((e) => ({
+        ...e,
+        text: e.id === title.id ? "Our best day" : e.text,
+      })),
     });
     const saved = (await owner.query(api.api.journal.page, { pageId: page._id }))!;
     expect(saved.elements.find((e) => e.id === title.id)?.own).toBe(true);
@@ -458,10 +610,15 @@ describe("filling a journal", () => {
     expect(saved.elements.find((e) => e.kind === "note")?.own).toBeUndefined();
 
     vi.setSystemTime(new Date("2026-06-01T12:05:00Z"));
-    await owner.mutation(api.api.moments.update, { momentId, blocks: [{ type: "note", text: "Later words" }] });
+    await owner.mutation(api.api.moments.update, {
+      momentId,
+      blocks: [{ type: "note", text: "Later words" }],
+    });
     expect(await owner.mutation(api.api.journal.refresh, { eventId, pageId: page._id })).toBe(1);
     const updated = (await owner.query(api.api.journal.page, { pageId: page._id }))!;
-    expect(updated.elements.filter((e) => e.kind === "title").map((e) => e.text)).toEqual(["Our best day"]);
+    expect(updated.elements.filter((e) => e.kind === "title").map((e) => e.text)).toEqual([
+      "Our best day",
+    ]);
     expect(updated.elements.find((e) => e.kind === "note")?.text).toBe("Later words");
   });
 
@@ -470,7 +627,9 @@ describe("filling a journal", () => {
     await moment(JUNE_1, "First");
     await owner.mutation(api.api.journal.fill, { eventId });
     const dates = async () =>
-      (await owner.query(api.api.journal.get, { eventId })).pages[0]!.elements.filter((e) => e.kind === "title").map((e) => e.text);
+      (await owner.query(api.api.journal.get, { eventId })).pages[0]!.elements.filter(
+        (e) => e.kind === "title",
+      ).map((e) => e.text);
     expect(await dates()).toContain("1 Jun 2026");
     const later = await moment(JUNE_1 + 3 * 86_400_000, "Later");
     expect(await dates()).toContain("1 Jun – 4 Jun 2026");
@@ -484,9 +643,15 @@ describe("filling a journal", () => {
     const momentId = await moment(JUNE_1, "First");
     await owner.mutation(api.api.journal.fill, { eventId });
     const [cover, page] = (await owner.query(api.api.journal.get, { eventId })).pages;
-    expect(await owner.query(internal.model.ai.title.pageMoment, { pageId: page!._id })).toMatchObject({ momentId });
-    await expect(viewer.query(internal.model.ai.title.pageMoment, { pageId: page!._id })).rejects.toThrow();
-    await expect(owner.query(internal.model.ai.title.pageMoment, { pageId: cover!._id })).rejects.toThrow(/moment's page/);
+    expect(
+      await owner.query(internal.model.ai.title.pageMoment, { pageId: page!._id }),
+    ).toMatchObject({ momentId });
+    await expect(
+      viewer.query(internal.model.ai.title.pageMoment, { pageId: page!._id }),
+    ).rejects.toThrow();
+    await expect(
+      owner.query(internal.model.ai.title.pageMoment, { pageId: cover!._id }),
+    ).rejects.toThrow(/moment's page/);
   });
 
   test("words are encrypted at rest", async () => {
@@ -503,34 +668,58 @@ describe("editing pages", () => {
   test("the owner saves a page; a viewer reads it and can't change it", async () => {
     const { owner, viewer, eventId } = await setup();
     const pageId = await owner.mutation(api.api.journal.addPage, { eventId, paper: "kraft" });
-    await owner.mutation(api.api.journal.savePage, { pageId, paper: "grid", elements: [element()] });
+    await owner.mutation(api.api.journal.savePage, {
+      pageId,
+      paper: "grid",
+      elements: [element()],
+    });
     const seen = await viewer.query(api.api.journal.get, { eventId });
     expect(seen.canEdit).toBe(false);
     expect(seen.pending).toBe(0);
     expect(seen.pages[0]).toMatchObject({ paper: "grid", elements: [{ id: "e1", text: "Hello" }] });
-    await expect(viewer.mutation(api.api.journal.savePage, { pageId, elements: [] })).rejects.toThrow();
+    await expect(
+      viewer.mutation(api.api.journal.savePage, { pageId, elements: [] }),
+    ).rejects.toThrow();
   });
 
   test("a page holds only what belongs: known styles, this experience's photos", async () => {
     const { owner, other, eventId, photo } = await setup();
     const pageId = await owner.mutation(api.api.journal.addPage, { eventId });
-    const save = (e: ReturnType<typeof element>) => owner.mutation(api.api.journal.savePage, { pageId, elements: [e] });
+    const save = (e: ReturnType<typeof element>) =>
+      owner.mutation(api.api.journal.savePage, { pageId, elements: [e] });
     await expect(save(element({ style: "comic-sans" }))).rejects.toThrow(/style/);
     await expect(save(element({ x: Infinity }))).rejects.toThrow();
     // An unattached upload is not a photo of the experience.
-    await expect(save(element({ kind: "photo", style: "polaroid", text: undefined, mediaId: await photo() }))).rejects.toThrow(/isn't in this experience/);
+    await expect(
+      save(element({ kind: "photo", style: "polaroid", text: undefined, mediaId: await photo() })),
+    ).rejects.toThrow(/isn't in this experience/);
     const theirs = await other.mutation(api.api.events.createDraft, {});
-    await expect(save(element({ kind: "photo", style: "polaroid", text: undefined, mediaId: await photo(other, theirs) }))).rejects.toThrow();
-    await expect(owner.mutation(api.api.journal.savePage, { pageId, elements: [element(), element()] })).rejects.toThrow(/own id/);
+    await expect(
+      save(
+        element({
+          kind: "photo",
+          style: "polaroid",
+          text: undefined,
+          mediaId: await photo(other, theirs),
+        }),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      owner.mutation(api.api.journal.savePage, { pageId, elements: [element(), element()] }),
+    ).rejects.toThrow(/own id/);
   });
 
   test("a locked page, or a locked journal, can't change until it is unlocked", async () => {
     const { owner, eventId } = await setup();
     const pageId = await owner.mutation(api.api.journal.addPage, { eventId });
     await owner.mutation(api.api.journal.setLock, { eventId, pageId, locked: true });
-    await expect(owner.mutation(api.api.journal.savePage, { pageId, elements: [element()] })).rejects.toThrow(/locked/);
+    await expect(
+      owner.mutation(api.api.journal.savePage, { pageId, elements: [element()] }),
+    ).rejects.toThrow(/locked/);
     await expect(owner.mutation(api.api.journal.removePage, { pageId })).rejects.toThrow(/locked/);
-    await expect(owner.mutation(api.api.journal.movePage, { pageId, before: null })).rejects.toThrow(/locked/);
+    await expect(
+      owner.mutation(api.api.journal.movePage, { pageId, before: null }),
+    ).rejects.toThrow(/locked/);
     await owner.mutation(api.api.journal.setLock, { eventId, pageId, locked: false });
     await owner.mutation(api.api.journal.movePage, { pageId, before: null });
     await owner.mutation(api.api.journal.savePage, { pageId, elements: [element()] });
@@ -538,7 +727,9 @@ describe("editing pages", () => {
     await owner.mutation(api.api.journal.setLock, { eventId, locked: true });
     expect((await owner.query(api.api.journal.get, { eventId })).locked).toBe(true);
     await expect(owner.mutation(api.api.journal.addPage, { eventId })).rejects.toThrow(/locked/);
-    await expect(owner.mutation(api.api.journal.savePage, { pageId, elements: [] })).rejects.toThrow(/locked/);
+    await expect(
+      owner.mutation(api.api.journal.savePage, { pageId, elements: [] }),
+    ).rejects.toThrow(/locked/);
   });
 
   test("pages move before another, or to the end", async () => {
@@ -546,7 +737,8 @@ describe("editing pages", () => {
     const a = await owner.mutation(api.api.journal.addPage, { eventId, paper: "cream" });
     const b = await owner.mutation(api.api.journal.addPage, { eventId, paper: "kraft" });
     const c = await owner.mutation(api.api.journal.addPage, { eventId, paper: "grid" });
-    const order = async () => (await owner.query(api.api.journal.get, { eventId })).pages.map((p) => p._id);
+    const order = async () =>
+      (await owner.query(api.api.journal.get, { eventId })).pages.map((p) => p._id);
     expect(await order()).toEqual([a, b, c]);
     await owner.mutation(api.api.journal.movePage, { pageId: c, before: a });
     expect(await order()).toEqual([c, a, b]);
@@ -562,7 +754,21 @@ describe("editing pages", () => {
     const foreign = await photo(other, theirs);
     const added = await owner.mutation(api.api.journal.importPages, {
       eventId,
-      pages: [{ paper: "no-such-paper", elements: [element(), element({ id: "e2", kind: "photo", style: "polaroid", text: undefined, mediaId: foreign })] }],
+      pages: [
+        {
+          paper: "no-such-paper",
+          elements: [
+            element(),
+            element({
+              id: "e2",
+              kind: "photo",
+              style: "polaroid",
+              text: undefined,
+              mediaId: foreign,
+            }),
+          ],
+        },
+      ],
     });
     expect(added).toBe(1);
     const [page] = (await owner.query(api.api.journal.get, { eventId })).pages;
@@ -574,17 +780,49 @@ describe("drawings, links and new pages", () => {
   test("a drawing needs strokes, a link a web address, and colours are colours", async () => {
     const { owner, eventId } = await setup();
     const pageId = await owner.mutation(api.api.journal.addPage, { eventId });
-    const save = (e: ElementArg) => owner.mutation(api.api.journal.savePage, { pageId, elements: [e] });
-    await save(element({ kind: "drawing", style: "marker", text: "0 0 100 100\nmarker #c4552f M0 0L10 10", color: "#c4552f" }));
-    await expect(save(element({ kind: "drawing", style: "pen", text: " " }))).rejects.toThrow(/strokes/);
-    await expect(save(element({ kind: "drawing", style: "pen", text: "0 0 1 1", color: "red" }))).rejects.toThrow(/colour/);
-    await save(element({ kind: "link", style: "card", text: JSON.stringify({ url: "https://example.com/a", title: "A" }) }));
-    await expect(save(element({ kind: "link", style: "card", text: JSON.stringify({ url: "javascript:alert(1)" }) }))).rejects.toThrow(/web address/);
-    await expect(save(element({ kind: "link", style: "card", text: "not json" }))).rejects.toThrow(/web address/);
+    const save = (e: ElementArg) =>
+      owner.mutation(api.api.journal.savePage, { pageId, elements: [e] });
+    await save(
+      element({
+        kind: "drawing",
+        style: "marker",
+        text: "0 0 100 100\nmarker #c4552f M0 0L10 10",
+        color: "#c4552f",
+      }),
+    );
+    await expect(save(element({ kind: "drawing", style: "pen", text: " " }))).rejects.toThrow(
+      /strokes/,
+    );
+    await expect(
+      save(element({ kind: "drawing", style: "pen", text: "0 0 1 1", color: "red" })),
+    ).rejects.toThrow(/colour/);
+    await save(
+      element({
+        kind: "link",
+        style: "card",
+        text: JSON.stringify({ url: "https://example.com/a", title: "A" }),
+      }),
+    );
+    await expect(
+      save(
+        element({
+          kind: "link",
+          style: "card",
+          text: JSON.stringify({ url: "javascript:alert(1)" }),
+        }),
+      ),
+    ).rejects.toThrow(/web address/);
+    await expect(save(element({ kind: "link", style: "card", text: "not json" }))).rejects.toThrow(
+      /web address/,
+    );
   });
 
   test("a link card keeps only https pictures and names its site", () => {
-    expect(readLink(JSON.stringify({ url: "https://www.example.com/x", image: "http://evil.test/p.png" }))).toEqual({
+    expect(
+      readLink(
+        JSON.stringify({ url: "https://www.example.com/x", image: "http://evil.test/p.png" }),
+      ),
+    ).toEqual({
       url: "https://www.example.com/x",
       title: undefined,
       description: undefined,
@@ -599,23 +837,52 @@ describe("drawings, links and new pages", () => {
     const locked = element({ locked: true });
     const beside = element({ id: "e2", x: 400, text: "Beside" });
     await owner.mutation(api.api.journal.savePage, { pageId, elements: [locked] });
-    await expect(owner.mutation(api.api.journal.savePage, { pageId, elements: [{ ...locked, x: 80 }] })).rejects.toThrow(/locked in place/);
-    await expect(owner.mutation(api.api.journal.savePage, { pageId, elements: [] })).rejects.toThrow(/locked in place/);
-    await expect(owner.mutation(api.api.journal.savePage, { pageId, elements: [{ ...locked, locked: undefined, x: 80 }] })).rejects.toThrow(/locked in place/);
+    await expect(
+      owner.mutation(api.api.journal.savePage, { pageId, elements: [{ ...locked, x: 80 }] }),
+    ).rejects.toThrow(/locked in place/);
+    await expect(
+      owner.mutation(api.api.journal.savePage, { pageId, elements: [] }),
+    ).rejects.toThrow(/locked in place/);
+    await expect(
+      owner.mutation(api.api.journal.savePage, {
+        pageId,
+        elements: [{ ...locked, locked: undefined, x: 80 }],
+      }),
+    ).rejects.toThrow(/locked in place/);
     await owner.mutation(api.api.journal.savePage, { pageId, elements: [locked, beside] });
-    const saved = (await owner.query(api.api.journal.get, { eventId })).pages.find((p) => p._id === pageId);
-    expect(saved?.elements.find((e) => e.id === "e1")).toMatchObject({ x: 10, locked: true, text: "Hello" });
-    await owner.mutation(api.api.journal.savePage, { pageId, elements: [{ ...locked, locked: undefined }, beside] });
-    await owner.mutation(api.api.journal.savePage, { pageId, elements: [{ ...locked, locked: undefined, x: 80 }, beside] });
-    const moved = (await owner.query(api.api.journal.get, { eventId })).pages.find((p) => p._id === pageId);
+    const saved = (await owner.query(api.api.journal.get, { eventId })).pages.find(
+      (p) => p._id === pageId,
+    );
+    expect(saved?.elements.find((e) => e.id === "e1")).toMatchObject({
+      x: 10,
+      locked: true,
+      text: "Hello",
+    });
+    await owner.mutation(api.api.journal.savePage, {
+      pageId,
+      elements: [{ ...locked, locked: undefined }, beside],
+    });
+    await owner.mutation(api.api.journal.savePage, {
+      pageId,
+      elements: [{ ...locked, locked: undefined, x: 80 }, beside],
+    });
+    const moved = (await owner.query(api.api.journal.get, { eventId })).pages.find(
+      (p) => p._id === pageId,
+    );
     expect(moved?.elements.find((e) => e.id === "e1")).toMatchObject({ x: 80 });
     expect(moved?.elements.find((e) => e.id === "e1")?.locked).toBeUndefined();
   });
 
   test("a page can start with things on it", async () => {
     const { owner, eventId } = await setup();
-    const pageId = await owner.mutation(api.api.journal.addPage, { eventId, paper: "blush", elements: [element({ text: "Greetings" })] });
-    const page = (await owner.query(api.api.journal.get, { eventId })).pages.find((p) => p._id === pageId);
+    const pageId = await owner.mutation(api.api.journal.addPage, {
+      eventId,
+      paper: "blush",
+      elements: [element({ text: "Greetings" })],
+    });
+    const page = (await owner.query(api.api.journal.get, { eventId })).pages.find(
+      (p) => p._id === pageId,
+    );
     expect(page).toMatchObject({ paper: "blush", elements: [{ text: "Greetings" }] });
   });
 
@@ -629,9 +896,19 @@ describe("drawings, links and new pages", () => {
       site: "lisbon.test",
     });
     // Pictures only over https, and never from a private address.
-    expect(previewFromHtml(`<meta property="og:image" content="http://x.test/a.png">`, "https://x.test").image).toBeUndefined();
-    expect(previewFromHtml(`<meta property="og:image" content="https://127.0.0.1/a.png">`, "https://x.test").image).toBeUndefined();
-    expect(previewFromHtml(`<title>Only a title</title>`, "https://x.test").title).toBe("Only a title");
+    expect(
+      previewFromHtml(`<meta property="og:image" content="http://x.test/a.png">`, "https://x.test")
+        .image,
+    ).toBeUndefined();
+    expect(
+      previewFromHtml(
+        `<meta property="og:image" content="https://127.0.0.1/a.png">`,
+        "https://x.test",
+      ).image,
+    ).toBeUndefined();
+    expect(previewFromHtml(`<title>Only a title</title>`, "https://x.test").title).toBe(
+      "Only a title",
+    );
   });
 
   test("a preview will not follow a link to a private or local address", () => {
@@ -665,7 +942,10 @@ describe("stickers", () => {
     // Seen by a viewer, though it is on no moment.
     expect(await viewer.query(api.api.media.getForDownload, { mediaId })).not.toBeNull();
     const pageId = await owner.mutation(api.api.journal.addPage, { eventId });
-    await owner.mutation(api.api.journal.savePage, { pageId, elements: [element({ kind: "sticker", style: undefined, text: undefined, mediaId })] });
+    await owner.mutation(api.api.journal.savePage, {
+      pageId,
+      elements: [element({ kind: "sticker", style: undefined, text: undefined, mediaId })],
+    });
     const row = await t.run((ctx) => ctx.db.get("media", mediaId));
     expect(row?.purpose).toBe("sticker");
   });
@@ -675,12 +955,18 @@ describe("stickers", () => {
     const used = await photo();
     await moment(JUNE_1, "on a moment", used);
     await expect(owner.mutation(api.api.journal.keepSticker, { mediaId: used })).rejects.toThrow();
-    await expect(viewer.mutation(api.api.journal.keepSticker, { mediaId: await photo() })).rejects.toThrow();
+    await expect(
+      viewer.mutation(api.api.journal.keepSticker, { mediaId: await photo() }),
+    ).rejects.toThrow();
   });
 
   test("any picture of your own can be kept, a JPEG too", async () => {
     const { owner, eventId } = await setup();
-    const { mediaId } = await owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime: "image/jpeg" });
+    const { mediaId } = await owner.mutation(api.api.media.reserveUpload, {
+      eventId,
+      size: 100,
+      mime: "image/jpeg",
+    });
     await owner.mutation(api.api.media.confirmUpload, { mediaId });
     await owner.mutation(api.api.journal.keepSticker, { mediaId });
     expect(await owner.query(api.api.journal.stickers, { eventId })).toEqual([mediaId]);
@@ -690,13 +976,26 @@ describe("stickers", () => {
     const { owner, eventId, photo } = await setup();
     const mediaId = await photo();
     await owner.mutation(api.api.journal.keepSticker, { mediaId });
-    const sticker = element({ id: "s1", kind: "sticker", style: undefined, text: undefined, mediaId });
+    const sticker = element({
+      id: "s1",
+      kind: "sticker",
+      style: undefined,
+      text: undefined,
+      mediaId,
+    });
     const first = await owner.mutation(api.api.journal.addPage, { eventId, elements: [sticker] });
-    const second = await owner.mutation(api.api.journal.addPage, { eventId, elements: [{ ...sticker, id: "s2" }] });
-    await expect(owner.mutation(api.api.journal.dropSticker, { mediaId })).rejects.toThrow(/still on a page/);
+    const second = await owner.mutation(api.api.journal.addPage, {
+      eventId,
+      elements: [{ ...sticker, id: "s2" }],
+    });
+    await expect(owner.mutation(api.api.journal.dropSticker, { mediaId })).rejects.toThrow(
+      /still on a page/,
+    );
     await expect(owner.mutation(api.api.media.markDeleted, { mediaId })).rejects.toThrow();
     await owner.mutation(api.api.journal.savePage, { pageId: first, elements: [] });
-    await expect(owner.mutation(api.api.journal.dropSticker, { mediaId })).rejects.toThrow(/still on a page/);
+    await expect(owner.mutation(api.api.journal.dropSticker, { mediaId })).rejects.toThrow(
+      /still on a page/,
+    );
     await owner.mutation(api.api.journal.savePage, { pageId: second, elements: [] });
     await owner.mutation(api.api.journal.dropSticker, { mediaId });
     await owner.mutation(api.api.media.markDeleted, { mediaId });
@@ -710,6 +1009,9 @@ test("deleting the experience takes its journal with it", async () => {
   await owner.mutation(api.api.journal.fill, { eventId });
   await t.mutation(internal.model.events.purgeEventData, { eventId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
-  const left = await t.run(async (ctx) => [(await ctx.db.query("journals").take(100)).length, (await ctx.db.query("journalPages").take(100)).length]);
+  const left = await t.run(async (ctx) => [
+    (await ctx.db.query("journals").take(100)).length,
+    (await ctx.db.query("journalPages").take(100)).length,
+  ]);
   expect(left).toEqual([0, 0]);
 });

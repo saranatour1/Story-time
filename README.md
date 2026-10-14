@@ -21,15 +21,15 @@ The first `pnpm dev` asks you to create or link a Convex deployment and writes `
 
 Set these on the Convex deployment with `npx convex env set NAME value` (add `--prod` for production):
 
-| Name | What it's for |
-| --- | --- |
-| `AUTH_PRIVATE_KEY`, `AUTH_JWKS` | Session signing keys |
-| `AUTH_GITHUB_CLIENT_ID`, `AUTH_GITHUB_CLIENT_SECRET` | GitHub OAuth app |
-| `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET` | Google OAuth client |
-| `ENCRYPTION_MASTER_KEY` | Encrypts places, notes, links and feelings. Use the same value as the Worker's |
-| `APP_URL` | The site's origin, used for invite and share links and allowed OAuth redirects. Several origins can be listed with commas (the first goes in invite and share links). Unset means `http://localhost:3000` |
-| `ALLOW_ANONYMOUS_SIGNIN` | `true` enables the dev-only anonymous button. Never set it in production |
-| `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN`, `EMAIL_FROM` | Optional. Without them invites are links only, no email |
+| Name                                                 | What it's for                                                                                                                                                                                             |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_PRIVATE_KEY`, `AUTH_JWKS`                      | Session signing keys                                                                                                                                                                                      |
+| `AUTH_GITHUB_CLIENT_ID`, `AUTH_GITHUB_CLIENT_SECRET` | GitHub OAuth app                                                                                                                                                                                          |
+| `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET` | Google OAuth client                                                                                                                                                                                       |
+| `ENCRYPTION_MASTER_KEY`                              | Encrypts places, notes, links and feelings. Use the same value as the Worker's                                                                                                                            |
+| `APP_URL`                                            | The site's origin, used for invite and share links and allowed OAuth redirects. Several origins can be listed with commas (the first goes in invite and share links). Unset means `http://localhost:3000` |
+| `ALLOW_ANONYMOUS_SIGNIN`                             | `true` enables the dev-only anonymous button. Never set it in production                                                                                                                                  |
+| `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN`, `EMAIL_FROM`      | Optional. Without them invites are links only, no email                                                                                                                                                   |
 
 The Journal (in the sidebar, under an experience) is the experience as a book of A4 pages: a cover, then a page for each moment, made for you as moments are added and laid out like a scrapbook (taped prints, typed notes, a postmark, a map of the moment's stops that plays them one by one). Its owner can move, size and turn anything (react-moveable, with snapping), retype titles in seven styles, add tickets, tape and shapes, lock a page or the whole journal, cut stickers out of photos on the device (MediaPipe's interactive segmenter; only the model is downloaded, from Google), and export it as an A4 PDF, a page as a picture, or a journal file that can be added back. A page is one row in `journalPages` with its elements; the layout of a new page is in `convex/lib/journal.ts`. Words on a page are encrypted like notes.
 
@@ -43,17 +43,17 @@ On the client, `VITE_APP_URL` (the site's origin, set at build time) makes the l
 
 ## Scripts
 
-| Command | Does |
-| --- | --- |
-| `pnpm dev` | Convex dev deployment plus the app on port 3000 |
-| `pnpm dev:web` | The app only |
-| `pnpm build` | Production build |
-| `pnpm preview` | Serve the build locally |
-| `pnpm test` | Vitest: Convex functions (convex-test) and `src/lib` |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm lint` | ESLint |
-| `pnpm generate-routes` | Regenerate `src/routeTree.gen.ts` |
-| `pnpm typegen` | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
+| Command                | Does                                                         |
+| ---------------------- | ------------------------------------------------------------ |
+| `pnpm dev`             | Convex dev deployment plus the app on port 3000              |
+| `pnpm dev:web`         | The app only                                                 |
+| `pnpm build`           | Production build                                             |
+| `pnpm preview`         | Serve the build locally                                      |
+| `pnpm test`            | Vitest: Convex functions (convex-test) and `src/lib`         |
+| `pnpm typecheck`       | `tsc --noEmit`                                               |
+| `pnpm lint`            | ESLint                                                       |
+| `pnpm generate-routes` | Regenerate `src/routeTree.gen.ts`                            |
+| `pnpm typegen`         | Regenerate `worker-configuration.d.ts` from `wrangler.jsonc` |
 
 ## Deploy
 

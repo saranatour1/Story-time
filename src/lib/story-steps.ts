@@ -39,7 +39,10 @@ export type StoryStep =
 
 // The first stop lives on the moment itself; later ones in `stops`.
 export const stopsOf = (m: StoryMoment): Stop[] => {
-  return [{ startsAt: m.startsAt, place: m.place, geo: m.geo, transport: m.transport, blocks: m.blocks }, ...m.stops];
+  return [
+    { startsAt: m.startsAt, place: m.place, geo: m.geo, transport: m.transport, blocks: m.blocks },
+    ...m.stops,
+  ];
 };
 
 // A stop without a place is numbered through the whole story, so two of

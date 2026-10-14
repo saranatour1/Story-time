@@ -28,12 +28,14 @@ export const UserMenu = () => {
 
   const identity = (
     <>
-      <UserAvatar mediaId={user?.imageMediaId} name={user?.displayName?.trim() || user?.username} className="size-8" />
+      <UserAvatar
+        mediaId={user?.imageMediaId}
+        name={user?.displayName?.trim() || user?.username}
+        className="size-8"
+      />
       <div className="grid flex-1 text-left leading-tight">
         <span className="truncate text-sm font-medium">{name}</span>
-        {detail && (
-          <span className="truncate text-xs text-muted-foreground">{detail}</span>
-        )}
+        {detail && <span className="truncate text-xs text-muted-foreground">{detail}</span>}
       </div>
     </>
   );

@@ -67,8 +67,8 @@ const Home = () => {
           Your first story starts here
         </h1>
         <p className="text-muted-foreground text-balance">
-          Gather the moments from a trip, a weekend or a wedding, then play
-          them back with the people who were there.
+          Gather the moments from a trip, a weekend or a wedding, then play them back with the
+          people who were there.
         </p>
         <Button size="lg" className="mt-2" onClick={() => void start()} disabled={starting}>
           <PlusIcon /> Start an experience
@@ -84,7 +84,11 @@ const Home = () => {
     <div className="@container mx-auto w-full max-w-6xl space-y-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-serif text-3xl font-semibold tracking-tight">Experiences</h1>
-        <Button onClick={() => void start()} disabled={starting} data-track="new_experience_clicked">
+        <Button
+          onClick={() => void start()}
+          disabled={starting}
+          data-track="new_experience_clicked"
+        >
           <PlusIcon /> New experience
         </Button>
       </header>
@@ -122,7 +126,12 @@ const ExperienceCard = ({ event: e }: { event: Experience }) => {
 
   return (
     <li className="group relative flex flex-col rounded-xl border bg-card text-card-foreground shadow-xs transition-shadow hover:shadow-md">
-      <div className={cn("relative aspect-[3/2] overflow-hidden rounded-t-[inherit]", archived && "opacity-60 grayscale")}>
+      <div
+        className={cn(
+          "relative aspect-[3/2] overflow-hidden rounded-t-[inherit]",
+          archived && "opacity-60 grayscale",
+        )}
+      >
         {e.coverMediaId ? (
           <AuthImage
             mediaId={e.coverMediaId}
@@ -137,7 +146,10 @@ const ExperienceCard = ({ event: e }: { event: Experience }) => {
         )}
       </div>
       {(archived || draft) && (
-        <Badge variant="secondary" className="absolute top-3 left-3 bg-background/85 backdrop-blur-sm">
+        <Badge
+          variant="secondary"
+          className="absolute top-3 left-3 bg-background/85 backdrop-blur-sm"
+        >
           {archived ? "Archived" : "Draft"}
         </Badge>
       )}
@@ -168,7 +180,14 @@ const ExperienceCard = ({ event: e }: { event: Experience }) => {
               asChild
               className="relative z-10 bg-amber-300 text-stone-950 hover:bg-amber-200 dark:bg-amber-200 dark:hover:bg-amber-100"
             >
-              <Link to="/e/$id/story" params={{ id: e._id }} search={{ step: 0 }} aria-label={`Play story: ${e.title}`} data-track="story_played" data-from="home">
+              <Link
+                to="/e/$id/story"
+                params={{ id: e._id }}
+                search={{ step: 0 }}
+                aria-label={`Play story: ${e.title}`}
+                data-track="story_played"
+                data-from="home"
+              >
                 <PlayIcon className="fill-current" /> Play story
               </Link>
             </Button>
@@ -195,7 +214,9 @@ const PaperCover = ({ title, sketch }: { title: string; sketch?: Experience["ske
       {sketch && sketch.length >= 2 ? (
         <RouteSketch points={sketch} />
       ) : (
-        <span className="font-serif text-6xl font-semibold">{Array.from(title.trim())[0]?.toUpperCase() ?? ""}</span>
+        <span className="font-serif text-6xl font-semibold">
+          {Array.from(title.trim())[0]?.toUpperCase() ?? ""}
+        </span>
       )}
     </div>
   );
@@ -229,12 +250,36 @@ const RouteSketch = ({ points }: { points: NonNullable<Experience["sketch"]> }) 
   const start = at[0]!;
 
   return (
-    <svg viewBox={`0 0 ${SKETCH_W} ${SKETCH_H}`} className="absolute inset-0 size-full" preserveAspectRatio="xMidYMid meet">
-      <path d={d} fill="none" className="stroke-[#c2410c]/80 dark:stroke-amber-300/80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      viewBox={`0 0 ${SKETCH_W} ${SKETCH_H}`}
+      className="absolute inset-0 size-full"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <path
+        d={d}
+        fill="none"
+        className="stroke-[#c2410c]/80 dark:stroke-amber-300/80"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       {at.slice(1, -1).map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="2.6" className="fill-stone-700/70 dark:fill-amber-100/60" />
+        <circle
+          key={i}
+          cx={x}
+          cy={y}
+          r="2.6"
+          className="fill-stone-700/70 dark:fill-amber-100/60"
+        />
       ))}
-      <rect x={start[0] - 4} y={start[1] - 4} width="8" height="8" transform={`rotate(45 ${start[0]} ${start[1]})`} className="fill-stone-800 dark:fill-amber-100" />
+      <rect
+        x={start[0] - 4}
+        y={start[1] - 4}
+        width="8"
+        height="8"
+        transform={`rotate(45 ${start[0]} ${start[1]})`}
+        className="fill-stone-800 dark:fill-amber-100"
+      />
       <circle cx={end[0]} cy={end[1]} r="8" className="fill-[#c2410c]/15 dark:fill-amber-300/20" />
       <circle cx={end[0]} cy={end[1]} r="4" className="fill-[#c2410c] dark:fill-amber-300" />
     </svg>
@@ -248,7 +293,9 @@ const Snapshots = () => {
       <div className="absolute inset-0 rotate-6 rounded-sm bg-[#e9dcc4] shadow-lg dark:bg-[#3a3227]" />
       <div className="absolute inset-0 -rotate-3 rounded-sm bg-[#f3e9d6] p-2.5 pb-8 shadow-xl dark:shadow-black/40">
         <div className="size-full rounded-[2px] bg-linear-to-b from-amber-200 via-orange-200 to-stone-300" />
-        <span className="absolute bottom-2 left-3 font-mono text-[11px] text-stone-600">the first moment</span>
+        <span className="absolute bottom-2 left-3 font-mono text-[11px] text-stone-600">
+          the first moment
+        </span>
       </div>
     </div>
   );

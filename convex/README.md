@@ -37,12 +37,12 @@ for callers in `api/`, without losing jump-to-definition.
 
 ## Calling things
 
-| From | Public function | Internal function |
-| --- | --- | --- |
-| The app reading (`src/`) | `useQuery(queries.moments.list({ eventId }))`, with `useQuery` from `@tanstack/react-query` and `queries` from `@/lib/queries` | not reachable |
-| The app writing (`src/`) | `useMutation(api.moments.create)`, with `api` from `@/lib/api` | not reachable |
-| Sign-in (`src/`) | `authApi.signInAnonymous`, from `@/lib/api` | |
-| Backend code and tests | `api.api.moments.list` (from `_generated/api`) | `internal.model.journal.makePages` |
+| From                     | Public function                                                                                                                | Internal function                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| The app reading (`src/`) | `useQuery(queries.moments.list({ eventId }))`, with `useQuery` from `@tanstack/react-query` and `queries` from `@/lib/queries` | not reachable                      |
+| The app writing (`src/`) | `useMutation(api.moments.create)`, with `api` from `@/lib/api`                                                                 | not reachable                      |
+| Sign-in (`src/`)         | `authApi.signInAnonymous`, from `@/lib/api`                                                                                    |                                    |
+| Backend code and tests   | `api.api.moments.list` (from `_generated/api`)                                                                                 | `internal.model.journal.makePages` |
 
 `@/lib/api` is `api.api` from `_generated/api`, so the app never spells out the
 folder. `@/lib/queries` wraps each public query the app reads as TanStack Query
@@ -77,54 +77,54 @@ the `…Api` object of the `model/` file with the same path.
 
 ### model/
 
-| File | What it owns |
-| --- | --- |
-| `model/events.ts` | Experiences: create, rename, dates, the home list, delete (and the purge of everything in one). |
-| `model/moments.ts` | Moments: create, list, edit, delete. `createMoment` is the one insert every path uses. |
-| `model/media.ts` | Uploads (reserved by the Worker, then confirmed), avatars, who may download or delete, the upload sweep. |
-| `model/journal.ts` | The journal: outline and pages, cutting pages for moments, saving, catching up, locks, stickers, link previews. |
-| `model/pdf.ts` | The password-locked PDF on the share link. |
-| `model/share.ts` | The share link: switching it on, the book and pages it opens, its media, hiding photos, emailing it. |
-| `model/invites.ts` | Invites: making, accepting, dismissing, invite emails. |
-| `model/sessions.ts` | Who has access to an experience, and revoking it. |
-| `model/users.ts` | Profile, settings, email confirmation, the memory reminder, and the users sign-in creates. |
-| `model/aiBudget.ts` | AI Budget's one-time setup (no prompts or responses kept) and a spend summary for the CLI. |
-| `model/changes.ts` | The Activity log, and its unread count. |
-| `model/guestNotes.ts` | The guestbook invited people sign. |
-| `model/onThisDay.ts` | The daily "a memory is waiting" email (opt-in). |
-| `model/migrations.ts` | One-off data migrations, run from the CLI. |
-| `model/seed.ts` | Dev only: `pnpm exec convex run model/seed:japan '{"userId":"..."}'`, a ten-day demo trip. Refuses production. |
-| `model/ai/command.ts` | The box: a sentence becomes a plan to add, change or remove moments. |
-| `model/ai/voice.ts` | Speech to text for the box. Nothing is stored. |
-| `model/ai/enrich.ts` | Captions, transport and link titles after photos come in. |
-| `model/ai/scribe.ts` | What Haiku is told about a moment, and the caption it writes. |
-| `model/ai/apply.ts` | Writes AI suggestions into gaps only; what a person typed stays. |
-| `model/ai/decide.ts` | Jev's quick decisions (transport between stops). |
-| `model/ai/title.ts` | "Try another" titles for a journal page. Only a suggestion. |
-| `model/ai/unfurl.ts` | Link titles and previews, reading only public pages. |
-| `model/ai/publicFetch.ts` | Node action that fetches a public page, pinned to the addresses just checked. |
+| File                      | What it owns                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `model/events.ts`         | Experiences: create, rename, dates, the home list, delete (and the purge of everything in one).                 |
+| `model/moments.ts`        | Moments: create, list, edit, delete. `createMoment` is the one insert every path uses.                          |
+| `model/media.ts`          | Uploads (reserved by the Worker, then confirmed), avatars, who may download or delete, the upload sweep.        |
+| `model/journal.ts`        | The journal: outline and pages, cutting pages for moments, saving, catching up, locks, stickers, link previews. |
+| `model/pdf.ts`            | The password-locked PDF on the share link.                                                                      |
+| `model/share.ts`          | The share link: switching it on, the book and pages it opens, its media, hiding photos, emailing it.            |
+| `model/invites.ts`        | Invites: making, accepting, dismissing, invite emails.                                                          |
+| `model/sessions.ts`       | Who has access to an experience, and revoking it.                                                               |
+| `model/users.ts`          | Profile, settings, email confirmation, the memory reminder, and the users sign-in creates.                      |
+| `model/aiBudget.ts`       | AI Budget's one-time setup (no prompts or responses kept) and a spend summary for the CLI.                      |
+| `model/changes.ts`        | The Activity log, and its unread count.                                                                         |
+| `model/guestNotes.ts`     | The guestbook invited people sign.                                                                              |
+| `model/onThisDay.ts`      | The daily "a memory is waiting" email (opt-in).                                                                 |
+| `model/migrations.ts`     | One-off data migrations, run from the CLI.                                                                      |
+| `model/seed.ts`           | Dev only: `pnpm exec convex run model/seed:japan '{"userId":"..."}'`, a ten-day demo trip. Refuses production.  |
+| `model/ai/command.ts`     | The box: a sentence becomes a plan to add, change or remove moments.                                            |
+| `model/ai/voice.ts`       | Speech to text for the box. Nothing is stored.                                                                  |
+| `model/ai/enrich.ts`      | Captions, transport and link titles after photos come in.                                                       |
+| `model/ai/scribe.ts`      | What Haiku is told about a moment, and the caption it writes.                                                   |
+| `model/ai/apply.ts`       | Writes AI suggestions into gaps only; what a person typed stays.                                                |
+| `model/ai/decide.ts`      | Jev's quick decisions (transport between stops).                                                                |
+| `model/ai/title.ts`       | "Try another" titles for a journal page. Only a suggestion.                                                     |
+| `model/ai/unfurl.ts`      | Link titles and previews, reading only public pages.                                                            |
+| `model/ai/publicFetch.ts` | Node action that fetches a public page, pinned to the addresses just checked.                                   |
 
 ### lib/ (helpers, no functions)
 
-| File | What it is |
-| --- | --- |
-| `lib/access.ts` | Who may do what on an experience (`requireEventAccess`). |
-| `lib/actors.ts` | Who is acting: a person, an AI working for one, or the system. |
-| `lib/appUrl.ts` | The web app's origins, from `APP_URL`. |
-| `lib/blocks.ts` | Checking and encrypting a moment's blocks, stops, places and labels. |
-| `lib/changes.ts` | `recordChange`, for the Activity log. |
-| `lib/cover.ts` | Keeping the journal cover's name and dates in step with the trip. |
-| `lib/crypto.ts` | Encryption under each experience's key. |
-| `lib/emailAddress.ts` | Whether email can be sent, and to which confirmed address. |
-| `lib/geo.ts` | Distances between places. |
-| `lib/journal.ts` | Journal page layouts and limits, shared with the app. |
-| `lib/limits.ts` | Every cap in one place. |
-| `lib/monthDay.ts` | A moment's month and day, where it happened. |
-| `lib/profile.ts` | Cleaning profile fields. |
-| `lib/publicWeb.ts` | Which web addresses the server may open. |
-| `lib/rateLimit.ts` | Per-person rate limits. |
-| `lib/seeded.ts` | Repeatable randomness from an id. |
-| `lib/sharedPdf.ts` | Whether an upload is the journal's locked PDF. |
-| `lib/ai/budget.ts` | AI Budget: `metered()` records each AI call's model, person, feature, tokens and cost. Dashboard at `/aibudget`. |
-| `lib/ai/generate.ts` | Structured output from Haiku, with a JSON fallback. |
-| `lib/ai/models.ts` | Which models the AI features use. |
+| File                  | What it is                                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `lib/access.ts`       | Who may do what on an experience (`requireEventAccess`).                                                         |
+| `lib/actors.ts`       | Who is acting: a person, an AI working for one, or the system.                                                   |
+| `lib/appUrl.ts`       | The web app's origins, from `APP_URL`.                                                                           |
+| `lib/blocks.ts`       | Checking and encrypting a moment's blocks, stops, places and labels.                                             |
+| `lib/changes.ts`      | `recordChange`, for the Activity log.                                                                            |
+| `lib/cover.ts`        | Keeping the journal cover's name and dates in step with the trip.                                                |
+| `lib/crypto.ts`       | Encryption under each experience's key.                                                                          |
+| `lib/emailAddress.ts` | Whether email can be sent, and to which confirmed address.                                                       |
+| `lib/geo.ts`          | Distances between places.                                                                                        |
+| `lib/journal.ts`      | Journal page layouts and limits, shared with the app.                                                            |
+| `lib/limits.ts`       | Every cap in one place.                                                                                          |
+| `lib/monthDay.ts`     | A moment's month and day, where it happened.                                                                     |
+| `lib/profile.ts`      | Cleaning profile fields.                                                                                         |
+| `lib/publicWeb.ts`    | Which web addresses the server may open.                                                                         |
+| `lib/rateLimit.ts`    | Per-person rate limits.                                                                                          |
+| `lib/seeded.ts`       | Repeatable randomness from an id.                                                                                |
+| `lib/sharedPdf.ts`    | Whether an upload is the journal's locked PDF.                                                                   |
+| `lib/ai/budget.ts`    | AI Budget: `metered()` records each AI call's model, person, feature, tokens and cost. Dashboard at `/aibudget`. |
+| `lib/ai/generate.ts`  | Structured output from Haiku, with a JSON fallback.                                                              |
+| `lib/ai/models.ts`    | Which models the AI features use.                                                                                |

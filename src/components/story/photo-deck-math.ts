@@ -18,10 +18,13 @@ export const wordsOf = (stop: Stop): Words[] =>
 // take their turns, then the last one has a beat before the story moves on.
 export const dwellMs = (count: number) => Math.max(5000, count * PHOTO_MS + 1000);
 
-export const clampIndex = (index: number, count: number) => Math.min(Math.max(index, 0), Math.max(count - 1, 0));
-export const nextIndex = (index: number, count: number, delta: 1 | -1) => clampIndex(index + delta, count);
+export const clampIndex = (index: number, count: number) =>
+  Math.min(Math.max(index, 0), Math.max(count - 1, 0));
+export const nextIndex = (index: number, count: number, delta: 1 | -1) =>
+  clampIndex(index + delta, count);
 // A step that would leave the pictures is the story's to take.
-export const atEdge = (index: number, count: number, delta: 1 | -1) => index + delta < 0 || index + delta >= count;
+export const atEdge = (index: number, count: number, delta: 1 | -1) =>
+  index + delta < 0 || index + delta >= count;
 // The left third of the deck goes back, the rest forward.
 export const tapDelta = (x: number, width: number): 1 | -1 => (x < width / 3 ? -1 : 1);
 // A little tilt per card, always the same for the same place in the deck.

@@ -24,7 +24,12 @@ export const MemoirEnd = ({
 }) => {
   const stops = countStops(moments);
   const photos = moments.reduce(
-    (n, m) => n + stopsOf(m).reduce((k, s) => k + s.blocks.filter((b) => b.type === "photo" || b.type === "video").length, 0),
+    (n, m) =>
+      n +
+      stopsOf(m).reduce(
+        (k, s) => k + s.blocks.filter((b) => b.type === "photo" || b.type === "video").length,
+        0,
+      ),
     0,
   );
   const prints = contactSheet(moments);
@@ -36,7 +41,10 @@ export const MemoirEnd = ({
       className="border-t border-[#5b4a3a]/20 pt-12 text-center"
     >
       {prints.length > 0 && (
-        <ul aria-label="Pictures from the experience" className="flex flex-wrap justify-center gap-3">
+        <ul
+          aria-label="Pictures from the experience"
+          className="flex flex-wrap justify-center gap-3"
+        >
           {prints.map((mediaId, i) => (
             <li
               key={i}
@@ -50,11 +58,15 @@ export const MemoirEnd = ({
           ))}
         </ul>
       )}
-      <p className="mt-10 text-xs tracking-[0.3em] text-orange-800 uppercase dark:text-orange-400">The end</p>
-      <h2 className="mx-auto mt-3 max-w-2xl font-serif text-3xl font-semibold text-balance sm:text-4xl">{event.title}</h2>
+      <p className="mt-10 text-xs tracking-[0.3em] text-orange-800 uppercase dark:text-orange-400">
+        The end
+      </p>
+      <h2 className="mx-auto mt-3 max-w-2xl font-serif text-3xl font-semibold text-balance sm:text-4xl">
+        {event.title}
+      </h2>
       <p className="mt-3 text-sm text-stone-600 dark:text-muted-foreground">
-        {moments.length} {moments.length === 1 ? "moment" : "moments"} · {stops} {stops === 1 ? "stop" : "stops"} · {photos}{" "}
-        {photos === 1 ? "picture" : "pictures"}
+        {moments.length} {moments.length === 1 ? "moment" : "moments"} · {stops}{" "}
+        {stops === 1 ? "stop" : "stops"} · {photos} {photos === 1 ? "picture" : "pictures"}
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
         <Button variant="outline" onClick={onReplay}>

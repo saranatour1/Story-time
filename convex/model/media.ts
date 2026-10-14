@@ -2,7 +2,13 @@ import { ConvexError, v } from "convex/values";
 import { isSharedPdf } from "../lib/sharedPdf";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
+import {
+  internalMutation,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "../_generated/server";
 import {
   assertNotArchived,
   getEventAccess,
@@ -67,11 +73,7 @@ export const assertUploadBudget = async (ctx: MutationCtx, userId: Id<"users">, 
 const reserveUpload = mutation({
   args: { eventId: v.id("events"), size: v.number(), mime: v.string() },
   handler: async (ctx, args) => {
-    const { userId, event } = await requireEventAccess(
-      ctx,
-      args.eventId,
-      "contributor",
-    );
+    const { userId, event } = await requireEventAccess(ctx, args.eventId, "contributor");
     assertNotArchived(event);
     if (!Number.isInteger(args.size) || args.size < 1) {
       throw new ConvexError({ code: "INVALID", field: "size", message: "Empty file" });
@@ -149,11 +151,7 @@ const confirmUpload = mutation({
     const userId = await requireUserId(ctx);
     const media = await ctx.db.get("media", args.mediaId);
     // A deleted upload stays deleted: only a reserved row can become ready.
-    if (
-      media === null ||
-      media.uploaderId !== userId ||
-      media.status === "deleted"
-    ) {
+    if (media === null || media.uploaderId !== userId || media.status === "deleted") {
       throw new Error("Upload not found");
     }
     if (media.purpose === "avatar") {
@@ -233,7 +231,11 @@ const attachThumb = mutation({
       throw new Error("Upload not found");
     }
     if (!args.thumbR2Key.startsWith(`thumbs/${args.mediaId}/`)) throw new Error("Upload not found");
-    if (!Number.isInteger(args.thumbSize) || args.thumbSize < 1 || args.thumbSize > MAX_THUMB_BYTES) {
+    if (
+      !Number.isInteger(args.thumbSize) ||
+      args.thumbSize < 1 ||
+      args.thumbSize > MAX_THUMB_BYTES
+    ) {
       throw new Error("Upload not found");
     }
     if (
@@ -286,10 +288,7 @@ const getForDownload = query({
       // experience with them, and to nobody else.
       const viewer = await getUserId(ctx);
       if (viewer === null) return null;
-      if (
-        viewer !== media.uploaderId &&
-        !(await sharesExperience(ctx, viewer, media.uploaderId))
-      ) {
+      if (viewer !== media.uploaderId && !(await sharesExperience(ctx, viewer, media.uploaderId))) {
         return null;
       }
       return delivered(media, args.variant, `avatar:${media.uploaderId}`);
@@ -407,7 +406,8 @@ const deletableBy = async (
   if (media.momentId !== undefined || media.eventId === undefined) return false;
   // A sticker still pasted on a page is part of the journal. Taking it off
   // the shelf is refused until every page lets it go.
-  if (media.purpose === "sticker" && (await mediaOnAPage(ctx, media.eventId, media._id))) return false;
+  if (media.purpose === "sticker" && (await mediaOnAPage(ctx, media.eventId, media._id)))
+    return false;
   // The PDF on the share link stays until it is replaced or taken off.
   if (media.purpose === "pdf" && (await isSharedPdf(ctx, media.eventId, media._id))) return false;
   // Checked now, not when the photo was added: someone whose access was
@@ -532,4 +532,17 @@ const listKeysForEvent = query({
 });
 
 // What the app calls. Registered once, by convex/api/media.ts, which re-exports it.
-export const mediaApi = { reserveUpload, confirmUpload, reserveThumb, attachThumb, getForDownload, reserveAvatarUpload, setAvatar, clearAvatar, getForDelete, markDeleted, unattached, listKeysForEvent };
+export const mediaApi = {
+  reserveUpload,
+  confirmUpload,
+  reserveThumb,
+  attachThumb,
+  getForDownload,
+  reserveAvatarUpload,
+  setAvatar,
+  clearAvatar,
+  getForDelete,
+  markDeleted,
+  unattached,
+  listKeysForEvent,
+};

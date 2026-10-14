@@ -26,7 +26,14 @@ import {
   UnlockIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { DECOS, type JournalElement, NOTE_STYLES, PAPERS, PRINT_STYLES, TITLE_STYLES } from "../../../convex/lib/journal";
+import {
+  DECOS,
+  type JournalElement,
+  NOTE_STYLES,
+  PAPERS,
+  PRINT_STYLES,
+  TITLE_STYLES,
+} from "../../../convex/lib/journal";
 import {
   ContextMenuContent,
   ContextMenuItem,
@@ -68,9 +75,22 @@ export type MenuActions = {
   link: () => void;
 };
 
-const mod = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
+const mod =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl+";
 
-const Styles = ({ label, list, names, on, pick }: { label: string; list: readonly string[]; names: Record<string, string>; on: string | undefined; pick: (s: string) => void }) => {
+const Styles = ({
+  label,
+  list,
+  names,
+  on,
+  pick,
+}: {
+  label: string;
+  list: readonly string[];
+  names: Record<string, string>;
+  on: string | undefined;
+  pick: (s: string) => void;
+}) => {
   return (
     <ContextMenuSub>
       <ContextMenuSubTrigger>
@@ -87,16 +107,67 @@ const Styles = ({ label, list, names, on, pick }: { label: string; list: readonl
   );
 };
 
-const ThingMenu = ({ e, can, act }: { e: JournalElement; can: { paste: boolean }; act: MenuActions }) => {
+const ThingMenu = ({
+  e,
+  can,
+  act,
+}: {
+  e: JournalElement;
+  can: { paste: boolean };
+  act: MenuActions;
+}) => {
   const locked = e.locked ?? false;
   let styles: ReactNode = null;
-  if (e.kind === "title") styles = <Styles label="Title style" list={TITLE_STYLES} names={TITLE_NAMES} on={e.style ?? "typewriter"} pick={(style) => act.change(e, { style })} />;
-  else if (e.kind === "note") styles = <Styles label="Note paper" list={NOTE_STYLES} names={NOTE_NAMES} on={e.style ?? "typed"} pick={(style) => act.change(e, { style })} />;
-  else if (e.kind === "photo") styles = <Styles label="Print" list={PRINT_STYLES} names={PRINT_NAMES} on={e.style ?? "polaroid"} pick={(style) => act.change(e, { style })} />;
+  if (e.kind === "title")
+    styles = (
+      <Styles
+        label="Title style"
+        list={TITLE_STYLES}
+        names={TITLE_NAMES}
+        on={e.style ?? "typewriter"}
+        pick={(style) => act.change(e, { style })}
+      />
+    );
+  else if (e.kind === "note")
+    styles = (
+      <Styles
+        label="Note paper"
+        list={NOTE_STYLES}
+        names={NOTE_NAMES}
+        on={e.style ?? "typed"}
+        pick={(style) => act.change(e, { style })}
+      />
+    );
+  else if (e.kind === "photo")
+    styles = (
+      <Styles
+        label="Print"
+        list={PRINT_STYLES}
+        names={PRINT_NAMES}
+        on={e.style ?? "polaroid"}
+        pick={(style) => act.change(e, { style })}
+      />
+    );
   else if (e.kind === "deco" && e.style?.startsWith("tape")) {
-    styles = <Styles label="Tape" list={DECOS.filter((d) => d.startsWith("tape"))} names={DECO_NAMES} on={e.style} pick={(style) => act.change(e, { style })} />;
+    styles = (
+      <Styles
+        label="Tape"
+        list={DECOS.filter((d) => d.startsWith("tape"))}
+        names={DECO_NAMES}
+        on={e.style}
+        pick={(style) => act.change(e, { style })}
+      />
+    );
   } else if (e.kind === "deco" && e.style?.startsWith("circle")) {
-    styles = <Styles label="Colour" list={DECOS.filter((d) => d.startsWith("circle"))} names={DECO_NAMES} on={e.style} pick={(style) => act.change(e, { style })} />;
+    styles = (
+      <Styles
+        label="Colour"
+        list={DECOS.filter((d) => d.startsWith("circle"))}
+        names={DECO_NAMES}
+        on={e.style}
+        pick={(style) => act.change(e, { style })}
+      />
+    );
   }
   return (
     <>
@@ -113,7 +184,13 @@ const ThingMenu = ({ e, can, act }: { e: JournalElement; can: { paste: boolean }
             <SunIcon /> Tone
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="paper-scope">
-            {([[undefined, "Colour"], ["sepia", "Sepia"], ["mono", "Black & white"]] as const).map(([tone, label]) => (
+            {(
+              [
+                [undefined, "Colour"],
+                ["sepia", "Sepia"],
+                ["mono", "Black & white"],
+              ] as const
+            ).map(([tone, label]) => (
               <ContextMenuItem key={label} onSelect={() => act.change(e, { tone })}>
                 <span className="w-4">{e.tone === tone ? "✓" : ""}</span> {label}
               </ContextMenuItem>
@@ -170,14 +247,18 @@ const ThingMenu = ({ e, can, act }: { e: JournalElement; can: { paste: boolean }
           <RotateCwIcon /> Turn
         </ContextMenuSubTrigger>
         <ContextMenuSubContent className="paper-scope">
-          <ContextMenuItem onSelect={() => act.change(e, { rotation: 0 })}>Straighten</ContextMenuItem>
+          <ContextMenuItem onSelect={() => act.change(e, { rotation: 0 })}>
+            Straighten
+          </ContextMenuItem>
           <ContextMenuItem onSelect={() => act.change(e, { rotation: (e.rotation - 5) % 360 })}>
             <RotateCcwIcon /> Tip left
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => act.change(e, { rotation: (e.rotation + 5) % 360 })}>
             <RotateCwIcon /> Tip right
           </ContextMenuItem>
-          <ContextMenuItem onSelect={() => act.change(e, { rotation: (e.rotation + 90) % 360 })}>A quarter turn</ContextMenuItem>
+          <ContextMenuItem onSelect={() => act.change(e, { rotation: (e.rotation + 90) % 360 })}>
+            A quarter turn
+          </ContextMenuItem>
         </ContextMenuSubContent>
       </ContextMenuSub>
       <ContextMenuItem onSelect={() => act.change(e, { locked: locked ? undefined : true })}>
@@ -197,11 +278,23 @@ const QUICK: Array<{ label: string; thing: NewThing }> = [
   { label: "A typed note", thing: { kind: "note", style: "typed", text: "", w: 0, h: 0 } },
   { label: "A handwritten note", thing: { kind: "note", style: "hand", text: "", w: 0, h: 0 } },
   { label: "A label", thing: { kind: "title", style: "label", text: "Hello", w: 0, h: 0 } },
-  { label: "A rubber stamp", thing: { kind: "title", style: "stamp", text: "Approved", w: 0, h: 0 } },
+  {
+    label: "A rubber stamp",
+    thing: { kind: "title", style: "stamp", text: "Approved", w: 0, h: 0 },
+  },
 ];
 
-
-const PaperMenu = ({ paper, locked, can, act }: { paper: string; locked: boolean; can: { paste: boolean }; act: MenuActions }) => {
+const PaperMenu = ({
+  paper,
+  locked,
+  can,
+  act,
+}: {
+  paper: string;
+  locked: boolean;
+  can: { paste: boolean };
+  act: MenuActions;
+}) => {
   return (
     <>
       {!locked && (
@@ -231,7 +324,12 @@ const PaperMenu = ({ paper, locked, can, act }: { paper: string; locked: boolean
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="paper-scope max-h-80">
               {DECOS.map((d) => (
-                <ContextMenuItem key={d} onSelect={() => act.addHere({ kind: "deco", style: d, text: WORDED[d], w: 0, h: 0 })}>
+                <ContextMenuItem
+                  key={d}
+                  onSelect={() =>
+                    act.addHere({ kind: "deco", style: d, text: WORDED[d], w: 0, h: 0 })
+                  }
+                >
                   {DECO_NAMES[d] ?? d}
                 </ContextMenuItem>
               ))}
@@ -251,7 +349,10 @@ const PaperMenu = ({ paper, locked, can, act }: { paper: string; locked: boolean
             <ContextMenuSubContent className="paper-scope">
               {PAPERS.map((p) => (
                 <ContextMenuItem key={p} onSelect={() => act.paper(p)}>
-                  <span className="size-3.5 rounded-sm border border-stone-400/60" style={{ background: PAPER_LOOKS[p]!.color }} />
+                  <span
+                    className="size-3.5 rounded-sm border border-stone-400/60"
+                    style={{ background: PAPER_LOOKS[p]!.color }}
+                  />
                   {PAPER_LOOKS[p]!.name}
                   {paper === p && <ContextMenuShortcut>✓</ContextMenuShortcut>}
                 </ContextMenuItem>
@@ -296,7 +397,11 @@ export const JournalMenu = ({
     <ContextMenuContent className="paper-scope w-60">
       {can.edit && e && !pageLocked ? (
         <>
-          <ContextMenuLabel>{e.kind === "deco" ? (DECO_NAMES[e.style ?? ""] ?? "Decoration") : e.kind[0]!.toUpperCase() + e.kind.slice(1)}</ContextMenuLabel>
+          <ContextMenuLabel>
+            {e.kind === "deco"
+              ? (DECO_NAMES[e.style ?? ""] ?? "Decoration")
+              : e.kind[0]!.toUpperCase() + e.kind.slice(1)}
+          </ContextMenuLabel>
           <ThingMenu e={e} can={can} act={act} />
         </>
       ) : can.edit ? (

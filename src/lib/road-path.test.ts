@@ -1,5 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { cachedPath, fetchPath, forgetPaths, networkOf, parseRoute, roundForRouting, routeUrl, simplifyPath, wantsPath, type Path } from "./road-path";
+import {
+  cachedPath,
+  fetchPath,
+  forgetPaths,
+  networkOf,
+  parseRoute,
+  roundForRouting,
+  routeUrl,
+  simplifyPath,
+  wantsPath,
+  type Path,
+} from "./road-path";
 
 const STATION = { lat: 34.9858, lng: 135.7588 };
 const GION = { lat: 35.0036, lng: 135.7756 };
@@ -28,7 +39,10 @@ describe("which ways of travelling follow a network", () => {
 
 describe("what leaves the browser", () => {
   test("coordinates are rounded to about 100 m", () => {
-    expect(roundForRouting({ lat: 34.98581, lng: 135.75884 })).toEqual({ lat: 34.986, lng: 135.759 });
+    expect(roundForRouting({ lat: 34.98581, lng: 135.75884 })).toEqual({
+      lat: 34.986,
+      lng: 135.759,
+    });
   });
 
   test("a road leg asks OpenStreetMap's router for its own network, longitude first", () => {
@@ -53,34 +67,87 @@ describe("what leaves the browser", () => {
 });
 
 describe("reading an answer", () => {
-  const osrm = { code: "Ok", routes: [{ geometry: { coordinates: [[135.7575, 34.9862], [135.7591, 34.9871], [135.7756, 35.0036]] } }] };
+  const osrm = {
+    code: "Ok",
+    routes: [
+      {
+        geometry: {
+          coordinates: [
+            [135.7575, 34.9862],
+            [135.7591, 34.9871],
+            [135.7756, 35.0036],
+          ],
+        },
+      },
+    ],
+  };
 
   test("an OSRM route is its line", () => {
-    expect(parseRoute("car", osrm)).toEqual([[135.7575, 34.9862], [135.7591, 34.9871], [135.7756, 35.0036]]);
+    expect(parseRoute("car", osrm)).toEqual([
+      [135.7575, 34.9862],
+      [135.7591, 34.9871],
+      [135.7756, 35.0036],
+    ]);
   });
 
   test("a rail route is its line, with any elevation dropped", () => {
-    const answer = { paths: [{ points: { type: "LineString", coordinates: [[13.3694, 52.5251, 34], [10.0067, 53.5528, 6]] } }] };
-    expect(parseRoute("rail", answer)).toEqual([[13.3694, 52.5251], [10.0067, 53.5528]]);
+    const answer = {
+      paths: [
+        {
+          points: {
+            type: "LineString",
+            coordinates: [
+              [13.3694, 52.5251, 34],
+              [10.0067, 53.5528, 6],
+            ],
+          },
+        },
+      ],
+    };
+    expect(parseRoute("rail", answer)).toEqual([
+      [13.3694, 52.5251],
+      [10.0067, 53.5528],
+    ]);
   });
 
   test("anything else is nothing: no route, wrong shape, one point, nonsense", () => {
     expect(parseRoute("car", { code: "NoRoute", message: "Impossible route" })).toBeUndefined();
     expect(parseRoute("car", { routes: [{ geometry: { coordinates: "no" } }] })).toBeUndefined();
-    expect(parseRoute("car", { routes: [{ geometry: { coordinates: [[1, 2]] } }] })).toBeUndefined();
+    expect(
+      parseRoute("car", { routes: [{ geometry: { coordinates: [[1, 2]] } }] }),
+    ).toBeUndefined();
     expect(parseRoute("rail", osrm)).toBeUndefined();
     expect(parseRoute("car", null)).toBeUndefined();
   });
 
   test("points off the world are dropped", () => {
-    const answer = { routes: [{ geometry: { coordinates: [[0, 0], [500, 0], [1, 1]] } }] };
-    expect(parseRoute("car", answer)).toEqual([[0, 0], [1, 1]]);
+    const answer = {
+      routes: [
+        {
+          geometry: {
+            coordinates: [
+              [0, 0],
+              [500, 0],
+              [1, 1],
+            ],
+          },
+        },
+      ],
+    };
+    expect(parseRoute("car", answer)).toEqual([
+      [0, 0],
+      [1, 1],
+    ]);
   });
 });
 
 describe("simplifyPath", () => {
   test("leaves a small path alone", () => {
-    const path: Path = [[0, 0], [1, 1], [2, 0]];
+    const path: Path = [
+      [0, 0],
+      [1, 1],
+      [2, 0],
+    ];
     expect(simplifyPath(path)).toBe(path);
   });
 
@@ -103,7 +170,18 @@ describe("simplifyPath", () => {
 });
 
 describe("fetching a path", () => {
-  const answer = { routes: [{ geometry: { coordinates: [[135.7575, 34.9862], [135.7756, 35.0036]] } }] };
+  const answer = {
+    routes: [
+      {
+        geometry: {
+          coordinates: [
+            [135.7575, 34.9862],
+            [135.7756, 35.0036],
+          ],
+        },
+      },
+    ],
+  };
   const ok = () => new Response(JSON.stringify(answer), { status: 200 });
 
   beforeEach(() => {
@@ -119,8 +197,14 @@ describe("fetching a path", () => {
     const fetchMock = vi.fn(async () => ok());
     vi.stubGlobal("fetch", fetchMock);
     expect(cachedPath(STATION, GION, "bus")).toBeUndefined();
-    const [a, b] = await Promise.all([fetchPath(STATION, GION, "bus"), fetchPath(STATION, GION, "bus")]);
-    expect(a).toEqual([[135.7575, 34.9862], [135.7756, 35.0036]]);
+    const [a, b] = await Promise.all([
+      fetchPath(STATION, GION, "bus"),
+      fetchPath(STATION, GION, "bus"),
+    ]);
+    expect(a).toEqual([
+      [135.7575, 34.9862],
+      [135.7756, 35.0036],
+    ]);
     expect(b).toEqual(a);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(cachedPath(STATION, GION, "bus")).toEqual(a);
@@ -130,9 +214,15 @@ describe("fetching a path", () => {
   });
 
   test("a router that says no, or isn't there, leaves the arc: nothing, and no crash", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("busy", { status: 429 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("busy", { status: 429 })),
+    );
     await expect(fetchPath(STATION, GION, "walk")).resolves.toBeUndefined();
-    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("offline"))));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Promise.reject(new TypeError("offline"))),
+    );
     await expect(fetchPath(STATION, { lat: 35.01, lng: 135.79 }, "walk")).resolves.toBeUndefined();
   });
 

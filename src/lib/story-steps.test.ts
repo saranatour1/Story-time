@@ -13,7 +13,8 @@ const moment = (over: Partial<MomentView>): MomentView => ({
   ...over,
 });
 
-const kinds = (title: string, moments: MomentView[]) => buildStorySteps(title, moments).map((s) => s.kind);
+const kinds = (title: string, moments: MomentView[]) =>
+  buildStorySteps(title, moments).map((s) => s.kind);
 
 test("an empty experience is just a title and an end", () => {
   expect(kinds("Lisbon", [])).toEqual(["title", "end"]);
@@ -38,10 +39,28 @@ test("a travel scene runs before any stop that has a transport", () => {
     ],
   });
   const steps = buildStorySteps("Portugal", [trip]);
-  expect(steps.map((s) => s.kind)).toEqual(["title", "travel", "stop", "travel", "stop", "stop", "end"]);
+  expect(steps.map((s) => s.kind)).toEqual([
+    "title",
+    "travel",
+    "stop",
+    "travel",
+    "stop",
+    "stop",
+    "end",
+  ]);
   // The first leg starts from the experience itself.
-  expect(steps[1]).toMatchObject({ from: "Portugal", to: "Lisbon", transport: "plane", stopIndex: 0 });
-  expect(steps[3]).toMatchObject({ from: "Lisbon", to: "Sintra", transport: "train", stopIndex: 1 });
+  expect(steps[1]).toMatchObject({
+    from: "Portugal",
+    to: "Lisbon",
+    transport: "plane",
+    stopIndex: 0,
+  });
+  expect(steps[3]).toMatchObject({
+    from: "Lisbon",
+    to: "Sintra",
+    transport: "train",
+    stopIndex: 1,
+  });
   // A stop without a place is named by its number in the story.
   expect(steps[5]).toMatchObject({ kind: "stop", stopIndex: 2, place: "Stop 3" });
 });
@@ -49,7 +68,12 @@ test("a travel scene runs before any stop that has a transport", () => {
 test("place-less stops get names of their own; a real place repeated keeps its name", () => {
   const a = moment({ _id: "a" as Id<"moments">, startsAt: 1 });
   const b = moment({ _id: "b" as Id<"moments">, startsAt: 2, transport: "walk" });
-  const c = moment({ _id: "c" as Id<"moments">, startsAt: 3, place: "Porto", stops: [{ place: "Porto", transport: "bus", blocks: [] }] });
+  const c = moment({
+    _id: "c" as Id<"moments">,
+    startsAt: 3,
+    place: "Porto",
+    stops: [{ place: "Porto", transport: "bus", blocks: [] }],
+  });
   const steps = buildStorySteps("Trip", [a, b, c]);
   const places = steps.flatMap((s) => (s.kind === "stop" ? [s.place] : []));
   expect(places).toEqual(["Stop 1", "Stop 2", "Porto", "Porto"]);
@@ -58,7 +82,12 @@ test("place-less stops get names of their own; a real place repeated keeps its n
 });
 
 test("the leg before a later moment starts from the previous moment's last place", () => {
-  const a = moment({ _id: "a" as Id<"moments">, startsAt: 1, place: "Porto", stops: [{ place: "Gaia", blocks: [] }] });
+  const a = moment({
+    _id: "a" as Id<"moments">,
+    startsAt: 1,
+    place: "Porto",
+    stops: [{ place: "Gaia", blocks: [] }],
+  });
   const b = moment({ _id: "b" as Id<"moments">, startsAt: 2, place: "Coimbra", transport: "car" });
   const steps = buildStorySteps("Trip", [a, b]);
   expect(steps[3]).toMatchObject({ kind: "travel", from: "Gaia", to: "Coimbra", transport: "car" });
@@ -67,7 +96,12 @@ test("the leg before a later moment starts from the previous moment's last place
 test("legs carry where both ends are, when they're known", () => {
   const lisbon = { lat: 38.72, lng: -9.14 };
   const porto = { lat: 41.15, lng: -8.61 };
-  const trip = moment({ place: "Lisbon", geo: lisbon, transport: "plane", stops: [{ place: "Porto", geo: porto, transport: "train", blocks: [] }] });
+  const trip = moment({
+    place: "Lisbon",
+    geo: lisbon,
+    transport: "plane",
+    stops: [{ place: "Porto", geo: porto, transport: "train", blocks: [] }],
+  });
   const steps = buildStorySteps("Portugal", [trip]);
   // The experience itself has no spot on the map.
   expect(steps[1]).toMatchObject({ kind: "travel", fromGeo: undefined, toGeo: lisbon });
@@ -80,7 +114,11 @@ test("stop scenes carry the author and labels of their moment", () => {
 });
 
 test("stop scenes carry their moment's zone, so every stop's time reads where it happened", () => {
-  const trip = moment({ startsAt: 1, tzOffsetMinutes: 540, stops: [{ startsAt: 2, place: "Nara", blocks: [] }] });
+  const trip = moment({
+    startsAt: 1,
+    tzOffsetMinutes: 540,
+    stops: [{ startsAt: 2, place: "Nara", blocks: [] }],
+  });
   const steps = buildStorySteps("Trip", [trip]);
   expect(steps[1]).toMatchObject({ kind: "stop", tzOffsetMinutes: 540 });
   expect(steps[2]).toMatchObject({ kind: "stop", tzOffsetMinutes: 540 });
@@ -92,7 +130,13 @@ test("stop scenes carry the agent that added their moment", () => {
 });
 
 test("a shared story's stops name no author, and no agent either", () => {
-  const shared: StoryMoment = { _id: "s" as Id<"moments">, startsAt: 1, blocks: [], stops: [], labels: [] };
+  const shared: StoryMoment = {
+    _id: "s" as Id<"moments">,
+    startsAt: 1,
+    blocks: [],
+    stops: [],
+    labels: [],
+  };
   const steps = buildStorySteps("Trip", [shared]);
   expect(steps[1]).toMatchObject({ kind: "stop" });
   expect(steps[1]).not.toMatchObject({ authorId: expect.anything() });

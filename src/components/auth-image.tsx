@@ -27,9 +27,18 @@ export const AuthImage = ({
   const { url, failed } = useMediaUrl(seen ? mediaId : undefined, variant);
 
   return (
-    <div ref={ref} className={cn("aspect-video w-full overflow-hidden rounded-md bg-muted", !url && !failed && "animate-pulse", className)}>
+    <div
+      ref={ref}
+      className={cn(
+        "aspect-video w-full overflow-hidden rounded-md bg-muted",
+        !url && !failed && "animate-pulse",
+        className,
+      )}
+    >
       {failed ? (
-        <span className="grid size-full place-items-center text-xs text-muted-foreground">Photo unavailable</span>
+        <span className="grid size-full place-items-center text-xs text-muted-foreground">
+          Photo unavailable
+        </span>
       ) : (
         url && (
           <img
@@ -63,5 +72,13 @@ export const AuthVideo = ({ mediaId, label }: { mediaId: string; label: string }
     );
   }
   if (!url) return <div className="aspect-video animate-pulse rounded-md bg-muted" />;
-  return <video src={url} controls preload="metadata" aria-label={label} className="aspect-video w-full rounded-md bg-black" />;
+  return (
+    <video
+      src={url}
+      controls
+      preload="metadata"
+      aria-label={label}
+      className="aspect-video w-full rounded-md bg-black"
+    />
+  );
 };

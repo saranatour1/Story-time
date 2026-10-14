@@ -34,7 +34,13 @@ export const storyDays = (steps: StoryStep[]): StoryDay[] => {
     const day = dayKey(at, scene.tzOffsetMinutes);
     const last = days.at(-1);
     if (last?.day === day) last.stops.push(entry);
-    else days.push({ day, label: formatDay(at, scene.tzOffsetMinutes, DATE), index: days.length + 1, stops: [entry] });
+    else
+      days.push({
+        day,
+        label: formatDay(at, scene.tzOffsetMinutes, DATE),
+        index: days.length + 1,
+        stops: [entry],
+      });
   });
   return days;
 };

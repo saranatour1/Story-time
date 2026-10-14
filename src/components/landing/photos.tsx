@@ -8,12 +8,37 @@ import { cn } from "@/lib/utils";
 export type PhotoKind = "ferry" | "tram" | "tiles" | "palace" | "pastries" | "coast";
 
 export const PHOTOS: Array<{ kind: PhotoKind; place: string; time: string; note: string }> = [
-  { kind: "ferry", place: "Cacilhas", time: "7:52 PM", note: "Ferry back at sunset. Nobody wanted to get off." },
-  { kind: "tram", place: "Alfama", time: "10:14 AM", note: "Tram 28, standing room only, all the way up." },
+  {
+    kind: "ferry",
+    place: "Cacilhas",
+    time: "7:52 PM",
+    note: "Ferry back at sunset. Nobody wanted to get off.",
+  },
+  {
+    kind: "tram",
+    place: "Alfama",
+    time: "10:14 AM",
+    note: "Tram 28, standing room only, all the way up.",
+  },
   { kind: "tiles", place: "Baixa", time: "12:40 PM", note: "We counted tiles instead of steps." },
-  { kind: "palace", place: "Sintra", time: "11:20 AM", note: "Palaces in the fog, then suddenly sun." },
-  { kind: "pastries", place: "Belém", time: "5:20 PM", note: "Pastéis for the train home. Two each, officially." },
-  { kind: "coast", place: "Cabo da Roca", time: "6:05 PM", note: "The end of Europe, and very windy." },
+  {
+    kind: "palace",
+    place: "Sintra",
+    time: "11:20 AM",
+    note: "Palaces in the fog, then suddenly sun.",
+  },
+  {
+    kind: "pastries",
+    place: "Belém",
+    time: "5:20 PM",
+    note: "Pastéis for the train home. Two each, officially.",
+  },
+  {
+    kind: "coast",
+    place: "Cabo da Roca",
+    time: "6:05 PM",
+    note: "The end of Europe, and very windy.",
+  },
 ];
 
 export const DrawnPhoto = ({ kind, className }: { kind: PhotoKind; className?: string }) => {
@@ -86,7 +111,11 @@ const Tiles = () => {
             <path d="M0 15 V11.6 A3.4 3.4 0 0 1 3.4 15 Z" />
             <path d="M15 15 H11.6 A3.4 3.4 0 0 1 15 11.6 Z" />
           </g>
-          <path d="M7.5 1.5 V3 M7.5 12 V13.5 M1.5 7.5 H3 M12 7.5 H13.5" stroke="#5b86c9" strokeWidth="0.6" />
+          <path
+            d="M7.5 1.5 V3 M7.5 12 V13.5 M1.5 7.5 H3 M12 7.5 H13.5"
+            stroke="#5b86c9"
+            strokeWidth="0.6"
+          />
         </pattern>
       </defs>
       <rect width="60" height="45" fill={`url(#${uid}-tile)`} />
@@ -113,7 +142,10 @@ const Palace = () => {
       <path d="M0 38 C10 31 18 30 30 31 S50 33 60 29 V45 H0 Z" fill="#3f6e3a" />
       <path d="M0 42 C14 38 30 39 60 36 V45 H0 Z" fill="#2f5a2c" />
       <rect x="18" y="18" width="18" height="14" fill="#f4c542" />
-      <path d="M18 18 v-1.6 h2 v1.6 h2 v-1.6 h2 v1.6 h2 v-1.6 h2 v1.6 h2 v-1.6 h2 v1.6 h2 v-1.6 h2 V18 Z" fill="#f4c542" />
+      <path
+        d="M18 18 v-1.6 h2 v1.6 h2 v-1.6 h2 v1.6 h2 v-1.6 h2 v1.6 h2 v-1.6 h2 v1.6 h2 v-1.6 h2 V18 Z"
+        fill="#f4c542"
+      />
       <rect x="35" y="13" width="7" height="19" fill="#c0392b" />
       <path d="M34 13 Q38.5 6 43 13 Z" fill="#d9534f" />
       <rect x="12" y="21" width="6" height="11" fill="#b9b6c9" />
@@ -148,8 +180,22 @@ const Pastries = () => {
         <g key={`${t.x}-${t.y}`}>
           <circle cx={t.x} cy={t.y} r="6.4" fill="#cf8a3d" />
           <circle cx={t.x} cy={t.y} r="4.8" fill="#f2c45a" />
-          <ellipse cx={t.x - 1.4} cy={t.y - 1} rx="1.6" ry="1.1" fill="#6b3a1a" fillOpacity="0.85" />
-          <ellipse cx={t.x + 1.8} cy={t.y + 1.4} rx="1.1" ry="0.8" fill="#6b3a1a" fillOpacity="0.7" />
+          <ellipse
+            cx={t.x - 1.4}
+            cy={t.y - 1}
+            rx="1.6"
+            ry="1.1"
+            fill="#6b3a1a"
+            fillOpacity="0.85"
+          />
+          <ellipse
+            cx={t.x + 1.8}
+            cy={t.y + 1.4}
+            rx="1.1"
+            ry="0.8"
+            fill="#6b3a1a"
+            fillOpacity="0.7"
+          />
         </g>
       ))}
       <g fill="#7a4a24">
@@ -176,7 +222,13 @@ const Coast = () => {
       <path d="M0 29 H60 M0 33 H60" stroke="#fff" strokeOpacity="0.25" strokeWidth="0.4" />
       <path d="M26 45 L30 22 C34 19 44 18 60 17 V45 Z" fill="#7c5a3e" />
       <path d="M30 22 C34 19 44 18 60 17 V20 C46 21 37 22 31 25 Z" fill="#5c7a3a" />
-      <path d="M26 45 C28 40 27 34 30 30" stroke="#fff" strokeOpacity="0.7" strokeWidth="0.6" fill="none" />
+      <path
+        d="M26 45 C28 40 27 34 30 30"
+        stroke="#fff"
+        strokeOpacity="0.7"
+        strokeWidth="0.6"
+        fill="none"
+      />
       <rect x="47" y="10" width="3" height="8" fill="#f7f4ef" />
       <rect x="47" y="8" width="3" height="2.4" fill="#c0392b" />
       <path d="M46.6 8 L48.5 6 L50.4 8 Z" fill="#c0392b" />

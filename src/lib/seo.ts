@@ -17,13 +17,15 @@ const HOME: PageMeta = {
   description:
     "Everyone's photos from the trip, in the order it happened. Invite the people who were there, then play it back stop by stop on a map. Private by default.",
   image: "/og.png",
-  imageAlt: "Story-time: your trip, in order. Everyone who was there adds their photos, played back as a little film on a map.",
+  imageAlt:
+    "Story-time: your trip, in order. Everyone who was there adds their photos, played back as a little film on a map.",
   index: true,
 };
 
 const SHARED: PageMeta = {
   title: "A trip, shared with you · Story-time",
-  description: "Open it to read the book and play the film, stop by stop. Only people with the link can see it.",
+  description:
+    "Open it to read the book and play the film, stop by stop. Only people with the link can see it.",
   image: "/og-share.png",
   imageAlt: "Story-time: a trip, shared with you.",
   index: false,

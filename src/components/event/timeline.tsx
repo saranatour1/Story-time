@@ -46,7 +46,11 @@ export const Timeline = ({
   // Thirty at a time, oldest first. Searching needs every moment (places and
   // notes are encrypted, so only the browser can match them), so it reads them
   // all, and only while something is typed.
-  const paged = usePaginatedQuery(api.moments.page, { eventId: event._id }, { initialNumItems: PAGE });
+  const paged = usePaginatedQuery(
+    api.moments.page,
+    { eventId: event._id },
+    { initialNumItems: PAGE },
+  );
   const { data: all } = useQuery(queries.moments.list(searching ? { eventId: event._id } : "skip"));
   const moments = searching ? all : paged.status === "LoadingFirstPage" ? undefined : paged.results;
   const { data: leftOut } = useQuery(queries.journal.unpaged({ eventId: event._id }));
@@ -70,16 +74,25 @@ export const Timeline = ({
   // The moment named in the address comes into view, loading more until it is there.
   useEffect(() => {
     if (!selectedMomentId || moments === undefined) return;
-    if (!searching && paged.status === "CanLoadMore" && !moments.some((m) => m._id === selectedMomentId)) {
+    if (
+      !searching &&
+      paged.status === "CanLoadMore" &&
+      !moments.some((m) => m._id === selectedMomentId)
+    ) {
       paged.loadMore(PAGE);
       return;
     }
-    document.querySelector(`[data-moment-id="${CSS.escape(selectedMomentId)}"]`)?.scrollIntoView({ block: "nearest" });
+    document
+      .querySelector(`[data-moment-id="${CSS.escape(selectedMomentId)}"]`)
+      ?.scrollIntoView({ block: "nearest" });
   }, [selectedMomentId, moments, searching, paged]);
 
   const search = (
     <div className="relative">
-      <SearchIcon aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+      <SearchIcon
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+      />
       <Input
         ref={searchInput}
         type="search"
@@ -96,7 +109,10 @@ export const Timeline = ({
         }}
       />
       {query === "" && (
-        <kbd aria-hidden className="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 rounded border px-1 text-[11px] text-muted-foreground sm:block">
+        <kbd
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 rounded border px-1 text-[11px] text-muted-foreground sm:block"
+        >
           /
         </kbd>
       )}
@@ -129,12 +145,24 @@ export const Timeline = ({
           {shown.length} of {moments.length} {moments.length === 1 ? "moment" : "moments"}
         </p>
       )}
-      {days.length === 0 && <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No moments match.</p>}
+      {days.length === 0 && (
+        <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+          No moments match.
+        </p>
+      )}
       {days.map((day) => (
-        <section key={day.day} aria-label={day.today ? `${day.label}, today` : day.label} className="space-y-1.5">
+        <section
+          key={day.day}
+          aria-label={day.today ? `${day.label}, today` : day.label}
+          className="space-y-1.5"
+        >
           <h2 className="sticky top-0 z-10 bg-background/95 py-1 font-mono text-[11px] tracking-[0.12em] text-muted-foreground uppercase backdrop-blur">
             {day.label}
-            {day.today && <span className="ml-1.5 font-sans normal-case tracking-normal text-primary">Today</span>}
+            {day.today && (
+              <span className="ml-1.5 font-sans normal-case tracking-normal text-primary">
+                Today
+              </span>
+            )}
             {" · "}
             {day.moments.length} {day.moments.length === 1 ? "moment" : "moments"}
           </h2>
@@ -142,7 +170,13 @@ export const Timeline = ({
             {day.moments.map((m) => {
               const selected = m._id === selectedMomentId;
               return (
-                <li key={m._id} className={cn("group flex items-center hover:bg-muted/60", selected && "bg-muted")}>
+                <li
+                  key={m._id}
+                  className={cn(
+                    "group flex items-center hover:bg-muted/60",
+                    selected && "bg-muted",
+                  )}
+                >
                   <button
                     type="button"
                     data-moment-id={m._id}
@@ -150,22 +184,44 @@ export const Timeline = ({
                     onClick={() => onPick(m)}
                     className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left outline-none focus-visible:bg-muted/60"
                   >
-                    <span className="w-16 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">{formatTime(m.startsAt, m.tzOffsetMinutes)}</span>
+                    <span className="w-16 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                      {formatTime(m.startsAt, m.tzOffsetMinutes)}
+                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm">{firstLine(m) ?? "A moment"}</span>
                       {unpaged.has(m._id) && (
-                        <span className="block truncate text-xs text-muted-foreground">The journal is full, so this moment has no page.</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          The journal is full, so this moment has no page.
+                        </span>
                       )}
                     </span>
                     <PlaceChip place={m.place} />
-                    <ActorBadge actor={authorOf(m)} you={m.authorId === meId} className="hidden md:inline-flex" />
+                    <ActorBadge
+                      actor={authorOf(m)}
+                      you={m.authorId === meId}
+                      className="hidden md:inline-flex"
+                    />
                   </button>
                   {canEdit(m.authorId) && (
                     <div className="flex shrink-0 items-center pr-1.5">
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit moment" className="text-muted-foreground" onClick={() => onEdit(m)}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Edit moment"
+                        className="text-muted-foreground"
+                        onClick={() => onEdit(m)}
+                      >
                         <PencilIcon />
                       </Button>
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete moment" className="text-muted-foreground hover:text-destructive" onClick={() => setDeleting(m)}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Delete moment"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeleting(m)}
+                      >
                         <Trash2Icon />
                       </Button>
                     </div>
@@ -177,8 +233,17 @@ export const Timeline = ({
         </section>
       ))}
       {!searching && paged.status !== "Exhausted" && (
-        <Button type="button" variant="outline" size="sm" className="w-full" disabled={paged.status !== "CanLoadMore"} onClick={() => paged.loadMore(PAGE)}>
-          {paged.status === "LoadingMore" ? "Loading…" : `Show more (${event.momentCount - moments.length} left)`}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          disabled={paged.status !== "CanLoadMore"}
+          onClick={() => paged.loadMore(PAGE)}
+        >
+          {paged.status === "LoadingMore"
+            ? "Loading…"
+            : `Show more (${event.momentCount - moments.length} left)`}
         </Button>
       )}
       <ConfirmDialog
@@ -202,7 +267,9 @@ const Empty = ({ event }: { event: EventView }) => {
   return (
     <div className="space-y-3 rounded-xl border border-dashed border-amber-900/15 bg-[#f3e9d6]/40 p-8 text-center dark:border-amber-100/10 dark:bg-amber-100/[0.03]">
       <p className="font-serif text-lg">The story starts with a moment.</p>
-      <p className="text-sm text-muted-foreground">Add photos, or say what happened in the box above.</p>
+      <p className="text-sm text-muted-foreground">
+        Add photos, or say what happened in the box above.
+      </p>
       <QuickAddButton event={event} variant="outline" size="sm" />
     </div>
   );
@@ -212,7 +279,11 @@ const PlaceChip = ({ place }: { place?: string }) => {
   if (!place) return null;
   return (
     <span className="hidden h-6 max-w-40 min-w-0 items-center gap-1.5 rounded-full border px-2 text-[13px] text-muted-foreground sm:inline-flex">
-      <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ backgroundColor: placeColor(place) }} />
+      <span
+        aria-hidden
+        className="size-2 shrink-0 rounded-full"
+        style={{ backgroundColor: placeColor(place) }}
+      />
       <span className="truncate">{place.split(",")[0]}</span>
     </span>
   );
@@ -227,5 +298,8 @@ const placeColor = (place: string) => {
 
 // Keys typed into a field belong to the field, not to the page's shortcuts.
 const isTyping = (target: EventTarget | null) => {
-  return target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select") !== null);
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || target.closest("input, textarea, select") !== null)
+  );
 };

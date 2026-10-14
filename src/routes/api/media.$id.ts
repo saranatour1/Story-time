@@ -9,7 +9,9 @@ import { bearerToken, convexAnonymous, convexAs, json, shareToken, ssecKeyFor } 
 const mediaFor = async (request: Request, mediaId: Id<"media">, variant: "full" | "thumb") => {
   const token = bearerToken(request);
   if (token) {
-    return convexAs(token).query(api.media.getForDownload, { mediaId, variant }).catch(() => null);
+    return convexAs(token)
+      .query(api.media.getForDownload, { mediaId, variant })
+      .catch(() => null);
   }
   const share = shareToken(request);
   if (share) {
@@ -26,7 +28,8 @@ export const Route = createFileRoute("/api/media/$id")({
       GET: async ({ request, params }) => {
         if (!bearerToken(request) && !shareToken(request)) return json({ error: "Sign in" }, 401);
 
-        const variant = new URL(request.url).searchParams.get("variant") === "thumb" ? "thumb" : "full";
+        const variant =
+          new URL(request.url).searchParams.get("variant") === "thumb" ? "thumb" : "full";
         const media = await mediaFor(request, params.id as Id<"media">, variant);
         if (!media) return json({ error: "Not found" }, 404);
 
@@ -55,9 +58,7 @@ export const Route = createFileRoute("/api/media/$id")({
         const convex = convexAs(token);
         const mediaId = params.id as Id<"media">;
 
-        const target = await convex
-          .query(api.media.getForDelete, { mediaId })
-          .catch(() => null);
+        const target = await convex.query(api.media.getForDelete, { mediaId }).catch(() => null);
         if (!target) return json({ error: "Not found" }, 404);
 
         await env.MEDIA.delete(target.r2Key);

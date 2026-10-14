@@ -28,20 +28,31 @@ export const Route = createFileRoute("/api/upload")({
         if (isThumb) {
           return storeThumb(convexAs(token), request, size, mime);
         }
-        if ((!isAvatar && !eventId) || !request.body || !Number.isInteger(size) || (isPdf && mime !== "application/pdf")) {
+        if (
+          (!isAvatar && !eventId) ||
+          !request.body ||
+          !Number.isInteger(size) ||
+          (isPdf && mime !== "application/pdf")
+        ) {
           return json({ error: "Bad request" }, 400);
         }
         // A first, cheap cap; Convex re-checks size and type when reserving.
         const isVideo = mime.startsWith("video/");
-        const cap = isAvatar ? MAX_AVATAR_BYTES : isPdf ? MAX_PDF_BYTES : isVideo ? MAX_VIDEO_BYTES : MAX_PHOTO_BYTES;
+        const cap = isAvatar
+          ? MAX_AVATAR_BYTES
+          : isPdf
+            ? MAX_PDF_BYTES
+            : isVideo
+              ? MAX_VIDEO_BYTES
+              : MAX_PHOTO_BYTES;
         if (size < 1 || size > cap) {
           const error = isAvatar
             ? "Profile images can be at most 2 MB"
             : isPdf
               ? "The PDF can be at most 50 MB"
               : isVideo
-              ? "Videos can be at most 50 MB"
-              : "Photos can be at most 5 MB";
+                ? "Videos can be at most 50 MB"
+                : "Photos can be at most 5 MB";
           return json({ error }, 413);
         }
 
@@ -53,10 +64,10 @@ export const Route = createFileRoute("/api/upload")({
             : isPdf
               ? await convex.mutation(api.pdf.reserve, { eventId: eventId as Id<"events">, size })
               : await convex.mutation(api.media.reserveUpload, {
-                eventId: eventId as Id<"events">,
-                size,
-                mime,
-              });
+                  eventId: eventId as Id<"events">,
+                  size,
+                  mime,
+                });
           // FixedLengthStream errors if the body isn't exactly `size` bytes,
           // so the declared (checked) size is the real size.
           await env.MEDIA.put(
@@ -87,14 +98,27 @@ export const Route = createFileRoute("/api/upload")({
 
 // The small JPEG for lists. The original is already stored; a failed thumb
 // leaves that original in place and lists fall back to it.
-const storeThumb = async (convex: ReturnType<typeof convexAs>, request: Request, size: number, mime: string) => {
+const storeThumb = async (
+  convex: ReturnType<typeof convexAs>,
+  request: Request,
+  size: number,
+  mime: string,
+) => {
   const mediaId = request.headers.get("X-Media-Id");
   const width = Number(request.headers.get("X-Image-Width"));
   const height = Number(request.headers.get("X-Image-Height"));
-  if (!mediaId || !request.body || mime !== "image/jpeg" || !Number.isInteger(size) || !Number.isInteger(width) || !Number.isInteger(height)) {
+  if (
+    !mediaId ||
+    !request.body ||
+    mime !== "image/jpeg" ||
+    !Number.isInteger(size) ||
+    !Number.isInteger(width) ||
+    !Number.isInteger(height)
+  ) {
     return json({ error: "Bad request" }, 400);
   }
-  if (size < 1 || size > MAX_THUMB_BYTES) return json({ error: "Thumbnails can be at most 400 KB" }, 413);
+  if (size < 1 || size > MAX_THUMB_BYTES)
+    return json({ error: "Thumbnails can be at most 400 KB" }, 413);
   try {
     const reserved = await convex.mutation(api.media.reserveThumb, {
       mediaId: mediaId as Id<"media">,

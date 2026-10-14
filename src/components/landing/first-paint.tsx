@@ -7,7 +7,8 @@ const CONTAINER = "mx-auto w-full max-w-[1168px] px-4 sm:px-6";
 
 export const HERO_LEAD =
   "Everyone who was there adds what they caught. Story-time puts it in order and plays it back as a little film, with your route drawn on a map.";
-export const HERO_NOTE = "New here? Signing in creates your account. It's private until you share it.";
+export const HERO_NOTE =
+  "New here? Signing in creates your account. It's private until you share it.";
 
 // The landing page's first screen as plain markup. Server rendering is off, so
 // the server sends this in the HTML and the page shows before its script has
@@ -19,7 +20,9 @@ export const LandingFirstPaint = () => {
     <div className="dark relative flex min-h-svh flex-col overflow-x-clip bg-[#141210] text-stone-100 [color-scheme:dark]">
       <div data-first-paint>
         <header className="absolute inset-x-0 top-0 z-20">
-          <div className={`${CONTAINER} flex h-16 items-center gap-2 font-display text-xl tracking-tight text-white`}>
+          <div
+            className={`${CONTAINER} flex h-16 items-center gap-2 font-display text-xl tracking-tight text-white`}
+          >
             <Logo className="size-6" />
             Story-time
           </div>
@@ -42,9 +45,14 @@ export const LandingFirstPaint = () => {
               </span>
               <span className="block">in the order it happened.</span>
             </h1>
-            <p className="mt-6 max-w-[50ch] text-base leading-relaxed text-pretty text-white/70 sm:text-lg">{HERO_LEAD}</p>
+            <p className="mt-6 max-w-[50ch] text-base leading-relaxed text-pretty text-white/70 sm:text-lg">
+              {HERO_LEAD}
+            </p>
             {/* Where the sign-in buttons go, at their height, so nothing moves. */}
-            <div aria-hidden className="mt-9 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
+            <div
+              aria-hidden
+              className="mt-9 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center"
+            >
               <div className="h-11 rounded-md bg-white sm:w-56" />
               <div className="h-11 rounded-md border border-white/15 sm:w-56" />
             </div>

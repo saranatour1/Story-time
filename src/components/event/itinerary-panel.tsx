@@ -45,7 +45,9 @@ export const EditorPanel = ({
       // `key` resets the form when another moment is selected.
       <MomentForm key={moment._id} eventId={event._id} moment={moment} onDone={onClose} />
     ) : (
-      <p className="text-sm text-muted-foreground">Only its author or the owner can edit this moment.</p>
+      <p className="text-sm text-muted-foreground">
+        Only its author or the owner can edit this moment.
+      </p>
     );
   }
 

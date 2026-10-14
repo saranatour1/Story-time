@@ -11,7 +11,8 @@ import { errorMessage } from "@/lib/errors";
 // Safari only lets a click write the clipboard before its first await, so
 // the write starts at once and takes the text when it's ready.
 const copyLater = (text: Promise<string>): Promise<void> => {
-  if (typeof ClipboardItem === "undefined") return text.then((t) => navigator.clipboard.writeText(t));
+  if (typeof ClipboardItem === "undefined")
+    return text.then((t) => navigator.clipboard.writeText(t));
   const blob = text.then((t) => new Blob([t], { type: "text/plain" }));
   return navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
 };
@@ -19,7 +20,15 @@ const copyLater = (text: Promise<string>): Promise<void> => {
 // Owners switch the story's link on and copy it: anyone with it can watch.
 // Everyone else copies the story's own address. On a shared story, which has
 // no role, the address on screen is the link.
-export const ShareButton = ({ event, label, className }: { event: StoryEvent; label?: string; className?: string }) => {
+export const ShareButton = ({
+  event,
+  label,
+  className,
+}: {
+  event: StoryEvent;
+  label?: string;
+  className?: string;
+}) => {
   const enableLink = useMutation(api.share.enable);
   const [busy, setBusy] = useState(false);
   const shared = event.role === undefined;
@@ -44,10 +53,15 @@ export const ShareButton = ({ event, label, className }: { event: StoryEvent; la
           ? "Switch it off under Shared."
           : "Only people who already have access to this experience can open it.";
       if (await copied) {
-        toast.success(canShareLink ? "Link copied · anyone with it can watch" : "Link copied", { description });
+        toast.success(canShareLink ? "Link copied · anyone with it can watch" : "Link copied", {
+          description,
+        });
       } else {
         // The browser refused the clipboard: a fresh click on Copy is allowed.
-        toast(url, { description, action: { label: "Copy", onClick: () => void navigator.clipboard.writeText(url) } });
+        toast(url, {
+          description,
+          action: { label: "Copy", onClick: () => void navigator.clipboard.writeText(url) },
+        });
       }
     } catch (e) {
       toast.error(errorMessage(e));

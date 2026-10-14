@@ -24,7 +24,13 @@ export const newPassword = (): string => {
 export const lockPdf = async (pdf: Blob | ArrayBuffer, password: string): Promise<Uint8Array> => {
   const { PDFDocument } = await import("@cantoo/pdf-lib");
   const doc = await PDFDocument.load(pdf instanceof Blob ? await pdf.arrayBuffer() : pdf);
-  const owner = Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, "0")).join("");
-  doc.encrypt({ userPassword: password, ownerPassword: owner, permissions: { printing: "highResolution", copying: true, contentAccessibility: true } });
+  const owner = Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
+  doc.encrypt({
+    userPassword: password,
+    ownerPassword: owner,
+    permissions: { printing: "highResolution", copying: true, contentAccessibility: true },
+  });
   return doc.save();
 };

@@ -14,7 +14,11 @@ export const groupByDay = (moments: MomentView[], today?: string): Day[] => {
     const key = dayKey(m.startsAt, m.tzOffsetMinutes);
     const day = days.get(key) ?? {
       day: key,
-      label: formatDay(m.startsAt, m.tzOffsetMinutes, { weekday: "short", month: "short", day: "numeric" }),
+      label: formatDay(m.startsAt, m.tzOffsetMinutes, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }),
       today: key === today,
       moments: [],
     };
@@ -28,7 +32,8 @@ export const groupByDay = (moments: MomentView[], today?: string): Day[] => {
 // first named place.
 export const firstLine = (m: MomentView): string | undefined => {
   for (const b of allBlocks(m)) {
-    if (b.type === "note" || b.type === "feeling") return b.text.split("\n")[0]!.trim() || undefined;
+    if (b.type === "note" || b.type === "feeling")
+      return b.text.split("\n")[0]!.trim() || undefined;
     if (b.type === "link") return b.title ?? b.url;
   }
   return m.place ?? m.stops.find((s) => s.place)?.place;

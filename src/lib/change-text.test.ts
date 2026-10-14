@@ -1,19 +1,30 @@
 import { describe, expect, test } from "vitest";
 import { describeChange } from "./change-text";
 
-const change = (entity: string, action: string, fields: string[] = []) => describeChange({ entity, action, fields });
+const change = (entity: string, action: string, fields: string[] = []) =>
+  describeChange({ entity, action, fields });
 
 // The combinations the backend records, with the fields each one names.
 describe("moments", () => {
   test("added and deleted", () => {
-    expect(change("moment", "create", ["startsAt", "place", "geo", "blocks", "transport", "stops", "labels"])).toBe(
-      "Added a moment",
-    );
+    expect(
+      change("moment", "create", [
+        "startsAt",
+        "place",
+        "geo",
+        "blocks",
+        "transport",
+        "stops",
+        "labels",
+      ]),
+    ).toBe("Added a moment");
     expect(change("moment", "delete")).toBe("Deleted a moment");
   });
 
   test("an edit names what changed, in words", () => {
-    expect(change("moment", "update", ["place", "geo", "blocks"])).toBe("Edited a moment: place, notes & photos");
+    expect(change("moment", "update", ["place", "geo", "blocks"])).toBe(
+      "Edited a moment: place, notes & photos",
+    );
     expect(change("moment", "update", ["startsAt", "transport", "labels"])).toBe(
       "Edited a moment: time, transport, labels",
     );
@@ -31,11 +42,15 @@ describe("moments", () => {
 
 describe("the experience", () => {
   test("created", () => {
-    expect(change("event", "create", ["title", "status", "visibility", "region"])).toBe("Created the experience");
+    expect(change("event", "create", ["title", "status", "visibility", "region"])).toBe(
+      "Created the experience",
+    );
   });
 
   test("edited, with its dates read as dates", () => {
-    expect(change("event", "update", ["title", "startsAt", "endsAt"])).toBe("Edited the experience: title, dates");
+    expect(change("event", "update", ["title", "startsAt", "endsAt"])).toBe(
+      "Edited the experience: title, dates",
+    );
     expect(change("event", "update", ["title", "description", "status"])).toBe(
       "Edited the experience: title, description, status",
     );
@@ -43,7 +58,9 @@ describe("the experience", () => {
 
   test("sharing gets its own phrases, and is named once when mixed in", () => {
     expect(change("event", "update", ["visibility"])).toBe("Changed the sharing settings");
-    expect(change("event", "update", ["shareRedacted"])).toBe("Changed whether the share link shows photos");
+    expect(change("event", "update", ["shareRedacted"])).toBe(
+      "Changed whether the share link shows photos",
+    );
     expect(change("event", "update", ["shareEmail"])).toBe("Emailed the share link");
     expect(change("event", "update", ["shareLink"])).toBe("Made a new share link");
     expect(change("event", "update", ["title", "visibility", "shareLink"])).toBe(
@@ -74,7 +91,9 @@ describe("people and invites", () => {
 describe("more moments", () => {
   test("asked for, approved and declined", () => {
     expect(change("quota", "create", ["extra", "reason", "status"])).toBe("Asked for more moments");
-    expect(change("quota", "update", ["status", "momentLimit"])).toBe("Approved a request for more moments");
+    expect(change("quota", "update", ["status", "momentLimit"])).toBe(
+      "Approved a request for more moments",
+    );
     expect(change("quota", "update", ["status"])).toBe("Declined a request for more moments");
   });
 

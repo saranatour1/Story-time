@@ -14,10 +14,24 @@ import type { MomentView } from "@/components/event/types";
 export type Transport = NonNullable<MomentView["transport"]>;
 
 // The same values as the backend's vTransport, as a tuple for form schemas.
-export const TRANSPORT_VALUES = ["walk", "bike", "car", "bus", "train", "plane", "boat", "other"] as const satisfies readonly Transport[];
+export const TRANSPORT_VALUES = [
+  "walk",
+  "bike",
+  "car",
+  "bus",
+  "train",
+  "plane",
+  "boat",
+  "other",
+] as const satisfies readonly Transport[];
 
 // How someone got to a stop: label for menus, phrase for the journey view.
-export const TRANSPORTS: Array<{ value: Transport; label: string; phrase: string; icon: LucideIcon }> = [
+export const TRANSPORTS: Array<{
+  value: Transport;
+  label: string;
+  phrase: string;
+  icon: LucideIcon;
+}> = [
   { value: "walk", label: "Walk", phrase: "On foot", icon: FootprintsIcon },
   { value: "bike", label: "Bike", phrase: "By bike", icon: BikeIcon },
   { value: "car", label: "Car", phrase: "By car", icon: CarIcon },
@@ -33,7 +47,13 @@ export const transportOf = (t: Transport | undefined) => TRANSPORTS.find((x) => 
 // The first stop lives on the moment itself; later ones in `stops`.
 export const stopsOf = (m: MomentView) => {
   return [
-    { startsAt: m.startsAt as number | undefined, place: m.place, geo: m.geo, transport: m.transport, blocks: m.blocks },
+    {
+      startsAt: m.startsAt as number | undefined,
+      place: m.place,
+      geo: m.geo,
+      transport: m.transport,
+      blocks: m.blocks,
+    },
     ...m.stops,
   ];
 };

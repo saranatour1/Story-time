@@ -9,8 +9,14 @@ import invitesSchema from "../components/invites/schema";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
-const emailModules = import.meta.glob(["../components/email/**/*.ts", "../components/email/**/*.js"]);
-const invitesModules = import.meta.glob(["../components/invites/**/*.ts", "../components/invites/**/*.js"]);
+const emailModules = import.meta.glob([
+  "../components/email/**/*.ts",
+  "../components/email/**/*.js",
+]);
+const invitesModules = import.meta.glob([
+  "../components/invites/**/*.ts",
+  "../components/invites/**/*.js",
+]);
 
 const cf = { CF_ACCOUNT_ID: "acct", CF_EMAIL_TOKEN: "token", EMAIL_FROM: "a@example.com" };
 
@@ -77,15 +83,21 @@ describe("email confirmation", () => {
     try {
       expect((await a.mutation(api.api.users.resendEmailVerification, {})).emailed).toBe(true);
       await t.finishAllScheduledFunctions(vi.runAllTimers);
-      const confirm = mailsOf(fetchMock).find((m) => m.subject === "Confirm your email for Story-time");
+      const confirm = mailsOf(fetchMock).find(
+        (m) => m.subject === "Confirm your email for Story-time",
+      );
       expect(confirm?.to).toBe("sara@example.com");
       const token = tokenIn(confirm ?? {});
       const checks = await t.run((ctx) => ctx.db.query("emailChecks").collect());
       expect(JSON.stringify(checks)).not.toContain("sara@example.com");
       expect(JSON.stringify(checks)).not.toContain(token);
 
-      await expect(b.mutation(api.api.users.verifyEmail, { token })).rejects.toThrow(/Sign in as the person/);
-      await expect(a.mutation(api.api.users.verifyEmail, { token: "not-a-token" })).rejects.toThrow(/doesn't work/);
+      await expect(b.mutation(api.api.users.verifyEmail, { token })).rejects.toThrow(
+        /Sign in as the person/,
+      );
+      await expect(a.mutation(api.api.users.verifyEmail, { token: "not-a-token" })).rejects.toThrow(
+        /doesn't work/,
+      );
 
       await a.mutation(api.api.users.verifyEmail, { token });
       const me = await a.query(api.api.users.getCurrentUser, {});
@@ -115,7 +127,9 @@ describe("email confirmation", () => {
       for (let i = 0; i < 4; i++) {
         expect((await a.mutation(api.api.users.resendEmailVerification, {})).emailed).toBe(true);
       }
-      await expect(a.mutation(api.api.users.resendEmailVerification, {})).rejects.toThrow(/RATE_LIMITED/);
+      await expect(a.mutation(api.api.users.resendEmailVerification, {})).rejects.toThrow(
+        /RATE_LIMITED/,
+      );
     } finally {
       disableMail();
     }
@@ -127,9 +141,13 @@ describe("email confirmation", () => {
     const me = await a.query(api.api.users.getCurrentUser, {});
     expect(me?.email).toBeUndefined();
     expect(me?.pendingEmail).toBe("old@example.com");
-    expect((await a.mutation(api.api.users.updateSettings, { email: "old@example.com" })).emailStatus).toBe("unchanged");
+    expect(
+      (await a.mutation(api.api.users.updateSettings, { email: "old@example.com" })).emailStatus,
+    ).toBe("unchanged");
     expect((await a.mutation(api.api.users.resendEmailVerification, {})).emailed).toBe(false);
-    await expect(a.mutation(api.api.users.setOnThisDay, { on: true })).rejects.toThrow(/Confirm your email/);
+    await expect(a.mutation(api.api.users.setOnThisDay, { on: true })).rejects.toThrow(
+      /Confirm your email/,
+    );
   });
 });
 
@@ -139,15 +157,31 @@ describe("reply-to", () => {
     await a.mutation(api.api.share.enable, { eventId });
     const fetchMock = enableMail();
     try {
-      expect((await a.mutation(api.api.share.emailLink, { eventId, to: "friend@example.com" })).emailed).toBe(true);
-      expect((await a.mutation(api.api.invites.create, { eventId, role: "viewer", sendTo: "guest@example.com" })).emailed).toBe(true);
+      expect(
+        (await a.mutation(api.api.share.emailLink, { eventId, to: "friend@example.com" })).emailed,
+      ).toBe(true);
+      expect(
+        (
+          await a.mutation(api.api.invites.create, {
+            eventId,
+            role: "viewer",
+            sendTo: "guest@example.com",
+          })
+        ).emailed,
+      ).toBe(true);
       await t.finishAllScheduledFunctions(vi.runAllTimers);
       for (const mail of mailsOf(fetchMock)) expect(mail.reply_to).toBeUndefined();
 
-      await t.run((ctx) => ctx.db.patch("users", aId, { email: "sara@example.com", emailVerified: true }));
+      await t.run((ctx) =>
+        ctx.db.patch("users", aId, { email: "sara@example.com", emailVerified: true }),
+      );
       fetchMock.mockClear();
       await a.mutation(api.api.share.emailLink, { eventId, to: "friend2@example.com" });
-      await a.mutation(api.api.invites.create, { eventId, role: "viewer", sendTo: "guest2@example.com" });
+      await a.mutation(api.api.invites.create, {
+        eventId,
+        role: "viewer",
+        sendTo: "guest2@example.com",
+      });
       await t.finishAllScheduledFunctions(vi.runAllTimers);
       const sent = mailsOf(fetchMock).filter(
         (m) => m.subject?.startsWith("A story to read") || m.subject?.startsWith("You're invited"),
@@ -164,7 +198,11 @@ describe("on this day", () => {
   test("mails a link and nothing about the memory, once, for a past year", async () => {
     const { t, a, aId, eventId } = await setup();
     await t.run((ctx) =>
-      ctx.db.patch("users", aId, { email: "sara@example.com", emailVerified: true, onThisDay: true }),
+      ctx.db.patch("users", aId, {
+        email: "sara@example.com",
+        emailVerified: true,
+        onThisDay: true,
+      }),
     );
     await a.mutation(api.api.moments.create, {
       eventId,
@@ -191,7 +229,9 @@ describe("on this day", () => {
       vi.setSystemTime(Date.UTC(2026, 9, 12, 15));
       await t.mutation(internal.model.onThisDay.prepare, {});
       await t.finishAllScheduledFunctions(vi.runAllTimers);
-      expect(await t.run(async (ctx) => (await ctx.db.get("moments", past))?.monthDay)).toBe("10-12");
+      expect(await t.run(async (ctx) => (await ctx.db.get("moments", past))?.monthDay)).toBe(
+        "10-12",
+      );
       const memory = mailsOf(fetchMock).filter((m) => m.subject === "A memory is waiting");
       expect(memory).toHaveLength(1);
       expect(memory[0]?.to).toBe("sara@example.com");
@@ -234,12 +274,16 @@ describe("on this day", () => {
 
       // eslint-disable-next-line @convex-dev/no-process-env -- test setup
       Object.assign(process.env, cf);
-      await t.run((ctx) => ctx.db.patch("users", aId, { email: "sara@example.com", emailVerified: true }));
+      await t.run((ctx) =>
+        ctx.db.patch("users", aId, { email: "sara@example.com", emailVerified: true }),
+      );
       await t.mutation(internal.model.onThisDay.prepare, {});
       await t.finishAllScheduledFunctions(vi.runAllTimers);
       expect(mailsOf(fetchMock).filter((m) => m.subject === "A memory is waiting")).toHaveLength(0);
 
-      await t.run((ctx) => ctx.db.patch("users", aId, { onThisDay: true, emailVerified: undefined }));
+      await t.run((ctx) =>
+        ctx.db.patch("users", aId, { onThisDay: true, emailVerified: undefined }),
+      );
       await t.mutation(internal.model.onThisDay.send, {});
       await t.finishAllScheduledFunctions(vi.runAllTimers);
       expect(mailsOf(fetchMock).filter((m) => m.subject === "A memory is waiting")).toHaveLength(0);

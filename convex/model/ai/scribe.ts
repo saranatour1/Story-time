@@ -111,7 +111,10 @@ const zoneLabel = (offset: number | undefined): string => {
 
 export const promptFor = (c: Omit<ScribeContext, "authorId">, hint?: string): string => {
   // The clock where it happened, in the zone it happened in.
-  const when = new Date(c.startsAt + (c.tzOffsetMinutes ?? 0) * 60_000).toISOString().slice(0, 16).replace("T", " ");
+  const when = new Date(c.startsAt + (c.tzOffsetMinutes ?? 0) * 60_000)
+    .toISOString()
+    .slice(0, 16)
+    .replace("T", " ");
   const lines: Array<string | undefined> = [
     `Experience: ${c.title}`,
     c.description ? `About it: ${c.description}` : undefined,
@@ -120,7 +123,9 @@ export const promptFor = (c: Omit<ScribeContext, "authorId">, hint?: string): st
     c.route.length > 1 ? `Route: ${c.route.join(" → ")}` : undefined,
     c.transport ? `Got there by: ${c.transport}` : undefined,
     c.labels.length > 0 ? `Labels here: ${c.labels.join(", ")}` : undefined,
-    c.experienceLabels.length > 0 ? `Labels this experience uses: ${c.experienceLabels.join(", ")}` : undefined,
+    c.experienceLabels.length > 0
+      ? `Labels this experience uses: ${c.experienceLabels.join(", ")}`
+      : undefined,
     c.notes.length > 0 ? `Already written, don't repeat it: ${c.notes.join(" / ")}` : undefined,
     // What the person said the photos are, when they said: their own words.
     hint ? `The person says the photos are: ${hint}` : undefined,
@@ -129,12 +134,22 @@ export const promptFor = (c: Omit<ScribeContext, "authorId">, hint?: string): st
   return lines.filter((line): line is string => line !== undefined).join("\n");
 };
 
-const writeCaption = (ctx: ActionCtx, threadId: string, messages: ModelMessage[], userId: string): Promise<Caption> => {
+const writeCaption = (
+  ctx: ActionCtx,
+  threadId: string,
+  messages: ModelMessage[],
+  userId: string,
+): Promise<Caption> => {
   return generateStructured(
     ctx,
     scribe,
     threadId,
-    { schema: captionSchema, messages, jsonInstructions: JSON_INSTRUCTIONS, maxOutputTokens: MAX_OUTPUT_TOKENS },
+    {
+      schema: captionSchema,
+      messages,
+      jsonInstructions: JSON_INSTRUCTIONS,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+    },
     { userId, feature: "note" },
   );
 };
@@ -145,9 +160,15 @@ const writeCaption = (ctx: ActionCtx, threadId: string, messages: ModelMessage[]
 // worth it across runtimes.
 export const captionMoment = async (
   ctx: ActionCtx,
-  args: { momentId: Id<"moments">; thumbs: Array<{ mediaId: Id<"media">; jpeg: string }>; hint?: string },
+  args: {
+    momentId: Id<"moments">;
+    thumbs: Array<{ mediaId: Id<"media">; jpeg: string }>;
+    hint?: string;
+  },
 ): Promise<void> => {
-  const found: ScribeContext = await ctx.runQuery(internal.model.ai.scribe.context, { momentId: args.momentId });
+  const found: ScribeContext = await ctx.runQuery(internal.model.ai.scribe.context, {
+    momentId: args.momentId,
+  });
   // Nothing left to fill, so no model call.
   if (found.notes.length > 0 && found.labels.length > 0) return;
 
@@ -177,4 +198,3 @@ export const captionMoment = async (
     labels: draft.labels,
   });
 };
-

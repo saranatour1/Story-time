@@ -31,8 +31,14 @@ const reserve = mutation({
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
-    if (!Number.isInteger(args.size) || args.size < 1) throw new ConvexError({ code: "INVALID", field: "size", message: "Empty file" });
-    if (args.size > MAX_PDF_BYTES) throw new ConvexError({ code: "TOO_LARGE", message: "The PDF can be at most 50 MB. Try the pages of one day.", maxBytes: MAX_PDF_BYTES });
+    if (!Number.isInteger(args.size) || args.size < 1)
+      throw new ConvexError({ code: "INVALID", field: "size", message: "Empty file" });
+    if (args.size > MAX_PDF_BYTES)
+      throw new ConvexError({
+        code: "TOO_LARGE",
+        message: "The PDF can be at most 50 MB. Try the pages of one day.",
+        maxBytes: MAX_PDF_BYTES,
+      });
     await assertUploadBudget(ctx, userId, args.size);
     const r2Key = `events/${event._id}/${crypto.randomUUID()}`;
     const mediaId = await ctx.db.insert("media", {
@@ -61,21 +67,45 @@ const reserve = mutation({
 // Puts an uploaded PDF on the share link, with its password. Returns the one
 // it replaces, so the caller can delete that file from storage.
 const set = mutation({
-  args: { eventId: v.id("events"), mediaId: v.id("media"), password: v.string(), pages: v.number() },
+  args: {
+    eventId: v.id("events"),
+    mediaId: v.id("media"),
+    password: v.string(),
+    pages: v.number(),
+  },
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
     const media = await ctx.db.get("media", args.mediaId);
-    if (media === null || media.eventId !== event._id || media.purpose !== "pdf" || media.status !== "ready" || media.uploaderId !== userId) {
+    if (
+      media === null ||
+      media.eventId !== event._id ||
+      media.purpose !== "pdf" ||
+      media.status !== "ready" ||
+      media.uploaderId !== userId
+    ) {
       throw new ConvexError({ code: "INVALID", message: "That PDF isn't ready." });
     }
     if (args.password.length < 8 || args.password.length > 128) {
-      throw new ConvexError({ code: "INVALID", field: "password", message: "Use a password of 8 to 128 characters." });
+      throw new ConvexError({
+        code: "INVALID",
+        field: "password",
+        message: "Use a password of 8 to 128 characters.",
+      });
     }
     if (!Number.isInteger(args.pages) || args.pages < 1 || args.pages > MAX_JOURNAL_PAGES) {
-      throw new ConvexError({ code: "INVALID", field: "pages", message: "That isn't a page count." });
+      throw new ConvexError({
+        code: "INVALID",
+        field: "pages",
+        message: "That isn't a page count.",
+      });
     }
-    const pdf = { mediaId: media._id, password: await encryptText(event._id, event.keyVersion, args.password), pages: args.pages, at: Date.now() };
+    const pdf = {
+      mediaId: media._id,
+      password: await encryptText(event._id, event.keyVersion, args.password),
+      pages: args.pages,
+      at: Date.now(),
+    };
     const journal = await journalOf(ctx, event._id);
     const replaced = journal?.pdf?.mediaId ?? null;
     if (journal === null) await ctx.db.insert("journals", { eventId: event._id, pdf });

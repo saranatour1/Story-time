@@ -21,8 +21,17 @@ const setup = async () => {
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
   const owner = as(ownerId);
   const eventId = await owner.mutation(api.api.events.createDraft, {});
-  await t.run((ctx) => ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }));
-  await t.run((ctx) => ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }));
+  await t.run((ctx) =>
+    ctx.db.insert("sessions", {
+      eventId,
+      userId: helperId,
+      grantedBy: ownerId,
+      role: "contributor",
+    }),
+  );
+  await t.run((ctx) =>
+    ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
+  );
   return { t, eventId, owner, helper: as(helperId), viewer: as(viewerId) };
 };
 
@@ -56,14 +65,22 @@ describe("media.unattached", () => {
     expect(shelf.map((item) => item.mediaId)).toEqual([clip, newer, older]);
     expect(shelf.map((item) => item.mime)).toEqual(["video/mp4", "image/png", "image/jpeg"]);
 
-    expect(await helper.query(api.api.media.unattached, { eventId })).toEqual([{ mediaId: theirs, mime: "image/jpeg" }]);
+    expect(await helper.query(api.api.media.unattached, { eventId })).toEqual([
+      { mediaId: theirs, mime: "image/jpeg" },
+    ]);
   });
 
   test("a reserved upload is not on the shelf, and taking a photo off a moment puts it back", async () => {
     const { owner, eventId } = await setup();
-    const { mediaId: reserved } = await owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime: "image/jpeg" });
+    const { mediaId: reserved } = await owner.mutation(api.api.media.reserveUpload, {
+      eventId,
+      size: 100,
+      mime: "image/jpeg",
+    });
     const loose = await ready(owner, eventId);
-    expect((await owner.query(api.api.media.unattached, { eventId })).map((item) => item.mediaId)).toEqual([loose]);
+    expect(
+      (await owner.query(api.api.media.unattached, { eventId })).map((item) => item.mediaId),
+    ).toEqual([loose]);
 
     const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
@@ -72,7 +89,9 @@ describe("media.unattached", () => {
     });
     expect(await owner.query(api.api.media.unattached, { eventId })).toEqual([]);
     await owner.mutation(api.api.moments.remove, { momentId });
-    expect((await owner.query(api.api.media.unattached, { eventId })).map((item) => item.mediaId)).toEqual([loose]);
+    expect(
+      (await owner.query(api.api.media.unattached, { eventId })).map((item) => item.mediaId),
+    ).toEqual([loose]);
     expect(reserved).toBeTruthy();
   });
 

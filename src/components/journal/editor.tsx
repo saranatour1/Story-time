@@ -1,4 +1,12 @@
-import { lazy, Suspense, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type Moveable from "react-moveable";
 
 // Loaded when the page can be edited, in its own chunk. The journal can paint
@@ -19,7 +27,10 @@ import { JournalPage, type PageData } from "./page";
 const KEEP_RATIO = new Set<JournalElement["kind"]>(["photo", "sticker"]);
 const WRITABLE = new Set<JournalElement["kind"]>(["title", "note"]);
 
-export const writable = (e: JournalElement) => WRITABLE.has(e.kind) || (e.kind === "deco" && (e.style === "ticket" || e.style === "postmark")) || (e.kind === "photo" && (e.style ?? "polaroid") === "polaroid");
+export const writable = (e: JournalElement) =>
+  WRITABLE.has(e.kind) ||
+  (e.kind === "deco" && (e.style === "ticket" || e.style === "postmark")) ||
+  (e.kind === "photo" && (e.style ?? "polaroid") === "polaroid");
 
 export const PageEditor = ({
   page,
@@ -61,12 +72,19 @@ export const PageEditor = ({
 
   // The DOM node of what is selected, once it is drawn.
   useEffect(() => {
-    const el = selected ? root.current?.querySelector<HTMLElement>(`[data-el="${CSS.escape(selected)}"]`) : null;
+    const el = selected
+      ? root.current?.querySelector<HTMLElement>(`[data-el="${CSS.escape(selected)}"]`)
+      : null;
     setTarget(el ?? null);
   }, [selected, page]);
 
   const others = useMemo(
-    () => (root.current ? [...root.current.querySelectorAll<HTMLElement>("[data-el]")].filter((n) => n.dataset.el !== selected) : []),
+    () =>
+      root.current
+        ? [...root.current.querySelectorAll<HTMLElement>("[data-el]")].filter(
+            (n) => n.dataset.el !== selected,
+          )
+        : [],
     // Recomputed when the page or the selection changes.
     [page, selected, target],
   );
@@ -107,77 +125,115 @@ export const PageEditor = ({
   return (
     <div onPointerDown={press} onDoubleClick={doublePress} className="relative">
       <JournalPage ref={root} page={page} moments={moments} scale={scale}>
-        {editable && writing && <WordsBox e={page.elements.find((e) => e.id === writing)} onDone={(text) => {
-          if (text !== null) update(writing, { text });
-          onWrite(null);
-        }} />}
+        {editable && writing && (
+          <WordsBox
+            e={page.elements.find((e) => e.id === writing)}
+            onDone={(text) => {
+              if (text !== null) update(writing, { text });
+              onWrite(null);
+            }}
+          />
+        )}
         {editable && pen && onStroke && <DrawLayer pen={pen} scale={scale} onStroke={onStroke} />}
         {editable && target && chosen && !writing && !pen && (
           <Suspense fallback={null}>
-          <MoveableView
-            ref={moveable}
-            target={target}
-            zoom={1 / scale}
-            origin={false}
-            draggable={!locked}
-            resizable={!locked}
-            rotatable={!locked}
-            keepRatio={KEEP_RATIO.has(chosen.kind)}
-            throttleRotate={1}
-            rotationPosition="top"
-            renderDirections={locked ? [] : ["nw", "n", "ne", "w", "e", "sw", "s", "se"]}
-            snappable
-            snapThreshold={8}
-            snapGap={false}
-            isDisplaySnapDigit={false}
-            elementGuidelines={others}
-            verticalGuidelines={[0, PAGE.w / 2, PAGE.w]}
-            horizontalGuidelines={[0, PAGE.h / 2, PAGE.h]}
-            snapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
-            elementSnapDirections={{ top: true, left: true, bottom: true, right: true, center: true, middle: true }}
-            onDrag={({ target: t, beforeTranslate }) => {
-              const [x, y] = [beforeTranslate[0]!, beforeTranslate[1]!];
-              t.style.transform = placeOf({ x, y, rotation: chosen.rotation });
-              // Its tape comes along.
-              for (const tape of tapedTo(chosen, elements.current)) {
-                const node = root.current?.querySelector<HTMLElement>(`[data-el="${CSS.escape(tape.id)}"]`);
-                if (node) node.style.transform = placeOf({ x: tape.x + x - chosen.x, y: tape.y + y - chosen.y, rotation: tape.rotation });
-              }
-            }}
-            onDragEnd={({ lastEvent }) => {
-              if (!lastEvent) return;
-              const dx = Math.round(lastEvent.beforeTranslate[0]!) - chosen.x;
-              const dy = Math.round(lastEvent.beforeTranslate[1]!) - chosen.y;
-              const moving = new Set([chosen.id, ...tapedTo(chosen, elements.current).map((t) => t.id)]);
-              onChange(elements.current.map((e) => (moving.has(e.id) ? { ...e, x: e.x + dx, y: e.y + dy } : e)));
-            }}
-            onResizeStart={({ setOrigin, dragStart }) => {
-              setOrigin(["%", "%"]);
-              if (dragStart) dragStart.set([chosen.x, chosen.y]);
-            }}
-            onResize={({ target: t, width, height, drag }) => {
-              t.style.width = `${width}px`;
-              t.style.height = `${height}px`;
-              t.style.transform = placeOf({ x: drag.beforeTranslate[0]!, y: drag.beforeTranslate[1]!, rotation: chosen.rotation });
-            }}
-            onResizeEnd={({ lastEvent }) => {
-              if (!lastEvent) return;
-              update(chosen.id, {
-                w: Math.max(8, Math.round(lastEvent.width)),
-                h: Math.max(8, Math.round(lastEvent.height)),
-                x: Math.round(lastEvent.drag.beforeTranslate[0]!),
-                y: Math.round(lastEvent.drag.beforeTranslate[1]!),
-              });
-            }}
-            onDragStart={({ set }) => set([chosen.x, chosen.y])}
-            onRotateStart={({ set }) => set(chosen.rotation)}
-            onRotate={({ target: t, rotation }) => {
-              t.style.transform = placeOf({ x: chosen.x, y: chosen.y, rotation });
-            }}
-            onRotateEnd={({ lastEvent }) => {
-              if (lastEvent) update(chosen.id, { rotation: Math.round(lastEvent.rotation) % 360 });
-            }}
-          />
+            <MoveableView
+              ref={moveable}
+              target={target}
+              zoom={1 / scale}
+              origin={false}
+              draggable={!locked}
+              resizable={!locked}
+              rotatable={!locked}
+              keepRatio={KEEP_RATIO.has(chosen.kind)}
+              throttleRotate={1}
+              rotationPosition="top"
+              renderDirections={locked ? [] : ["nw", "n", "ne", "w", "e", "sw", "s", "se"]}
+              snappable
+              snapThreshold={8}
+              snapGap={false}
+              isDisplaySnapDigit={false}
+              elementGuidelines={others}
+              verticalGuidelines={[0, PAGE.w / 2, PAGE.w]}
+              horizontalGuidelines={[0, PAGE.h / 2, PAGE.h]}
+              snapDirections={{
+                top: true,
+                left: true,
+                bottom: true,
+                right: true,
+                center: true,
+                middle: true,
+              }}
+              elementSnapDirections={{
+                top: true,
+                left: true,
+                bottom: true,
+                right: true,
+                center: true,
+                middle: true,
+              }}
+              onDrag={({ target: t, beforeTranslate }) => {
+                const [x, y] = [beforeTranslate[0]!, beforeTranslate[1]!];
+                t.style.transform = placeOf({ x, y, rotation: chosen.rotation });
+                // Its tape comes along.
+                for (const tape of tapedTo(chosen, elements.current)) {
+                  const node = root.current?.querySelector<HTMLElement>(
+                    `[data-el="${CSS.escape(tape.id)}"]`,
+                  );
+                  if (node)
+                    node.style.transform = placeOf({
+                      x: tape.x + x - chosen.x,
+                      y: tape.y + y - chosen.y,
+                      rotation: tape.rotation,
+                    });
+                }
+              }}
+              onDragEnd={({ lastEvent }) => {
+                if (!lastEvent) return;
+                const dx = Math.round(lastEvent.beforeTranslate[0]!) - chosen.x;
+                const dy = Math.round(lastEvent.beforeTranslate[1]!) - chosen.y;
+                const moving = new Set([
+                  chosen.id,
+                  ...tapedTo(chosen, elements.current).map((t) => t.id),
+                ]);
+                onChange(
+                  elements.current.map((e) =>
+                    moving.has(e.id) ? { ...e, x: e.x + dx, y: e.y + dy } : e,
+                  ),
+                );
+              }}
+              onResizeStart={({ setOrigin, dragStart }) => {
+                setOrigin(["%", "%"]);
+                if (dragStart) dragStart.set([chosen.x, chosen.y]);
+              }}
+              onResize={({ target: t, width, height, drag }) => {
+                t.style.width = `${width}px`;
+                t.style.height = `${height}px`;
+                t.style.transform = placeOf({
+                  x: drag.beforeTranslate[0]!,
+                  y: drag.beforeTranslate[1]!,
+                  rotation: chosen.rotation,
+                });
+              }}
+              onResizeEnd={({ lastEvent }) => {
+                if (!lastEvent) return;
+                update(chosen.id, {
+                  w: Math.max(8, Math.round(lastEvent.width)),
+                  h: Math.max(8, Math.round(lastEvent.height)),
+                  x: Math.round(lastEvent.drag.beforeTranslate[0]!),
+                  y: Math.round(lastEvent.drag.beforeTranslate[1]!),
+                });
+              }}
+              onDragStart={({ set }) => set([chosen.x, chosen.y])}
+              onRotateStart={({ set }) => set(chosen.rotation)}
+              onRotate={({ target: t, rotation }) => {
+                t.style.transform = placeOf({ x: chosen.x, y: chosen.y, rotation });
+              }}
+              onRotateEnd={({ lastEvent }) => {
+                if (lastEvent)
+                  update(chosen.id, { rotation: Math.round(lastEvent.rotation) % 360 });
+              }}
+            />
           </Suspense>
         )}
       </JournalPage>
@@ -187,7 +243,13 @@ export const PageEditor = ({
 
 // Writing on a thing: a text box over it, in its place and turn. Enter keeps a
 // title; a note keeps its new lines until you click away. Escape leaves it as it was.
-const WordsBox = ({ e, onDone }: { e: JournalElement | undefined; onDone: (text: string | null) => void }) => {
+const WordsBox = ({
+  e,
+  onDone,
+}: {
+  e: JournalElement | undefined;
+  onDone: (text: string | null) => void;
+}) => {
   const box = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState(e?.text ?? "");
   useEffect(() => {
@@ -232,7 +294,15 @@ const WordsBox = ({ e, onDone }: { e: JournalElement | undefined; onDone: (text:
 
 // The pen on the page: press, draw, lift. The stroke shows as it is drawn and
 // goes to `onStroke`, in page units, when the pen lifts.
-const DrawLayer = ({ pen, scale, onStroke }: { pen: { style: string; color: string }; scale: number; onStroke: (points: Array<{ x: number; y: number }>) => void }) => {
+const DrawLayer = ({
+  pen,
+  scale,
+  onStroke,
+}: {
+  pen: { style: string; color: string };
+  scale: number;
+  onStroke: (points: Array<{ x: number; y: number }>) => void;
+}) => {
   const [points, setPoints] = useState<Array<{ x: number; y: number }> | null>(null);
   const at = (ev: React.PointerEvent<HTMLDivElement>) => {
     const r = ev.currentTarget.getBoundingClientRect();
@@ -254,7 +324,8 @@ const DrawLayer = ({ pen, scale, onStroke }: { pen: { style: string; color: stri
         const p = at(ev);
         const last = points.at(-1)!;
         // Close points add nothing but size.
-        if (Math.hypot(p.x - last.x, p.y - last.y) > 1.5 / Math.max(scale, 0.3)) setPoints([...points, p]);
+        if (Math.hypot(p.x - last.x, p.y - last.y) > 1.5 / Math.max(scale, 0.3))
+          setPoints([...points, p]);
       }}
       onPointerUp={() => {
         if (points) onStroke(points);

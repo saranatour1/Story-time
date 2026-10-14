@@ -34,7 +34,13 @@ export const ActorBadge = ({
   }
   const Icon = actor.kind === "system" ? CogIcon : UserRoundIcon;
   return (
-    <span title={label} className={cn("inline-flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground", className)}>
+    <span
+      title={label}
+      className={cn(
+        "inline-flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground",
+        className,
+      )}
+    >
       <Icon aria-hidden className="size-3 shrink-0" />
       <span className="truncate">{actor.kind === "human" && you ? "You" : label}</span>
     </span>

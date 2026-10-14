@@ -20,15 +20,13 @@ afterEach(() => {
 test("anonymous sign-up is rejected unless the deployment allows it", async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
-  await expect(
-    t.mutation(internal.model.users.createAnonymousUser, args),
-  ).rejects.toThrow("Anonymous sign-in is disabled.");
+  await expect(t.mutation(internal.model.users.createAnonymousUser, args)).rejects.toThrow(
+    "Anonymous sign-in is disabled.",
+  );
 
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ALLOW_ANONYMOUS_SIGNIN = "true";
-  await expect(
-    t.mutation(internal.model.users.createAnonymousUser, args),
-  ).resolves.toBeTruthy();
+  await expect(t.mutation(internal.model.users.createAnonymousUser, args)).resolves.toBeTruthy();
 });
 
 test("anonymous sign-up needs every app origin to be local, not just the flag", async () => {
@@ -38,13 +36,11 @@ test("anonymous sign-up needs every app origin to be local, not just the flag", 
   process.env.ALLOW_ANONYMOUS_SIGNIN = "true";
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.APP_URL = "https://story.example.com";
-  await expect(
-    t.mutation(internal.model.users.createAnonymousUser, args),
-  ).rejects.toThrow("Anonymous sign-in is disabled.");
+  await expect(t.mutation(internal.model.users.createAnonymousUser, args)).rejects.toThrow(
+    "Anonymous sign-in is disabled.",
+  );
 
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.APP_URL = "http://localhost:3000, http://127.0.0.1:5173";
-  await expect(
-    t.mutation(internal.model.users.createAnonymousUser, args),
-  ).resolves.toBeTruthy();
+  await expect(t.mutation(internal.model.users.createAnonymousUser, args)).resolves.toBeTruthy();
 });

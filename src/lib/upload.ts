@@ -12,11 +12,7 @@ export const isVideoFile = (file: File) => VIDEO_TYPES.includes(file.type);
 // Streams a photo or video through our server route, which encrypts it into R2.
 // A JPEG goes up without its camera details (where and when it was taken),
 // since a share link can reach it; the file the caller holds is untouched.
-export const uploadMedia = async (
-  file: File,
-  eventId: string,
-  token: string,
-): Promise<string> => {
+export const uploadMedia = async (file: File, eventId: string, token: string): Promise<string> => {
   if (isVideoFile(file)) {
     if (file.size > MAX_VIDEO_BYTES) throw new Error("Videos can be at most 50 MB");
   } else if (file.size > MAX_UPLOAD_BYTES) {
@@ -64,7 +60,11 @@ const uploadThumb = async (file: File, mediaId: string, token: string, eventId?:
 
 // The journal printed to a locked PDF, through the same route, which
 // encrypts it into R2 like a photo. Only the experience's owner may.
-export const uploadJournalPdf = async (pdf: Uint8Array, eventId: string, token: string): Promise<string> => {
+export const uploadJournalPdf = async (
+  pdf: Uint8Array,
+  eventId: string,
+  token: string,
+): Promise<string> => {
   const body = new Blob([pdf.slice().buffer], { type: "application/pdf" });
   const res = await fetch("/api/upload", {
     method: "POST",

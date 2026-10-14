@@ -1,11 +1,21 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type { Id } from "../../convex/_generated/dataModel";
-import { enrichMoment, momentsFromPlan, type PlannedDay, readPicked, uploadAll } from "./add-moments";
+import {
+  enrichMoment,
+  momentsFromPlan,
+  type PlannedDay,
+  readPicked,
+  uploadAll,
+} from "./add-moments";
 import type { Geo, PhotoPoint } from "./photo-groups";
 
 // Local times, so the day holds in any time zone.
 const at = (h: number, m = 0) => new Date(2026, 6, 10, h, m).getTime();
-const point = (id: string, takenAt: number, offsetMinutes?: number): PhotoPoint => ({ id, takenAt, offsetMinutes });
+const point = (id: string, takenAt: number, offsetMinutes?: number): PhotoPoint => ({
+  id,
+  takenAt,
+  offsetMinutes,
+});
 const LISBON: Geo = { lat: 38.72, lng: -9.14 };
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -45,7 +55,12 @@ describe("momentsFromPlan", () => {
         { type: "photo", mediaId: "m-b" },
       ],
       stops: [
-        { startsAt: at(10), place: "Café", geo: LISBON, blocks: [{ type: "photo", mediaId: "m-c" }] },
+        {
+          startsAt: at(10),
+          place: "Café",
+          geo: LISBON,
+          blocks: [{ type: "photo", mediaId: "m-c" }],
+        },
         { startsAt: at(12), blocks: [{ type: "photo", mediaId: "m-e" }] },
       ],
     });
@@ -76,15 +91,28 @@ describe("uploadAll", () => {
   test("stops at the upload limit and reports what was left", async () => {
     vi.stubGlobal(
       "fetch",
-      async () => new Response(JSON.stringify({ error: "This experience has reached its upload limit" }), { status: 429 }),
+      async () =>
+        new Response(JSON.stringify({ error: "This experience has reached its upload limit" }), {
+          status: 429,
+        }),
     );
-    const items = ["a", "b", "c", "d", "e"].map((id) => ({ id, file: new File(["x"], `${id}.jpg`, { type: "image/jpeg" }) }));
+    const items = ["a", "b", "c", "d", "e"].map((id) => ({
+      id,
+      file: new File(["x"], `${id}.jpg`, { type: "image/jpeg" }),
+    }));
 
-    const { uploaded, failures, full } = await uploadAll(items, "event-1", () => "token", () => {});
+    const { uploaded, failures, full } = await uploadAll(
+      items,
+      "event-1",
+      () => "token",
+      () => {},
+    );
 
     expect(full).toBe(true);
     expect(uploaded.size).toBe(0);
-    expect(failures.at(-1)).toBe("2 more files weren't uploaded: the upload limit has been reached");
+    expect(failures.at(-1)).toBe(
+      "2 more files weren't uploaded: the upload limit has been reached",
+    );
   });
 });
 
@@ -96,7 +124,11 @@ describe("readPicked", () => {
     const seen = new Set<string>();
     let n = 0;
 
-    const { picked, problems } = await readPicked([heic, photo, photo, clip], seen, () => `p${n++}`);
+    const { picked, problems } = await readPicked(
+      [heic, photo, photo, clip],
+      seen,
+      () => `p${n++}`,
+    );
 
     expect(picked.map((p) => p.kind)).toEqual(["photo", "video"]);
     expect(problems).toEqual(["IMG_1.HEIC: HEIC photos aren't supported yet; export them as JPEG"]);

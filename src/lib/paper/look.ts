@@ -6,7 +6,7 @@
 // A repeatable stream of numbers in [0, 1) from any string. A torn edge or a
 // print's tilt comes from the moment's id, so it looks the same every time it
 // is drawn, on every screen, in a shared link too.
-export const seeded = (seed: string): () => number => {
+export const seeded = (seed: string): (() => number) => {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
     h ^= seed.charCodeAt(i);
@@ -42,7 +42,8 @@ export const FRAME_LOOKS: FrameLook[] = [
   { id: "plum", name: "Plum plate", page: "#6b5b87", ink: "#f4eee3", accent: "#f2c14e" },
 ];
 
-export const frameLook = (id: string | undefined): FrameLook => FRAME_LOOKS.find((l) => l.id === id) ?? FRAME_LOOKS[1]!;
+export const frameLook = (id: string | undefined): FrameLook =>
+  FRAME_LOOKS.find((l) => l.id === id) ?? FRAME_LOOKS[1]!;
 
 // ---- Paper scraps -------------------------------------------------------------
 
@@ -57,7 +58,8 @@ export const PAPERS: PaperLook[] = [
   { id: "sun", name: "Sun", page: "#f4de8a", ink: "#2a2208" },
 ];
 
-export const paperLook = (id: string | undefined): PaperLook => PAPERS.find((p) => p.id === id) ?? PAPERS[0]!;
+export const paperLook = (id: string | undefined): PaperLook =>
+  PAPERS.find((p) => p.id === id) ?? PAPERS[0]!;
 
 // ---- Prints --------------------------------------------------------------------
 
@@ -68,7 +70,8 @@ export const PRINTS = [
   { id: "plain", name: "Plain" },
 ] as const;
 export type PrintId = (typeof PRINTS)[number]["id"];
-export const printLook = (id: string | undefined): PrintId => PRINTS.find((p) => p.id === id)?.id ?? "print";
+export const printLook = (id: string | undefined): PrintId =>
+  PRINTS.find((p) => p.id === id)?.id ?? "print";
 
 // ---- Tape ----------------------------------------------------------------------
 
@@ -87,7 +90,12 @@ export const tapeLook = (id: string | undefined) => TAPES.find((t) => t.id === i
 // strays, in percent of the side.
 export const tornPolygon = (
   seed: string,
-  edges: { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean } = { top: true, right: true, bottom: true, left: true },
+  edges: { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean } = {
+    top: true,
+    right: true,
+    bottom: true,
+    left: true,
+  },
   roughness = 1.8,
   steps = 14,
 ): string => {
@@ -97,11 +105,15 @@ export const tornPolygon = (
   const pct = (n: number) => `${n.toFixed(2)}%`;
   // Clockwise from the top-left corner.
   for (let i = 0; i <= steps; i++) pts.push(`${pct((i / steps) * 100)} ${pct(wobble(edges.top))}`);
-  for (let i = 1; i <= steps; i++) pts.push(`${pct(100 - wobble(edges.right))} ${pct((i / steps) * 100)}`);
-  for (let i = steps - 1; i >= 0; i--) pts.push(`${pct((i / steps) * 100)} ${pct(100 - wobble(edges.bottom))}`);
-  for (let i = steps - 1; i >= 1; i--) pts.push(`${pct(wobble(edges.left))} ${pct((i / steps) * 100)}`);
+  for (let i = 1; i <= steps; i++)
+    pts.push(`${pct(100 - wobble(edges.right))} ${pct((i / steps) * 100)}`);
+  for (let i = steps - 1; i >= 0; i--)
+    pts.push(`${pct((i / steps) * 100)} ${pct(100 - wobble(edges.bottom))}`);
+  for (let i = steps - 1; i >= 1; i--)
+    pts.push(`${pct(wobble(edges.left))} ${pct((i / steps) * 100)}`);
   return `polygon(${pts.join(", ")})`;
 };
 
 // The jagged ends of a strip of tape.
-export const TAPE_ENDS = "polygon(0 0, 100% 0, 98% 20%, 100% 40%, 98% 60%, 100% 80%, 98% 100%, 0 100%, 2% 80%, 0 60%, 2% 40%, 0 20%)";
+export const TAPE_ENDS =
+  "polygon(0 0, 100% 0, 98% 20%, 100% 40%, 98% 60%, 100% 80%, 98% 100%, 0 100%, 2% 80%, 0 60%, 2% 40%, 0 20%)";

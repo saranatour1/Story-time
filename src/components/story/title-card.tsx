@@ -5,7 +5,8 @@ import { stopsOf } from "../../lib/story-steps";
 
 // A time to read as a day: a moment's carries the zone it happened in.
 type When = { at: number; offset?: number };
-const day = ({ at, offset }: When) => formatDay(at, offset, { month: "short", day: "numeric", year: "numeric" });
+const day = ({ at, offset }: When) =>
+  formatDay(at, offset, { month: "short", day: "numeric", year: "numeric" });
 
 // The date range: what the owner set, or the span of the moments. The owner's
 // dates have no zone; each moment's day reads in the zone it happened in.
@@ -93,7 +94,10 @@ export const TitleCard = ({
   );
 
   return (
-    <section aria-label="Title" className="flex flex-1 items-center justify-center px-6 py-10 sm:px-12 lg:px-20">
+    <section
+      aria-label="Title"
+      className="flex flex-1 items-center justify-center px-6 py-10 sm:px-12 lg:px-20"
+    >
       {/* The page is the screen: paper from edge to edge, a little darker at
           its edges like a sheet under a lamp. */}
       <div

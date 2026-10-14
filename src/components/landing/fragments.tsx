@@ -34,8 +34,18 @@ const DAYS: Array<{ day: string; moments: Moment[] }> = [
   {
     day: "Sun, May 3",
     moments: [
-      { title: "First coffee in Lisbon", stops: [{ place: "Porto" }, { place: "Lisbon", by: TrainFrontIcon }], time: "11:05 AM", by: "SM" },
-      { title: "Ferry back at sunset", stops: [{ place: "Cais do Sodré" }, { place: "Cacilhas", by: ShipIcon }], time: "7:52 PM", by: "AR" },
+      {
+        title: "First coffee in Lisbon",
+        stops: [{ place: "Porto" }, { place: "Lisbon", by: TrainFrontIcon }],
+        time: "11:05 AM",
+        by: "SM",
+      },
+      {
+        title: "Ferry back at sunset",
+        stops: [{ place: "Cais do Sodré" }, { place: "Cacilhas", by: ShipIcon }],
+        time: "7:52 PM",
+        by: "AR",
+      },
     ],
   },
   {
@@ -43,11 +53,21 @@ const DAYS: Array<{ day: string; moments: Moment[] }> = [
     moments: [
       {
         title: "Palaces in the fog",
-        stops: [{ place: "Rossio" }, { place: "Sintra", by: TrainFrontIcon }, { place: "Pena Palace", by: FootprintsIcon }],
+        stops: [
+          { place: "Rossio" },
+          { place: "Sintra", by: TrainFrontIcon },
+          { place: "Pena Palace", by: FootprintsIcon },
+        ],
         time: "9:40 AM",
         by: "IN",
       },
-      { title: "Pastéis for the train home", stops: [{ place: "Belém" }], time: "5:20 PM", by: "Scribe", agent: true },
+      {
+        title: "Pastéis for the train home",
+        stops: [{ place: "Belém" }],
+        time: "5:20 PM",
+        by: "Scribe",
+        agent: true,
+      },
     ],
   },
 ];
@@ -68,7 +88,10 @@ const Avatar = ({ by, agent }: { by: string; agent?: boolean }) => {
 // The itinerary: search, then each day's moments with the stops they passed.
 export const MomentsFragment = () => {
   return (
-    <div aria-hidden className="overflow-hidden rounded-xl border bg-card text-sm text-card-foreground shadow-2xl shadow-black/40">
+    <div
+      aria-hidden
+      className="overflow-hidden rounded-xl border bg-card text-sm text-card-foreground shadow-2xl shadow-black/40"
+    >
       <div className="flex items-center gap-2 border-b p-3">
         <span className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border px-2.5 text-muted-foreground">
           <SearchIcon className="size-3.5 shrink-0" />
@@ -85,7 +108,10 @@ export const MomentsFragment = () => {
             <span className="tabular-nums">{d.moments.length} moments</span>
           </div>
           {d.moments.map((m) => (
-            <div key={m.title} className="flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0">
+            <div
+              key={m.title}
+              className="flex items-center gap-3 border-b px-4 py-2.5 last:border-b-0"
+            >
               <ImageIcon className="size-3.5 shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{m.title}</span>
@@ -99,10 +125,16 @@ export const MomentsFragment = () => {
                       </Fragment>
                     );
                   })}
-                  {m.agent && <span className="ml-1 shrink-0 rounded-full bg-violet-500/15 px-1.5 text-[10px] text-violet-200">agent</span>}
+                  {m.agent && (
+                    <span className="ml-1 shrink-0 rounded-full bg-violet-500/15 px-1.5 text-[10px] text-violet-200">
+                      agent
+                    </span>
+                  )}
                 </span>
               </span>
-              <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">{m.time}</span>
+              <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+                {m.time}
+              </span>
               <Avatar by={m.by} agent={m.agent} />
             </div>
           ))}
@@ -115,14 +147,19 @@ export const MomentsFragment = () => {
 // The Shared tab: a one-time invite, and who has access.
 export const InviteFragment = () => {
   return (
-    <div aria-hidden className="space-y-4 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <div
+      aria-hidden
+      className="space-y-4 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <p className="font-semibold">Invite someone</p>
       <div className="flex flex-wrap gap-2">
         <span className="flex h-9 items-center gap-2 rounded-md border px-3">
           Can add moments
           <ChevronDownIcon className="size-4 text-muted-foreground" />
         </span>
-        <span className="flex h-9 items-center rounded-lg bg-primary px-3 font-medium text-primary-foreground">Create invite</span>
+        <span className="flex h-9 items-center rounded-lg bg-primary px-3 font-medium text-primary-foreground">
+          Create invite
+        </span>
       </div>
       <ul className="divide-y border-t">
         {[
@@ -143,21 +180,28 @@ export const InviteFragment = () => {
 // The Shared tab's link: on, with the address to copy.
 export const LinkFragment = () => {
   return (
-    <div aria-hidden className="space-y-4 rounded-xl border bg-card p-4 text-sm text-card-foreground">
+    <div
+      aria-hidden
+      className="space-y-4 rounded-xl border bg-card p-4 text-sm text-card-foreground"
+    >
       <div className="flex items-start gap-3">
         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
           <Link2Icon className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-semibold">Share a link</p>
-          <p className="text-xs text-muted-foreground">Anyone with it can watch, without an account.</p>
+          <p className="text-xs text-muted-foreground">
+            Anyone with it can watch, without an account.
+          </p>
         </div>
         <span className="mt-1 flex h-5 w-9 shrink-0 items-center justify-end rounded-full bg-primary p-0.5">
           <span className="size-4 rounded-full bg-primary-foreground" />
         </span>
       </div>
       <div className="flex items-center gap-2">
-        <code className="min-w-0 flex-1 truncate rounded-md border px-2.5 py-1.5 font-mono text-xs text-muted-foreground">…/s#Qm2kXr9bT4wLpZc8</code>
+        <code className="min-w-0 flex-1 truncate rounded-md border px-2.5 py-1.5 font-mono text-xs text-muted-foreground">
+          …/s#Qm2kXr9bT4wLpZc8
+        </code>
         <span className="flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium">
           <CopyIcon className="size-3.5" /> Copy
         </span>
@@ -176,7 +220,11 @@ export const CameraRollFragment = () => {
   const [ref, inView] = useInView<HTMLDivElement>();
   const on = inView || reduced;
   return (
-    <div ref={ref} aria-hidden className="rounded-2xl border bg-card p-3 text-card-foreground shadow-2xl shadow-black/40">
+    <div
+      ref={ref}
+      aria-hidden
+      className="rounded-2xl border bg-card p-3 text-card-foreground shadow-2xl shadow-black/40"
+    >
       <div className="mb-3 flex items-center justify-between px-1 text-xs text-muted-foreground">
         <span className="font-medium text-foreground">Recents</span>
         <span className="font-mono">{PICKED.size} selected</span>

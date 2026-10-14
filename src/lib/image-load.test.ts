@@ -1,12 +1,28 @@
 import { describe, expect, test } from "vitest";
-import { evictUnused, imageWorkAfter, imageWorkBefore, ORIGINAL_BYTES, THUMB_BYTES, visibleTiles, type MountedImage } from "./image-load";
+import {
+  evictUnused,
+  imageWorkAfter,
+  imageWorkBefore,
+  ORIGINAL_BYTES,
+  THUMB_BYTES,
+  visibleTiles,
+  type MountedImage,
+} from "./image-load";
 
 // A zoomed journal page has 8 photos and 3 of them are in the viewport.
 // The moments shelf holds 24 photos (its cap). At 640px, 10 tiles fit.
 const fixture = (): MountedImage[] => {
   const shown = visibleTiles(640);
-  const page = Array.from({ length: 8 }, (_, i) => ({ id: `page-${i}`, role: "page" as const, visible: i < 3 }));
-  const shelf = Array.from({ length: 24 }, (_, i) => ({ id: `shelf-${i}`, role: "list" as const, visible: i < shown }));
+  const page = Array.from({ length: 8 }, (_, i) => ({
+    id: `page-${i}`,
+    role: "page" as const,
+    visible: i < 3,
+  }));
+  const shelf = Array.from({ length: 24 }, (_, i) => ({
+    id: `shelf-${i}`,
+    role: "list" as const,
+    visible: i < shown,
+  }));
   return [...page, ...shelf];
 };
 

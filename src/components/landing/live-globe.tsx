@@ -34,7 +34,8 @@ const Fit = () => {
   const { map, isLoaded } = useMap();
   useEffect(() => {
     if (!map || !isLoaded) return;
-    const fit = () => map.setZoom(Math.log2((FILL * map.getContainer().clientWidth * 2 * Math.PI) / 512));
+    const fit = () =>
+      map.setZoom(Math.log2((FILL * map.getContainer().clientWidth * 2 * Math.PI) / 512));
     fit();
     map.on("resize", fit);
     return () => {
@@ -63,7 +64,14 @@ const Turn = ({ active }: { active: boolean }) => {
 
 export const LiveGlobe = ({ turning }: { turning: boolean }) => {
   return (
-    <Map theme="dark" projection={{ type: "globe" }} center={[MID_LNG, 30]} zoom={1.55} interactive={false} className="size-full">
+    <Map
+      theme="dark"
+      projection={{ type: "globe" }}
+      center={[MID_LNG, 30]}
+      zoom={1.55}
+      interactive={false}
+      className="size-full"
+    >
       <MapArc
         data={LEGS}
         interactive={false}
@@ -71,7 +79,12 @@ export const LiveGlobe = ({ turning }: { turning: boolean }) => {
         paint={{ "line-color": "#fcd34d", "line-width": 2, "line-opacity": 0.95 }}
       />
       {TRIP.map((stop) => (
-        <MapMarker key={stop.name} longitude={stop.at[0]} latitude={stop.at[1]} opacityWhenCovered="0">
+        <MapMarker
+          key={stop.name}
+          longitude={stop.at[0]}
+          latitude={stop.at[1]}
+          opacityWhenCovered="0"
+        >
           <MarkerContent>
             <span className="relative block size-2.5 rounded-full border-2 border-[#141210] bg-amber-200 shadow-[0_0_12px_rgb(253_230_138/0.9)]">
               <span className="absolute top-1/2 left-4 -translate-y-1/2 font-serif text-xs whitespace-nowrap text-white/85 [text-shadow:0_1px_6px_#000]">

@@ -8,8 +8,11 @@ import { assembleJournalPdf, PDF_QUALITY, PDF_SCALE, reuseCanvas } from "./pdf-b
 // pulsing mean a photo is on its way. Gives up after a while and takes it as is.
 const settled = async (node: HTMLElement, hasMap: boolean) => {
   const until = Date.now() + 10_000;
-  while (Date.now() < until && node.querySelector(".animate-pulse")) await new Promise((r) => setTimeout(r, 150));
-  await Promise.all([...node.querySelectorAll("img")].map((img) => img.decode().catch(() => undefined)));
+  while (Date.now() < until && node.querySelector(".animate-pulse"))
+    await new Promise((r) => setTimeout(r, 150));
+  await Promise.all(
+    [...node.querySelectorAll("img")].map((img) => img.decode().catch(() => undefined)),
+  );
   await document.fonts.ready;
   // Map tiles come in after the map itself.
   if (hasMap) await new Promise((r) => setTimeout(r, 1800));
@@ -32,7 +35,10 @@ export type Drawn = { node: HTMLElement; hasMap: boolean; paper: string };
 // the picture is of that page and not the one before it.
 // `root` is asked again each frame: the offstage sheet only exists once React
 // has rendered the page being printed.
-export const waitForPage = (root: () => HTMLElement | null, pageId: string): Promise<HTMLElement> => {
+export const waitForPage = (
+  root: () => HTMLElement | null,
+  pageId: string,
+): Promise<HTMLElement> => {
   return new Promise((resolve, reject) => {
     let frames = 0;
     const tick = () => {
@@ -75,7 +81,9 @@ const pageJpeg = async (node: HTMLElement, paper: string): Promise<Uint8Array> =
   context.drawImage(shot, 0, 0);
   shot.width = 0;
   shot.height = 0;
-  const blob = await new Promise<Blob | null>((resolve) => pageCanvas?.toBlob(resolve, "image/jpeg", PDF_QUALITY));
+  const blob = await new Promise<Blob | null>((resolve) =>
+    pageCanvas?.toBlob(resolve, "image/jpeg", PDF_QUALITY),
+  );
   if (!blob) throw new Error("The page couldn't be drawn.");
   return new Uint8Array(await blob.arrayBuffer());
 };
@@ -95,7 +103,10 @@ export const journalPdf = async (
     },
     { signal, onProgress },
   );
-  const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const copy = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer;
   return new Blob([copy], { type: "application/pdf" });
 };
 
@@ -108,23 +119,42 @@ export const download = (href: string | Blob, name: string) => {
   if (typeof href !== "string") setTimeout(() => URL.revokeObjectURL(url), 10_000);
 };
 
-export const fileName = (title: string) => title.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").toLowerCase() || "journal";
+export const fileName = (title: string) =>
+  title
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase() || "journal";
 
 // The sitting (this page, this day) is the ordinary print. Past a few dozen
 // pages, the whole journal is the unusual one, and the menu says so.
 export const wholeJournalPdfLabel = (pages: number): string => {
   const count = `${pages} ${pages === 1 ? "page" : "pages"}`;
-  return pages > 36 ? `The whole journal as a PDF (${count}, a long one)` : `The whole journal as a PDF (${count})`;
+  return pages > 36
+    ? `The whole journal as a PDF (${count}, a long one)`
+    : `The whole journal as a PDF (${count})`;
 };
 
 // ---- The journal as a file ----------------------------------------------------------------
 
 const KIND = "story-time-journal";
 
-type JournalFile = { kind: typeof KIND; version: 1; title: string; pages: Array<{ paper: string; elements: JournalElement[] }> };
+type JournalFile = {
+  kind: typeof KIND;
+  version: 1;
+  title: string;
+  pages: Array<{ paper: string; elements: JournalElement[] }>;
+};
 
-export const journalFile = (title: string, pages: Array<{ paper: string; elements: JournalElement[] }>): Blob => {
-  const file: JournalFile = { kind: KIND, version: 1, title, pages: pages.map(({ paper, elements }) => ({ paper, elements })) };
+export const journalFile = (
+  title: string,
+  pages: Array<{ paper: string; elements: JournalElement[] }>,
+): Blob => {
+  const file: JournalFile = {
+    kind: KIND,
+    version: 1,
+    title,
+    pages: pages.map(({ paper, elements }) => ({ paper, elements })),
+  };
   return new Blob([JSON.stringify(file, null, 1)], { type: "application/json" });
 };
 
@@ -132,14 +162,17 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 
 // Reads a journal file back. Only its shape is checked here; the server
 // checks every page as it adds it.
-export const readJournalFile = async (file: File): Promise<Array<{ paper: string; elements: JournalElement[] }>> => {
+export const readJournalFile = async (
+  file: File,
+): Promise<Array<{ paper: string; elements: JournalElement[] }>> => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(await file.text());
   } catch {
     throw new Error("That isn't a journal file.");
   }
-  if (!isObject(parsed) || parsed.kind !== KIND || !Array.isArray(parsed.pages)) throw new Error("That isn't a journal file.");
+  if (!isObject(parsed) || parsed.kind !== KIND || !Array.isArray(parsed.pages))
+    throw new Error("That isn't a journal file.");
   return parsed.pages.flatMap((p): Array<{ paper: string; elements: JournalElement[] }> => {
     if (!isObject(p) || typeof p.paper !== "string" || !Array.isArray(p.elements)) return [];
     const elements = p.elements.filter(

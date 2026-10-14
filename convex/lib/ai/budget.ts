@@ -13,10 +13,17 @@ export type MeteredFeature = "note" | "transport" | "intent" | "plan" | "voice" 
 
 // The gateway's cost for one AI SDK call, in nanodollars, when it reports one.
 const gatewayCostNanos = (providerMetadata: unknown): number | undefined => {
-  if (typeof providerMetadata !== "object" || providerMetadata === null || !("convexGateway" in providerMetadata)) return undefined;
+  if (
+    typeof providerMetadata !== "object" ||
+    providerMetadata === null ||
+    !("convexGateway" in providerMetadata)
+  )
+    return undefined;
   const gateway: unknown = providerMetadata.convexGateway;
   if (typeof gateway !== "object" || gateway === null || !("cost" in gateway)) return undefined;
-  return typeof gateway.cost === "number" && gateway.cost >= 0 ? Math.round(gateway.cost * 1e9) : undefined;
+  return typeof gateway.cost === "number" && gateway.cost >= 0
+    ? Math.round(gateway.cost * 1e9)
+    : undefined;
 };
 
 // Runs one AI call and records it. `run` returns the call's result with its
@@ -30,11 +37,21 @@ export const metered = async <T>(
   let done: { result: T } | undefined;
   await aiBudget.meter(
     ctx,
-    { model: call.model, messages: [], userId: call.userId, action: call.feature, tags: [{ dimension: "feature", value: call.feature }] },
+    {
+      model: call.model,
+      messages: [],
+      userId: call.userId,
+      action: call.feature,
+      tags: [{ dimension: "feature", value: call.feature }],
+    },
     async () => {
       const { result, usage, providerMetadata, costUsd } = await run();
       done = { result };
-      return { usage, costNanos: costUsd !== undefined ? Math.round(costUsd * 1e9) : gatewayCostNanos(providerMetadata) };
+      return {
+        usage,
+        costNanos:
+          costUsd !== undefined ? Math.round(costUsd * 1e9) : gatewayCostNanos(providerMetadata),
+      };
     },
   );
   if (done === undefined) throw new Error("The AI call didn't run");

@@ -28,7 +28,9 @@ const setup = async () => {
 
 describe("reading the gateway's reply", () => {
   test("keeps the words, tidied", () => {
-    expect(readTranscript({ text: "  move this\n to   Friday ", usage: { seconds: 3 } })).toBe("move this to Friday");
+    expect(readTranscript({ text: "  move this\n to   Friday ", usage: { seconds: 3 } })).toBe(
+      "move this to Friday",
+    );
   });
 
   test("anything else is nothing", () => {
@@ -58,20 +60,34 @@ describe("encoding", () => {
 describe("transcribe is refused before anything is sent", () => {
   test("when nobody is signed in", async () => {
     const { t } = await setup();
-    await expect(t.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("Sign in");
+    await expect(
+      t.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" }),
+    ).rejects.toThrow("Sign in");
   });
 
   test("for a format it can't read, an empty clip or one that's too long", async () => {
     const { person } = await setup();
-    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "exe" })).rejects.toThrow("format");
-    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(0), format: "webm" })).rejects.toThrow("empty");
-    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(MAX_VOICE_BYTES + 1), format: "webm" })).rejects.toThrow("too long");
+    await expect(
+      person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "exe" }),
+    ).rejects.toThrow("format");
+    await expect(
+      person.action(api.api.ai.voice.transcribe, { audio: clip(0), format: "webm" }),
+    ).rejects.toThrow("empty");
+    await expect(
+      person.action(api.api.ai.voice.transcribe, {
+        audio: clip(MAX_VOICE_BYTES + 1),
+        format: "webm",
+      }),
+    ).rejects.toThrow("too long");
   });
 
   test("once the person's allowance is spent", async () => {
     const { t, userId, person } = await setup();
-    for (let i = 0; i < AI_PER_DAY; i++) await t.run((ctx) => rateLimiter.limit(ctx, "ai", { key: userId }));
-    await expect(person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" })).rejects.toThrow("You can still type it");
+    for (let i = 0; i < AI_PER_DAY; i++)
+      await t.run((ctx) => rateLimiter.limit(ctx, "ai", { key: userId }));
+    await expect(
+      person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" }),
+    ).rejects.toThrow("You can still type it");
   });
 });
 
@@ -86,7 +102,9 @@ describe("the person's words guide the note", () => {
   };
 
   test("a hint goes in the prompt as theirs; no hint adds nothing", () => {
-    expect(promptFor(found, "the dinner in Berlin")).toContain("The person says the photos are: the dinner in Berlin");
+    expect(promptFor(found, "the dinner in Berlin")).toContain(
+      "The person says the photos are: the dinner in Berlin",
+    );
     expect(promptFor(found)).not.toContain("The person says");
   });
 });

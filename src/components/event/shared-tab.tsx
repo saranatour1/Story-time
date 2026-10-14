@@ -11,7 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { errorMessage } from "@/lib/errors";
 
@@ -19,7 +25,8 @@ type Role = "viewer" | "contributor";
 // What each role may do, in the words a person would use.
 const ROLE_LABEL: Record<Role, string> = { viewer: "Can watch", contributor: "Can add moments" };
 
-const day = (ms: number) => new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+const day = (ms: number) =>
+  new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 const initials = (name: string | undefined) =>
   (name ?? "")
     .split(/\s+/)
@@ -38,11 +45,26 @@ const copy = async (text: string) => {
 };
 
 // A section of the tab: an icon, a title, a sentence on what it does, then its controls.
-const Card = ({ icon, title, lead, aside, children }: { icon: ReactNode; title: string; lead: string; aside?: ReactNode; children?: ReactNode }) => {
+const Card = ({
+  icon,
+  title,
+  lead,
+  aside,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  lead: string;
+  aside?: ReactNode;
+  children?: ReactNode;
+}) => {
   return (
     <section aria-label={title} className="space-y-4 rounded-xl border bg-card p-5 sm:p-6">
       <div className="flex items-start gap-3">
-        <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-4">
+        <span
+          aria-hidden
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-4"
+        >
           {icon}
         </span>
         <div className="min-w-0 flex-1 space-y-1">
@@ -144,7 +166,9 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
         }
       >
         {archived && !publicLink && (
-          <p className="text-sm text-muted-foreground">Archived experiences can't switch on a link.</p>
+          <p className="text-sm text-muted-foreground">
+            Archived experiences can't switch on a link.
+          </p>
         )}
         {publicLink && (
           <div className="space-y-3">
@@ -175,11 +199,16 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
                 checked={hidePhotos === true}
                 disabled={hidePhotos === undefined}
                 onCheckedChange={(hide) => {
-                  void setHidePhotos({ eventId, hide }).catch((e: unknown) => toast.error(errorMessage(e)));
+                  void setHidePhotos({ eventId, hide }).catch((e: unknown) =>
+                    toast.error(errorMessage(e)),
+                  );
                 }}
               />
             </div>
-            <form onSubmit={(e) => void sendLink(e)} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <form
+              onSubmit={(e) => void sendLink(e)}
+              className="flex flex-col gap-2 sm:flex-row sm:items-end"
+            >
               <div className="grid min-w-0 flex-1 gap-2">
                 <Label htmlFor="share-email">Email the link</Label>
                 <Input
@@ -191,13 +220,24 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
                   onChange={(e) => setShareTo(e.target.value)}
                 />
               </div>
-              <Button type="submit" variant="outline" disabled={sendingLink || shareTo.trim() === ""}>
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={sendingLink || shareTo.trim() === ""}
+              >
                 Send
               </Button>
             </form>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground">Switch it off and the link stops working.</p>
-              <Button variant="ghost" size="sm" disabled={archived} onClick={() => setRotating(true)}>
+              <p className="text-xs text-muted-foreground">
+                Switch it off and the link stops working.
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={archived}
+                onClick={() => setRotating(true)}
+              >
                 Make a new link
               </Button>
             </div>
@@ -232,7 +272,10 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
               its trigger, and space-y would push the trigger up by a margin. */}
           <div className="grid gap-2">
             <Label htmlFor="invite-role">Access</Label>
-            <Select value={role} onValueChange={(v) => setRole(v === "contributor" ? "contributor" : "viewer")}>
+            <Select
+              value={role}
+              onValueChange={(v) => setRole(v === "contributor" ? "contributor" : "viewer")}
+            >
               <SelectTrigger id="invite-role" className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -256,27 +299,47 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
             <UserPlusIcon /> {inviting ? "Making it…" : "Create invite"}
           </Button>
         </form>
-        <p className="text-xs text-muted-foreground">The email address is used to send the invite and isn't stored.</p>
+        <p className="text-xs text-muted-foreground">
+          The email address is used to send the invite and isn't stored.
+        </p>
         {link && (
           <div className="space-y-2 rounded-lg border border-dashed p-3">
             <div className="flex gap-2">
-              <Input readOnly aria-label="Invite link" value={link} onFocus={(e) => e.currentTarget.select()} className="font-mono text-xs" />
+              <Input
+                readOnly
+                aria-label="Invite link"
+                value={link}
+                onFocus={(e) => e.currentTarget.select()}
+                className="font-mono text-xs"
+              />
               <Button variant="outline" onClick={() => void copy(link)}>
                 <CopyIcon /> Copy
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Shown only now. It works for the first person who opens it.</p>
+            <p className="text-xs text-muted-foreground">
+              Shown only now. It works for the first person who opens it.
+            </p>
           </div>
         )}
         {invites && invites.length > 0 && (
           <ul aria-label="Invites waiting to be opened" className="divide-y rounded-lg border">
             {invites.map((i) => (
-              <li key={i.inviteId} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+              <li
+                key={i.inviteId}
+                className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm"
+              >
                 <span className="min-w-0">
                   <span className="font-medium">{ROLE_LABEL[i.role]}</span>
-                  <span className="text-muted-foreground"> · waiting, until {day(i.expiresAt)}</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · waiting, until {day(i.expiresAt)}
+                  </span>
                 </span>
-                <Button size="sm" variant="ghost" onClick={() => void dismiss({ eventId, inviteId: i.inviteId })}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void dismiss({ eventId, inviteId: i.inviteId })}
+                >
                   Cancel invite
                 </Button>
               </li>
@@ -285,7 +348,11 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
         )}
       </Card>
 
-      <Card icon={<UsersIcon />} title="People with access" lead="Everyone you've invited who opened their invite.">
+      <Card
+        icon={<UsersIcon />}
+        title="People with access"
+        lead="Everyone you've invited who opened their invite."
+      >
         {people.status !== "LoadingFirstPage" && people.results.length === 0 ? (
           <p className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
             Nobody yet. Only you can see this experience.
@@ -297,7 +364,10 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
                 const name = s.displayName ?? "Anonymous";
                 return (
                   <li key={s._id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                    <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+                    <span
+                      aria-hidden
+                      className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
+                    >
                       {initials(s.displayName) || <UsersIcon className="size-3.5" />}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -309,7 +379,11 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
                     {s.revokedAt ? (
                       <Badge variant="secondary">Removed</Badge>
                     ) : (
-                      <Button size="sm" variant="outline" onClick={() => setRemoving({ id: s._id, name })}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setRemoving({ id: s._id, name })}
+                      >
                         Remove access
                       </Button>
                     )}

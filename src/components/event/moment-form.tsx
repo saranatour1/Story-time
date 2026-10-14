@@ -1,7 +1,15 @@
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
 import { useForm } from "@tanstack/react-form";
-import { ArrowDownIcon, ArrowUpIcon, ImageIcon, PlusIcon, Trash2Icon, VideoIcon, XIcon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ImageIcon,
+  PlusIcon,
+  Trash2Icon,
+  VideoIcon,
+  XIcon,
+} from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -10,12 +18,23 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { AuthImage } from "@/components/auth-image";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { type Geo, PlaceInput, reversePlace } from "@/components/event/place-input";
-import { stopsOf, TRANSPORT_VALUES, TRANSPORTS, type Transport } from "@/components/event/transport";
+import {
+  stopsOf,
+  TRANSPORT_VALUES,
+  TRANSPORTS,
+  type Transport,
+} from "@/components/event/transport";
 import type { MomentView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { deletePhotos } from "@/lib/actions";
 import { errorMessage } from "@/lib/errors";
@@ -53,10 +72,17 @@ const schema = z.object({
       place: z.string().max(200, "At most 200 characters"),
       geo: z.object({ lat: z.number(), lng: z.number() }).optional(),
       geoFromPhoto: z.boolean().optional(),
-      media: z.array(z.object({ mediaId: z.string(), kind: z.enum(["photo", "video"]), name: z.string() })),
+      media: z.array(
+        z.object({ mediaId: z.string(), kind: z.enum(["photo", "video"]), name: z.string() }),
+      ),
       notes: z.array(z.string().max(5000, "At most 5000 characters")),
       links: z.array(
-        z.string().refine((s) => s === "" || /^https?:\/\/\S+$/.test(s), "Enter a full link starting with http:// or https://"),
+        z
+          .string()
+          .refine(
+            (s) => s === "" || /^https?:\/\/\S+$/.test(s),
+            "Enter a full link starting with http:// or https://",
+          ),
       ),
       feeling: z.string().max(5000, "At most 5000 characters"),
       mood: z.string(),
@@ -88,7 +114,13 @@ const stopValuesOf = (moment: MomentView): StopValue[] => {
       geo: s.geo,
       media: s.blocks.flatMap((b): Media[] =>
         b.type === "photo" || b.type === "video"
-          ? [{ mediaId: b.mediaId, kind: b.type, name: b.type === "photo" ? "Saved photo" : "Saved video" }]
+          ? [
+              {
+                mediaId: b.mediaId,
+                kind: b.type,
+                name: b.type === "photo" ? "Saved photo" : "Saved video",
+              },
+            ]
           : [],
       ),
       notes: notes.length ? notes : [""],
@@ -148,7 +180,8 @@ export const MomentForm = ({
   }, []);
   const discard = (mediaId: string) => {
     picked.current.delete(mediaId);
-    if (unsaved.current.delete(mediaId) && latestToken.current) void deletePhotos([mediaId], latestToken.current);
+    if (unsaved.current.delete(mediaId) && latestToken.current)
+      void deletePhotos([mediaId], latestToken.current);
   };
   // After a save: uploads the moment now uses are its own; any others (say,
   // on a removed stop) are returned for deletion.
@@ -169,9 +202,13 @@ export const MomentForm = ({
 
   const toBlocks = (s: StopValue) => [
     ...s.media.map((m) => ({ type: m.kind, mediaId: m.mediaId as Id<"media"> })),
-    ...s.links.filter(Boolean).map((url) => ({ type: "link" as const, url, title: linkTitles.get(url) })),
+    ...s.links
+      .filter(Boolean)
+      .map((url) => ({ type: "link" as const, url, title: linkTitles.get(url) })),
     ...s.notes.filter((n) => n.trim()).map((text) => ({ type: "note" as const, text })),
-    ...(s.feeling.trim() ? [{ type: "feeling" as const, text: s.feeling, mood: s.mood || undefined }] : []),
+    ...(s.feeling.trim()
+      ? [{ type: "feeling" as const, text: s.feeling, mood: s.mood || undefined }]
+      : []),
   ];
 
   const form = useForm({
@@ -190,7 +227,9 @@ export const MomentForm = ({
       // so rather than dropping it.
       const moodOnly = value.stops.findIndex((s) => s.mood && !s.feeling.trim());
       if (moodOnly !== -1) {
-        toast.error(`${value.stops.length > 1 ? `Stop ${moodOnly + 1}: add` : "Add"} a few words to go with the mood`);
+        toast.error(
+          `${value.stops.length > 1 ? `Stop ${moodOnly + 1}: add` : "Add"} a few words to go with the mood`,
+        );
         return;
       }
       const blocksPerStop = value.stops.map(toBlocks);
@@ -198,7 +237,9 @@ export const MomentForm = ({
         toast.error("Add a photo, video, link, note or feeling first");
         return;
       }
-      const emptyStopAt = rest.findIndex((s, i) => !s.place.trim() && blocksPerStop[i + 1]!.length === 0);
+      const emptyStopAt = rest.findIndex(
+        (s, i) => !s.place.trim() && blocksPerStop[i + 1]!.length === 0,
+      );
       if (emptyStopAt !== -1) {
         toast.error(`Stop ${emptyStopAt + 2} needs a place or something to share`);
         return;
@@ -217,7 +258,10 @@ export const MomentForm = ({
         transport: s.transport || undefined,
         blocks: blocksPerStop[i + 1]!,
       }));
-      const labels = value.labels.split(",").map((l) => l.trim()).filter(Boolean);
+      const labels = value.labels
+        .split(",")
+        .map((l) => l.trim())
+        .filter(Boolean);
       try {
         // The time, and with it the zone and the day the moment is grouped
         // under, only change when the first stop's time did. Fixing a typo
@@ -234,7 +278,8 @@ export const MomentForm = ({
           labels,
         });
         const dropped = settle(value.stops);
-        if (latestToken.current) await deletePhotos([...removedMediaIds, ...dropped], latestToken.current);
+        if (latestToken.current)
+          await deletePhotos([...removedMediaIds, ...dropped], latestToken.current);
         toast.success("Moment saved");
         // Closed mid-save: whatever is open now isn't this form's to close.
         if (!closed.current) onDone?.();
@@ -295,14 +340,20 @@ export const MomentForm = ({
     const label = await reversePlace(geo);
     const now = form.state.values.stops[stop];
     const same = now?.geo?.lat === geo.lat && now.geo.lng === geo.lng;
-    if (label && !closed.current && same && !now.place.trim()) form.setFieldValue(`stops[${stop}].place`, label);
+    if (label && !closed.current && same && !now.place.trim())
+      form.setFieldValue(`stops[${stop}].place`, label);
   };
 
   // Where to centre place search for stop `i`: the nearest earlier stop on
   // the map, else any stop of this moment that is.
   const biasFor = (i: number) => {
     const stops = form.state.values.stops;
-    return stops.slice(0, i).reverse().find((s) => s.geo)?.geo ?? stops.find((s) => s.geo)?.geo;
+    return (
+      stops
+        .slice(0, i)
+        .reverse()
+        .find((s) => s.geo)?.geo ?? stops.find((s) => s.geo)?.geo
+    );
   };
 
   // One stop's fields. `i` addresses the stop inside the form's array.
@@ -313,8 +364,13 @@ export const MomentForm = ({
         <form.Field name={`stops[${i}].transport`}>
           {(f) => (
             <Field>
-              <FieldLabel htmlFor={id("transport")}>{i === 0 ? "How you got there" : "How you got here"}</FieldLabel>
-              <Select value={f.state.value || "none"} onValueChange={(v) => f.handleChange(v === "none" ? "" : (v as Transport))}>
+              <FieldLabel htmlFor={id("transport")}>
+                {i === 0 ? "How you got there" : "How you got here"}
+              </FieldLabel>
+              <Select
+                value={f.state.value || "none"}
+                onValueChange={(v) => f.handleChange(v === "none" ? "" : (v as Transport))}
+              >
                 <SelectTrigger id={id("transport")} className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -336,7 +392,13 @@ export const MomentForm = ({
             {(f) => (
               <Field>
                 <FieldLabel htmlFor={id("when")}>{i === 0 ? "When" : "When (optional)"}</FieldLabel>
-                <Input id={id("when")} type="datetime-local" required={i === 0} value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} />
+                <Input
+                  id={id("when")}
+                  type="datetime-local"
+                  required={i === 0}
+                  value={f.state.value}
+                  onChange={(e) => f.handleChange(e.target.value)}
+                />
               </Field>
             )}
           </form.Field>
@@ -383,20 +445,43 @@ export const MomentForm = ({
                 )}
               >
                 <ImageIcon aria-hidden className="size-4 shrink-0" />
-                <span aria-live="polite">{uploadingStop === i ? "Uploading…" : "Choose photos (5 MB) or videos (50 MB)"}</span>
-                <input id={id("media")} type="file" accept={MEDIA_ACCEPT} multiple className="sr-only" disabled={uploading} onChange={(e) => void onMedia(i, e.target)} />
+                <span aria-live="polite">
+                  {uploadingStop === i ? "Uploading…" : "Choose photos (5 MB) or videos (50 MB)"}
+                </span>
+                <input
+                  id={id("media")}
+                  type="file"
+                  accept={MEDIA_ACCEPT}
+                  multiple
+                  className="sr-only"
+                  disabled={uploading}
+                  onChange={(e) => void onMedia(i, e.target)}
+                />
               </label>
               {(f.state.value.length > 0 || uploadingStop === i) && (
-                <ul aria-label={`Stop ${i + 1} photos and videos`} className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+                <ul
+                  aria-label={`Stop ${i + 1} photos and videos`}
+                  className="grid grid-cols-4 gap-2 sm:grid-cols-5"
+                >
                   {f.state.value.map((m, j) => (
                     <li key={m.mediaId} className="relative">
                       {m.kind === "video" ? (
-                        <div title={m.name} className="grid aspect-square place-items-center rounded-md bg-muted text-muted-foreground">
+                        <div
+                          title={m.name}
+                          className="grid aspect-square place-items-center rounded-md bg-muted text-muted-foreground"
+                        >
                           <VideoIcon aria-hidden className="size-5" />
                           <span className="sr-only">{m.name}</span>
                         </div>
                       ) : (
-                        <AuthImage mediaId={m.mediaId} alt={m.name} width={160} height={160} sizes="160px" className="aspect-square rounded-md" />
+                        <AuthImage
+                          mediaId={m.mediaId}
+                          alt={m.name}
+                          width={160}
+                          height={160}
+                          sizes="160px"
+                          className="aspect-square rounded-md"
+                        />
                       )}
                       <button
                         type="button"
@@ -428,7 +513,12 @@ export const MomentForm = ({
                 <form.Field key={j} name={`stops[${i}].notes[${j}]`}>
                   {(n) => (
                     <>
-                      <Textarea rows={2} value={n.state.value} onChange={(e) => n.handleChange(e.target.value)} aria-label={`Stop ${i + 1}, note ${j + 1}`} />
+                      <Textarea
+                        rows={2}
+                        value={n.state.value}
+                        onChange={(e) => n.handleChange(e.target.value)}
+                        aria-label={`Stop ${i + 1}, note ${j + 1}`}
+                      />
                       <FieldError errors={n.state.meta.errors} />
                     </>
                   )}
@@ -449,7 +539,13 @@ export const MomentForm = ({
                 <form.Field key={j} name={`stops[${i}].links[${j}]`}>
                   {(l) => (
                     <>
-                      <Input type="url" placeholder="https://…" value={l.state.value} onChange={(e) => l.handleChange(e.target.value)} aria-label={`Stop ${i + 1}, link ${j + 1}`} />
+                      <Input
+                        type="url"
+                        placeholder="https://…"
+                        value={l.state.value}
+                        onChange={(e) => l.handleChange(e.target.value)}
+                        aria-label={`Stop ${i + 1}, link ${j + 1}`}
+                      />
                       <FieldError errors={l.state.meta.errors} />
                     </>
                   )}
@@ -468,16 +564,31 @@ export const MomentForm = ({
               <FieldLabel htmlFor={id("feeling")}>How it felt</FieldLabel>
               <form.Field name={`stops[${i}].mood`}>
                 {(m) => (
-                  <div className="flex flex-wrap gap-1" role="group" aria-label={`Stop ${i + 1} mood`}>
+                  <div
+                    className="flex flex-wrap gap-1"
+                    role="group"
+                    aria-label={`Stop ${i + 1} mood`}
+                  >
                     {MOODS.map((mood) => (
-                      <Button key={mood} type="button" size="sm" variant={m.state.value === mood ? "default" : "outline"} onClick={() => m.handleChange(m.state.value === mood ? "" : mood)}>
+                      <Button
+                        key={mood}
+                        type="button"
+                        size="sm"
+                        variant={m.state.value === mood ? "default" : "outline"}
+                        onClick={() => m.handleChange(m.state.value === mood ? "" : mood)}
+                      >
                         {mood}
                       </Button>
                     ))}
                   </div>
                 )}
               </form.Field>
-              <Textarea id={id("feeling")} rows={2} value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} />
+              <Textarea
+                id={id("feeling")}
+                rows={2}
+                value={f.state.value}
+                onChange={(e) => f.handleChange(e.target.value)}
+              />
               <FieldError errors={f.state.meta.errors} />
             </Field>
           )}
@@ -507,7 +618,12 @@ export const MomentForm = ({
         {(f) => (
           <Field data-invalid={f.state.meta.errors.length > 0}>
             <FieldLabel htmlFor={`${uid}-labels`}>Labels</FieldLabel>
-            <Input id={`${uid}-labels`} placeholder="food, museum, sunset" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} />
+            <Input
+              id={`${uid}-labels`}
+              placeholder="food, museum, sunset"
+              value={f.state.value}
+              onChange={(e) => f.handleChange(e.target.value)}
+            />
             <FieldDescription>Separate labels with commas.</FieldDescription>
             <FieldError errors={f.state.meta.errors} />
           </Field>
@@ -526,13 +642,34 @@ export const MomentForm = ({
                     {/* Locked during uploads: a finished upload lands on the
                         stop at the index it started from. */}
                     <div className="flex items-center gap-0.5">
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Move stop ${i + 1} up`} disabled={i === 0 || uploading} onClick={() => stops.moveValue(i, i - 1)}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Move stop ${i + 1} up`}
+                        disabled={i === 0 || uploading}
+                        onClick={() => stops.moveValue(i, i - 1)}
+                      >
                         <ArrowUpIcon />
                       </Button>
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Move stop ${i + 1} down`} disabled={i === count - 1 || uploading} onClick={() => stops.moveValue(i, i + 1)}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Move stop ${i + 1} down`}
+                        disabled={i === count - 1 || uploading}
+                        onClick={() => stops.moveValue(i, i + 1)}
+                      >
                         <ArrowDownIcon />
                       </Button>
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remove stop ${i + 1}`} disabled={count === 1 || uploading} onClick={() => stops.removeValue(i)}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Remove stop ${i + 1}`}
+                        disabled={count === 1 || uploading}
+                        onClick={() => stops.removeValue(i)}
+                      >
                         <Trash2Icon />
                       </Button>
                     </div>
@@ -541,7 +678,13 @@ export const MomentForm = ({
                 </fieldset>
               );
             })}
-            <Button type="button" variant="outline" size="sm" disabled={stops.state.value.length >= MAX_STOPS} onClick={() => stops.pushValue(emptyStop())}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={stops.state.value.length >= MAX_STOPS}
+              onClick={() => stops.pushValue(emptyStop())}
+            >
               <PlusIcon /> Add stop
             </Button>
           </div>
@@ -561,7 +704,13 @@ export const MomentForm = ({
                   Cancel
                 </Button>
               )}
-              <Button type="button" variant="ghost" className="ml-auto text-destructive" disabled={submitting || uploading} onClick={() => setConfirming(true)}>
+              <Button
+                type="button"
+                variant="ghost"
+                className="ml-auto text-destructive"
+                disabled={submitting || uploading}
+                onClick={() => setConfirming(true)}
+              >
                 <Trash2Icon /> Delete
               </Button>
             </>

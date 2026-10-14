@@ -13,7 +13,9 @@ export const encryptPlainText = internalMutation({
   returns: v.number(),
   handler: async (ctx, args): Promise<number> => {
     let encrypted = 0;
-    const page = await ctx.db.query("events").paginate({ numItems: BATCH, cursor: args.cursor ?? null });
+    const page = await ctx.db
+      .query("events")
+      .paginate({ numItems: BATCH, cursor: args.cursor ?? null });
     for (const event of page.page) {
       if (typeof event.description !== "string") continue;
       await ctx.db.patch("events", event._id, {
@@ -22,7 +24,9 @@ export const encryptPlainText = internalMutation({
       encrypted++;
     }
     if (!page.isDone) {
-      await ctx.scheduler.runAfter(0, internal.model.migrations.encryptPlainText, { cursor: page.continueCursor });
+      await ctx.scheduler.runAfter(0, internal.model.migrations.encryptPlainText, {
+        cursor: page.continueCursor,
+      });
     }
     return encrypted;
   },

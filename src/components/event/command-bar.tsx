@@ -1,7 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useAction, useMutation } from "convex/react";
-import { ArrowUpIcon, ImagePlusIcon, ImagesIcon, LoaderCircleIcon, PlayIcon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
+import {
+  ArrowUpIcon,
+  ImagePlusIcon,
+  ImagesIcon,
+  LoaderCircleIcon,
+  PlayIcon,
+  SparklesIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -48,11 +57,19 @@ const pin = async (ops: PlanOp[], near: Geo | undefined): Promise<PlanOp[]> => {
 // be spoken (the mic) and photos can be attached: new files, or ones already
 // in the trip that aren't on a moment. With photos, the words are what they
 // are, and the photos become moments, as the Add button makes them.
-export const CommandBar = ({ event, openMomentId }: { event: EventView; openMomentId?: string }) => {
+export const CommandBar = ({
+  event,
+  openMomentId,
+}: {
+  event: EventView;
+  openMomentId?: string;
+}) => {
   const token = useAuthToken();
   const adding = canAddTo(event);
   const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
-  const { data: shelf } = useQuery(queries.media.unattached(adding ? { eventId: event._id } : "skip"));
+  const { data: shelf } = useQuery(
+    queries.media.unattached(adding ? { eventId: event._id } : "skip"),
+  );
   const createMoment = useMutation(api.moments.create);
   const apply = useMutation(api.ai.command.apply);
   const propose = useAction(api.ai.command.propose);
@@ -173,7 +190,12 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
       }
       const out = await trackAi(
         "box",
-        propose({ eventId: event._id, text: said, openMomentId, zone: -new Date().getTimezoneOffset() }),
+        propose({
+          eventId: event._id,
+          text: said,
+          openMomentId,
+          zone: -new Date().getTimezoneOffset(),
+        }),
         (proposal) => proposal.kind,
       );
       if (out.kind === "new") {
@@ -199,7 +221,9 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
       // Photos that went with a stop or a moment are cleared from storage too.
       if (token) await deletePhotos(done.removedMediaIds, token);
       for (const id of done.created) enrichMoment(enrich, id, []);
-      toast.success(done.summary.charAt(0).toUpperCase() + done.summary.slice(1), { description: plan.summary || undefined });
+      toast.success(done.summary.charAt(0).toUpperCase() + done.summary.slice(1), {
+        description: plan.summary || undefined,
+      });
       setPlan(null);
       setText("");
     } catch (error) {
@@ -271,16 +295,30 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
           </Button>
         )}
         {/* The words are spliced onto what is already there. */}
-        <VoiceButton quiet disabled={busy} onText={(spoken) => setText((now) => (now.trim() ? `${now.trim()} ${spoken}` : spoken))} />
+        <VoiceButton
+          quiet
+          disabled={busy}
+          onText={(spoken) => setText((now) => (now.trim() ? `${now.trim()} ${spoken}` : spoken))}
+        />
         <Button
           type="submit"
           size="icon-sm"
           className="ml-0.5 rounded-full"
           disabled={(!said && files.length === 0 && picked.length === 0) || busy}
-          aria-label={phase === "reading" ? (files.length > 0 || picked.length > 0 ? "Adding" : "Reading") : "Go"}
+          aria-label={
+            phase === "reading"
+              ? files.length > 0 || picked.length > 0
+                ? "Adding"
+                : "Reading"
+              : "Go"
+          }
           title="Go"
         >
-          {phase === "reading" ? <LoaderCircleIcon aria-hidden className="animate-spin" /> : <ArrowUpIcon aria-hidden />}
+          {phase === "reading" ? (
+            <LoaderCircleIcon aria-hidden className="animate-spin" />
+          ) : (
+            <ArrowUpIcon aria-hidden />
+          )}
         </Button>
       </form>
       <input
@@ -302,8 +340,13 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
 
       {shelfOpen && (shelf ?? []).length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground">Already in this trip, and not on a moment yet.</p>
-          <ul className="flex gap-1.5 overflow-x-auto pb-1" aria-label="Photos already in this trip">
+          <p className="text-xs text-muted-foreground">
+            Already in this trip, and not on a moment yet.
+          </p>
+          <ul
+            className="flex gap-1.5 overflow-x-auto pb-1"
+            aria-label="Photos already in this trip"
+          >
             {(shelf ?? []).map((item, i) => {
               const on = picked.some((chosen) => chosen.mediaId === item.mediaId);
               const video = item.mime.startsWith("video/");
@@ -320,7 +363,18 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
                       on && "ring-2 ring-ring ring-offset-2 ring-offset-background",
                     )}
                   >
-                    {video ? <PlayIcon aria-hidden className="size-5" /> : <AuthImage mediaId={item.mediaId} alt="" width={56} height={56} sizes="56px" className="size-full rounded-none aspect-square" />}
+                    {video ? (
+                      <PlayIcon aria-hidden className="size-5" />
+                    ) : (
+                      <AuthImage
+                        mediaId={item.mediaId}
+                        alt=""
+                        width={56}
+                        height={56}
+                        sizes="56px"
+                        className="size-full rounded-none aspect-square"
+                      />
+                    )}
                   </button>
                 </li>
               );
@@ -332,38 +386,77 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
       {picked.length > 0 && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>
-            {picked.length} from this trip · {files.length > 0 ? "they'll be their own moment" : said ? "they'll be one moment, with your words as the note" : "they'll be one moment"}
+            {picked.length} from this trip ·{" "}
+            {files.length > 0
+              ? "they'll be their own moment"
+              : said
+                ? "they'll be one moment, with your words as the note"
+                : "they'll be one moment"}
           </span>
-          <Button type="button" size="icon-xs" variant="ghost" aria-label="Clear the photos from this trip" disabled={busy} onClick={() => setPicked([])}>
+          <Button
+            type="button"
+            size="icon-xs"
+            variant="ghost"
+            aria-label="Clear the photos from this trip"
+            disabled={busy}
+            onClick={() => setPicked([])}
+          >
             <XIcon aria-hidden />
           </Button>
         </div>
       )}
 
       {files.length > 0 && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground" aria-label="Attached files">
+        <div
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+          aria-label="Attached files"
+        >
           <ul className="flex -space-x-1.5">
             {previews.map(({ name, url }, i) => (
-              <li key={`${name}-${i}`} className="size-8 overflow-hidden rounded-md border bg-muted ring-2 ring-background">
-                {url ? <img src={url} alt="" className="size-full object-cover" /> : <ImagePlusIcon aria-hidden className="m-2 size-4" />}
+              <li
+                key={`${name}-${i}`}
+                className="size-8 overflow-hidden rounded-md border bg-muted ring-2 ring-background"
+              >
+                {url ? (
+                  <img src={url} alt="" className="size-full object-cover" />
+                ) : (
+                  <ImagePlusIcon aria-hidden className="m-2 size-4" />
+                )}
               </li>
             ))}
           </ul>
           <span>
-            {plural(files.length, "file")} · {said ? "they'll be moments, with your words as the note" : "they'll be added as moments"}
+            {plural(files.length, "file")} ·{" "}
+            {said
+              ? "they'll be moments, with your words as the note"
+              : "they'll be added as moments"}
           </span>
-          <Button type="button" size="icon-xs" variant="ghost" aria-label="Remove the attached files" disabled={busy} onClick={() => setFiles([])}>
+          <Button
+            type="button"
+            size="icon-xs"
+            variant="ghost"
+            aria-label="Remove the attached files"
+            disabled={busy}
+            onClick={() => setFiles([])}
+          >
             <XIcon aria-hidden />
           </Button>
         </div>
       )}
 
       <p role="status" className="sr-only">
-        {phase === "reading" ? "Reading your request" : phase === "applying" ? "Applying the changes" : ""}
+        {phase === "reading"
+          ? "Reading your request"
+          : phase === "applying"
+            ? "Applying the changes"
+            : ""}
       </p>
 
       {problem !== null && (
-        <div role="alert" className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+        <div
+          role="alert"
+          className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm"
+        >
           <p>{problem}</p>
           <div className="flex gap-2">
             {plan === null && (
@@ -390,7 +483,10 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
       )}
 
       {plan !== null && (
-        <section aria-label="Proposed changes" className="space-y-3 rounded-xl border bg-card p-3 text-sm">
+        <section
+          aria-label="Proposed changes"
+          className="space-y-3 rounded-xl border bg-card p-3 text-sm"
+        >
           {plan.summary && <p className="font-medium text-balance">{plan.summary}</p>}
           {lines.length > 0 && (
             <ul className="space-y-2">
@@ -402,7 +498,10 @@ export const CommandBar = ({ event, openMomentId }: { event: EventView; openMome
                   </p>
                   <ul className="list-disc pl-5 text-muted-foreground marker:text-border">
                     {line.changes.map((change) => (
-                      <li key={change} className={line.destructive ? "text-destructive" : undefined}>
+                      <li
+                        key={change}
+                        className={line.destructive ? "text-destructive" : undefined}
+                      >
                         {change}
                       </li>
                     ))}

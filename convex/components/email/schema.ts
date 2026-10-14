@@ -10,11 +10,7 @@ export default defineSchema({
     subject: v.optional(v.string()),
     html: v.optional(v.string()),
     text: v.optional(v.string()),
-    status: v.union(
-      v.literal("queued"),
-      v.literal("sent"),
-      v.literal("failed"),
-    ),
+    status: v.union(v.literal("queued"), v.literal("sent"), v.literal("failed")),
     attempts: v.number(),
     error: v.optional(v.string()),
     messageId: v.optional(v.string()),

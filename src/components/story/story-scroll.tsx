@@ -80,15 +80,31 @@ export const StoryScroll = ({
     return n;
   }, [steps]);
   // The cards a glide lands on: the stops, and the end.
-  const cards = useMemo(() => steps.flatMap((s, i) => (s.kind === "stop" || s.kind === "end" ? [i] : [])), [steps]);
+  const cards = useMemo(
+    () => steps.flatMap((s, i) => (s.kind === "stop" || s.kind === "end" ? [i] : [])),
+    [steps],
+  );
   // The stops with a place on the map, in story order.
   const located = useMemo<MapStop[]>(() => {
-    const at = new Map(steps.flatMap((s, i) => (s.kind === "stop" ? [[`${s.momentId}:${s.stopIndex}`, i] as const] : [])));
+    const at = new Map(
+      steps.flatMap((s, i) =>
+        s.kind === "stop" ? [[`${s.momentId}:${s.stopIndex}`, i] as const] : [],
+      ),
+    );
     return mapPoints(moments).flatMap((p): MapStop[] => {
       const i = at.get(`${p.momentId}:${p.stopIndex}`);
       const s = i === undefined ? undefined : steps[i];
       if (i === undefined || s?.kind !== "stop") return [];
-      return [{ step: i, number: numbers.get(i) ?? 0, name: s.place, transport: p.transport, lng: p.lng, lat: p.lat }];
+      return [
+        {
+          step: i,
+          number: numbers.get(i) ?? 0,
+          name: s.place,
+          transport: p.transport,
+          lng: p.lng,
+          lat: p.lat,
+        },
+      ];
     });
   }, [moments, steps, numbers]);
 
@@ -116,7 +132,11 @@ export const StoryScroll = ({
 
   // The next stop's pictures load while this one is read.
   const next = steps.find((s, i) => i > scene && s.kind === "stop");
-  usePrefetchMedia(next?.kind === "stop" ? next.stop.blocks.flatMap((b) => ("mediaId" in b ? [b.mediaId] : [])) : []);
+  usePrefetchMedia(
+    next?.kind === "stop"
+      ? next.stop.blocks.flatMap((b) => ("mediaId" in b ? [b.mediaId] : []))
+      : [],
+  );
 
   // A link to a scene opens on it, with no scrolling to watch.
   useLayoutEffect(() => {
@@ -153,7 +173,9 @@ export const StoryScroll = ({
     const root = page.current;
     if (!root) return;
     const anchors = [...root.querySelectorAll<HTMLElement>("[data-step]")];
-    const stepOf = new Map<Element, number>(anchors.map((el): [Element, number] => [el, Number(el.dataset.step)]));
+    const stepOf = new Map<Element, number>(
+      anchors.map((el): [Element, number] => [el, Number(el.dataset.step)]),
+    );
     const line = Math.round(readingLine());
     const below = Math.max(0, Math.round(window.innerHeight - line - 2));
     // The anchors crossing the line now.
@@ -190,9 +212,20 @@ export const StoryScroll = ({
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
       const el = e.target instanceof HTMLElement ? e.target : null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT" ||
+          el.isContentEditable)
+      )
+        return;
       const target =
-        e.key === "ArrowDown" ? stepFrom(cards, aim.current, 1) : e.key === "ArrowUp" ? stepFrom(cards, aim.current, -1) : undefined;
+        e.key === "ArrowDown"
+          ? stepFrom(cards, aim.current, 1)
+          : e.key === "ArrowUp"
+            ? stepFrom(cards, aim.current, -1)
+            : undefined;
       if (target === undefined || target === aim.current) return;
       e.preventDefault();
       glide(target);
@@ -219,7 +252,8 @@ export const StoryScroll = ({
   useEffect(() => {
     const update = () => {
       const room = document.documentElement.scrollHeight - window.innerHeight;
-      if (bar.current) bar.current.style.transform = `scaleX(${room > 0 ? Math.min(1, window.scrollY / room) : 0})`;
+      if (bar.current)
+        bar.current.style.transform = `scaleX(${room > 0 ? Math.min(1, window.scrollY / room) : 0})`;
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
@@ -237,10 +271,21 @@ export const StoryScroll = ({
   return (
     <div className="min-h-svh bg-[#f3e9d6] text-stone-900 dark:bg-background dark:text-foreground">
       <header className="sticky top-0 z-30 border-b border-[#5b4a3a]/15 bg-[#f3e9d6]/95 backdrop-blur-sm dark:bg-background/95">
-        <div ref={bar} aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-[#c2410c]" style={{ transform: "scaleX(0)" }} />
+        <div
+          ref={bar}
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-[#c2410c]"
+          style={{ transform: "scaleX(0)" }}
+        />
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:px-6 lg:px-8">
           <p className="min-w-0 flex-1 truncate font-serif text-sm font-semibold">{event.title}</p>
-          <Button variant="outline" size="sm" className="rounded-full" aria-label="Play as film" onClick={() => onPlayFilm(scene)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            aria-label="Play as film"
+            onClick={() => onPlayFilm(scene)}
+          >
             <PlayIcon /> <span className="hidden sm:inline">Play as film</span>
           </Button>
           <ShareButton event={event} label={shareLabel} />
@@ -259,9 +304,25 @@ export const StoryScroll = ({
       </header>
 
       <main ref={page} className="mx-auto w-full max-w-7xl touch-pan-y px-4 pb-24 sm:px-6 lg:px-8">
-        <div className={cn("pt-8 sm:pt-12", hasMap && "lg:grid lg:grid-cols-[minmax(0,38rem)_minmax(0,1fr)] lg:gap-x-12")}>
-          <div className={cn("mx-auto w-full max-w-2xl", hasMap && "lg:col-start-1 lg:row-start-1 lg:mx-0")}>
-            <Cover event={event} moments={moments} days={days.length} stops={stopCount} onPlayFilm={() => onPlayFilm(0)} />
+        <div
+          className={cn(
+            "pt-8 sm:pt-12",
+            hasMap && "lg:grid lg:grid-cols-[minmax(0,38rem)_minmax(0,1fr)] lg:gap-x-12",
+          )}
+        >
+          <div
+            className={cn(
+              "mx-auto w-full max-w-2xl",
+              hasMap && "lg:col-start-1 lg:row-start-1 lg:mx-0",
+            )}
+          >
+            <Cover
+              event={event}
+              moments={moments}
+              days={days.length}
+              stops={stopCount}
+              onPlayFilm={() => onPlayFilm(0)}
+            />
           </div>
           {hasMap && (
             <StickyMap
@@ -273,11 +334,28 @@ export const StoryScroll = ({
               onPick={glide}
             />
           )}
-          <div className={cn("mx-auto mt-16 w-full max-w-2xl space-y-20", hasMap && "lg:col-start-1 lg:row-start-2 lg:mx-0")}>
+          <div
+            className={cn(
+              "mx-auto mt-16 w-full max-w-2xl space-y-20",
+              hasMap && "lg:col-start-1 lg:row-start-2 lg:mx-0",
+            )}
+          >
             {days.map((day) => (
-              <DaySection key={day.index} day={day} numbers={numbers} minutes={minutes} meId={meId} onPlayFilm={onPlayFilm} />
+              <DaySection
+                key={day.index}
+                day={day}
+                numbers={numbers}
+                minutes={minutes}
+                meId={meId}
+                onPlayFilm={onPlayFilm}
+              />
             ))}
-            <MemoirEnd event={event} moments={moments} step={steps.length - 1} onReplay={() => glide(0)} />
+            <MemoirEnd
+              event={event}
+              moments={moments}
+              step={steps.length - 1}
+              onReplay={() => glide(0)}
+            />
           </div>
         </div>
       </main>

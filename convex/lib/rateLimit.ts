@@ -27,5 +27,9 @@ export const takeAi = async (ctx: MutationCtx | ActionCtx, userId: string): Prom
 // Throws when someone is changing things faster than a person can.
 export const limitWrites = async (ctx: MutationCtx, userId: string): Promise<void> => {
   const { ok } = await rateLimiter.limit(ctx, "writes", { key: userId });
-  if (!ok) throw new ConvexError({ code: "RATE_LIMITED", message: "That's a lot of changes at once. Wait a moment and try again." });
+  if (!ok)
+    throw new ConvexError({
+      code: "RATE_LIMITED",
+      message: "That's a lot of changes at once. Wait a moment and try again.",
+    });
 };

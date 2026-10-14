@@ -1,7 +1,7 @@
 // A repeatable stream of numbers in [0, 1) from any string. A tilt or a torn
 // edge comes from an id, so it looks the same every time it is drawn, on every
 // screen, in a shared link and in an exported page.
-export const seeded = (seed: string): () => number => {
+export const seeded = (seed: string): (() => number) => {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
     h ^= seed.charCodeAt(i);

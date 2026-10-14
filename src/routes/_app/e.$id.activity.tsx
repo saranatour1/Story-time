@@ -14,7 +14,9 @@ const ActivityPage = () => {
         event.role === "owner" ? (
           <ActivityTab eventId={event._id} meId={me?.id} />
         ) : (
-          <p className="text-sm text-muted-foreground">Only the experience's owner can see its activity.</p>
+          <p className="text-sm text-muted-foreground">
+            Only the experience's owner can see its activity.
+          </p>
         )
       }
     </ExperienceShell>
@@ -23,6 +25,7 @@ const ActivityPage = () => {
 
 // Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/e/$id/activity")({
-  loader: ({ context: { prefetch }, params }) => prefetch(queries.events.get({ eventId: params.id })),
+  loader: ({ context: { prefetch }, params }) =>
+    prefetch(queries.events.get({ eventId: params.id })),
   component: ActivityPage,
 });

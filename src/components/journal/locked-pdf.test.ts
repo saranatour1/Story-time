@@ -14,12 +14,15 @@ describe("a locked PDF", () => {
     expect(text).toMatch(/\/R 6/);
     await expect(PDFDocument.load(locked)).rejects.toThrow();
     await expect(PDFDocument.load(locked, { password: "wrong password" })).rejects.toThrow();
-    expect((await PDFDocument.load(locked, { password: "kq7m-3vtx-p9ra-w2hc" })).getPageCount()).toBe(2);
+    expect(
+      (await PDFDocument.load(locked, { password: "kq7m-3vtx-p9ra-w2hc" })).getPageCount(),
+    ).toBe(2);
   });
 
   test("passwords are four groups of four, easy to read out, and different each time", () => {
     const made = new Set(Array.from({ length: 50 }, newPassword));
     expect(made.size).toBe(50);
-    for (const password of made) expect(password).toMatch(/^[a-hj-km-np-z2-9]{4}(-[a-hj-km-np-z2-9]{4}){3}$/);
+    for (const password of made)
+      expect(password).toMatch(/^[a-hj-km-np-z2-9]{4}(-[a-hj-km-np-z2-9]{4}){3}$/);
   });
 });

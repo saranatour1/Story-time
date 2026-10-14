@@ -34,7 +34,10 @@ export const checkOffset = (tzOffsetMinutes: number | undefined): number | undef
 };
 
 // An empty place means "no place".
-export const encodePlace = async (event: Doc<"events">, raw: string | undefined): Promise<Encrypted | undefined> => {
+export const encodePlace = async (
+  event: Doc<"events">,
+  raw: string | undefined,
+): Promise<Encrypted | undefined> => {
   if (raw === undefined || raw.trim() === "") return undefined;
   return encryptText(event._id, event.keyVersion, checkText("place", raw, 200));
 };
@@ -50,8 +53,12 @@ export const encodeGeo = async (
   if (!hasPlace) invalid(field, "Pick a place to pin on the map");
   const { lat, lng } = geo;
   const onMap =
-    Number.isFinite(lat) && Number.isFinite(lng) &&
-    lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180;
   if (!onMap) invalid(field, "That location isn't on the map");
   return encryptGeo(event._id, event.keyVersion, geo);
 };
@@ -83,10 +90,8 @@ export const encodeBlocks = async (
     const field = `${prefix}.${i}`;
     if (b.type === "photo" || b.type === "video") {
       const media = await ctx.db.get("media", b.mediaId);
-      const onThisMoment =
-        momentId !== undefined && media?.momentId === momentId;
-      const freshUpload =
-        media?.momentId === undefined && media?.uploaderId === userId;
+      const onThisMoment = momentId !== undefined && media?.momentId === momentId;
+      const freshUpload = media?.momentId === undefined && media?.uploaderId === userId;
       // A photo block must point at an image, a video block at a video.
       const rightKind = media?.mime.startsWith(b.type === "photo" ? "image/" : "video/");
       if (
@@ -117,11 +122,7 @@ export const encodeBlocks = async (
         title:
           b.title === undefined || b.title.trim() === ""
             ? undefined
-            : await encryptText(
-                event._id,
-                event.keyVersion,
-                checkText(field, b.title, 200),
-              ),
+            : await encryptText(event._id, event.keyVersion, checkText(field, b.title, 200)),
       });
     } else if (b.type === "note") {
       blocks.push({
@@ -179,20 +180,31 @@ export const encodeStops = async (
     if (place === undefined && encoded.blocks.length === 0) {
       invalid(field, "Add a place or something to share");
     }
-    stops.push({ startsAt: s.startsAt, place, geo, transport: s.transport, blocks: encoded.blocks });
+    stops.push({
+      startsAt: s.startsAt,
+      place,
+      geo,
+      transport: s.transport,
+      blocks: encoded.blocks,
+    });
     mediaIds.push(...encoded.mediaIds);
   }
   return { stops, mediaIds };
 };
 
 // Free-text labels: trimmed, deduplicated, encrypted like other text.
-export const encodeLabels = async (event: Doc<"events">, labels: string[]): Promise<Encrypted[]> => {
+export const encodeLabels = async (
+  event: Doc<"events">,
+  labels: string[],
+): Promise<Encrypted[]> => {
   const clean = [...new Set(labels.map((l) => l.trim()).filter(Boolean))];
   if (clean.length > MAX_LABELS_PER_MOMENT) {
     invalid("labels", `At most ${MAX_LABELS_PER_MOMENT} labels per moment`);
   }
   return Promise.all(
-    clean.map((l) => encryptText(event._id, event.keyVersion, checkText("labels", l, MAX_LABEL_LENGTH))),
+    clean.map((l) =>
+      encryptText(event._id, event.keyVersion, checkText("labels", l, MAX_LABEL_LENGTH)),
+    ),
   );
 };
 

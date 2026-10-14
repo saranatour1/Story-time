@@ -16,7 +16,8 @@ export class PdfCancelled extends Error {
 }
 
 export const jpegSize = (bytes: Uint8Array): { width: number; height: number } => {
-  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) throw new Error("The page wasn't a JPEG.");
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8)
+    throw new Error("The page wasn't a JPEG.");
   let i = 2;
   while (i + 8 < bytes.length) {
     if (bytes[i] !== 0xff) {
@@ -53,7 +54,8 @@ export const reuseCanvas = <T extends { width: number; height: number }>(
   height: number,
   make: (width: number, height: number) => T,
 ): { current: T; created: boolean } => {
-  if (current && current.width === width && current.height === height) return { current, created: false };
+  if (current && current.width === width && current.height === height)
+    return { current, created: false };
   return { current: make(width, height), created: true };
 };
 

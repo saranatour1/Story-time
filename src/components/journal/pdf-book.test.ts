@@ -1,12 +1,34 @@
 import { describe, expect, test } from "vitest";
-import { assembleJournalPdf, jpegSize, PdfCancelled, PDF_QUALITY, PDF_SCALE, reuseCanvas } from "./pdf-book";
+import {
+  assembleJournalPdf,
+  jpegSize,
+  PdfCancelled,
+  PDF_QUALITY,
+  PDF_SCALE,
+  reuseCanvas,
+} from "./pdf-book";
 
 const tinyJpeg = (width: number, height: number, tag: number): Uint8Array => {
   const sof = [
-    0xff, 0xc0, 0x00, 0x11, 0x08,
-    (height >> 8) & 255, height & 255,
-    (width >> 8) & 255, width & 255,
-    0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x00, 0x03, 0x11, 0x00,
+    0xff,
+    0xc0,
+    0x00,
+    0x11,
+    0x08,
+    (height >> 8) & 255,
+    height & 255,
+    (width >> 8) & 255,
+    width & 255,
+    0x03,
+    0x01,
+    0x11,
+    0x00,
+    0x02,
+    0x11,
+    0x00,
+    0x03,
+    0x11,
+    0x00,
   ];
   return Uint8Array.from([0xff, 0xd8, 0xff, 0xfe, 0x00, 0x03, tag, ...sof, 0xff, 0xd9]);
 };
@@ -49,10 +71,14 @@ describe("a journal PDF", () => {
 
   test("a book is one PDF, built a page at a time, and cancel stops the rest", async () => {
     const seen: number[] = [];
-    const pdf = await assembleJournalPdf(3, async (index) => {
-      seen.push(index);
-      return tinyJpeg(8, 8, index + 1);
-    }, { onProgress: (done) => expect(done).toBe(seen.length) });
+    const pdf = await assembleJournalPdf(
+      3,
+      async (index) => {
+        seen.push(index);
+        return tinyJpeg(8, 8, index + 1);
+      },
+      { onProgress: (done) => expect(done).toBe(seen.length) },
+    );
     const text = new TextDecoder().decode(pdf);
     expect(text.startsWith("%PDF-1.4")).toBe(true);
     expect(text).toContain("/Count 3");
@@ -61,10 +87,14 @@ describe("a journal PDF", () => {
 
     const signal = new AbortController();
     const progress: number[] = [];
-    const printing = assembleJournalPdf(5, async (index) => {
-      if (index === 1) signal.abort();
-      return tinyJpeg(4, 4, index + 1);
-    }, { signal: signal.signal, onProgress: (done) => progress.push(done) });
+    const printing = assembleJournalPdf(
+      5,
+      async (index) => {
+        if (index === 1) signal.abort();
+        return tinyJpeg(4, 4, index + 1);
+      },
+      { signal: signal.signal, onProgress: (done) => progress.push(done) },
+    );
     await expect(printing).rejects.toBeInstanceOf(PdfCancelled);
     expect(progress).toEqual([1]);
   });

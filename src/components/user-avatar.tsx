@@ -29,7 +29,17 @@ export const UserAvatar = ({
   const { url } = useMediaUrl(mediaId, "thumb");
   return (
     <Avatar className={cn("rounded-lg", className)}>
-      {url && <AvatarImage src={url} alt="" width={40} height={40} sizes="40px" decoding="async" className="rounded-lg object-cover" />}
+      {url && (
+        <AvatarImage
+          src={url}
+          alt=""
+          width={40}
+          height={40}
+          sizes="40px"
+          decoding="async"
+          className="rounded-lg object-cover"
+        />
+      )}
       <AvatarFallback className="rounded-lg">
         {initials(name) || <UserIcon aria-hidden className="size-1/2" />}
       </AvatarFallback>

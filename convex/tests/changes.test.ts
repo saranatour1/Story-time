@@ -12,9 +12,7 @@ const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
-  process.env.ENCRYPTION_MASTER_KEY = btoa(
-    String.fromCharCode(...new Uint8Array(32).fill(7)),
-  );
+  process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
 const T0 = Date.UTC(2026, 5, 1, 12);
@@ -33,12 +31,25 @@ const setup = async () => {
   const owner = as(ownerId);
   const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
-    ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }),
+    ctx.db.insert("sessions", {
+      eventId,
+      userId: helperId,
+      grantedBy: ownerId,
+      role: "contributor",
+    }),
   );
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
   );
-  return { t, eventId, ownerId, owner, helper: as(helperId), viewer: as(viewerId), stranger: as(strangerId) };
+  return {
+    t,
+    eventId,
+    ownerId,
+    owner,
+    helper: as(helperId),
+    viewer: as(viewerId),
+    stranger: as(strangerId),
+  };
 };
 
 describe("the log names who made each change", () => {
@@ -73,7 +84,11 @@ describe("the log names who made each change", () => {
       place: "Lisbon",
       blocks: [{ type: "link", url: "https://example.com/tram" }],
     });
-    await t.mutation(internal.model.ai.apply.apply, { momentId, note: "We rode the tram", labels: ["tram"] });
+    await t.mutation(internal.model.ai.apply.apply, {
+      momentId,
+      note: "We rode the tram",
+      labels: ["tram"],
+    });
 
     const { page } = await owner.query(api.api.changes.listForEvent, {
       eventId,
@@ -93,7 +108,12 @@ describe("the log names who made each change", () => {
         event: access.event,
         userId: ownerId,
         actor: { kind: "agent", name: "Claude", onBehalfOf: ownerId },
-        input: { eventId, startsAt: T0, place: "Sintra", blocks: [{ type: "note", text: "Fog on the palace" }] },
+        input: {
+          eventId,
+          startsAt: T0,
+          place: "Sintra",
+          blocks: [{ type: "note", text: "Fog on the palace" }],
+        },
       });
     });
 
@@ -101,7 +121,10 @@ describe("the log names who made each change", () => {
       eventId,
       paginationOpts: { numItems: 50, cursor: null },
     });
-    expect(page.find((c) => c.entity === "moment")).toMatchObject({ agent: "Claude", actorName: "Sara" });
+    expect(page.find((c) => c.entity === "moment")).toMatchObject({
+      agent: "Claude",
+      actorName: "Sara",
+    });
   });
 });
 
@@ -109,7 +132,10 @@ describe("only the owner reads the log", () => {
   test("a contributor, a viewer and a stranger are turned away", async () => {
     const { owner, helper, viewer, stranger, eventId } = await setup();
     const read = (who: typeof owner) =>
-      who.query(api.api.changes.listForEvent, { eventId, paginationOpts: { numItems: 5, cursor: null } });
+      who.query(api.api.changes.listForEvent, {
+        eventId,
+        paginationOpts: { numItems: 5, cursor: null },
+      });
     await expect(read(helper)).rejects.toThrow("Event not found");
     await expect(read(viewer)).rejects.toThrow("Event not found");
     await expect(read(stranger)).rejects.toThrow("Event not found");

@@ -14,9 +14,7 @@ const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
-  process.env.ENCRYPTION_MASTER_KEY = btoa(
-    String.fromCharCode(...new Uint8Array(32).fill(7)),
-  );
+  process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
 const HOUR = 60 * 60_000;
@@ -35,7 +33,12 @@ const setup = async () => {
   const owner = as(ownerId);
   const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
-    ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }),
+    ctx.db.insert("sessions", {
+      eventId,
+      userId: helperId,
+      grantedBy: ownerId,
+      role: "contributor",
+    }),
   );
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
@@ -107,7 +110,13 @@ describe("decide: the legs of a journey", () => {
 
     const { legs } = await t.query(internal.model.ai.decide.legsOf, { momentId });
     expect(legs).toHaveLength(1);
-    expect(legs[0]).toMatchObject({ id: "0", stopIndex: 0, fromPlace: "Porto", toPlace: "Lisbon", minutes: 120 });
+    expect(legs[0]).toMatchObject({
+      id: "0",
+      stopIndex: 0,
+      fromPlace: "Porto",
+      toPlace: "Lisbon",
+      minutes: 120,
+    });
     expect(legs[0]?.km).toBeGreaterThan(200);
   });
 
@@ -171,7 +180,11 @@ describe("decide: long legs are flights", () => {
         { id: "2", stopIndex: 2, km: 12, minutes: 60, kmh: 12 },
       ],
     };
-    const unsure = { type: "choice" as const, choice: "car", probabilities: { car: 0.45, plane: 0.4 } };
+    const unsure = {
+      type: "choice" as const,
+      choice: "car",
+      probabilities: { car: 0.45, plane: 0.4 },
+    };
     const decided = readDecisions(found, { transport_1: unsure, transport_2: unsure });
     expect(decided.transports).toEqual({ "1": "plane" });
   });
@@ -224,7 +237,14 @@ describe("decideTransport: without Jev, speed decides", () => {
       place: "Queen Alia International Airport",
       geo: { lat: 31.7226, lng: 35.9932 },
       blocks: [{ type: "note", text: "boarding" }],
-      stops: [{ place: "Hanover", geo: { lat: 52.3759, lng: 9.732 }, startsAt: T0 + 24 * HOUR, blocks: [] }],
+      stops: [
+        {
+          place: "Hanover",
+          geo: { lat: 52.3759, lng: 9.732 },
+          startsAt: T0 + 24 * HOUR,
+          blocks: [],
+        },
+      ],
     });
 
     const decided = await t.action(internal.model.ai.decide.decideTransport, { momentId });
@@ -261,7 +281,11 @@ describe("AI: ten uses a day per person, across every feature", () => {
       const { t, ownerId, owner } = await setup();
       for (let i = 0; i < 3; i++) await t.run((ctx) => takeAi(ctx, ownerId));
       const usage = await owner.query(api.api.users.usage, {});
-      expect(usage?.ai).toEqual({ left: AI_PER_DAY - 3, limit: AI_PER_DAY, resetsAt: Date.UTC(2026, 9, 14) });
+      expect(usage?.ai).toEqual({
+        left: AI_PER_DAY - 3,
+        limit: AI_PER_DAY,
+        resetsAt: Date.UTC(2026, 9, 14),
+      });
       expect(usage?.experiences.used).toBe(1);
       expect(usage?.storage.used).toBe(0);
     } finally {
@@ -281,9 +305,9 @@ describe("AI: ten uses a day per person, across every feature", () => {
 
 describe("unfurl: page titles", () => {
   test("reads the title, decodes basic entities, and drops empty ones", () => {
-    expect(titleFromHtml("<html><head><title>  Ponte &amp; Co &#8211;\n2026 </title></head></html>")).toBe(
-      "Ponte & Co – 2026",
-    );
+    expect(
+      titleFromHtml("<html><head><title>  Ponte &amp; Co &#8211;\n2026 </title></head></html>"),
+    ).toBe("Ponte & Co – 2026");
     expect(titleFromHtml("<title>&lt;b&gt;bold&lt;/b&gt;</title>")).toBe("<b>bold</b>");
     expect(titleFromHtml("<title>   </title>")).toBeUndefined();
     expect(titleFromHtml("no title here")).toBeUndefined();
@@ -322,7 +346,9 @@ describe("apply: AI fill-ins only fill gaps", () => {
     const edit = changes.find((r) => r.entity === "moment" && r.action === "update");
     expect(edit?.actorId).toBeUndefined();
     expect(edit?.agent).toBe("Scribe");
-    expect(edit?.fields).toEqual(expect.arrayContaining(["blocks", "labels", "transport", "stops"]));
+    expect(edit?.fields).toEqual(
+      expect.arrayContaining(["blocks", "labels", "transport", "stops"]),
+    );
     expect(JSON.stringify(changes)).not.toMatch(/castle|tram/);
   });
 
@@ -380,7 +406,9 @@ describe("apply: AI fill-ins only fill gaps", () => {
     });
 
     const [m] = await owner.query(api.api.moments.list, { eventId });
-    expect(m?.blocks).toEqual([{ type: "link", url: "https://example.com/castle", title: "The castle" }]);
+    expect(m?.blocks).toEqual([
+      { type: "link", url: "https://example.com/castle", title: "The castle" },
+    ]);
   });
 });
 
@@ -413,7 +441,8 @@ describe("enrich: who may ask", () => {
       startsAt: T0,
       blocks: [{ type: "note", text: "one too many" }],
     });
-    for (let i = 0; i < AI_PER_DAY; i++) await t.run((ctx) => rateLimiter.limit(ctx, "ai", { key: ownerId }));
+    for (let i = 0; i < AI_PER_DAY; i++)
+      await t.run((ctx) => rateLimiter.limit(ctx, "ai", { key: ownerId }));
     // Past the limit it returns before captions or the workflow (which isn't
     // registered here, so going on would throw).
     expect(await owner.action(api.api.ai.enrich.enrich, { momentId })).toBe(false);

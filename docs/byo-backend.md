@@ -59,11 +59,11 @@ Invitees to a BYO story create an account on the owner's deployment. The Data & 
 
 Three homes for photos, picked per deployment:
 
-| Home | Who runs it | Notes |
-| --- | --- | --- |
-| Hosted R2 | me | Today's path. Worker applies SSE-C with a key derived from the master key. Unchanged. |
-| Convex file storage | the person's Convex team | BYO default. Nothing extra to set up. |
-| Their own R2 or S3 bucket | the person | Credentials live in their Convex env. Browser uses presigned URLs. Needs CORS for the front door's origin. |
+| Home                      | Who runs it              | Notes                                                                                                      |
+| ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Hosted R2                 | me                       | Today's path. Worker applies SSE-C with a key derived from the master key. Unchanged.                      |
+| Convex file storage       | the person's Convex team | BYO default. Nothing extra to set up.                                                                      |
+| Their own R2 or S3 bucket | the person               | Credentials live in their Convex env. Browser uses presigned URLs. Needs CORS for the front door's origin. |
 
 Rules:
 

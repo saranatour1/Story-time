@@ -6,14 +6,14 @@ A map of the running app: what each piece is, which file owns it, and how a phot
 
 The browser talks to two backends.
 
-| Piece | What it is | Where it lives |
-| --- | --- | --- |
-| App | React 19, TanStack Router and TanStack Start. SSR is off. The Worker renders the HTML shell and `<head>` only. | `src/start.ts` (`defaultSsr: false`), `src/router.tsx`, `src/routes/` |
-| Build | Vite, driven by `vp` (`vite-plus`). Tailwind 4. The Cloudflare Vite plugin targets the SSR environment. | `vite.config.ts`, `package.json` scripts |
-| Host | Cloudflare Workers. The Worker entry is TanStack Start's server entry. | `wrangler.jsonc` |
-| Data and functions | Convex. Every public function is a typed API. Queries subscribe, so an open page updates when the data changes. Written in `convex/model/`, exposed by the re-export files in `convex/api/`; see [convex/README.md](../convex/README.md). | `convex/` |
-| Photos and videos | Cloudflare R2, bucket `story-time-media`, binding `MEDIA`. Objects are SSE-C. | `wrangler.jsonc`, `src/server/r2.ts`, `src/routes/api/` |
-| Sign-in | Convex Auth, GitHub and Google. Access tokens last 15 minutes so a long upload can still be confirmed. | `convex/auth.ts`, `convex/auth.config.ts`, `convex/convex.config.ts` |
+| Piece              | What it is                                                                                                                                                                                                                                | Where it lives                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| App                | React 19, TanStack Router and TanStack Start. SSR is off. The Worker renders the HTML shell and `<head>` only.                                                                                                                            | `src/start.ts` (`defaultSsr: false`), `src/router.tsx`, `src/routes/` |
+| Build              | Vite, driven by `vp` (`vite-plus`). Tailwind 4. The Cloudflare Vite plugin targets the SSR environment.                                                                                                                                   | `vite.config.ts`, `package.json` scripts                              |
+| Host               | Cloudflare Workers. The Worker entry is TanStack Start's server entry.                                                                                                                                                                    | `wrangler.jsonc`                                                      |
+| Data and functions | Convex. Every public function is a typed API. Queries subscribe, so an open page updates when the data changes. Written in `convex/model/`, exposed by the re-export files in `convex/api/`; see [convex/README.md](../convex/README.md). | `convex/`                                                             |
+| Photos and videos  | Cloudflare R2, bucket `story-time-media`, binding `MEDIA`. Objects are SSE-C.                                                                                                                                                             | `wrangler.jsonc`, `src/server/r2.ts`, `src/routes/api/`               |
+| Sign-in            | Convex Auth, GitHub and Google. Access tokens last 15 minutes so a long upload can still be confirmed.                                                                                                                                    | `convex/auth.ts`, `convex/auth.config.ts`, `convex/convex.config.ts`  |
 
 `src/router.tsx` builds one `ConvexReactClient` from `VITE_CONVEX_URL` and wraps the tree in `ConvexAuthProvider`. Signed-in pages sit under `src/routes/_app.tsx`, which sends an anonymous visitor to `SignInScreen` and a person who just signed out back to `/`.
 
@@ -50,17 +50,17 @@ A share link is not a user. `convex/model/share.ts` `eventFor` hashes the token,
 
 `convex/schema.ts` is the source of truth. Sensitive fields use `vEncrypted` (`iv`, `ct`, `v`).
 
-| Table | Role |
-| --- | --- |
-| `users` | Display name, username, optional email, avatar media id. |
-| `events` | A trip. Owner, title, dates, status (`draft`, `active`, `archived`), visibility, share key and encrypted share token, `momentCount`, `keyVersion`. Title is plain text and has a search index. |
-| `moments` | One stop-by-stop memory. Time, encrypted place and geo, blocks (photo, video, link, note, feeling), transport, extra stops, labels. Indexed by `eventId` + `startsAt`. |
-| `media` | One upload. R2 key, size, mime, status (`reserved`, `ready`, `deleted`), purpose (`avatar` or `sticker` when set), moment id when attached. |
-| `journals` | One book per experience. `locked`, and `filledAt` (a high-water mark on moment creation time, not the clock). |
+| Table          | Role                                                                                                                                                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`        | Display name, username, optional email, avatar media id.                                                                                                                                                                     |
+| `events`       | A trip. Owner, title, dates, status (`draft`, `active`, `archived`), visibility, share key and encrypted share token, `momentCount`, `keyVersion`. Title is plain text and has a search index.                               |
+| `moments`      | One stop-by-stop memory. Time, encrypted place and geo, blocks (photo, video, link, note, feeling), transport, extra stops, labels. Indexed by `eventId` + `startsAt`.                                                       |
+| `media`        | One upload. R2 key, size, mime, status (`reserved`, `ready`, `deleted`), purpose (`avatar` or `sticker` when set), moment id when attached.                                                                                  |
+| `journals`     | One book per experience. `locked`, and `filledAt` (a high-water mark on moment creation time, not the clock).                                                                                                                |
 | `journalPages` | One A4 page. Order, paper, optional `momentId`, encrypted element text, layout numbers in the clear. Optional `builtFrom` and `edited` for catch-up. Capped in code at 400 (`MAX_JOURNAL_PAGES` in `convex/lib/journal.ts`). |
-| `sessions` | Invite grants: user, experience, role, `revokedAt`. |
-| `changes` | The Activity log. Names the field that changed, not the secret. |
-| `inviteEmails` | A counter of invite emails sent. No address is stored. |
+| `sessions`     | Invite grants: user, experience, role, `revokedAt`.                                                                                                                                                                          |
+| `changes`      | The Activity log. Names the field that changed, not the secret.                                                                                                                                                              |
+| `inviteEmails` | A counter of invite emails sent. No address is stored.                                                                                                                                                                       |
 
 Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (`convex/components/email`), plus the auth, agent, workflow, and rate-limiter components mounted in `convex/convex.config.ts`.
 
@@ -112,15 +112,15 @@ Catch-up is `catchUpState` plus the `refresh` mutation in `convex/model/journal.
 
 ## The journal on screen
 
-| Route or file | Job |
-| --- | --- |
-| `src/routes/_app/e.$id.journal.tsx` | The signed-in book. |
-| `src/components/journal/book.tsx` | Make and Read, the contents strip, Export, lock. |
-| `src/components/journal/reader.tsx` | Turning pages. Used by Read and by the share link. |
-| `src/components/journal/contents.ts` | Groups the strip by day. |
-| `src/components/journal/page.tsx` | One A4 page. |
-| `src/components/journal/elements.tsx` | Pictures, words, maps, link cards. |
-| `src/components/journal/export.ts` | PDF, a picture of the page, the `.journal.json` file. |
+| Route or file                                  | Job                                                                                                                                    |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/routes/_app/e.$id.journal.tsx`            | The signed-in book.                                                                                                                    |
+| `src/components/journal/book.tsx`              | Make and Read, the contents strip, Export, lock.                                                                                       |
+| `src/components/journal/reader.tsx`            | Turning pages. Used by Read and by the share link.                                                                                     |
+| `src/components/journal/contents.ts`           | Groups the strip by day.                                                                                                               |
+| `src/components/journal/page.tsx`              | One A4 page.                                                                                                                           |
+| `src/components/journal/elements.tsx`          | Pictures, words, maps, link cards.                                                                                                     |
+| `src/components/journal/export.ts`             | PDF, a picture of the page, the `.journal.json` file.                                                                                  |
 | `convex/model/journal.ts` `outline` and `page` | The open book subscribes to a contents list, then decrypts one page. `get` decrypts the whole book for the journal file and for tests. |
 
 `outline` calls `contentsOf`, which decrypts one short label per page and runs `catchUpState` (one moment read per page). It does not decrypt every note.
@@ -172,10 +172,10 @@ Link unfurling fetches a public `http` or `https` URL from an action, with a siz
 
 One secret, `ENCRYPTION_MASTER_KEY`, base64 of 32 bytes. It must be the same value on the Convex deployment and on the Worker. Two HKDF salts keep the keys apart.
 
-| Use | Code | Salt | Label |
-| --- | --- | --- | --- |
-| Notes, places, coordinates, labels, link text, journal words | `encryptText` / `eventKey` in `convex/lib/crypto.ts` | `storytime/event` | `eventId:keyVersion` |
-| R2 objects | `ssecKeyFor` in `src/server/r2.ts` | `storytime/r2` | `eventId:version`, or `avatar:userId:version` |
+| Use                                                          | Code                                                 | Salt              | Label                                         |
+| ------------------------------------------------------------ | ---------------------------------------------------- | ----------------- | --------------------------------------------- |
+| Notes, places, coordinates, labels, link text, journal words | `encryptText` / `eventKey` in `convex/lib/crypto.ts` | `storytime/event` | `eventId:keyVersion`                          |
+| R2 objects                                                   | `ssecKeyFor` in `src/server/r2.ts`                   | `storytime/r2`    | `eventId:version`, or `avatar:userId:version` |
 
 AES-GCM IVs are random. The per-experience key is derived when needed and is not stored. Bumping `events.keyVersion` changes later field encryptions. It does not re-encrypt old rows by itself, and it does not change an object already written to R2 under the previous version. Each `media` row keeps the `keyVersion` it was stored with.
 
@@ -208,13 +208,13 @@ Only invites send mail. `invites.create` calls `components.email.lib.send` when 
 
 ## Rate limits and other caps
 
-| Name | Where | Amount |
-| --- | --- | --- |
-| `enrich` | `convex/lib/rateLimit.ts` | 120 an hour per person |
-| `command` | same | 60 an hour |
-| `voice` | same | 40 an hour |
-| Invite emails | `convex/model/invites.ts` | 20 a day |
-| Waiting invites | same | 50 per experience |
+| Name                         | Where                                       | Amount                                          |
+| ---------------------------- | ------------------------------------------- | ----------------------------------------------- |
+| `enrich`                     | `convex/lib/rateLimit.ts`                   | 120 an hour per person                          |
+| `command`                    | same                                        | 60 an hour                                      |
+| `voice`                      | same                                        | 40 an hour                                      |
+| Invite emails                | `convex/model/invites.ts`                   | 20 a day                                        |
+| Waiting invites              | same                                        | 50 per experience                               |
 | Moments, media, bytes, pages | `convex/lib/limits.ts`, `MAX_JOURNAL_PAGES` | See the table in [user-guide.md](user-guide.md) |
 
 Invite expiry has a daily cron as a backstop (`convex/crons.ts`, 03:17 UTC) plus a timer on the invite itself.
@@ -223,28 +223,28 @@ Invite expiry has a daily cron as a backstop (`convex/crons.ts`, 03:17 UTC) plus
 
 Convex deployment (set with the Convex CLI, not committed):
 
-| Name | Required | Used for |
-| --- | --- | --- |
-| `AUTH_PRIVATE_KEY`, `AUTH_JWKS` | yes | Session signing. |
-| `AUTH_GITHUB_CLIENT_ID`, `AUTH_GITHUB_CLIENT_SECRET` | yes | GitHub sign-in. |
-| `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET` | yes | Google sign-in. |
-| `ENCRYPTION_MASTER_KEY` | yes | Field encryption and, the same value, R2 SSE-C. |
-| `APP_URL` | for real links | Invite and share links, allowed OAuth redirects. Comma-separated. Unset means `http://localhost:3000` (`convex/lib/appUrl.ts`). |
-| `ALLOW_ANONYMOUS_SIGNIN` | no | The string `true` allows the dev anonymous button. Leave unset in production. |
-| `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN`, `EMAIL_FROM` | no | Invite email. Without them, invites are links only. |
+| Name                                                 | Required       | Used for                                                                                                                        |
+| ---------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_PRIVATE_KEY`, `AUTH_JWKS`                      | yes            | Session signing.                                                                                                                |
+| `AUTH_GITHUB_CLIENT_ID`, `AUTH_GITHUB_CLIENT_SECRET` | yes            | GitHub sign-in.                                                                                                                 |
+| `AUTH_GOOGLE_CLIENT_ID`, `AUTH_GOOGLE_CLIENT_SECRET` | yes            | Google sign-in.                                                                                                                 |
+| `ENCRYPTION_MASTER_KEY`                              | yes            | Field encryption and, the same value, R2 SSE-C.                                                                                 |
+| `APP_URL`                                            | for real links | Invite and share links, allowed OAuth redirects. Comma-separated. Unset means `http://localhost:3000` (`convex/lib/appUrl.ts`). |
+| `ALLOW_ANONYMOUS_SIGNIN`                             | no             | The string `true` allows the dev anonymous button. Leave unset in production.                                                   |
+| `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN`, `EMAIL_FROM`      | no             | Invite email. Without them, invites are links only.                                                                             |
 
 Worker (`.dev.vars` locally, a secret in production):
 
-| Name | Used for |
-| --- | --- |
+| Name                    | Used for                                                                           |
+| ----------------------- | ---------------------------------------------------------------------------------- |
 | `ENCRYPTION_MASTER_KEY` | Must match Convex. `ssecKeyFor` reads it. `.dev.vars.example` lists the name only. |
 
 Browser build:
 
-| Name | Used for |
-| --- | --- |
-| `VITE_CONVEX_URL` | Written by `convex dev`. The client in `src/router.tsx`. |
-| `VITE_APP_URL` | Absolute `og:image` at build time (`vite.config.ts` warns if it is missing). |
+| Name              | Used for                                                                     |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `VITE_CONVEX_URL` | Written by `convex dev`. The client in `src/router.tsx`.                     |
+| `VITE_APP_URL`    | Absolute `og:image` at build time (`vite.config.ts` warns if it is missing). |
 
 The AI gateway uses the Convex deployment's own billing. This repo has no model-provider secret.
 
@@ -268,15 +268,15 @@ Vitest (`vitest.config.ts`) uses the edge-runtime environment and includes `conv
 
 Convex tests use `convex-test`. They register the email and invites components where a test touches them. Journal tests fake timers because `makePages` is scheduled with `runAfter(0)`. Representative files:
 
-| File | What it holds still |
-| --- | --- |
-| `convex/tests/journal.test.ts` | Pages cut with the moment, lock, catch-up, share of a page. |
-| `convex/tests/share.test.ts` | Link on and off, one page, sticker bytes only when a page shows the sticker. |
-| `convex/tests/moment-actions.test.ts` | Coordinates stored as `iv` / `ct`, not as the raw numbers. |
-| `convex/tests/command.test.ts` | Plans and apply. |
-| `convex/tests/invites.test.ts` | Email only when the Cloudflare vars are present, and the daily cap. |
-| `convex/tests/ai.test.ts`, `convex/tests/voice.test.ts` | Enrich and transcription helpers. |
-| `src/components/journal/journal.test.ts` | Contents grouping, the long-PDF label, play surface. Pure functions, not the browser. |
+| File                                                    | What it holds still                                                                   |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `convex/tests/journal.test.ts`                          | Pages cut with the moment, lock, catch-up, share of a page.                           |
+| `convex/tests/share.test.ts`                            | Link on and off, one page, sticker bytes only when a page shows the sticker.          |
+| `convex/tests/moment-actions.test.ts`                   | Coordinates stored as `iv` / `ct`, not as the raw numbers.                            |
+| `convex/tests/command.test.ts`                          | Plans and apply.                                                                      |
+| `convex/tests/invites.test.ts`                          | Email only when the Cloudflare vars are present, and the daily cap.                   |
+| `convex/tests/ai.test.ts`, `convex/tests/voice.test.ts` | Enrich and transcription helpers.                                                     |
+| `src/components/journal/journal.test.ts`                | Contents grouping, the long-PDF label, play surface. Pure functions, not the browser. |
 
 No test performs a real R2 GET with and without the SSE-C key.
 

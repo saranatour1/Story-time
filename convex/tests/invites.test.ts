@@ -21,9 +21,7 @@ const emailModules = import.meta.glob([
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
-  process.env.ENCRYPTION_MASTER_KEY = btoa(
-    String.fromCharCode(...new Uint8Array(32).fill(7)),
-  );
+  process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -50,9 +48,9 @@ describe("invites", () => {
     for (let i = 0; i < MAX_WAITING_INVITES; i++) {
       await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
     }
-    await expect(owner.mutation(api.api.invites.create, { eventId, role: "viewer" })).rejects.toThrow(
-      /invites waiting to be opened/,
-    );
+    await expect(
+      owner.mutation(api.api.invites.create, { eventId, role: "viewer" }),
+    ).rejects.toThrow(/invites waiting to be opened/);
 
     const waiting = await owner.query(api.api.invites.listForEvent, { eventId });
     expect(waiting).toHaveLength(MAX_WAITING_INVITES);
@@ -71,9 +69,9 @@ describe("invites", () => {
     await guest.mutation(api.api.invites.accept, { token });
     expect((await guest.query(api.api.events.get, { eventId }))?.role).toBe("viewer");
 
-    await expect(
-      guest.mutation(api.api.invites.accept, { token }),
-    ).rejects.toThrow(/INVITE_INVALID/);
+    await expect(guest.mutation(api.api.invites.accept, { token })).rejects.toThrow(
+      /INVITE_INVALID/,
+    );
   });
 
   test("dismissed invites are gone", async () => {
@@ -88,9 +86,9 @@ describe("invites", () => {
       inviteId: invite!.inviteId,
     });
     expect(await owner.query(api.api.invites.listForEvent, { eventId })).toEqual([]);
-    await expect(
-      guest.mutation(api.api.invites.accept, { token: tokenOf(link) }),
-    ).rejects.toThrow(/INVITE_INVALID/);
+    await expect(guest.mutation(api.api.invites.accept, { token: tokenOf(link) })).rejects.toThrow(
+      /INVITE_INVALID/,
+    );
   });
 
   test("expired invites can't be used and get purged", async () => {
@@ -101,9 +99,9 @@ describe("invites", () => {
       ttlDays: 1,
     });
     vi.advanceTimersByTime(2 * 24 * 60 * 60 * 1000);
-    await expect(
-      guest.mutation(api.api.invites.accept, { token: tokenOf(link) }),
-    ).rejects.toThrow(/INVITE_INVALID/);
+    await expect(guest.mutation(api.api.invites.accept, { token: tokenOf(link) })).rejects.toThrow(
+      /INVITE_INVALID/,
+    );
     // Its purge timer removed it; the cron finds nothing left.
     expect(await t.mutation(internal.model.invites.sweepExpired, {})).toBe(0);
   });
@@ -177,7 +175,10 @@ describe("invites", () => {
     expect((await send("friend@example.com")).emailed).toBe(false);
 
     const cf = { CF_ACCOUNT_ID: "acct", CF_EMAIL_TOKEN: "token", EMAIL_FROM: "a@example.com" };
-    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ result: {} })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ result: {} })),
+    );
     // eslint-disable-next-line @convex-dev/no-process-env -- test setup
     Object.assign(process.env, cf);
     try {
@@ -204,7 +205,9 @@ describe("invites", () => {
     const { owner, guest, eventId } = await setup();
     const { link } = await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
     await owner.mutation(api.api.events.update, { eventId, status: "archived" });
-    await expect(guest.mutation(api.api.invites.accept, { token: tokenOf(link) })).rejects.toThrow(/ARCHIVED/);
+    await expect(guest.mutation(api.api.invites.accept, { token: tokenOf(link) })).rejects.toThrow(
+      /ARCHIVED/,
+    );
 
     await owner.mutation(api.api.events.update, { eventId, status: "active" });
     await guest.mutation(api.api.invites.accept, { token: tokenOf(link) });

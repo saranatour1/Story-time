@@ -56,7 +56,9 @@ export const unfurlLinks = internalAction({
     const found = await Promise.all(
       links.slice(0, MAX_LINKS).map(async (link) => {
         const title = await titleOf(ctx, link.url);
-        return title === undefined ? null : { stopIndex: link.stopIndex, blockIndex: link.blockIndex, title };
+        return title === undefined
+          ? null
+          : { stopIndex: link.stopIndex, blockIndex: link.blockIndex, title };
       }),
     );
     const linkTitles = found.filter(
@@ -72,7 +74,10 @@ export const unfurlLinks = internalAction({
 // The page's <title>: entities decoded, whitespace collapsed, at most 200 characters.
 export const titleFromHtml = (html: string): string | undefined => {
   const match = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
-  const title = decodeEntities(match?.[1] ?? "").replace(/\s+/g, " ").trim().slice(0, TITLE_CHARS);
+  const title = decodeEntities(match?.[1] ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, TITLE_CHARS);
   return title === "" ? undefined : title;
 };
 
@@ -80,7 +85,10 @@ export const titleFromHtml = (html: string): string | undefined => {
 // a private address. A failure of any kind leaves the link untitled.
 const titleOf = async (ctx: ActionCtx, raw: string): Promise<string | undefined> => {
   try {
-    const read = await ctx.runAction(internal.model.ai.publicFetch.fetchPage, { url: raw, limit: HEAD_BYTES });
+    const read = await ctx.runAction(internal.model.ai.publicFetch.fetchPage, {
+      url: raw,
+      limit: HEAD_BYTES,
+    });
     return read === null ? undefined : titleFromHtml(read.html);
   } catch {
     return undefined;
@@ -107,7 +115,13 @@ export const decodeEntities = (text: string): string => {
   });
 };
 
-export type LinkPreview = { url: string; title?: string; description?: string; image?: string; site?: string };
+export type LinkPreview = {
+  url: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  site?: string;
+};
 
 // What a page says about itself for a preview: its Open Graph (or Twitter)
 // title, description, picture and site, falling back to <title> and the
@@ -115,17 +129,23 @@ export type LinkPreview = { url: string; title?: string; description?: string; i
 export const previewFromHtml = (html: string, url: string): LinkPreview => {
   const meta = (names: string[]) => {
     for (const name of names) {
-      const tag = new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*>`, "i").exec(html)?.[0];
+      const tag = new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*>`, "i").exec(
+        html,
+      )?.[0];
       const content = tag && /content=["']([^"']*)["']/i.exec(tag)?.[1];
       if (content?.trim()) return decodeEntities(content).replace(/\s+/g, " ").trim();
     }
     return undefined;
   };
-  const clip = (text: string | undefined, n: number) => (text === undefined ? undefined : text.length > n ? `${text.slice(0, n - 1)}…` : text);
+  const clip = (text: string | undefined, n: number) =>
+    text === undefined ? undefined : text.length > n ? `${text.slice(0, n - 1)}…` : text;
   let image = meta(["og:image", "og:image:url", "twitter:image"]);
   try {
     const resolved = image === undefined ? undefined : new URL(image, url);
-    image = resolved && resolved.protocol === "https:" && isPublicWebUrl(resolved) ? resolved.href : undefined;
+    image =
+      resolved && resolved.protocol === "https:" && isPublicWebUrl(resolved)
+        ? resolved.href
+        : undefined;
   } catch {
     image = undefined;
   }

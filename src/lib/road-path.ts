@@ -8,7 +8,13 @@ export type Path = Array<[number, number]>;
 // Which network each way of travelling follows. A plane or a boat has no road
 // to follow, and "another way" could be anything, so those stay arcs.
 type Network = "foot" | "bike" | "car" | "rail";
-const NETWORKS: Partial<Record<Transport, Network>> = { walk: "foot", bike: "bike", car: "car", bus: "car", train: "rail" };
+const NETWORKS: Partial<Record<Transport, Network>> = {
+  walk: "foot",
+  bike: "bike",
+  car: "car",
+  bus: "car",
+  train: "rail",
+};
 export const networkOf = (transport: Transport): Network | undefined => NETWORKS[transport];
 
 // Past this it is a journey, not a leg, and the public routers aren't asked.
@@ -53,8 +59,12 @@ export const routeUrl = (network: Network, from: LatLng, to: LatLng): string => 
 
 // Both services answer with a GeoJSON line; only its shape is trusted.
 const line = z.array(z.array(z.number()).min(2)).min(2);
-const osrm = z.object({ routes: z.array(z.object({ geometry: z.object({ coordinates: line }) })).min(1) });
-const rail = z.object({ paths: z.array(z.object({ points: z.object({ coordinates: line }) })).min(1) });
+const osrm = z.object({
+  routes: z.array(z.object({ geometry: z.object({ coordinates: line }) })).min(1),
+});
+const rail = z.object({
+  paths: z.array(z.object({ points: z.object({ coordinates: line }) })).min(1),
+});
 
 export const parseRoute = (network: Network, json: unknown): Path | undefined => {
   if (network === "rail") {
@@ -71,7 +81,8 @@ const tidy = (coordinates: number[][] | undefined): Path | undefined => {
   const path: Path = [];
   for (const c of coordinates ?? []) {
     const [lng, lat] = c;
-    if (lng === undefined || lat === undefined || Math.abs(lng) > 180 || Math.abs(lat) > 90) continue;
+    if (lng === undefined || lat === undefined || Math.abs(lng) > 180 || Math.abs(lat) > 90)
+      continue;
     path.push([lng, lat]);
   }
   return path.length < 2 ? undefined : simplifyPath(path);
@@ -82,7 +93,8 @@ const tidy = (coordinates: number[][] | undefined): Path | undefined => {
 export const simplifyPath = (path: Path, maxPoints = MAX_POINTS): Path => {
   let kept = path;
   // About 1 m, in degrees; doubled until few enough points remain.
-  for (let tolerance = 1e-5; kept.length > maxPoints; tolerance *= 2) kept = douglasPeucker(path, tolerance);
+  for (let tolerance = 1e-5; kept.length > maxPoints; tolerance *= 2)
+    kept = douglasPeucker(path, tolerance);
   return kept;
 };
 
@@ -128,7 +140,11 @@ const offLine = (p: [number, number], a: [number, number], b: [number, number]):
 const pending = new Map<string, Promise<Path | undefined>>();
 const found = new Map<string, Path>();
 
-export const fetchPath = (from: LatLng, to: LatLng, transport: Transport): Promise<Path | undefined> => {
+export const fetchPath = (
+  from: LatLng,
+  to: LatLng,
+  transport: Transport,
+): Promise<Path | undefined> => {
   const network = networkOf(transport);
   if (network === undefined || !wantsPath(from, to, transport)) return Promise.resolve(undefined);
   const url = routeUrl(network, from, to);

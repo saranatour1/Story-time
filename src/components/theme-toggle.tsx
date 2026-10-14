@@ -42,7 +42,8 @@ export const ThemeToggle = () => {
               "flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none",
               // Same as the selected tab in ui/tabs: in dark mode the plain
               // background is darker than the track and reads as "off".
-              current === value && "bg-background text-foreground shadow-sm dark:border-input dark:bg-input/30",
+              current === value &&
+                "bg-background text-foreground shadow-sm dark:border-input dark:bg-input/30",
             )}
           >
             <Icon className="size-3.5" />
@@ -51,7 +52,10 @@ export const ThemeToggle = () => {
         ))}
       </div>
       <div className="hidden group-data-[collapsible=icon]:block">
-        <SidebarMenuButton tooltip={`Theme: ${current}. Switch to ${next.label}`} onClick={() => setTheme(next.value)}>
+        <SidebarMenuButton
+          tooltip={`Theme: ${current}. Switch to ${next.label}`}
+          onClick={() => setTheme(next.value)}
+        >
           <Active />
           <span>Theme</span>
         </SidebarMenuButton>

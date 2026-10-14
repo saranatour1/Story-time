@@ -11,9 +11,7 @@ const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
-  process.env.ENCRYPTION_MASTER_KEY = btoa(
-    String.fromCharCode(...new Uint8Array(32).fill(7)),
-  );
+  process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
 const JUNE_1 = Date.UTC(2026, 5, 1, 12);
@@ -28,7 +26,12 @@ const setup = async () => {
   const owner = as(ownerId);
   const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
-    ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }),
+    ctx.db.insert("sessions", {
+      eventId,
+      userId: helperId,
+      grantedBy: ownerId,
+      role: "contributor",
+    }),
   );
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
@@ -122,9 +125,9 @@ describe("moments.update", () => {
     const { owner, eventId } = await setup();
     const momentId = await addMoment(owner, eventId);
     await owner.mutation(api.api.events.update, { eventId, status: "archived" });
-    await expect(
-      owner.mutation(api.api.moments.update, { momentId, place: "x" }),
-    ).rejects.toThrow(/ARCHIVED/);
+    await expect(owner.mutation(api.api.moments.update, { momentId, place: "x" })).rejects.toThrow(
+      /ARCHIVED/,
+    );
   });
 
   test("dropping a photo detaches it and reports it for deletion", async () => {
@@ -133,7 +136,10 @@ describe("moments.update", () => {
     const momentId = await owner.mutation(api.api.moments.create, {
       eventId,
       startsAt: JUNE_1,
-      blocks: [{ type: "photo", mediaId: photo }, { type: "note", text: "hi" }],
+      blocks: [
+        { type: "photo", mediaId: photo },
+        { type: "note", text: "hi" },
+      ],
     });
     const result = await owner.mutation(api.api.moments.update, {
       momentId,
@@ -154,7 +160,10 @@ describe("moments.update", () => {
     });
     const result = await owner.mutation(api.api.moments.update, {
       momentId,
-      blocks: [{ type: "photo", mediaId: photo }, { type: "note", text: "caption" }],
+      blocks: [
+        { type: "photo", mediaId: photo },
+        { type: "note", text: "caption" },
+      ],
     });
     expect(result.removedMediaIds).toEqual([]);
   });
@@ -172,14 +181,17 @@ describe("moments.remove", () => {
     const [first] = await owner.query(api.api.moments.list, { eventId });
     await owner.mutation(api.api.moments.remove, { momentId: first!._id });
 
-    expect((await owner.query(api.api.events.get, { eventId }))?.momentCount).toBe(MOMENT_LIMIT - 1);
+    expect((await owner.query(api.api.events.get, { eventId }))?.momentCount).toBe(
+      MOMENT_LIMIT - 1,
+    );
     await addMoment(owner, eventId, "fits again");
   });
 
   test("an experience holding more than the limit (from before it) lists every moment", async () => {
     const { t, owner, ownerId, eventId } = await setup();
     await t.run(async (ctx) => {
-      for (let i = 0; i <= MOMENT_LIMIT; i++) await ctx.db.insert("moments", { eventId, authorId: ownerId, startsAt: i, blocks: [] });
+      for (let i = 0; i <= MOMENT_LIMIT; i++)
+        await ctx.db.insert("moments", { eventId, authorId: ownerId, startsAt: i, blocks: [] });
       await ctx.db.patch("events", eventId, { momentCount: MOMENT_LIMIT + 1 });
     });
     expect(await owner.query(api.api.moments.list, { eventId })).toHaveLength(MOMENT_LIMIT + 1);
@@ -203,8 +215,12 @@ describe("moments.remove", () => {
     const { owner, helper, viewer, eventId } = await setup();
     const ownersMoment = await addMoment(owner, eventId);
     const helpersMoment = await addMoment(helper, eventId);
-    await expect(viewer.mutation(api.api.moments.remove, { momentId: helpersMoment })).rejects.toThrow();
-    await expect(helper.mutation(api.api.moments.remove, { momentId: ownersMoment })).rejects.toThrow(/own moments/);
+    await expect(
+      viewer.mutation(api.api.moments.remove, { momentId: helpersMoment }),
+    ).rejects.toThrow();
+    await expect(
+      helper.mutation(api.api.moments.remove, { momentId: ownersMoment }),
+    ).rejects.toThrow(/own moments/);
     await helper.mutation(api.api.moments.remove, { momentId: helpersMoment });
   });
 
@@ -214,10 +230,14 @@ describe("moments.remove", () => {
     const b = await addMoment(owner, eventId);
     await owner.mutation(api.api.moments.remove, { momentId: a });
     const rows = await t.run((ctx) => ctx.db.query("changes").collect());
-    expect(rows.some((r) => r.entity === "moment" && r.action === "delete" && r.entityId === a)).toBe(true);
+    expect(
+      rows.some((r) => r.entity === "moment" && r.action === "delete" && r.entityId === a),
+    ).toBe(true);
 
     await owner.mutation(api.api.events.update, { eventId, status: "archived" });
-    await expect(owner.mutation(api.api.moments.remove, { momentId: b })).rejects.toThrow(/ARCHIVED/);
+    await expect(owner.mutation(api.api.moments.remove, { momentId: b })).rejects.toThrow(
+      /ARCHIVED/,
+    );
   });
 });
 
@@ -248,7 +268,10 @@ describe("deleting experience photos", () => {
     const photo = await readyPhoto(owner, eventId);
     await owner.mutation(api.api.moments.update, {
       momentId,
-      blocks: [{ type: "note", text: "first" }, { type: "photo", mediaId: photo }],
+      blocks: [
+        { type: "note", text: "first" },
+        { type: "photo", mediaId: photo },
+      ],
     });
     const { removedMediaIds } = await helper.mutation(api.api.moments.update, {
       momentId,
@@ -266,7 +289,10 @@ describe("deleting experience photos", () => {
     const photo = await readyPhoto(helper, eventId);
     await helper.mutation(api.api.moments.update, {
       momentId,
-      blocks: [{ type: "note", text: "first" }, { type: "photo", mediaId: photo }],
+      blocks: [
+        { type: "note", text: "first" },
+        { type: "photo", mediaId: photo },
+      ],
     });
     await helper.mutation(api.api.moments.update, {
       momentId,
@@ -313,7 +339,9 @@ describe("journeys: stops, labels, transport and video", () => {
     });
     const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.transport).toBe("plane");
-    expect(m?.stops).toEqual([{ place: "Sintra", transport: "train", startsAt: JUNE_3, blocks: [] }]);
+    expect(m?.stops).toEqual([
+      { place: "Sintra", transport: "train", startsAt: JUNE_3, blocks: [] },
+    ]);
     expect(m?.labels).toEqual(["food", "museum"]);
     const raw = await t.run((ctx) => ctx.db.get("moments", momentId));
     expect(JSON.stringify(raw)).not.toContain("Sintra");
@@ -350,7 +378,10 @@ describe("journeys: stops, labels, transport and video", () => {
       stops: [{ place: "Sintra", blocks: [{ type: "photo", mediaId: photo }] }],
     });
     expect((await t.run((ctx) => ctx.db.get("media", photo)))?.momentId).toBe(momentId);
-    const { removedMediaIds } = await owner.mutation(api.api.moments.update, { momentId, stops: [] });
+    const { removedMediaIds } = await owner.mutation(api.api.moments.update, {
+      momentId,
+      stops: [],
+    });
     expect(removedMediaIds).toEqual([photo]);
     expect((await t.run((ctx) => ctx.db.get("media", photo)))?.momentId).toBeUndefined();
   });
@@ -364,7 +395,11 @@ describe("journeys: stops, labels, transport and video", () => {
     });
     await owner.mutation(api.api.media.confirmUpload, { mediaId: video });
     await expect(
-      owner.mutation(api.api.media.reserveUpload, { eventId, size: 60 * 1024 * 1024, mime: "video/mp4" }),
+      owner.mutation(api.api.media.reserveUpload, {
+        eventId,
+        size: 60 * 1024 * 1024,
+        mime: "video/mp4",
+      }),
     ).rejects.toThrow("50 MB");
     await expect(
       owner.mutation(api.api.moments.create, {
@@ -433,7 +468,10 @@ describe("map coordinates", () => {
     expect(m?.stops[0]?.geo).toEqual(SINTRA);
 
     // Stops are replaced wholesale, coordinates and all.
-    await owner.mutation(api.api.moments.update, { momentId, stops: [{ place: "Sintra", blocks: [] }] });
+    await owner.mutation(api.api.moments.update, {
+      momentId,
+      stops: [{ place: "Sintra", blocks: [] }],
+    });
     [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.stops[0]?.geo).toBeUndefined();
   });
@@ -464,7 +502,11 @@ describe("map coordinates", () => {
 
     const momentId = await create({ lat: -90, lng: 180 }, "Edge of the world");
     await expect(
-      owner.mutation(api.api.moments.update, { momentId, place: "Porto", geo: { lat: 100, lng: 0 } }),
+      owner.mutation(api.api.moments.update, {
+        momentId,
+        place: "Porto",
+        geo: { lat: 100, lng: 0 },
+      }),
     ).rejects.toThrow(/"field":"geo"/);
     await expect(
       owner.mutation(api.api.moments.update, { momentId, place: "", geo: LISBON }),
@@ -531,7 +573,11 @@ describe("the zone a moment happened in", () => {
     const logBefore = (await t.run((ctx) => ctx.db.query("changes").take(500))).length;
     expect(dayOf((await owner.query(api.api.moments.list, { eventId }))[0]!)).toBe("2025-11-08");
 
-    await owner.mutation(api.api.moments.update, { momentId, startsAt: KYOTO_MORNING, tzOffsetMinutes: 540 });
+    await owner.mutation(api.api.moments.update, {
+      momentId,
+      startsAt: KYOTO_MORNING,
+      tzOffsetMinutes: 540,
+    });
     const [moment] = await owner.query(api.api.moments.list, { eventId });
     expect(moment).toMatchObject({ startsAt: KYOTO_MORNING, tzOffsetMinutes: 540 });
     expect(moment?.editedAt).toBeUndefined();

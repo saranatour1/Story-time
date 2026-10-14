@@ -6,7 +6,8 @@ type KeyTarget = EventTarget | { tagName?: unknown; isContentEditable?: unknown 
 const isTyping = (target: KeyTarget): boolean => {
   if (target === null || typeof target !== "object") return false;
   if (!("tagName" in target) || typeof target.tagName !== "string") return false;
-  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return true;
+  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")
+    return true;
   return "isContentEditable" in target && target.isContentEditable === true;
 };
 
@@ -36,7 +37,9 @@ export const commandTakesSlash = (
 };
 
 type ShortcutRoot = {
-  querySelectorAll: (selector: string) => Iterable<{ getAttribute: (name: string) => string | null }>;
+  querySelectorAll: (
+    selector: string,
+  ) => Iterable<{ getAttribute: (name: string) => string | null }>;
 };
 
 export const pageClaimsSlash = (root: ShortcutRoot | undefined = globalThis.document): boolean => {

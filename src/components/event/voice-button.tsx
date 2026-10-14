@@ -12,7 +12,15 @@ import { trackAi } from "@/lib/analytics";
 // Speech for the box above the moments. Press to record, press again to stop;
 // the clip goes to the server, comes back as text and lands in the box, where
 // it can be fixed before it's sent. The clip is not kept anywhere.
-export const VoiceButton = ({ onText, disabled, quiet = false }: { onText: (text: string) => void; disabled?: boolean; quiet?: boolean }) => {
+export const VoiceButton = ({
+  onText,
+  disabled,
+  quiet = false,
+}: {
+  onText: (text: string) => void;
+  disabled?: boolean;
+  quiet?: boolean;
+}) => {
   const transcribe = useAction(api.ai.voice.transcribe);
   const [phase, setPhase] = useState<"idle" | "recording" | "sending">("idle");
   const [seconds, setSeconds] = useState(0);
@@ -57,7 +65,10 @@ export const VoiceButton = ({ onText, disabled, quiet = false }: { onText: (text
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mime = pickMime();
       // Speech needs little: 32 kbit/s keeps a minute well under the size limit.
-      const rec = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: 32_000 });
+      const rec = new MediaRecorder(stream, {
+        ...(mime ? { mimeType: mime } : {}),
+        audioBitsPerSecond: 32_000,
+      });
       const chunks: Blob[] = [];
       rec.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);
@@ -91,7 +102,13 @@ export const VoiceButton = ({ onText, disabled, quiet = false }: { onText: (text
       size={recording ? "sm" : quiet ? "icon-sm" : "icon"}
       variant={recording ? "destructive" : quiet ? "ghost" : "outline"}
       disabled={disabled || phase === "sending"}
-      aria-label={recording ? "Stop recording" : phase === "sending" ? "Turning your voice into text" : "Record a message"}
+      aria-label={
+        recording
+          ? "Stop recording"
+          : phase === "sending"
+            ? "Turning your voice into text"
+            : "Record a message"
+      }
       title={recording ? "Stop recording" : "Speak instead of typing"}
       onClick={() => (recording ? recorder.current?.stop() : void start())}
     >

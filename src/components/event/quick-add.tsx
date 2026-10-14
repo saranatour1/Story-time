@@ -9,7 +9,8 @@ import { addPhotos } from "@/lib/add-photos";
 import { MEDIA_ACCEPT } from "@/lib/upload";
 
 // Viewers can't add, and nothing is added to an archived experience.
-export const canAddTo = (event: EventView) => event.role !== "viewer" && event.status !== "archived";
+export const canAddTo = (event: EventView) =>
+  event.role !== "viewer" && event.status !== "archived";
 
 type ButtonProps = ComponentProps<typeof Button>;
 

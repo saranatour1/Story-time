@@ -72,7 +72,14 @@ export const EventDetailsForm = ({ event, onDone }: { event: EventView; onDone?:
           {(f) => (
             <Field data-invalid={f.state.meta.isTouched && f.state.meta.errors.length > 0}>
               <FieldLabel htmlFor={`${id}-title`}>Title</FieldLabel>
-              <Input id={`${id}-title`} autoFocus placeholder="Lisbon, summer 2026" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} onBlur={f.handleBlur} />
+              <Input
+                id={`${id}-title`}
+                autoFocus
+                placeholder="Lisbon, summer 2026"
+                value={f.state.value}
+                onChange={(e) => f.handleChange(e.target.value)}
+                onBlur={f.handleBlur}
+              />
               {f.state.meta.isTouched && <FieldError errors={f.state.meta.errors} />}
             </Field>
           )}
@@ -81,7 +88,13 @@ export const EventDetailsForm = ({ event, onDone }: { event: EventView; onDone?:
           {(f) => (
             <Field data-invalid={f.state.meta.errors.length > 0}>
               <FieldLabel htmlFor={`${id}-description`}>Description</FieldLabel>
-              <Textarea id={`${id}-description`} rows={4} value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} onBlur={f.handleBlur} />
+              <Textarea
+                id={`${id}-description`}
+                rows={4}
+                value={f.state.value}
+                onChange={(e) => f.handleChange(e.target.value)}
+                onBlur={f.handleBlur}
+              />
               <FieldDescription>Optional. Only people you share with see it.</FieldDescription>
               <FieldError errors={f.state.meta.errors} />
             </Field>
@@ -92,7 +105,12 @@ export const EventDetailsForm = ({ event, onDone }: { event: EventView; onDone?:
             {(f) => (
               <Field>
                 <FieldLabel htmlFor={`${id}-startsAt`}>Starts</FieldLabel>
-                <Input id={`${id}-startsAt`} type="date" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} />
+                <Input
+                  id={`${id}-startsAt`}
+                  type="date"
+                  value={f.state.value}
+                  onChange={(e) => f.handleChange(e.target.value)}
+                />
               </Field>
             )}
           </form.Field>
@@ -100,7 +118,12 @@ export const EventDetailsForm = ({ event, onDone }: { event: EventView; onDone?:
             {(f) => (
               <Field data-invalid={f.state.meta.errors.length > 0}>
                 <FieldLabel htmlFor={`${id}-endsAt`}>Ends</FieldLabel>
-                <Input id={`${id}-endsAt`} type="date" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} />
+                <Input
+                  id={`${id}-endsAt`}
+                  type="date"
+                  value={f.state.value}
+                  onChange={(e) => f.handleChange(e.target.value)}
+                />
                 <FieldError errors={f.state.meta.errors} />
               </Field>
             )}

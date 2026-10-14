@@ -45,11 +45,7 @@ export const status = query({
   returns: v.union(
     v.null(),
     v.object({
-      status: v.union(
-        v.literal("queued"),
-        v.literal("sent"),
-        v.literal("failed"),
-      ),
+      status: v.union(v.literal("queued"), v.literal("sent"), v.literal("failed")),
       attempts: v.number(),
       error: v.optional(v.string()),
     }),
@@ -103,11 +99,9 @@ export const finish = internalMutation({
     } else {
       await ctx.db.patch("outbox", args.id, { attempts, error: args.error });
       // 30s, 60s, 120s, 240s
-      await ctx.scheduler.runAfter(
-        30_000 * 2 ** (attempts - 1),
-        internal.lib.deliver,
-        { id: args.id },
-      );
+      await ctx.scheduler.runAfter(30_000 * 2 ** (attempts - 1), internal.lib.deliver, {
+        id: args.id,
+      });
     }
     return null;
   },
@@ -162,10 +156,8 @@ export const deliver = internalAction({
       const body: unknown = await res.json().catch(() => null);
       const messageId =
         typeof body === "object" && body !== null && "result" in body
-          ? String(
-              (body as { result?: { messageId?: unknown } }).result?.messageId ??
-                "",
-            ) || undefined
+          ? String((body as { result?: { messageId?: unknown } }).result?.messageId ?? "") ||
+            undefined
           : undefined;
       await ctx.runMutation(internal.lib.finish, {
         id: args.id,

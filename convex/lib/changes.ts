@@ -27,6 +27,7 @@ export const recordChange = async (
 ): Promise<void> => {
   // Every change a person makes passes here, so it's where a runaway client
   // is stopped. An agent's change is counted against the AI allowance instead.
-  if (change.actorId !== undefined && change.agent === undefined) await limitWrites(ctx, change.actorId);
+  if (change.actorId !== undefined && change.agent === undefined)
+    await limitWrites(ctx, change.actorId);
   await ctx.db.insert("changes", { ...change, at: Date.now() });
 };

@@ -35,7 +35,8 @@ const Invite = () => {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
   // Without storage the token has to travel in the address, or the invite is lost.
-  const returnTo = typeof window !== "undefined" && kept(token) ? `${window.location.origin}/invite` : undefined;
+  const returnTo =
+    typeof window !== "undefined" && kept(token) ? `${window.location.origin}/invite` : undefined;
   return <InvitePage key={token} token={token} returnTo={returnTo} />;
 };
 

@@ -13,13 +13,23 @@ const schema = z.object({
   displayName: z.string().max(60, "Keep it under 60 characters"),
   username: z
     .string()
-    .refine((v) => v === "" || /^[a-zA-Z0-9_]{3,20}$/.test(v.trim()), "Use 3 to 20 letters, numbers or underscores"),
+    .refine(
+      (v) => v === "" || /^[a-zA-Z0-9_]{3,20}$/.test(v.trim()),
+      "Use 3 to 20 letters, numbers or underscores",
+    ),
   email: z
     .string()
-    .refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()), "Enter a valid email address"),
+    .refine(
+      (v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
+      "Enter a valid email address",
+    ),
 });
 
-const emailHint = (user: { email?: string; pendingEmail?: string; emailVerified: boolean }): string => {
+const emailHint = (user: {
+  email?: string;
+  pendingEmail?: string;
+  emailVerified: boolean;
+}): string => {
   if (user.pendingEmail) {
     return user.emailVerified
       ? "Check your inbox to confirm this address. Until then, the confirmed one stays in use."
@@ -34,7 +44,13 @@ const emailHint = (user: { email?: string; pendingEmail?: string; emailVerified:
 export const ProfileForm = ({
   user,
 }: {
-  user: { displayName?: string; username?: string; email?: string; pendingEmail?: string; emailVerified: boolean };
+  user: {
+    displayName?: string;
+    username?: string;
+    email?: string;
+    pendingEmail?: string;
+    emailVerified: boolean;
+  };
 }) => {
   const update = useMutation(api.users.updateSettings);
   const resend = useMutation(api.users.resendEmailVerification);
@@ -79,8 +95,15 @@ export const ProfileForm = ({
           {(field) => (
             <Field data-invalid={field.state.meta.errors.length > 0}>
               <FieldLabel htmlFor={`${id}-displayName`}>Display name (optional)</FieldLabel>
-              <Input id={`${id}-displayName`} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
-              <FieldDescription>Only shown to people you share with. Leave empty to stay anonymous.</FieldDescription>
+              <Input
+                id={`${id}-displayName`}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+              />
+              <FieldDescription>
+                Only shown to people you share with. Leave empty to stay anonymous.
+              </FieldDescription>
               <FieldError errors={field.state.meta.errors} />
             </Field>
           )}
@@ -89,8 +112,17 @@ export const ProfileForm = ({
           {(field) => (
             <Field data-invalid={field.state.meta.errors.length > 0}>
               <FieldLabel htmlFor={`${id}-username`}>Username (optional)</FieldLabel>
-              <Input id={`${id}-username`} autoComplete="username" placeholder="sara_01" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
-              <FieldDescription>Unique. Lowercase letters, numbers and underscores, 3 to 20 characters.</FieldDescription>
+              <Input
+                id={`${id}-username`}
+                autoComplete="username"
+                placeholder="sara_01"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+              />
+              <FieldDescription>
+                Unique. Lowercase letters, numbers and underscores, 3 to 20 characters.
+              </FieldDescription>
               <FieldError errors={field.state.meta.errors} />
             </Field>
           )}
@@ -99,14 +131,23 @@ export const ProfileForm = ({
           {(field) => (
             <Field data-invalid={field.state.meta.errors.length > 0}>
               <FieldLabel htmlFor={`${id}-email`}>Email (optional)</FieldLabel>
-              <Input id={`${id}-email`} type="email" autoComplete="email" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} onBlur={field.handleBlur} />
+              <Input
+                id={`${id}-email`}
+                type="email"
+                autoComplete="email"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+              />
               <FieldDescription>{emailHint(user)}</FieldDescription>
               <FieldError errors={field.state.meta.errors} />
             </Field>
           )}
         </form.Field>
       </FieldGroup>
-      <form.Subscribe selector={(state) => [state.isDirty, state.isSubmitting, state.canSubmit] as const}>
+      <form.Subscribe
+        selector={(state) => [state.isDirty, state.isSubmitting, state.canSubmit] as const}
+      >
         {([isDirty, isSubmitting, canSubmit]) => (
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={!isDirty || isSubmitting || !canSubmit}>
@@ -124,7 +165,9 @@ export const ProfileForm = ({
                 onClick={() => {
                   void resend({})
                     .then((r) => {
-                      toast.success(r.emailed ? "Confirmation sent" : "Email isn't set up, so nothing was sent");
+                      toast.success(
+                        r.emailed ? "Confirmation sent" : "Email isn't set up, so nothing was sent",
+                      );
                     })
                     .catch((e: unknown) => toast.error(errorMessage(e)));
                 }}

@@ -2,7 +2,17 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useConvexAuth } from "convex/react";
 import { PlayIcon } from "lucide-react";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { z } from "zod";
 import { queries } from "@/lib/queries";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -14,8 +24,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { buildStorySteps, stepForMoment } from "@/lib/story-steps";
 
-const StoryPlayer = lazy(() => import("@/components/story/story-player").then((m) => ({ default: m.StoryPlayer })));
-const StoryScroll = lazy(() => import("@/components/story/story-scroll").then((m) => ({ default: m.StoryScroll })));
+const StoryPlayer = lazy(() =>
+  import("@/components/story/story-player").then((m) => ({ default: m.StoryPlayer })),
+);
+const StoryScroll = lazy(() =>
+  import("@/components/story/story-scroll").then((m) => ({ default: m.StoryScroll })),
+);
 
 const search = z.object({
   // The scene in view, kept up to date as the film plays or the story scrolls.
@@ -38,31 +52,63 @@ const StoryPage = () => {
   const eventId = id as Id<"events">;
   const { data: event } = useQuery(queries.events.get(isAuthenticated ? { eventId } : "skip"));
   const { data: moments } = useQuery(queries.moments.list(event ? { eventId } : "skip"));
-  const { data: book } = useQuery(queries.journal.outline(event && mode === "read" ? { eventId } : "skip"));
+  const { data: book } = useQuery(
+    queries.journal.outline(event && mode === "read" ? { eventId } : "skip"),
+  );
   const { data: me } = useQuery(queries.users.getCurrentUser(isAuthenticated ? {} : "skip"));
   useDocumentTitle(event ? `${event.title} · Story-time` : undefined);
-  const momentById = useMemo(() => new Map((moments ?? []).map((moment) => [moment._id, moment])), [moments]);
+  const momentById = useMemo(
+    () => new Map((moments ?? []).map((moment) => [moment._id, moment])),
+    [moments],
+  );
   const stage = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 900 });
   // The URL follows the scroll without adding history; stable, so the
   // player's effects don't rerun on unrelated renders. It keeps the mode and
   // drops momentId.
   const onStep = useCallback(
-    (next: number) => void navigate({ search: (prev) => ({ step: next, mode: prev.mode, back: prev.back }), replace: true, resetScroll: false }),
+    (next: number) =>
+      void navigate({
+        search: (prev) => ({ step: next, mode: prev.mode, back: prev.back }),
+        replace: true,
+        resetScroll: false,
+      }),
     [navigate],
   );
   const onPage = useCallback(
-    (next: number) => void navigate({ search: (prev) => ({ page: next, mode: "read", back: prev.back }), replace: true, resetScroll: false }),
+    (next: number) =>
+      void navigate({
+        search: (prev) => ({ page: next, mode: "read", back: prev.back }),
+        replace: true,
+        resetScroll: false,
+      }),
     [navigate],
   );
   // Playing the film is a step forward. Closing it returns to the book, or to
   // the full note when that is what opened the film.
   const playFilm = useCallback(
-    (next: number) => void navigate({ search: (prev) => ({ step: next, page: prev.page, mode: "film", back: prev.mode === "words" ? "words" : undefined }) }),
+    (next: number) =>
+      void navigate({
+        search: (prev) => ({
+          step: next,
+          page: prev.page,
+          mode: "film",
+          back: prev.mode === "words" ? "words" : undefined,
+        }),
+      }),
     [navigate],
   );
   const closeFilm = useCallback(
-    (next: number) => void navigate({ search: (prev) => ({ step: next, page: prev.page, mode: prev.back === "words" ? "words" : "read" }), replace: true, resetScroll: false }),
+    (next: number) =>
+      void navigate({
+        search: (prev) => ({
+          step: next,
+          page: prev.page,
+          mode: prev.back === "words" ? "words" : "read",
+        }),
+        replace: true,
+        resetScroll: false,
+      }),
     [navigate],
   );
 
@@ -88,23 +134,40 @@ const StoryPage = () => {
   if (mode === "film") {
     return (
       <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
-        <StoryPlayer event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onClose={closeFilm} />
+        <StoryPlayer
+          event={event}
+          moments={listed}
+          meId={me?.id}
+          step={start}
+          onStep={onStep}
+          onClose={closeFilm}
+        />
       </Suspense>
     );
   }
   const pages = book?.pages ?? [];
-  const surface = mode === "words" ? "story" : book === undefined ? "loading" : playSurface(pages, momentId);
+  const surface =
+    mode === "words" ? "story" : book === undefined ? "loading" : playSurface(pages, momentId);
   if (surface === "loading") return <Skeleton className="h-svh w-full rounded-none" />;
   if (surface === "story") {
     return (
       <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
-        <StoryScroll event={event} moments={listed} meId={me?.id} step={start} onStep={onStep} onPlayFilm={playFilm} />
+        <StoryScroll
+          event={event}
+          moments={listed}
+          meId={me?.id}
+          step={start}
+          onStep={onStep}
+          onPlayFilm={playFilm}
+        />
       </Suspense>
     );
   }
   const at = momentId ? pageForPlay(pages, momentId) : page;
   const openMoment = pages[at]?.momentId;
-  const filmFrom = openMoment ? stepForMoment(buildStorySteps(event.title, listed), openMoment) : start;
+  const filmFrom = openMoment
+    ? stepForMoment(buildStorySteps(event.title, listed), openMoment)
+    : start;
   return (
     <div className="flex h-svh flex-col bg-[#e9dfcb] text-[#1f1a16]">
       <header className="flex items-center justify-between gap-3 px-4 py-3">
@@ -121,7 +184,14 @@ const StoryPage = () => {
         )}
       </header>
       <BookStage stage={stage} setSize={setSize}>
-        <Reader pages={pages} moments={momentById} size={size} start={at} onPage={onPage} eventId={event._id} />
+        <Reader
+          pages={pages}
+          moments={momentById}
+          size={size}
+          start={at}
+          onPage={onPage}
+          eventId={event._id}
+        />
       </BookStage>
     </div>
   );

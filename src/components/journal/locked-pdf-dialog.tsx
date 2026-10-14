@@ -10,7 +10,13 @@ import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/errors";
 import { deleteMedia, uploadJournalPdf } from "@/lib/upload";
@@ -57,7 +63,12 @@ export const LockedPdfDialog = ({
       const locked = await lockPdf(pdf, password);
       setStep("Putting it on the link…");
       const mediaId = await uploadJournalPdf(locked, event._id, token);
-      const replaced = await setPdf({ eventId: event._id, mediaId: mediaId as Id<"media">, password, pages });
+      const replaced = await setPdf({
+        eventId: event._id,
+        mediaId: mediaId as Id<"media">,
+        password,
+        pages,
+      });
       if (replaced) await deleteMedia(replaced, token);
       toast.success("The locked PDF is on the share link. Send the password separately.");
       setPassword(newPassword());
@@ -83,27 +94,43 @@ export const LockedPdfDialog = ({
     <Dialog open={open} onOpenChange={(next) => step === null && onOpenChange(next)}>
       <DialogContent className="paper-scope max-w-md bg-[#f6efe0] text-[#1f1a16]">
         <DialogHeader>
-          <DialogTitle style={{ fontFamily: FONTS.hand, fontSize: 30, fontWeight: 400 }}>A locked PDF</DialogTitle>
+          <DialogTitle style={{ fontFamily: FONTS.hand, fontSize: 30, fontWeight: 400 }}>
+            A locked PDF
+          </DialogTitle>
           <DialogDescription className="text-stone-600">
-            The whole journal ({pages} {pages === 1 ? "page" : "pages"}) as one PDF that opens only with a password. Anyone with the share link can download it; send the password another way, in a message.
+            The whole journal ({pages} {pages === 1 ? "page" : "pages"}) as one PDF that opens only
+            with a password. Anyone with the share link can download it; send the password another
+            way, in a message.
           </DialogDescription>
         </DialogHeader>
 
         {current && (
           <div className="space-y-2 rounded-md border border-stone-300 bg-white/70 p-3 text-sm">
             <p>
-              On the share link since {new Date(current.at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}, {current.pages}{" "}
-              {current.pages === 1 ? "page" : "pages"}.
+              On the share link since{" "}
+              {new Date(current.at).toLocaleDateString(undefined, {
+                day: "numeric",
+                month: "short",
+              })}
+              , {current.pages} {current.pages === 1 ? "page" : "pages"}.
             </p>
             {current.password && (
               <div className="flex items-center gap-2">
-                <code className="min-w-0 flex-1 truncate rounded bg-[#efe6d2] px-2 py-1 font-mono">{current.password}</code>
+                <code className="min-w-0 flex-1 truncate rounded bg-[#efe6d2] px-2 py-1 font-mono">
+                  {current.password}
+                </code>
                 <Button size="sm" variant="outline" onClick={() => copy(current.password!)}>
                   <CopyIcon aria-hidden /> Copy
                 </Button>
               </div>
             )}
-            <Button size="sm" variant="ghost" className="text-[#a3402a]" disabled={step !== null} onClick={() => void stop()}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-[#a3402a]"
+              disabled={step !== null}
+              onClick={() => void stop()}
+            >
               Take it off the link
             </Button>
           </div>
@@ -140,12 +167,27 @@ export const LockedPdfDialog = ({
               spellCheck={false}
               className="bg-white/80 font-mono"
             />
-            <Button type="button" variant="outline" size="sm" className="h-9" onClick={() => setPassword(newPassword())}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={() => setPassword(newPassword())}
+            >
               New
             </Button>
           </div>
-          <Button type="submit" className="w-full" disabled={step !== null || password.length < 8 || pages === 0}>
-            {step ? <LoaderCircleIcon aria-hidden className="animate-spin" /> : <LockKeyholeIcon aria-hidden />} {step ?? (current ? "Replace it with a new locked PDF" : "Make the locked PDF")}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={step !== null || password.length < 8 || pages === 0}
+          >
+            {step ? (
+              <LoaderCircleIcon aria-hidden className="animate-spin" />
+            ) : (
+              <LockKeyholeIcon aria-hidden />
+            )}{" "}
+            {step ?? (current ? "Replace it with a new locked PDF" : "Make the locked PDF")}
           </Button>
         </form>
       </DialogContent>

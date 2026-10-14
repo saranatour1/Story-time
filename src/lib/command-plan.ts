@@ -7,7 +7,10 @@ import { formatDateTime, formatDay } from "./local-time";
 // What the models propose for one typed sentence, and how the app shows it
 // before anything is saved.
 
-export type PlanOp = Extract<FunctionReturnType<typeof api.ai.command.propose>, { kind: "plan" }>["ops"][number];
+export type PlanOp = Extract<
+  FunctionReturnType<typeof api.ai.command.propose>,
+  { kind: "plan" }
+>["ops"][number];
 
 // One thing the plan does, in words: a heading naming what it touches, and the
 // changes to it. Removals are marked so they can look like what they are.
@@ -16,18 +19,29 @@ export type PlanLine = { heading: string; changes: string[]; destructive: boolea
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 const when = (ms: number, offset: number | undefined) =>
-  formatDateTime(ms, offset, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  formatDateTime(ms, offset, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
 const nameOf = (m: MomentView) =>
   `${m.place ?? "A moment"} · ${formatDay(m.startsAt, m.tzOffsetMinutes, { month: "short", day: "numeric" })}`;
 
-const photosIn = (blocks: MomentView["blocks"]) => blocks.filter((b) => b.type === "photo" || b.type === "video").length;
+const photosIn = (blocks: MomentView["blocks"]) =>
+  blocks.filter((b) => b.type === "photo" || b.type === "video").length;
 
 const quoted = (text: string) => `"${text.length > 60 ? `${text.slice(0, 57)}…` : text}"`;
 
 const transportChange = (transport: PlanOp["transport"]): string[] => {
   if (transport === undefined) return [];
-  return [transport === null ? "no transport" : (transportOf(transport)?.phrase.toLowerCase() ?? transport)];
+  return [
+    transport === null
+      ? "no transport"
+      : (transportOf(transport)?.phrase.toLowerCase() ?? transport),
+  ];
 };
 
 export const describeOp = (op: PlanOp, moments: MomentView[]): PlanLine => {
@@ -45,7 +59,8 @@ export const describeOp = (op: PlanOp, moments: MomentView[]): PlanLine => {
   }
 
   const m = moments.find((x) => x._id === op.momentId);
-  if (m === undefined) return { heading: "A moment that is no longer here", changes: [], destructive: false };
+  if (m === undefined)
+    return { heading: "A moment that is no longer here", changes: [], destructive: false };
   const stop = op.stop ?? 1;
   const offset = m.tzOffsetMinutes;
 
@@ -58,7 +73,9 @@ export const describeOp = (op: PlanOp, moments: MomentView[]): PlanLine => {
         ...(op.place === undefined ? [] : [op.place === "" ? "no place" : `place: ${op.place}`]),
         ...transportChange(op.transport),
         ...(op.note ? [`add a note ${quoted(op.note)}`] : []),
-        ...(op.labels === undefined ? [] : [op.labels.length === 0 ? "no labels" : `labels: ${op.labels.join(", ")}`]),
+        ...(op.labels === undefined
+          ? []
+          : [op.labels.length === 0 ? "no labels" : `labels: ${op.labels.join(", ")}`]),
       ],
       destructive: false,
     };
@@ -82,7 +99,9 @@ export const describeOp = (op: PlanOp, moments: MomentView[]): PlanLine => {
     const photos = photosIn(m.blocks) + m.stops.reduce((n, s) => n + photosIn(s.blocks), 0);
     return {
       heading: nameOf(m),
-      changes: [`delete the whole moment${photos > 0 ? `, with its ${plural(photos, "photo")}` : ""}`],
+      changes: [
+        `delete the whole moment${photos > 0 ? `, with its ${plural(photos, "photo")}` : ""}`,
+      ],
       destructive: true,
     };
   }
@@ -90,7 +109,9 @@ export const describeOp = (op: PlanOp, moments: MomentView[]): PlanLine => {
   const photos = gone === undefined ? 0 : photosIn(gone.blocks);
   return {
     heading: nameOf(m),
-    changes: [`remove stop ${op.stop}${gone?.place ? ` (${gone.place})` : ""}${photos > 0 ? `, with its ${plural(photos, "photo")}` : ""}`],
+    changes: [
+      `remove stop ${op.stop}${gone?.place ? ` (${gone.place})` : ""}${photos > 0 ? `, with its ${plural(photos, "photo")}` : ""}`,
+    ],
     destructive: true,
   };
 };
@@ -102,7 +123,10 @@ export const placesToFind = (ops: PlanOp[]): string[] => {
 
 // Pins every named place that was found. The name stays as it was said; only
 // the pin comes from the lookup.
-export const withPins = (ops: PlanOp[], found: ReadonlyMap<string, { lat: number; lng: number }>): PlanOp[] => {
+export const withPins = (
+  ops: PlanOp[],
+  found: ReadonlyMap<string, { lat: number; lng: number }>,
+): PlanOp[] => {
   return ops.map((op) => {
     const geo = op.place === undefined ? undefined : found.get(op.place);
     return geo === undefined ? op : { ...op, geo };

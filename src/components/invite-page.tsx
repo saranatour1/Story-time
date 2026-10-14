@@ -25,7 +25,9 @@ export const InvitePage = ({ token, returnTo }: { token: string; returnTo?: stri
   const { isLoading, isAuthenticated } = useConvexAuth();
   const accept = useMutation(api.invites.accept);
   const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(token ? null : "This invite link is missing its code.");
+  const [error, setError] = useState<string | null>(
+    token ? null : "This invite link is missing its code.",
+  );
   const started = useRef(false);
 
   useEffect(() => {
@@ -49,10 +51,15 @@ export const InvitePage = ({ token, returnTo }: { token: string; returnTo?: stri
             <h1 className="font-display text-3xl tracking-tight">This invite didn't open</h1>
             <p>{error}</p>
             <p className="text-sm text-stone-600 dark:text-stone-400">
-              Each invite link works for the first person who opens it, and only for a limited time. Ask whoever sent it for a new one.
+              Each invite link works for the first person who opens it, and only for a limited time.
+              Ask whoever sent it for a new one.
             </p>
             <Button variant="outline" asChild>
-              {isAuthenticated ? <Link to="/home">Go to your experiences</Link> : <Link to="/">Go to Story-time</Link>}
+              {isAuthenticated ? (
+                <Link to="/home">Go to your experiences</Link>
+              ) : (
+                <Link to="/">Go to Story-time</Link>
+              )}
             </Button>
           </div>
         ) : isLoading || isAuthenticated ? (

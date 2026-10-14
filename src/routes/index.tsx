@@ -15,7 +15,15 @@ import {
   TypeIcon,
   type LucideIcon,
 } from "lucide-react";
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { DuskScene, useScrollDepth } from "@/components/landing/dusk";
 import { HERO_LEAD, HERO_NOTE, LandingFirstPaint } from "@/components/landing/first-paint";
 import { FilmDemo } from "@/components/landing/film-demo";
@@ -35,7 +43,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // MapLibre is heavy, so the globe arrives only when its band comes near.
-const LiveGlobe = lazy(() => import("@/components/landing/live-globe").then((m) => ({ default: m.LiveGlobe })));
+const LiveGlobe = lazy(() =>
+  import("@/components/landing/live-globe").then((m) => ({ default: m.LiveGlobe })),
+);
 
 const Landing = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
@@ -67,8 +77,10 @@ const Landing = () => {
 // bands, and a small cross where they meet.
 const RAILS = cn(CONTAINER, "relative sm:border-x sm:border-white/10");
 const EYEBROW = "font-mono text-[11px] font-medium tracking-[0.22em] text-amber-300 uppercase";
-const H2 = "mt-4 font-display text-[2rem] leading-[1.06] tracking-[-0.02em] text-balance text-stone-50 sm:text-5xl";
-const LEAD = "mx-auto mt-5 max-w-[56ch] text-base leading-relaxed text-pretty text-stone-400 sm:text-[1.0625rem]";
+const H2 =
+  "mt-4 font-display text-[2rem] leading-[1.06] tracking-[-0.02em] text-balance text-stone-50 sm:text-5xl";
+const LEAD =
+  "mx-auto mt-5 max-w-[56ch] text-base leading-relaxed text-pretty text-stone-400 sm:text-[1.0625rem]";
 
 const SECTIONS: Array<{ id: string; label: string; short: [string, string]; icon: LucideIcon }> = [
   { id: "photos", label: "Photos", short: ["Add from", "your photos"], icon: ImagePlusIcon },
@@ -77,10 +89,23 @@ const SECTIONS: Array<{ id: string; label: string; short: [string, string]; icon
   { id: "privacy", label: "Privacy", short: ["Private", "by default"], icon: LockIcon },
 ];
 
-const SectionLink = ({ id, className, children }: { id: string; className?: string; children: ReactNode }) => {
+const SectionLink = ({
+  id,
+  className,
+  children,
+}: {
+  id: string;
+  className?: string;
+  children: ReactNode;
+}) => {
   const reduced = useReducedMotion();
   return (
-    <Link to="/" hash={id} hashScrollIntoView={reduced ? true : { behavior: "smooth" }} className={className}>
+    <Link
+      to="/"
+      hash={id}
+      hashScrollIntoView={reduced ? true : { behavior: "smooth" }}
+      className={className}
+    >
       {children}
     </Link>
   );
@@ -101,7 +126,10 @@ const Nav = () => {
   return (
     <header className="absolute inset-x-0 top-0 z-20">
       <div className={cn(CONTAINER, "flex h-16 items-center gap-4")}>
-        <Link to="/" className="flex items-center gap-2 font-display text-xl tracking-tight text-white">
+        <Link
+          to="/"
+          className="flex items-center gap-2 font-display text-xl tracking-tight text-white"
+        >
           <Logo className="size-6" />
           Story-time
         </Link>
@@ -170,7 +198,11 @@ const Rotating = ({ words }: { words: string[] }) => {
           }}
           className={cn(
             "absolute top-0 left-0 pr-[0.08em] text-amber-200 italic transition-[opacity,transform,filter] duration-500 ease-out",
-            i === shown ? "translate-y-0 opacity-100 blur-none" : i === before ? "-translate-y-[0.45em] opacity-0 blur-sm" : "translate-y-[0.45em] opacity-0 blur-sm",
+            i === shown
+              ? "translate-y-0 opacity-100 blur-none"
+              : i === before
+                ? "-translate-y-[0.45em] opacity-0 blur-sm"
+                : "translate-y-[0.45em] opacity-0 blur-sm",
           )}
         >
           {w}
@@ -189,7 +221,10 @@ const Hero = () => {
       <div className={cn(CONTAINER, "flex flex-col items-center pt-28 text-center sm:pt-36")}>
         <div
           className="flex flex-col items-center"
-          style={{ opacity: "calc(1 - var(--p, 0) * 1.6)", transform: "translate3d(0, calc(var(--p, 0) * -70px), 0)" }}
+          style={{
+            opacity: "calc(1 - var(--p, 0) * 1.6)",
+            transform: "translate3d(0, calc(var(--p, 0) * -70px), 0)",
+          }}
         >
           <SectionLink
             id="story-mode"
@@ -213,16 +248,25 @@ const Hero = () => {
               <span className="block">in the order it happened.</span>
             </span>
           </h1>
-          <p className="mt-6 max-w-[50ch] text-base leading-relaxed text-pretty text-white/70 sm:text-lg">{HERO_LEAD}</p>
-          <div id="sign-in" className="mt-9 w-full max-w-md [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]">
+          <p className="mt-6 max-w-[50ch] text-base leading-relaxed text-pretty text-white/70 sm:text-lg">
+            {HERO_LEAD}
+          </p>
+          <div
+            id="sign-in"
+            className="mt-9 w-full max-w-md [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]"
+          >
             <SignInButtons prominent groupClassName="sm:flex-row sm:justify-center" />
           </div>
-          <p className="mt-4 text-sm text-white/60 [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]">{HERO_NOTE}</p>
+          <p className="mt-4 text-sm text-white/60 [text-shadow:0_1px_10px_rgb(20_18_16/0.8)]">
+            {HERO_NOTE}
+          </p>
         </div>
 
         <div className="mt-16 w-full max-w-5xl sm:mt-24">
           <FilmDemo />
-          <p className="mt-4 text-sm text-stone-400">A sample story, playing on its own. Tap either side to step through it.</p>
+          <p className="mt-4 text-sm text-stone-400">
+            A sample story, playing on its own. Tap either side to step through it.
+          </p>
         </div>
 
         <nav aria-label="On this page" className="mt-16 w-full max-w-5xl sm:mt-20">
@@ -233,7 +277,10 @@ const Hero = () => {
                   id={s.id}
                   className="group flex h-full flex-col items-center gap-2 px-1 py-5 text-[11px] leading-tight text-stone-400 transition-colors hover:bg-white/[0.03] hover:text-white sm:text-[13px]"
                 >
-                  <s.icon aria-hidden className="size-5 text-stone-300 transition-colors group-hover:text-amber-200" />
+                  <s.icon
+                    aria-hidden
+                    className="size-5 text-stone-300 transition-colors group-hover:text-amber-200"
+                  />
                   <span>
                     {s.short[0]}
                     <br />
@@ -251,7 +298,10 @@ const Hero = () => {
 
 const Cross = ({ className }: { className: string }) => {
   return (
-    <span aria-hidden className={cn("pointer-events-none absolute hidden size-[11px] sm:block", className)}>
+    <span
+      aria-hidden
+      className={cn("pointer-events-none absolute hidden size-[11px] sm:block", className)}
+    >
       <span className="absolute top-1/2 left-0 h-px w-full -translate-y-1/2 bg-white/40" />
       <span className="absolute top-0 left-1/2 h-full w-px -translate-x-1/2 bg-white/40" />
     </span>
@@ -263,16 +313,39 @@ const Reveal = ({ className, children }: { className?: string; children: ReactNo
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
   return (
-    <div ref={ref} className={cn("transition duration-700 ease-out", !reduced && !inView && "translate-y-4 opacity-0", className)}>
+    <div
+      ref={ref}
+      className={cn(
+        "transition duration-700 ease-out",
+        !reduced && !inView && "translate-y-4 opacity-0",
+        className,
+      )}
+    >
       {children}
     </div>
   );
 };
 
 // One band of the page: a small label, a heading and a line, then what it shows.
-const Band = ({ id, eyebrow, title, lead, children }: { id: string; eyebrow: string; title: string; lead: string; children: ReactNode }) => {
+const Band = ({
+  id,
+  eyebrow,
+  title,
+  lead,
+  children,
+}: {
+  id: string;
+  eyebrow: string;
+  title: string;
+  lead: string;
+  children: ReactNode;
+}) => {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-4 border-t border-white/10">
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className="scroll-mt-4 border-t border-white/10"
+    >
       <div className={cn(RAILS, "py-20 sm:py-28")}>
         <Cross className="-top-[6px] -left-[6px]" />
         <Cross className="-top-[6px] -right-[6px]" />
@@ -291,7 +364,11 @@ const Band = ({ id, eyebrow, title, lead, children }: { id: string; eyebrow: str
 
 // Side-by-side panels split by a rule, each with a title and a line under it.
 const Split = ({ children }: { children: ReactNode }) => {
-  return <div className="grid border-y border-white/10 md:grid-cols-2 md:divide-x md:divide-white/10">{children}</div>;
+  return (
+    <div className="grid border-y border-white/10 md:grid-cols-2 md:divide-x md:divide-white/10">
+      {children}
+    </div>
+  );
 };
 
 const Panel = ({ title, text, children }: { title: string; text: string; children: ReactNode }) => {
@@ -300,7 +377,9 @@ const Panel = ({ title, text, children }: { title: string; text: string; childre
       <div className="flex flex-1 items-center justify-center">{children}</div>
       <figcaption className="text-center">
         <h3 className="font-display text-xl text-stone-100">{title}</h3>
-        <p className="mx-auto mt-2 max-w-[42ch] text-[0.9375rem] leading-relaxed text-stone-400">{text}</p>
+        <p className="mx-auto mt-2 max-w-[42ch] text-[0.9375rem] leading-relaxed text-stone-400">
+          {text}
+        </p>
       </figcaption>
     </figure>
   );
@@ -333,7 +412,10 @@ const Photos = () => {
       </div>
       <dl className="mt-12 grid border-y border-white/10 sm:mt-16 sm:grid-cols-3 sm:divide-x sm:divide-white/10">
         {FACTS.map(([term, text]) => (
-          <div key={term} className="border-b border-white/10 px-1 py-6 last:border-b-0 sm:border-b-0 sm:px-8">
+          <div
+            key={term}
+            className="border-b border-white/10 px-1 py-6 last:border-b-0 sm:border-b-0 sm:px-8"
+          >
             <dt className={EYEBROW}>{term}</dt>
             <dd className="mt-2 text-[0.9375rem] leading-relaxed text-stone-400">{text}</dd>
           </div>
@@ -419,10 +501,15 @@ const Maps = () => {
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-2">
           <div className="px-3 pt-3 pb-2">
             <p className="font-display text-xl text-stone-100">Six weeks, Porto to Tokyo</p>
-            <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-stone-400 uppercase">6 stops · 5 legs</p>
+            <p className="mt-1 font-mono text-[11px] tracking-[0.18em] text-stone-400 uppercase">
+              6 stops · 5 legs
+            </p>
           </div>
           <ol aria-label="Legs of the trip" className="relative">
-            <span aria-hidden className="absolute top-8 bottom-8 left-[1.875rem] border-l border-dashed border-white/15" />
+            <span
+              aria-hidden
+              className="absolute top-8 bottom-8 left-[1.875rem] border-l border-dashed border-white/15"
+            />
             {LEGS.map((leg) => (
               <li key={leg.from + leg.to} className="relative flex items-center gap-4 px-3 py-3">
                 <span className="grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-[#1c1916] text-amber-200">
@@ -432,7 +519,9 @@ const Maps = () => {
                   <span className="block truncate font-display text-[1.0625rem] text-stone-100">
                     {leg.from} <span className="text-stone-400">→</span> {leg.to}
                   </span>
-                  <span className="font-mono text-[10.5px] tracking-[0.18em] text-stone-400 uppercase">{leg.by}</span>
+                  <span className="font-mono text-[10.5px] tracking-[0.18em] text-stone-400 uppercase">
+                    {leg.by}
+                  </span>
                 </span>
                 <span className="font-mono text-xs text-stone-400 tabular-nums">{leg.time}</span>
               </li>
@@ -445,10 +534,26 @@ const Maps = () => {
 };
 
 const FILM = [
-  { icon: TypeIcon, title: "A title page, typed out", text: "The name, the dates and a line about the trip, on paper." },
-  { icon: RouteIcon, title: "The route, leg by leg", text: "The map draws each leg as the story reaches it." },
-  { icon: GalleryHorizontalIcon, title: "Prints you can swipe", text: "Left or up for the next, right or down for the one before." },
-  { icon: PlayIcon, title: "Or let it play", text: "Leave it and it moves on by itself. The arrow keys step through it." },
+  {
+    icon: TypeIcon,
+    title: "A title page, typed out",
+    text: "The name, the dates and a line about the trip, on paper.",
+  },
+  {
+    icon: RouteIcon,
+    title: "The route, leg by leg",
+    text: "The map draws each leg as the story reaches it.",
+  },
+  {
+    icon: GalleryHorizontalIcon,
+    title: "Prints you can swipe",
+    text: "Left or up for the next, right or down for the one before.",
+  },
+  {
+    icon: PlayIcon,
+    title: "Or let it play",
+    text: "Leave it and it moves on by itself. The arrow keys step through it.",
+  },
 ];
 
 const StoryMode = () => {
@@ -461,7 +566,9 @@ const StoryMode = () => {
     >
       <div className="mx-auto grid max-w-5xl items-center gap-10 lg:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-[radial-gradient(80%_60%_at_50%_0%,rgb(242_166_90/0.1),transparent)] px-6 py-10">
-          <p className="mb-9 text-center font-mono text-[11px] tracking-[0.22em] text-amber-300 uppercase">Try it · drag a print</p>
+          <p className="mb-9 text-center font-mono text-[11px] tracking-[0.22em] text-amber-300 uppercase">
+            Try it · drag a print
+          </p>
           <SwipeDeck />
         </div>
         <ul className="grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-2">
@@ -508,7 +615,10 @@ const Privacy = () => {
             <InviteFragment />
           </div>
         </Panel>
-        <Panel title="Or share a link" text="Anyone holding it can watch the story, without an account. Switch it off and it stops working.">
+        <Panel
+          title="Or share a link"
+          text="Anyone holding it can watch the story, without an account. Switch it off and it stops working."
+        >
           <div className="w-full max-w-sm">
             <LinkFragment />
           </div>
@@ -516,7 +626,10 @@ const Privacy = () => {
       </Split>
       <ul className="mx-auto mt-12 grid max-w-4xl gap-x-12 sm:mt-16 sm:grid-cols-2">
         {PROMISES.map((p) => (
-          <li key={p} className="flex gap-3 border-t border-white/10 py-4 text-[0.9375rem] leading-relaxed text-stone-300">
+          <li
+            key={p}
+            className="flex gap-3 border-t border-white/10 py-4 text-[0.9375rem] leading-relaxed text-stone-300"
+          >
             <CheckIcon aria-hidden className="mt-1 size-4 shrink-0 text-amber-300" />
             {p}
           </li>
@@ -528,12 +641,18 @@ const Privacy = () => {
 
 const Closing = () => {
   return (
-    <section aria-labelledby="closing-title" className="relative isolate overflow-hidden border-t border-white/10">
+    <section
+      aria-labelledby="closing-title"
+      className="relative isolate overflow-hidden border-t border-white/10"
+    >
       <div
         aria-hidden
         className="absolute inset-0 -z-10 bg-[radial-gradient(55%_60%_at_50%_100%,rgb(242_166_90/0.28),transparent_70%)]"
       />
-      <div aria-hidden className="absolute inset-x-0 bottom-0 -z-10 h-px bg-gradient-to-r from-transparent via-amber-200/50 to-transparent" />
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 -z-10 h-px bg-gradient-to-r from-transparent via-amber-200/50 to-transparent"
+      />
       <div className={cn(RAILS, "flex flex-col items-center py-24 text-center sm:py-32")}>
         <Cross className="-top-[6px] -left-[6px]" />
         <Cross className="-top-[6px] -right-[6px]" />
@@ -542,7 +661,11 @@ const Closing = () => {
           Start a story for your next trip, or the last one.
         </h2>
         <div className="mt-9 w-full max-w-md">
-          <SignInButtons prominent showError={false} groupClassName="sm:flex-row sm:justify-center" />
+          <SignInButtons
+            prominent
+            showError={false}
+            groupClassName="sm:flex-row sm:justify-center"
+          />
         </div>
       </div>
     </section>
@@ -574,16 +697,28 @@ const Footer = () => {
               </li>
             ))}
             <li>
-              <a href="#sign-in" onClick={goToSignIn} className="transition-colors hover:text-stone-100">
+              <a
+                href="#sign-in"
+                onClick={goToSignIn}
+                className="transition-colors hover:text-stone-100"
+              >
                 Sign in
               </a>
             </li>
           </ul>
         </nav>
       </div>
-      <div className={cn(RAILS, "flex flex-wrap items-center justify-between gap-2 border-t border-white/10 py-6 text-xs text-stone-400")}>
+      <div
+        className={cn(
+          RAILS,
+          "flex flex-wrap items-center justify-between gap-2 border-t border-white/10 py-6 text-xs text-stone-400",
+        )}
+      >
         <span>© {new Date().getFullYear()} Story-time</span>
-        <SectionLink id="top" className="font-mono tracking-[0.18em] uppercase transition-colors hover:text-stone-300">
+        <SectionLink
+          id="top"
+          className="font-mono tracking-[0.18em] uppercase transition-colors hover:text-stone-300"
+        >
           Back to top ↑
         </SectionLink>
       </div>

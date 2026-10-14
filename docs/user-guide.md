@@ -92,25 +92,25 @@ A share link opens on the book as well. **Play** there starts the film. Closing 
 
 ## Limits, in one place
 
-| What | Limit |
-| --- | --- |
-| Experiences you own | 10 |
-| Moments in one experience | 100 |
-| Photos in one experience | 50 (journal stickers don't count) |
-| Videos in one experience | 5 |
-| Live uploads for one person | 1 GB |
-| One photo | 5 MB |
-| One video | 50 MB |
-| Stops in one moment | 10, counting the moment itself |
-| Things on one moment (photos, notes, links) | 20 |
-| Labels on one moment | 10, 40 characters each |
-| One note | 5,000 characters |
-| Journal pages | 150 |
+| What                                                       | Limit                                       |
+| ---------------------------------------------------------- | ------------------------------------------- |
+| Experiences you own                                        | 10                                          |
+| Moments in one experience                                  | 100                                         |
+| Photos in one experience                                   | 50 (journal stickers don't count)           |
+| Videos in one experience                                   | 5                                           |
+| Live uploads for one person                                | 1 GB                                        |
+| One photo                                                  | 5 MB                                        |
+| One video                                                  | 50 MB                                       |
+| Stops in one moment                                        | 10, counting the moment itself              |
+| Things on one moment (photos, notes, links)                | 20                                          |
+| Labels on one moment                                       | 10, 40 characters each                      |
+| One note                                                   | 5,000 characters                            |
+| Journal pages                                              | 150                                         |
 | AI (notes for your photos, the box, voice, journal titles) | 10 uses a day, shared, back at midnight UTC |
-| One sentence in the box | 600 characters, 8 changes |
-| A voice recording | 1 minute |
-| Waiting invites | 20 per experience, 10 invite emails a day |
-| Emailing a share link | 10 a day |
+| One sentence in the box                                    | 600 characters, 8 changes                   |
+| A voice recording                                          | 1 minute                                    |
+| Waiting invites                                            | 20 per experience, 10 invite emails a day   |
+| Emailing a share link                                      | 10 a day                                    |
 
 When the book is already at 150 pages, a new moment does not get a page. The moments list says so on that row.
 

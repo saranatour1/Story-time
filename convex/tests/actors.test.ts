@@ -12,9 +12,7 @@ const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
-  process.env.ENCRYPTION_MASTER_KEY = btoa(
-    String.fromCharCode(...new Uint8Array(32).fill(7)),
-  );
+  process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
 const T0 = Date.UTC(2026, 5, 1, 12);
@@ -33,7 +31,12 @@ const setup = async () => {
   const owner = as(ownerId);
   const eventId = await owner.mutation(api.api.events.createDraft, {});
   await t.run((ctx) =>
-    ctx.db.insert("sessions", { eventId, userId: helperId, grantedBy: ownerId, role: "contributor" }),
+    ctx.db.insert("sessions", {
+      eventId,
+      userId: helperId,
+      grantedBy: ownerId,
+      role: "contributor",
+    }),
   );
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
@@ -79,7 +82,11 @@ describe("agents are labelled", () => {
       place: "Lisbon",
       blocks: [{ type: "link", url: "https://example.com/tram" }],
     });
-    await t.mutation(internal.model.ai.apply.apply, { momentId, note: "We rode the tram", labels: ["tram"] });
+    await t.mutation(internal.model.ai.apply.apply, {
+      momentId,
+      note: "We rode the tram",
+      labels: ["tram"],
+    });
 
     const [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.editedByAgent).toBe("Scribe");
@@ -102,7 +109,12 @@ describe("agents are labelled", () => {
         event: access.event,
         userId: ownerId,
         actor: { kind: "agent", name: "Claude", onBehalfOf: ownerId },
-        input: { eventId, startsAt: T0, place: "Sintra", blocks: [{ type: "note", text: "Fog on the palace" }] },
+        input: {
+          eventId,
+          startsAt: T0,
+          place: "Sintra",
+          blocks: [{ type: "note", text: "Fog on the palace" }],
+        },
       });
     });
 
@@ -135,7 +147,15 @@ describe("agents are labelled", () => {
     const shared = await t.query(api.api.share.get, { token });
     expect(shared?.moments).toHaveLength(1);
     const keys = Object.keys(shared?.moments[0] ?? {});
-    for (const hidden of ["authorId", "authorName", "authorAgent", "editedAt", "editedById", "editedByName", "editedByAgent"]) {
+    for (const hidden of [
+      "authorId",
+      "authorName",
+      "authorAgent",
+      "editedAt",
+      "editedById",
+      "editedByName",
+      "editedByAgent",
+    ]) {
       expect(keys).not.toContain(hidden);
     }
   });
@@ -145,7 +165,9 @@ describe("access for a given person", () => {
   test("contributors and owners may write, viewers and strangers may not", async () => {
     const { t, eventId, ownerId, helperId, viewerId, strangerId } = await setup();
     const check = (userId: Id<"users">) =>
-      t.run((ctx) => requireEventAccessFor(ctx, userId, eventId, "contributor").then((a) => a.role));
+      t.run((ctx) =>
+        requireEventAccessFor(ctx, userId, eventId, "contributor").then((a) => a.role),
+      );
     await expect(check(ownerId)).resolves.toBe("owner");
     await expect(check(helperId)).resolves.toBe("contributor");
     await expect(check(viewerId)).rejects.toThrow("Event not found");

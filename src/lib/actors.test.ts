@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { authorByline, authorOf, changeActorOf, describeActor, editNoticeOf, editorOf } from "./actors";
+import {
+  authorByline,
+  authorOf,
+  changeActorOf,
+  describeActor,
+  editNoticeOf,
+  editorOf,
+} from "./actors";
 
 describe("authorOf", () => {
   test("a person, with or without a name", () => {
@@ -22,7 +29,10 @@ describe("editorOf", () => {
   });
 
   test("a person, an agent, or the system", () => {
-    expect(editorOf({ editedAt: 1, editedById: "u2", editedByName: "Noor" })).toEqual({ kind: "human", name: "Noor" });
+    expect(editorOf({ editedAt: 1, editedById: "u2", editedByName: "Noor" })).toEqual({
+      kind: "human",
+      name: "Noor",
+    });
     expect(editorOf({ editedAt: 1, editedByAgent: "Scribe" })).toEqual({
       kind: "agent",
       name: "Scribe",
@@ -49,15 +59,21 @@ describe("editNoticeOf", () => {
   });
 
   test("another person's edit is news; the author's own edit is not", () => {
-    expect(editNoticeOf({ authorId: "u1", editedAt: 5, editedById: "u2", editedByName: "Noor" })).toEqual({
+    expect(
+      editNoticeOf({ authorId: "u1", editedAt: 5, editedById: "u2", editedByName: "Noor" }),
+    ).toEqual({
       at: 5,
       by: { kind: "human", name: "Noor" },
     });
-    expect(editNoticeOf({ authorId: "u1", editedAt: 5, editedById: "u1", editedByName: "Sara" })).toBeUndefined();
+    expect(
+      editNoticeOf({ authorId: "u1", editedAt: 5, editedById: "u1", editedByName: "Sara" }),
+    ).toBeUndefined();
   });
 
   test("a different person with the author's exact name is still a different person", () => {
-    expect(editNoticeOf({ authorId: "u1", editedAt: 5, editedById: "u2", editedByName: "Sara" })).toEqual({
+    expect(
+      editNoticeOf({ authorId: "u1", editedAt: 5, editedById: "u2", editedByName: "Sara" }),
+    ).toEqual({
       at: 5,
       by: { kind: "human", name: "Sara" },
     });

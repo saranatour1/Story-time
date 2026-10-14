@@ -45,7 +45,10 @@ export const editNoticeOf = (m: {
 
 // A change in the activity log. `name` is the person's display name, when the
 // caller has looked it up.
-export const changeActorOf = (c: { actorId?: string; agent?: string }, name?: string): ActorView => {
+export const changeActorOf = (
+  c: { actorId?: string; agent?: string },
+  name?: string,
+): ActorView => {
   if (c.agent !== undefined) return { kind: "agent", name: c.agent, onBehalfOf: name };
   return c.actorId === undefined ? { kind: "system" } : { kind: "human", name };
 };
@@ -56,7 +59,9 @@ export const describeActor = (actor: ActorView): string => {
     case "human":
       return actor.name ?? "Anonymous";
     case "agent":
-      return actor.onBehalfOf ? `${actor.name}, an AI agent working for ${actor.onBehalfOf}` : `${actor.name}, an AI agent`;
+      return actor.onBehalfOf
+        ? `${actor.name}, an AI agent working for ${actor.onBehalfOf}`
+        : `${actor.name}, an AI agent`;
     case "system":
       return "The system";
   }
@@ -74,4 +79,5 @@ export const authorByline = (
   return m.authorId === meId ? "you" : describeActor({ kind: "human", name: m.authorName });
 };
 
-export const isAgent = (actor: ActorView): actor is Extract<ActorView, { kind: "agent" }> => actor.kind === "agent";
+export const isAgent = (actor: ActorView): actor is Extract<ActorView, { kind: "agent" }> =>
+  actor.kind === "agent";

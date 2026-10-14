@@ -17,12 +17,7 @@ export const vGeo = v.object({ lat: v.number(), lng: v.number() });
 
 // Legacy: regions were dropped. Older users and experiences may still carry
 // one, so the field stays optional and nothing reads it.
-export const vRegion = v.union(
-  v.literal("us"),
-  v.literal("eu"),
-  v.literal("au"),
-  v.literal("ca"),
-);
+export const vRegion = v.union(v.literal("us"), v.literal("eu"), v.literal("au"), v.literal("ca"));
 
 export const vRole = v.union(v.literal("viewer"), v.literal("contributor"));
 
@@ -43,7 +38,16 @@ export const vBlock = v.union(
 );
 
 // How someone got to a stop. Not sensitive, so stored in the clear.
-export const TRANSPORTS = ["walk", "bike", "car", "bus", "train", "plane", "boat", "other"] as const;
+export const TRANSPORTS = [
+  "walk",
+  "bike",
+  "car",
+  "bus",
+  "train",
+  "plane",
+  "boat",
+  "other",
+] as const;
 export const vTransport = v.union(
   v.literal("walk"),
   v.literal("bike"),
@@ -164,18 +168,10 @@ export default defineSchema({
     description: v.optional(v.union(v.string(), vEncrypted)),
     startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
-    status: v.union(
-      v.literal("draft"),
-      v.literal("active"),
-      v.literal("archived"),
-    ),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("archived")),
     // "link": anyone holding the share link can watch (share.ts). "invite" is
     // what rows from before links carry, and reads as private.
-    visibility: v.union(
-      v.literal("private"),
-      v.literal("invite"),
-      v.literal("link"),
-    ),
+    visibility: v.union(v.literal("private"), v.literal("invite"), v.literal("link")),
     // Set only while visibility is "link". The key finds the experience from a
     // link (a keyed hash, never the token); the token is kept encrypted so the
     // owner can copy the link again.
@@ -255,11 +251,7 @@ export default defineSchema({
     height: v.optional(v.number()),
     sha256: v.optional(v.string()),
     keyVersion: v.number(),
-    status: v.union(
-      v.literal("reserved"),
-      v.literal("ready"),
-      v.literal("deleted"),
-    ),
+    status: v.union(v.literal("reserved"), v.literal("ready"), v.literal("deleted")),
     // Who last took it off a moment, so they may delete it even if someone
     // else uploaded it. Only read while it is unattached.
     detachedBy: v.optional(v.id("users")),
@@ -272,14 +264,10 @@ export default defineSchema({
     .index("by_uploader_and_status", ["uploaderId", "status"]),
 
   // One row per invite email sent, for the daily cap. No address is kept.
-  inviteEmails: defineTable({ userId: v.id("users") }).index("by_user", [
-    "userId",
-  ]),
+  inviteEmails: defineTable({ userId: v.id("users") }).index("by_user", ["userId"]),
 
   // One row per share-link email sent, for the daily cap. No address is kept.
-  shareEmails: defineTable({ userId: v.id("users") }).index("by_user", [
-    "userId",
-  ]),
+  shareEmails: defineTable({ userId: v.id("users") }).index("by_user", ["userId"]),
 
   // One row per address-confirmation email, for the daily cap. No address is kept.
   emailChecks: defineTable({ userId: v.id("users") }).index("by_user", ["userId"]),
@@ -297,13 +285,8 @@ export default defineSchema({
     extra: v.number(),
     // Under the event key, like the description; quota:reasonOf reads it.
     reason: v.optional(v.union(v.string(), vEncrypted)),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("approved"),
-      v.literal("denied"),
-    ),
-  })
-    .index("by_event_and_status", ["eventId", "status"]),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("denied")),
+  }).index("by_event_and_status", ["eventId", "status"]),
 
   // Share grants: who can view an experience. Revoke sets `revokedAt`.
   sessions: defineTable({
@@ -332,17 +315,9 @@ export default defineSchema({
     action: vChangeAction,
     fields: v.array(v.string()),
     before: v.optional(
-      v.record(
-        v.string(),
-        v.union(v.string(), v.number(), v.boolean(), v.null()),
-      ),
+      v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null())),
     ),
-    after: v.optional(
-      v.record(
-        v.string(),
-        v.union(v.string(), v.number(), v.boolean(), v.null()),
-      ),
-    ),
+    after: v.optional(v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null()))),
     at: v.number(),
   })
     .index("by_event_and_at", ["eventId", "at"])
@@ -375,7 +350,9 @@ export default defineSchema({
     locked: v.optional(v.boolean()),
     // The whole book as a PDF locked with a password, for the share link. The
     // password is kept under the event key so its owner can copy it again.
-    pdf: v.optional(v.object({ mediaId: v.id("media"), password: vEncrypted, pages: v.number(), at: v.number() })),
+    pdf: v.optional(
+      v.object({ mediaId: v.id("media"), password: vEncrypted, pages: v.number(), at: v.number() }),
+    ),
   }).index("by_event", ["eventId"]),
 
   // One page of a journal, with everything on it. `order` sorts the book; a

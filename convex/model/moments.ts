@@ -80,7 +80,10 @@ export const vMomentView = v.object({
   labels: v.array(v.string()),
 });
 
-const viewBlocks = async (event: Doc<"events">, encrypted: Doc<"moments">["blocks"]): Promise<PlainBlock[]> => {
+const viewBlocks = async (
+  event: Doc<"events">,
+  encrypted: Doc<"moments">["blocks"],
+): Promise<PlainBlock[]> => {
   const blocks: PlainBlock[] = [];
   for (const b of encrypted) {
     if (b.type === "photo" || b.type === "video") blocks.push(b);
@@ -240,7 +243,11 @@ export const createMoment = async (
     ...changeFields(actor),
     action: "create",
     fields: ["startsAt", "place", "geo", "blocks", "transport", "stops", "labels"],
-    after: { startsAt: input.startsAt, blockCount: blocks.length, stopCount: rest.stops.length + 1 },
+    after: {
+      startsAt: input.startsAt,
+      blockCount: blocks.length,
+      stopCount: rest.stops.length + 1,
+    },
   });
   // The page is a later batch, not part of this write: a long import of photos
   // must not decrypt and insert the whole book in one transaction.
@@ -277,7 +284,10 @@ const page = query({
       .query("moments")
       .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
       .paginate(args.paginationOpts);
-    return { ...result, page: await Promise.all(result.page.map((m) => viewMoment(ctx, event, m))) };
+    return {
+      ...result,
+      page: await Promise.all(result.page.map((m) => viewMoment(ctx, event, m))),
+    };
   },
 });
 
@@ -307,11 +317,7 @@ const update = mutation({
   handler: async (ctx, args) => {
     const moment = await ctx.db.get("moments", args.momentId);
     if (moment === null) throw new Error("Moment not found");
-    const { userId, event, role } = await requireEventAccess(
-      ctx,
-      moment.eventId,
-      "contributor",
-    );
+    const { userId, event, role } = await requireEventAccess(ctx, moment.eventId, "contributor");
     if (role !== "owner" && moment.authorId !== userId) {
       throw new ConvexError({
         code: "FORBIDDEN",
@@ -485,11 +491,7 @@ const remove = mutation({
   handler: async (ctx, args) => {
     const moment = await ctx.db.get("moments", args.momentId);
     if (moment === null) throw new Error("Moment not found");
-    const { userId, event, role } = await requireEventAccess(
-      ctx,
-      moment.eventId,
-      "contributor",
-    );
+    const { userId, event, role } = await requireEventAccess(ctx, moment.eventId, "contributor");
     if (role !== "owner" && moment.authorId !== userId) {
       throw new ConvexError({
         code: "FORBIDDEN",

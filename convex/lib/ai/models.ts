@@ -24,7 +24,9 @@ export const TRANSCRIPTION_MODEL = "openai/whisper-large-v3-turbo";
 // calls it gives the result a type here. If the gateway rejects this id,
 // "typesafe/jev-router" is the alias in its model list.
 export const jevModel = (): DecisionModel => {
-  const gateway: { evaluationModel(modelId: string, options?: GatewayModelOptions): DecisionModel } = convexGateway;
+  const gateway: {
+    evaluationModel(modelId: string, options?: GatewayModelOptions): DecisionModel;
+  } = convexGateway;
   return gateway.evaluationModel(JEV, ZDR);
 };
 

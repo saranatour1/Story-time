@@ -12,7 +12,9 @@ const SharedPage = () => {
         event.role === "owner" ? (
           <SharedTab eventId={event._id} archived={event.status === "archived"} />
         ) : (
-          <p className="text-sm text-muted-foreground">Only the experience's owner can see who it is shared with.</p>
+          <p className="text-sm text-muted-foreground">
+            Only the experience's owner can see who it is shared with.
+          </p>
         )
       }
     </ExperienceShell>
@@ -21,6 +23,7 @@ const SharedPage = () => {
 
 // Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/e/$id/shared")({
-  loader: ({ context: { prefetch }, params }) => prefetch(queries.events.get({ eventId: params.id })),
+  loader: ({ context: { prefetch }, params }) =>
+    prefetch(queries.events.get({ eventId: params.id })),
   component: SharedPage,
 });

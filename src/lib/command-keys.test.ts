@@ -5,7 +5,14 @@ const press = (
   key: string,
   target: { tagName?: string; isContentEditable?: boolean } | null,
   extra: { metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean } = {},
-) => wantsCommand({ key, target, metaKey: extra.metaKey ?? false, ctrlKey: extra.ctrlKey ?? false, altKey: extra.altKey ?? false });
+) =>
+  wantsCommand({
+    key,
+    target,
+    metaKey: extra.metaKey ?? false,
+    ctrlKey: extra.ctrlKey ?? false,
+    altKey: extra.altKey ?? false,
+  });
 
 describe("wantsCommand", () => {
   test("slash focuses the box, and not while typing or with a modifier", () => {
@@ -22,7 +29,13 @@ describe("wantsCommand", () => {
   });
 
   test("slash stays with moment search when that field already owns it", () => {
-    const event = { key: "/", target: { tagName: "BODY" }, metaKey: false, ctrlKey: false, altKey: false };
+    const event = {
+      key: "/",
+      target: { tagName: "BODY" },
+      metaKey: false,
+      ctrlKey: false,
+      altKey: false,
+    };
     expect(commandTakesSlash(event, true)).toBe(false);
     expect(commandTakesSlash(event, false)).toBe(true);
     expect(commandTakesSlash({ ...event, key: "k" }, false)).toBe(false);

@@ -1,5 +1,9 @@
 // `offsetMinutes` is the camera's UTC offset when it recorded one.
-export type PhotoMeta = { geo?: { lat: number; lng: number }; takenAt?: number; offsetMinutes?: number };
+export type PhotoMeta = {
+  geo?: { lat: number; lng: number };
+  takenAt?: number;
+  offsetMinutes?: number;
+};
 
 // EXIF lives in the first APP1 segment, near the start of the file.
 const HEAD_BYTES = 128 * 1024;
@@ -53,7 +57,8 @@ export const photoMetaFromJpeg = (buffer: ArrayBuffer): PhotoMeta => {
     };
     const lat = coordinate(1, 2);
     const lng = coordinate(3, 4);
-    const onMap = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+    const onMap =
+      Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
     // 0,0 is what a camera without a fix writes.
     return onMap && !(lat === 0 && lng === 0) ? { lat, lng } : undefined;
   });
@@ -74,7 +79,10 @@ export const photoMetaFromJpeg = (buffer: ArrayBuffer): PhotoMeta => {
 
 // "2026:07:10 18:30:00", with "+01:00" when the camera recorded its zone;
 // without one it's read as the browser's local time.
-const parseExifTime = (text: string, offset: string | undefined): Pick<PhotoMeta, "takenAt" | "offsetMinutes"> | undefined => {
+const parseExifTime = (
+  text: string,
+  offset: string | undefined,
+): Pick<PhotoMeta, "takenAt" | "offsetMinutes"> | undefined => {
   const m = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(text);
   if (!m) return undefined;
   const [y = 0, mo = 0, d = 0, h = 0, mi = 0, s = 0] = m.slice(1).map(Number);

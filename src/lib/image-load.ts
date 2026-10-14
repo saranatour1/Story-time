@@ -15,10 +15,19 @@ export type MountedImage = { id: string; role: "list" | "page"; visible: boolean
 
 export const visibleTiles = (viewportPx: number): number => {
   if (viewportPx <= 0) return 0;
-  return Math.min(SHELF_LIMIT, Math.max(0, Math.floor((viewportPx + SHELF_GAP_PX) / (SHELF_TILE_PX + SHELF_GAP_PX))));
+  return Math.min(
+    SHELF_LIMIT,
+    Math.max(0, Math.floor((viewportPx + SHELF_GAP_PX) / (SHELF_TILE_PX + SHELF_GAP_PX))),
+  );
 };
 
-export type ImageWork = { fetches: number; decodes: number; full: number; thumbs: number; bytes: number };
+export type ImageWork = {
+  fetches: number;
+  decodes: number;
+  full: number;
+  thumbs: number;
+  bytes: number;
+};
 
 const work = (images: MountedImage[], thumbs: boolean): ImageWork => {
   const full = images.filter((image) => !thumbs || image.role === "page").length;
@@ -48,7 +57,12 @@ export const imageWorkAfter = (images: MountedImage[]): ImageWork => {
 
 // Drops the oldest idle entries until the cache is within `max`. `drop` revokes
 // the blob URL. Entries still on screen stay.
-export const evictUnused = <T>(cache: Map<string, T>, max: number, idle: (entry: T) => boolean, drop: (entry: T) => void): void => {
+export const evictUnused = <T>(
+  cache: Map<string, T>,
+  max: number,
+  idle: (entry: T) => boolean,
+  drop: (entry: T) => void,
+): void => {
   for (const [id, entry] of cache) {
     if (cache.size <= max) return;
     if (!idle(entry)) continue;

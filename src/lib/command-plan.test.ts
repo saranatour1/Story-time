@@ -15,14 +15,30 @@ const flight: MomentView = {
   blocks: [{ type: "photo", mediaId: "p1" as Id<"media"> }],
   transport: "plane",
   stops: [
-    { place: "Istanbul", blocks: [{ type: "photo", mediaId: "p2" as Id<"media"> }, { type: "photo", mediaId: "p3" as Id<"media"> }] },
+    {
+      place: "Istanbul",
+      blocks: [
+        { type: "photo", mediaId: "p2" as Id<"media"> },
+        { type: "photo", mediaId: "p3" as Id<"media"> },
+      ],
+    },
   ],
   labels: [],
 };
 
 describe("describeOp", () => {
   test("a new moment says what it holds and when", () => {
-    const line = describeOp({ op: "add", note: "Museum day", place: "Berlin", startsAt: FLIGHT, tzOffsetMinutes: 60, transport: "train" }, [flight]);
+    const line = describeOp(
+      {
+        op: "add",
+        note: "Museum day",
+        place: "Berlin",
+        startsAt: FLIGHT,
+        tzOffsetMinutes: 60,
+        transport: "train",
+      },
+      [flight],
+    );
     expect(line.heading).toBe("New moment in Berlin");
     expect(line.changes[0]).toBe('"Museum day"');
     expect(line.changes).toContain("by train");
@@ -31,21 +47,39 @@ describe("describeOp", () => {
 
   test("an edit names the moment and each change", () => {
     const line = describeOp(
-      { op: "edit", momentId: flightId, stop: 1, startsAt: FLIGHT + 86_400_000, transport: null, labels: ["travel"], note: "Gate 24" },
+      {
+        op: "edit",
+        momentId: flightId,
+        stop: 1,
+        startsAt: FLIGHT + 86_400_000,
+        transport: null,
+        labels: ["travel"],
+        note: "Gate 24",
+      },
       [flight],
     );
     expect(line.heading).toBe("Queen Alia Airport · Feb 20");
-    expect(line.changes).toEqual([expect.stringMatching(/^time: .*Feb 21/), "no transport", 'add a note "Gate 24"', "labels: travel"]);
+    expect(line.changes).toEqual([
+      expect.stringMatching(/^time: .*Feb 21/),
+      "no transport",
+      'add a note "Gate 24"',
+      "labels: travel",
+    ]);
   });
 
   test("an edit of a later stop says which one", () => {
-    const line = describeOp({ op: "edit", momentId: flightId, stop: 2, place: "Sabiha Gökçen" }, [flight]);
+    const line = describeOp({ op: "edit", momentId: flightId, stop: 2, place: "Sabiha Gökçen" }, [
+      flight,
+    ]);
     expect(line.heading).toBe("Queen Alia Airport · Feb 20, stop 2 (Istanbul)");
     expect(line.changes).toEqual(["place: Sabiha Gökçen"]);
   });
 
   test("a new stop says where it goes", () => {
-    const line = describeOp({ op: "addStop", momentId: flightId, place: "Hanover", after: 1, transport: "plane" }, [flight]);
+    const line = describeOp(
+      { op: "addStop", momentId: flightId, place: "Hanover", after: 1, transport: "plane" },
+      [flight],
+    );
     expect(line.changes).toEqual(["add a stop: Hanover after stop 1", "by plane"]);
   });
 
@@ -62,9 +96,9 @@ describe("describeOp", () => {
   });
 
   test("a moment that has gone since is said so, not guessed at", () => {
-    expect(describeOp({ op: "edit", momentId: "other" as Id<"moments">, place: "x" }, [flight]).heading).toBe(
-      "A moment that is no longer here",
-    );
+    expect(
+      describeOp({ op: "edit", momentId: "other" as Id<"moments">, place: "x" }, [flight]).heading,
+    ).toBe("A moment that is no longer here");
   });
 });
 
@@ -91,6 +125,11 @@ describe("pinning places", () => {
   });
 
   test("a name that wasn't found stays unpinned", () => {
-    expect(withPins(ops, new Map()).map((o) => o.geo?.lat)).toEqual([undefined, undefined, 52.5, undefined]);
+    expect(withPins(ops, new Map()).map((o) => o.geo?.lat)).toEqual([
+      undefined,
+      undefined,
+      52.5,
+      undefined,
+    ]);
   });
 });

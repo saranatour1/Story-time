@@ -61,7 +61,10 @@ export const reversePlace = async (geo: Geo): Promise<string | undefined> => {
 
 // The best match for a place someone named in words, with where it is, or
 // undefined. `near` biases the search toward the trip.
-export const findPlace = async (q: string, near?: Geo): Promise<{ label: string; geo: Geo } | undefined> => {
+export const findPlace = async (
+  q: string,
+  near?: Geo,
+): Promise<{ label: string; geo: Geo } | undefined> => {
   try {
     const res = await fetch(photonUrl("api", { q, near, limit: 5 }));
     const best = res.ok ? toSuggestions(await res.json())[0] : undefined;
@@ -88,10 +91,14 @@ const toSuggestions = (json: unknown): Suggestion[] => {
     if (!short) return [];
     const city = p.city && p.city !== short ? p.city : undefined;
     const label = city && !short.includes(city) ? `${short}, ${city}` : short;
-    const context = [city ?? (p.state !== name ? p.state : undefined), p.country].filter(Boolean).join(", ");
+    const context = [city ?? (p.state !== name ? p.state : undefined), p.country]
+      .filter(Boolean)
+      .join(", ");
     if (seen.has(`${label}|${context}`)) return [];
     seen.add(`${label}|${context}`);
-    return [{ key: `${p.osm_type ?? ""}${p.osm_id ?? i}`, label, name, context, geo: { lat, lng } }];
+    return [
+      { key: `${p.osm_type ?? ""}${p.osm_id ?? i}`, label, name, context, geo: { lat, lng } },
+    ];
   });
 };
 
@@ -175,7 +182,9 @@ export const PlaceInput = ({
       e.preventDefault();
       setOpen(true);
       const step = e.key === "ArrowDown" ? 1 : -1;
-      setActive((a) => (open ? (a + step + options.length) % options.length : step === 1 ? 0 : options.length - 1));
+      setActive((a) =>
+        open ? (a + step + options.length) % options.length : step === 1 ? 0 : options.length - 1,
+      );
     } else if (e.key === "Enter" && open && active >= 0) {
       // Picks the suggestion instead of submitting the form.
       e.preventDefault();
@@ -219,7 +228,12 @@ export const PlaceInput = ({
           hidden={!open}
           className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"
         >
-          <ul id={listId} role="listbox" aria-label="Places" className="max-h-64 overflow-y-auto p-1">
+          <ul
+            id={listId}
+            role="listbox"
+            aria-label="Places"
+            className="max-h-64 overflow-y-auto p-1"
+          >
             {options.map((o, i) => (
               <li
                 key={o.key}
@@ -230,18 +244,28 @@ export const PlaceInput = ({
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(o)}
                 onMouseMove={() => setActive(i)}
-                className={cn("cursor-pointer rounded-sm px-2 py-1.5 text-sm", i === active && "bg-accent text-accent-foreground")}
+                className={cn(
+                  "cursor-pointer rounded-sm px-2 py-1.5 text-sm",
+                  i === active && "bg-accent text-accent-foreground",
+                )}
               >
                 <span className="block truncate font-medium">{o.name}</span>
-                {o.context && <span className="block truncate text-xs text-muted-foreground">{o.context}</span>}
+                {o.context && (
+                  <span className="block truncate text-xs text-muted-foreground">{o.context}</span>
+                )}
               </li>
             ))}
           </ul>
-          <p className="border-t px-3 py-1 text-[11px] text-muted-foreground">Places from OpenStreetMap</p>
+          <p className="border-t px-3 py-1 text-[11px] text-muted-foreground">
+            Places from OpenStreetMap
+          </p>
         </div>
       </div>
       {status === "on" ? (
-        <p id={statusId} className="flex items-center gap-1 text-xs text-amber-800 dark:text-amber-200">
+        <p
+          id={statusId}
+          className="flex items-center gap-1 text-xs text-amber-800 dark:text-amber-200"
+        >
           <MapPinIcon aria-hidden className="size-3.5" /> On the map
           {fromPhoto && <span className="text-muted-foreground">· from photo location</span>}
         </p>

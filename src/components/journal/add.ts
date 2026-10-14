@@ -59,21 +59,36 @@ const SIZES: Record<string, { w: number; h: number }> = {
 
 export const sizeOf = (kind: JournalElement["kind"], style?: string): { w: number; h: number } => {
   if (kind !== "deco") return SIZES[kind] ?? SIZES.note!;
-  const family = style?.startsWith("tape") ? "tape" : style?.startsWith("circle") ? "circle" : style ?? "tape";
+  const family = style?.startsWith("tape")
+    ? "tape"
+    : style?.startsWith("circle")
+      ? "circle"
+      : (style ?? "tape");
   return SIZES[family] ?? SIZES.tape!;
 };
 
 // What the stickers with words on them say when they are first put down.
-export const WORDED: Record<string, string> = { ticket: "ADMIT ONE", postmark: "HELLO", "luggage-tag": "BON VOYAGE", ribbon: "HAPPY DAYS", speech: "Wish you were here!", tier: "S" };
+export const WORDED: Record<string, string> = {
+  ticket: "ADMIT ONE",
+  postmark: "HELLO",
+  "luggage-tag": "BON VOYAGE",
+  ribbon: "HAPPY DAYS",
+  speech: "Wish you were here!",
+  tier: "S",
+};
 
 // Shapes sit behind what is on the page; everything else goes on top.
 export const behind = (thing: Pick<JournalElement, "kind" | "style">) =>
-  thing.kind === "deco" && (thing.style?.startsWith("circle") || thing.style === "triangles" || thing.style === "dots");
+  thing.kind === "deco" &&
+  (thing.style?.startsWith("circle") || thing.style === "triangles" || thing.style === "dots");
 
 let fan = 0;
 
 export const placed = (thing: NewThing, on: JournalElement[], id: string): JournalElement => {
-  const { w, h } = { ...sizeOf(thing.kind, thing.style), ...("w" in thing && thing.w ? { w: thing.w, h: thing.h } : {}) };
+  const { w, h } = {
+    ...sizeOf(thing.kind, thing.style),
+    ...("w" in thing && thing.w ? { w: thing.w, h: thing.h } : {}),
+  };
   const k = (fan++ % 7) - 3;
   const zs = on.map((e) => e.z);
   const z = behind(thing) ? Math.min(0, ...zs) - 1 : Math.max(0, ...zs) + 1;

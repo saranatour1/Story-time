@@ -21,7 +21,13 @@ const useJournalFonts = () => {
   }, []);
 };
 
-export type PageData = { _id: string; paper: string; locked: boolean; momentId?: string; elements: JournalElement[] };
+export type PageData = {
+  _id: string;
+  paper: string;
+  locked: boolean;
+  momentId?: string;
+  elements: JournalElement[];
+};
 
 // One A4 page, drawn at `scale`: its paper and everything on it, back to front.
 // `children` sit on top in page units (the editor's handles and text box).
@@ -42,18 +48,41 @@ export const JournalPage = forwardRef<
     className?: string;
     children?: ReactNode;
   }
->(function JournalPage({ page, moments, scale, live = true, print = false, pageKey, reading = false, className, children }, ref) {
+>(function JournalPage(
+  {
+    page,
+    moments,
+    scale,
+    live = true,
+    print = false,
+    pageKey,
+    reading = false,
+    className,
+    children,
+  },
+  ref,
+) {
   useJournalFonts();
   const look = paperLook(page.paper);
   const elements = [...page.elements].sort((a, b) => a.z - b.z);
   return (
-    <div className={cn("relative shrink-0", className)} style={{ width: PAGE.w * scale, height: PAGE.h * scale }}>
+    <div
+      className={cn("relative shrink-0", className)}
+      style={{ width: PAGE.w * scale, height: PAGE.h * scale }}
+    >
       <div
         ref={ref}
         data-journal-page
         data-page-id={pageKey}
         className="paper-scope absolute top-0 left-0 overflow-hidden"
-        style={{ ...look.style, width: PAGE.w, height: PAGE.h, transform: `scale(${scale})`, transformOrigin: "0 0", color: look.ink }}
+        style={{
+          ...look.style,
+          width: PAGE.w,
+          height: PAGE.h,
+          transform: `scale(${scale})`,
+          transformOrigin: "0 0",
+          color: look.ink,
+        }}
       >
         <HeartClip />
         {elements.map((e) => {
@@ -80,11 +109,21 @@ export const JournalPage = forwardRef<
 
 // Place names in the postcard frame, for a thumbnail or a printed page.
 const MapNames = ({ moment }: { moment: StoryMoment | undefined }) => {
-  const names = moment === undefined ? [] : stopsOf(moment).map((stop, i) => placeLabel(stop, i)).filter((name) => name !== "");
+  const names =
+    moment === undefined
+      ? []
+      : stopsOf(moment)
+          .map((stop, i) => placeLabel(stop, i))
+          .filter((name) => name !== "");
   return (
     <div className="size-full bg-[#fffdf6] p-2">
-      <div className="flex size-full flex-col items-center justify-center gap-1 bg-[#dfe7df] px-3 text-center text-stone-600" style={{ fontFamily: FONTS.hand, fontSize: 22 }}>
-        {names.length === 0 ? "No places on the map yet" : names.map((name) => <span key={name}>{name}</span>)}
+      <div
+        className="flex size-full flex-col items-center justify-center gap-1 bg-[#dfe7df] px-3 text-center text-stone-600"
+        style={{ fontFamily: FONTS.hand, fontSize: 22 }}
+      >
+        {names.length === 0
+          ? "No places on the map yet"
+          : names.map((name) => <span key={name}>{name}</span>)}
       </div>
     </div>
   );

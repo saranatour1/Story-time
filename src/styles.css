@@ -221,10 +221,22 @@
 
 /* A journal page turning: in from the spine, or back towards it. */
 @keyframes journal-turn-in {
-  from { transform: rotateY(-28deg) translateX(24px); opacity: 0.2; }
-  to { transform: none; opacity: 1; }
+  from {
+    transform: rotateY(-28deg) translateX(24px);
+    opacity: 0.2;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
 @keyframes journal-turn-back {
-  from { transform: rotateY(28deg) translateX(-24px); opacity: 0.2; }
-  to { transform: none; opacity: 1; }
+  from {
+    transform: rotateY(28deg) translateX(-24px);
+    opacity: 0.2;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }

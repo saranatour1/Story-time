@@ -27,7 +27,8 @@ const matches = (filter: Filter, actor: ActorView): boolean => {
 };
 
 // The full date, for the tooltip on the relative one.
-const fullDate = (ms: number) => new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+const fullDate = (ms: number) =>
+  new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 // "Today", "Yesterday", then the day itself.
 const dayLabel = (ms: number): string => {
@@ -77,8 +78,14 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">Every change to this experience, by people and by agents.</p>
-        <div role="radiogroup" aria-label="Show changes by" className="flex w-fit gap-1 rounded-lg bg-muted p-1">
+        <p className="text-sm text-muted-foreground">
+          Every change to this experience, by people and by agents.
+        </p>
+        <div
+          role="radiogroup"
+          aria-label="Show changes by"
+          className="flex w-fit gap-1 rounded-lg bg-muted p-1"
+        >
           {FILTERS.map(({ value, label }) => (
             <button
               key={value}
@@ -107,7 +114,9 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
       ) : (
         days.map(({ label, changes }) => (
           <section key={label} aria-label={label} className="space-y-2">
-            <h3 className="px-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</h3>
+            <h3 className="px-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {label}
+            </h3>
             <ol className="divide-y rounded-xl border bg-card">
               {changes.map((c) => {
                 const actor = actorOf(c);
@@ -116,7 +125,10 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
                   <li key={c._id} className="flex items-center gap-3 px-4 py-3">
                     <Avatar actor={actor} />
                     <p className="min-w-0 flex-1 text-sm leading-relaxed text-pretty">
-                      <Who actor={actor} you={you} /> <span className="text-muted-foreground">{asPredicate(describeChange(c))}</span>
+                      <Who actor={actor} you={you} />{" "}
+                      <span className="text-muted-foreground">
+                        {asPredicate(describeChange(c))}
+                      </span>
                     </p>
                     <time
                       dateTime={new Date(c.at).toISOString()}
@@ -167,6 +179,9 @@ const Avatar = ({ actor }: { actor: ActorView }) => {
 // an agent as its badge, the system as Story-time.
 const Who = ({ actor, you }: { actor: ActorView; you: boolean }) => {
   if (actor.kind === "agent") return <ActorBadge actor={actor} className="align-[1px]" />;
-  if (actor.kind === "system") return <span className="font-medium text-foreground">Story-time</span>;
-  return <span className="font-medium text-foreground">{you ? "You" : (actor.name ?? "Someone")}</span>;
+  if (actor.kind === "system")
+    return <span className="font-medium text-foreground">Story-time</span>;
+  return (
+    <span className="font-medium text-foreground">{you ? "You" : (actor.name ?? "Someone")}</span>
+  );
 };

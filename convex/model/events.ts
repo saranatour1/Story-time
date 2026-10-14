@@ -1,12 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { components, internal } from "../_generated/api";
-import {
-  internalMutation,
-  mutation,
-  query,
-  type QueryCtx,
-} from "../_generated/server";
+import { internalMutation, mutation, query, type QueryCtx } from "../_generated/server";
 import {
   getEventAccess,
   getUserId,
@@ -19,14 +14,9 @@ import { coverWords, followCover } from "../lib/cover";
 import { decryptGeo, encryptText, readText } from "../lib/crypto";
 import { MAX_EVENTS_PER_USER } from "../lib/limits";
 
-const vStatus = v.union(
-  v.literal("draft"),
-  v.literal("active"),
-  v.literal("archived"),
-);
+const vStatus = v.union(v.literal("draft"), v.literal("active"), v.literal("archived"));
 // Owners set these by hand. A link is switched on and off only in share.ts.
 const vEditableVisibility = v.union(v.literal("private"), v.literal("invite"));
-
 
 // Moments read for a sketch, and the most points it keeps: enough for a shape.
 const SKETCH_MOMENTS = 12;
@@ -76,10 +66,7 @@ const toView = async (event: Doc<"events">, role: EventRole) => {
 
 // The chosen cover, else the first photo (not video) of the earliest few
 // moments, first stop before later ones. Bounded to 5 moments per event.
-const coverFor = async (
-  ctx: QueryCtx,
-  event: Doc<"events">,
-): Promise<Id<"media"> | undefined> => {
+const coverFor = async (ctx: QueryCtx, event: Doc<"events">): Promise<Id<"media"> | undefined> => {
   if (event.coverMediaId !== undefined) return event.coverMediaId;
   const moments = await ctx.db
     .query("moments")
@@ -150,11 +137,7 @@ const update = mutation({
     status: v.optional(vStatus),
   },
   handler: async (ctx, args) => {
-    const { userId, event } = await requireEventAccess(
-      ctx,
-      args.eventId,
-      "owner",
-    );
+    const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
 
     const title = args.title?.trim();
     if (title !== undefined && (title.length < 3 || title.length > 80)) {
@@ -163,10 +146,8 @@ const update = mutation({
     if (args.description !== undefined && args.description.length > 2000) {
       invalid("description", "Description must be 2000 characters or fewer");
     }
-    const startsAt =
-      args.startsAt === undefined ? event.startsAt : (args.startsAt ?? undefined);
-    const endsAt =
-      args.endsAt === undefined ? event.endsAt : (args.endsAt ?? undefined);
+    const startsAt = args.startsAt === undefined ? event.startsAt : (args.startsAt ?? undefined);
+    const endsAt = args.endsAt === undefined ? event.endsAt : (args.endsAt ?? undefined);
     if (startsAt !== undefined && endsAt !== undefined && endsAt < startsAt) {
       invalid("endsAt", "End must be after the start");
     }
@@ -205,7 +186,8 @@ const update = mutation({
     if (args.description !== undefined) {
       const next = args.description.trim() === "" ? undefined : args.description;
       if (next !== (await readText(event._id, event.description))) {
-        patch.description = next === undefined ? undefined : await encryptText(event._id, event.keyVersion, next);
+        patch.description =
+          next === undefined ? undefined : await encryptText(event._id, event.keyVersion, next);
         fields.push("description");
       }
     }
@@ -214,7 +196,13 @@ const update = mutation({
     await ctx.db.patch("events", args.eventId, patch);
     if (fields.includes("title") || fields.includes("startsAt") || fields.includes("endsAt")) {
       const updated = await ctx.db.get("events", args.eventId);
-      if (updated !== null) await followCover(ctx, updated, await coverWords(ctx, event), await coverWords(ctx, updated));
+      if (updated !== null)
+        await followCover(
+          ctx,
+          updated,
+          await coverWords(ctx, event),
+          await coverWords(ctx, updated),
+        );
     }
     await recordChange(ctx, {
       eventId: args.eventId,

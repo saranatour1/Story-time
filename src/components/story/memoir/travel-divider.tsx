@@ -15,7 +15,15 @@ const duration = (minutes: number) => {
 // and how long after the stop before, when both stops have times (the time
 // between stops, not the ride: the stop before is in it too). Its id is its
 // step, so the map and the keys can reach it.
-export const TravelDivider = ({ step, leg, minutes }: { step: number; leg: TravelScene; minutes?: number }) => {
+export const TravelDivider = ({
+  step,
+  leg,
+  minutes,
+}: {
+  step: number;
+  leg: TravelScene;
+  minutes?: number;
+}) => {
   const phrase = transportOf(leg.transport)?.phrase.toLowerCase() ?? "on the way";
   return (
     <div

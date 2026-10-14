@@ -54,9 +54,28 @@ export type PaperLook = { name: string; color: string; ink: string; style: CSSPr
 const vignette = "radial-gradient(ellipse at center, transparent 55%, rgba(90,60,20,.16) 100%)";
 
 export const PAPER_LOOKS: Record<string, PaperLook> = {
-  cream: { name: "Cream", color: "#f3ead6", ink: INK, style: { backgroundColor: "#f3ead6", backgroundImage: `${vignette}, ${GRAIN}` } },
-  newsprint: { name: "Newsprint", color: "#ebe5d5", ink: INK, style: { backgroundColor: "#ebe5d5", backgroundImage: `${vignette}, ${NEWS}, ${GRAIN}`, backgroundSize: "auto, 240px 120px, auto" } },
-  kraft: { name: "Kraft", color: "#c8a77a", ink: INK, style: { backgroundColor: "#c8a77a", backgroundImage: `${vignette}, ${GRAIN}, ${GRAIN}` } },
+  cream: {
+    name: "Cream",
+    color: "#f3ead6",
+    ink: INK,
+    style: { backgroundColor: "#f3ead6", backgroundImage: `${vignette}, ${GRAIN}` },
+  },
+  newsprint: {
+    name: "Newsprint",
+    color: "#ebe5d5",
+    ink: INK,
+    style: {
+      backgroundColor: "#ebe5d5",
+      backgroundImage: `${vignette}, ${NEWS}, ${GRAIN}`,
+      backgroundSize: "auto, 240px 120px, auto",
+    },
+  },
+  kraft: {
+    name: "Kraft",
+    color: "#c8a77a",
+    ink: INK,
+    style: { backgroundColor: "#c8a77a", backgroundImage: `${vignette}, ${GRAIN}, ${GRAIN}` },
+  },
   grid: {
     name: "Graph",
     color: "#f6f2e6",
@@ -76,15 +95,36 @@ export const PAPER_LOOKS: Record<string, PaperLook> = {
       backgroundImage: `${vignette}, linear-gradient(90deg, transparent 78px, rgba(200,70,70,.35) 78px, rgba(200,70,70,.35) 80px, transparent 80px), repeating-linear-gradient(transparent 0 33px, rgba(70,110,170,.22) 33px 34px), ${GRAIN}`,
     },
   },
-  blush: { name: "Blush", color: "#f2d8cf", ink: INK, style: { backgroundColor: "#f2d8cf", backgroundImage: `${vignette}, ${GRAIN}` } },
-  sky: { name: "Sky", color: "#d8e6ea", ink: INK, style: { backgroundColor: "#d8e6ea", backgroundImage: `${vignette}, ${GRAIN}` } },
-  ink: { name: "Ink", color: "#26221d", ink: "#f3ead6", style: { backgroundColor: "#26221d", backgroundImage: `radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,.35) 100%), ${GRAIN}` } },
+  blush: {
+    name: "Blush",
+    color: "#f2d8cf",
+    ink: INK,
+    style: { backgroundColor: "#f2d8cf", backgroundImage: `${vignette}, ${GRAIN}` },
+  },
+  sky: {
+    name: "Sky",
+    color: "#d8e6ea",
+    ink: INK,
+    style: { backgroundColor: "#d8e6ea", backgroundImage: `${vignette}, ${GRAIN}` },
+  },
+  ink: {
+    name: "Ink",
+    color: "#26221d",
+    ink: "#f3ead6",
+    style: {
+      backgroundColor: "#26221d",
+      backgroundImage: `radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,.35) 100%), ${GRAIN}`,
+    },
+  },
 };
 
-export const paperLook = (name: string | undefined): PaperLook => PAPER_LOOKS[name ?? "cream"] ?? PAPER_LOOKS.cream!;
+export const paperLook = (name: string | undefined): PaperLook =>
+  PAPER_LOOKS[name ?? "cream"] ?? PAPER_LOOKS.cream!;
 
 // A cut-out's lift off the page: a hard edge shadow and a soft one.
-export const LIFT: CSSProperties = { filter: "drop-shadow(1px 2px 0 rgba(40,28,10,.18)) drop-shadow(0 6px 8px rgba(40,28,10,.18))" };
+export const LIFT: CSSProperties = {
+  filter: "drop-shadow(1px 2px 0 rgba(40,28,10,.18)) drop-shadow(0 6px 8px rgba(40,28,10,.18))",
+};
 
 // The white die-cut edge round a sticker.
 export const DIE_CUT: CSSProperties = {
@@ -186,7 +226,11 @@ export const INKS = [
   { name: "White", color: "#fffdf6" },
 ] as const;
 
-export const DRAW_NAMES: Record<string, string> = { pen: "Pen", marker: "Marker", highlighter: "Highlighter" };
+export const DRAW_NAMES: Record<string, string> = {
+  pen: "Pen",
+  marker: "Marker",
+  highlighter: "Highlighter",
+};
 // How thick each makes a line, in page units, and how see-through.
 export const DRAW_WIDTH: Record<string, { width: number; opacity: number }> = {
   pen: { width: 3.5, opacity: 1 },

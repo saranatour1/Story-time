@@ -34,10 +34,12 @@ export const useRoutePath = (
       if (live) setDone((prev) => (prev?.key === key ? prev : { key, path }));
     };
     const timer = setTimeout(() => settle(undefined), WAIT_MS);
-    void fetchPath({ lat: fromLat, lng: fromLng }, { lat: toLat, lng: toLng }, transport).then((path) => {
-      clearTimeout(timer);
-      settle(path);
-    });
+    void fetchPath({ lat: fromLat, lng: fromLng }, { lat: toLat, lng: toLng }, transport).then(
+      (path) => {
+        clearTimeout(timer);
+        settle(path);
+      },
+    );
     return () => {
       live = false;
       clearTimeout(timer);
@@ -45,7 +47,9 @@ export const useRoutePath = (
   }, [key, wanted, fromLat, fromLng, toLat, toLng, transport]);
 
   if (!wanted) return { path: undefined, settled: true };
-  return done?.key === key ? { path: done.path, settled: true } : { path: undefined, settled: false };
+  return done?.key === key
+    ? { path: done.path, settled: true }
+    : { path: undefined, settled: false };
 };
 
 type ChainStop = { lat: number; lng: number; transport?: Transport };
@@ -62,7 +66,10 @@ export const useChainPaths = (stops: ChainStop[]): Array<Path | undefined> => {
   const key = stops.map((s) => `${s.transport ?? ""}:${s.lat},${s.lng}`).join(";");
   const chain = useRef(stops);
   chain.current = stops;
-  const [found, setFound] = useState<{ key: string; paths: Array<Path | undefined> }>({ key: "", paths: [] });
+  const [found, setFound] = useState<{ key: string; paths: Array<Path | undefined> }>({
+    key: "",
+    paths: [],
+  });
 
   useEffect(() => {
     const list = chain.current;
@@ -74,7 +81,13 @@ export const useChainPaths = (stops: ChainStop[]): Array<Path | undefined> => {
     setFound({ key, paths: [...paths] });
     const todo = list.flatMap((s, i) => {
       const prev = list[i - 1];
-      return i <= MAX_LEGS && prev && s.transport && paths[i] === undefined && wantsPath(prev, s, s.transport) ? [i] : [];
+      return i <= MAX_LEGS &&
+        prev &&
+        s.transport &&
+        paths[i] === undefined &&
+        wantsPath(prev, s, s.transport)
+        ? [i]
+        : [];
     });
     let next = 0;
     const work = async () => {

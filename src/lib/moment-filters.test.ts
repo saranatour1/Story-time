@@ -18,14 +18,18 @@ test("search finds places, words, links, labels and people, whatever the case", 
     place: "Hanover",
     authorName: "Sara",
     labels: ["food"],
-    blocks: [{ type: "note", text: "Coffee by the lake" }, { type: "link", url: "https://x.test/menu", title: "The menu" }],
+    blocks: [
+      { type: "note", text: "Coffee by the lake" },
+      { type: "link", url: "https://x.test/menu", title: "The menu" },
+    ],
     stops: [{ place: "Sintra", blocks: [] }],
   });
   const photoOnly = moment({ blocks: [{ type: "photo", mediaId: "p" as Id<"media"> }] });
 
   expect(matchesSearch(hanover, "")).toBe(true);
   expect(matchesSearch(hanover, "  ")).toBe(true);
-  for (const q of ["LAKE", "hanover", "sintra", "menu", "food", "sara"]) expect(matchesSearch(hanover, q)).toBe(true);
+  for (const q of ["LAKE", "hanover", "sintra", "menu", "food", "sara"])
+    expect(matchesSearch(hanover, q)).toBe(true);
   expect(matchesSearch(hanover, "porto")).toBe(false);
   expect(matchesSearch(photoOnly, "lake")).toBe(false);
 });

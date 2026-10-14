@@ -25,9 +25,12 @@ export const useInView = <T extends Element>() => {
   useEffect(() => {
     const el = ref.current;
     if (!el || inView) return;
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry?.isIntersecting) setInView(true);
-    }, { threshold: 0.4 });
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) setInView(true);
+      },
+      { threshold: 0.4 },
+    );
     io.observe(el);
     return () => io.disconnect();
   }, [inView]);
@@ -38,7 +41,8 @@ export const useInView = <T extends Element>() => {
 export const SAMPLE = {
   dates: "May 2, 2026 – May 9, 2026",
   title: "A week in Portugal",
-  description: "Inês and Tom got married in Porto. Most of us stayed on for a few slow days in Lisbon.",
+  description:
+    "Inês and Tom got married in Porto. Most of us stayed on for a few slow days in Lisbon.",
   counts: "14 moments · 23 stops",
 };
 
@@ -48,7 +52,15 @@ const LINE_GAP = 8;
 
 // Story mode's title page: dates, title, a line about it and the counts,
 // typed out on paper when `animate` is on.
-export const TitlePage = ({ animate, size, className }: { animate: boolean; size: "sm" | "lg"; className?: string }) => {
+export const TitlePage = ({
+  animate,
+  size,
+  className,
+}: {
+  animate: boolean;
+  size: "sm" | "lg";
+  className?: string;
+}) => {
   const lines = [SAMPLE.dates, SAMPLE.title, SAMPLE.description, SAMPLE.counts];
   const starts: number[] = [];
   let total = 0;
@@ -100,10 +112,27 @@ export const TitlePage = ({ animate, size, className }: { animate: boolean; size
         className,
       )}
     >
-      <p className={cn("text-stone-600", lg ? "text-[0.6875rem] sm:text-xs" : "text-[0.625rem]")}>{line(0)}</p>
-      <p className={cn("leading-tight font-bold", lg ? "mt-4 text-xl sm:text-3xl" : "mt-3 text-lg")}>{line(1)}</p>
-      <p className={cn("leading-relaxed", lg ? "mt-4 text-xs sm:text-sm" : "mt-3 text-[0.6875rem]")}>{line(2)}</p>
-      <p className={cn("text-stone-600", lg ? "mt-5 text-[0.6875rem] sm:text-xs" : "mt-4 text-[0.625rem]")}>{line(3)}</p>
+      <p className={cn("text-stone-600", lg ? "text-[0.6875rem] sm:text-xs" : "text-[0.625rem]")}>
+        {line(0)}
+      </p>
+      <p
+        className={cn("leading-tight font-bold", lg ? "mt-4 text-xl sm:text-3xl" : "mt-3 text-lg")}
+      >
+        {line(1)}
+      </p>
+      <p
+        className={cn("leading-relaxed", lg ? "mt-4 text-xs sm:text-sm" : "mt-3 text-[0.6875rem]")}
+      >
+        {line(2)}
+      </p>
+      <p
+        className={cn(
+          "text-stone-600",
+          lg ? "mt-5 text-[0.6875rem] sm:text-xs" : "mt-4 text-[0.625rem]",
+        )}
+      >
+        {line(3)}
+      </p>
     </div>
   );
 };
@@ -130,7 +159,12 @@ export const SunsetPhoto = () => {
         <rect x="41.7" y="20" width="1.8" height="27" />
         <rect y="40" width="60" height="1.4" />
       </g>
-      <path d="M0 37 Q11 35 17.4 20.5 Q30 39 42.6 20.5 Q49 35 60 37" fill="none" stroke="#431407" strokeWidth="0.6" />
+      <path
+        d="M0 37 Q11 35 17.4 20.5 Q30 39 42.6 20.5 Q49 35 60 37"
+        fill="none"
+        stroke="#431407"
+        strokeWidth="0.6"
+      />
       <g fill="#fde68a" fillOpacity="0.7">
         <rect x="25" y="48.5" width="10" height="0.8" />
         <rect x="27" y="51.5" width="6" height="0.8" />

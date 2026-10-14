@@ -52,7 +52,9 @@ const enrich = action({
     hint: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<boolean> => {
-    const userId: Id<"users"> = await ctx.runQuery(internal.model.ai.enrich.authorize, { momentId: args.momentId });
+    const userId: Id<"users"> = await ctx.runQuery(internal.model.ai.enrich.authorize, {
+      momentId: args.momentId,
+    });
     if (!(await takeAi(ctx, userId))) return false;
     if (args.thumbs !== undefined && args.thumbs.length > 0) {
       await captionMoment(ctx, {

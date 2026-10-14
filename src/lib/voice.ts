@@ -2,7 +2,12 @@
 
 // What the recorder is asked for, best first: Chrome, Edge and Firefox make
 // webm or ogg, Safari makes mp4 (AAC).
-const PREFERRED = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"] as const;
+const PREFERRED = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/ogg;codecs=opus",
+  "audio/mp4",
+] as const;
 
 export type VoiceFormat = "webm" | "ogg" | "m4a";
 
@@ -17,7 +22,11 @@ export const formatOfMime = (mime: string): VoiceFormat | undefined => {
 
 // Whether this browser can record at all: needs a microphone API and a recorder.
 export const canRecord = (): boolean => {
-  return typeof MediaRecorder !== "undefined" && typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
+  return (
+    typeof MediaRecorder !== "undefined" &&
+    typeof navigator !== "undefined" &&
+    !!navigator.mediaDevices?.getUserMedia
+  );
 };
 
 // The first type from PREFERRED this browser records, or undefined to let it choose.

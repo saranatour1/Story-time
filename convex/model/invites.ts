@@ -1,12 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import {
-  internalMutation,
-  mutation,
-  query,
-  type MutationCtx,
-} from "../_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "../_generated/server";
 import { assertNotArchived, requireEventAccess, requireUserId } from "../lib/access";
 import { appOrigin } from "../lib/appUrl";
 import { emailConfigured, replyAddress } from "../lib/emailAddress";
@@ -23,9 +18,7 @@ const chargeInviteEmail = async (ctx: MutationCtx, userId: Id<"users">) => {
   const since = Date.now() - DAY_MS;
   const recent = await ctx.db
     .query("inviteEmails")
-    .withIndex("by_user", (q) =>
-      q.eq("userId", userId).gt("_creationTime", since),
-    )
+    .withIndex("by_user", (q) => q.eq("userId", userId).gt("_creationTime", since))
     .take(EMAILS_PER_DAY);
   if (recent.length >= EMAILS_PER_DAY) {
     throw new ConvexError({
@@ -36,9 +29,7 @@ const chargeInviteEmail = async (ctx: MutationCtx, userId: Id<"users">) => {
   // Rows older than the window are no longer needed.
   const stale = await ctx.db
     .query("inviteEmails")
-    .withIndex("by_user", (q) =>
-      q.eq("userId", userId).lte("_creationTime", since),
-    )
+    .withIndex("by_user", (q) => q.eq("userId", userId).lte("_creationTime", since))
     .take(EMAILS_PER_DAY);
   for (const row of stale) await ctx.db.delete("inviteEmails", row._id);
   await ctx.db.insert("inviteEmails", { userId });
@@ -57,15 +48,13 @@ const create = mutation({
     sendTo: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId, event } = await requireEventAccess(
-      ctx,
-      args.eventId,
-      "owner",
-    );
+    const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
     // Before any email is charged. Used and expired invites are deleted, so
     // the list holds only the ones still waiting.
-    const waiting = await ctx.runQuery(components.invites.lib.listForEvent, { eventId: args.eventId });
+    const waiting = await ctx.runQuery(components.invites.lib.listForEvent, {
+      eventId: args.eventId,
+    });
     if (waiting.length >= MAX_WAITING_INVITES) {
       throw new ConvexError({
         code: "LIMIT",
@@ -73,10 +62,7 @@ const create = mutation({
       });
     }
     const sendTo = args.sendTo?.trim() ?? "";
-    if (
-      sendTo !== "" &&
-      (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sendTo) || sendTo.length > 254)
-    ) {
+    if (sendTo !== "" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sendTo) || sendTo.length > 254)) {
       throw new ConvexError({
         code: "INVALID",
         field: "sendTo",
@@ -87,15 +73,12 @@ const create = mutation({
     const emailed = sendTo !== "" && emailConfigured();
     if (emailed) await chargeInviteEmail(ctx, userId);
     const ttlDays = Math.min(Math.max(args.ttlDays ?? 7, 1), 14);
-    const { token, expiresAt, inviteId } = await ctx.runMutation(
-      components.invites.lib.create,
-      {
-        eventId: args.eventId,
-        invitedBy: userId,
-        role: args.role,
-        ttlMs: ttlDays * DAY_MS,
-      },
-    );
+    const { token, expiresAt, inviteId } = await ctx.runMutation(components.invites.lib.create, {
+      eventId: args.eventId,
+      invitedBy: userId,
+      role: args.role,
+      ttlMs: ttlDays * DAY_MS,
+    });
     // After "#", so the token never reaches a server log or a Referer header.
     const link = `${appOrigin()}/invite#${token}`;
 
@@ -149,9 +132,7 @@ const accept = mutation({
 
     const existing = await ctx.db
       .query("sessions")
-      .withIndex("by_event_and_user", (q) =>
-        q.eq("eventId", event._id).eq("userId", userId),
-      )
+      .withIndex("by_event_and_user", (q) => q.eq("eventId", event._id).eq("userId", userId))
       .unique();
     // A link made before someone's access was revoked can't bring it back
     // (say, one they opened while they still had access): that takes a new

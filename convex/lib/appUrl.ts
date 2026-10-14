@@ -31,7 +31,9 @@ export const appOrigins = (): string[] => {
     try {
       return [new URL(url).origin];
     } catch {
-      console.error(`APP_URL entry "${url}" isn't a URL; use the full origin, like https://example.com`);
+      console.error(
+        `APP_URL entry "${url}" isn't a URL; use the full origin, like https://example.com`,
+      );
       return [];
     }
   });

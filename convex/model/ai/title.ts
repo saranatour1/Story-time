@@ -37,10 +37,15 @@ export const pageMoment = internalQuery({
   returns: v.object({ userId: v.id("users"), momentId: v.id("moments") }),
   handler: async (ctx, args) => {
     const page = await ctx.db.get("journalPages", args.pageId);
-    if (page === null) throw new ConvexError({ code: "NOT_FOUND", message: "That page isn't here any more." });
+    if (page === null)
+      throw new ConvexError({ code: "NOT_FOUND", message: "That page isn't here any more." });
     const { userId, event } = await requireEventAccess(ctx, page.eventId, "owner");
     assertNotArchived(event);
-    if (page.momentId === undefined) throw new ConvexError({ code: "INVALID", message: "Only a moment's page has a moment to name it after." });
+    if (page.momentId === undefined)
+      throw new ConvexError({
+        code: "INVALID",
+        message: "Only a moment's page has a moment to name it after.",
+      });
     return { userId, momentId: page.momentId };
   },
 });
@@ -48,22 +53,47 @@ export const pageMoment = internalQuery({
 const suggest = action({
   args: { pageId: v.id("journalPages"), current: v.optional(v.string()) },
   handler: async (ctx, args): Promise<string> => {
-    const { userId, momentId }: { userId: Id<"users">; momentId: Id<"moments"> } = await ctx.runQuery(internal.model.ai.title.pageMoment, { pageId: args.pageId });
-    if (!(await takeAi(ctx, userId))) throw new ConvexError({ code: "RATE_LIMITED", message: AI_LIMIT_MESSAGE });
+    const { userId, momentId }: { userId: Id<"users">; momentId: Id<"moments"> } =
+      await ctx.runQuery(internal.model.ai.title.pageMoment, { pageId: args.pageId });
+    if (!(await takeAi(ctx, userId)))
+      throw new ConvexError({ code: "RATE_LIMITED", message: AI_LIMIT_MESSAGE });
     const details = await ctx.runQuery(internal.model.ai.scribe.context, { momentId });
     const current = args.current?.trim().slice(0, 80);
     const threadId = await createThread(ctx, components.agent);
     try {
-      const { title } = await generateStructured(ctx, titler, threadId, {
-        schema: titleSchema,
-        messages: [{ role: "user", content: [promptFor(details).replace("The photos are this moment.", ""), current ? `The page's title now, write a different one: ${current}` : "", "Write the title."].filter(Boolean).join("\n") }],
-        jsonInstructions: JSON_INSTRUCTIONS,
-        maxOutputTokens: 100,
-      }, { userId, feature: "title" });
-      return title.replace(/^["'“”]+|["'“”.]+$/g, "").trim().slice(0, 60);
+      const { title } = await generateStructured(
+        ctx,
+        titler,
+        threadId,
+        {
+          schema: titleSchema,
+          messages: [
+            {
+              role: "user",
+              content: [
+                promptFor(details).replace("The photos are this moment.", ""),
+                current ? `The page's title now, write a different one: ${current}` : "",
+                "Write the title.",
+              ]
+                .filter(Boolean)
+                .join("\n"),
+            },
+          ],
+          jsonInstructions: JSON_INSTRUCTIONS,
+          maxOutputTokens: 100,
+        },
+        { userId, feature: "title" },
+      );
+      return title
+        .replace(/^["'“”]+|["'“”.]+$/g, "")
+        .trim()
+        .slice(0, 60);
     } catch (error) {
       console.warn("No title suggestion:", skipReason(error));
-      throw new ConvexError({ code: "AI_FAILED", message: "I couldn't think of a title just now. Try again." });
+      throw new ConvexError({
+        code: "AI_FAILED",
+        message: "I couldn't think of a title just now. Try again.",
+      });
     } finally {
       await titler.deleteThreadSync(ctx, { threadId }).catch(() => undefined);
     }

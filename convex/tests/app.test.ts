@@ -5,16 +5,19 @@ import type { FunctionReturnType } from "convex/server";
 import { beforeAll, describe, expect, test } from "vitest";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import { MAX_LIVE_UPLOAD_BYTES, MAX_PHOTOS_PER_EVENT, MAX_VIDEOS_PER_EVENT, MOMENT_LIMIT } from "../lib/limits";
+import {
+  MAX_LIVE_UPLOAD_BYTES,
+  MAX_PHOTOS_PER_EVENT,
+  MAX_VIDEOS_PER_EVENT,
+  MOMENT_LIMIT,
+} from "../lib/limits";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
-  process.env.ENCRYPTION_MASTER_KEY = btoa(
-    String.fromCharCode(...new Uint8Array(32).fill(7)),
-  );
+  process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
 const setup = async () => {
@@ -40,10 +43,7 @@ const addMoment = async (
   });
 };
 
-const changeCount = async (
-  t: Awaited<ReturnType<typeof setup>>["t"],
-  eventId: Id<"events">,
-) => {
+const changeCount = async (t: Awaited<ReturnType<typeof setup>>["t"], eventId: Id<"events">) => {
   return (
     await t.run((ctx) =>
       ctx.db
@@ -92,9 +92,9 @@ describe("the moment limit", () => {
         mime: "image/png",
       }),
     ).rejects.toThrow(/ARCHIVED/);
-    await expect(
-      owner.mutation(api.api.media.confirmUpload, { mediaId }),
-    ).rejects.toThrow(/ARCHIVED/);
+    await expect(owner.mutation(api.api.media.confirmUpload, { mediaId })).rejects.toThrow(
+      /ARCHIVED/,
+    );
   });
 });
 
@@ -107,9 +107,7 @@ describe("change tracking", () => {
     await owner.mutation(api.api.events.update, { eventId, title: "Lisbon trip" });
     expect(await changeCount(t, eventId)).toBe(2);
 
-    await expect(
-      owner.mutation(api.api.events.update, { eventId, title: "x" }),
-    ).rejects.toThrow();
+    await expect(owner.mutation(api.api.events.update, { eventId, title: "x" })).rejects.toThrow();
     expect(await changeCount(t, eventId)).toBe(2);
   });
 
@@ -134,7 +132,9 @@ describe("change tracking", () => {
     // The description itself is stored encrypted, and reads back as written.
     const event = await t.run((ctx) => ctx.db.get("events", eventId));
     expect(JSON.stringify(event)).not.toContain("secret-description");
-    expect((await owner.query(api.api.events.get, { eventId }))?.description).toBe("secret-description");
+    expect((await owner.query(api.api.events.get, { eventId }))?.description).toBe(
+      "secret-description",
+    );
   });
 
   test("descriptions saved as plain text still read, and the migration encrypts them", async () => {
@@ -157,10 +157,16 @@ describe("paged moments", () => {
     const { owner } = await setup();
     const eventId = await owner.mutation(api.api.events.createDraft, {});
     for (const text of ["a", "b", "c"]) await addMoment(owner, eventId, text);
-    const first = await owner.query(api.api.moments.page, { eventId, paginationOpts: { numItems: 2, cursor: null } });
+    const first = await owner.query(api.api.moments.page, {
+      eventId,
+      paginationOpts: { numItems: 2, cursor: null },
+    });
     expect(first.page).toHaveLength(2);
     expect(first.isDone).toBe(false);
-    const rest = await owner.query(api.api.moments.page, { eventId, paginationOpts: { numItems: 2, cursor: first.continueCursor } });
+    const rest = await owner.query(api.api.moments.page, {
+      eventId,
+      paginationOpts: { numItems: 2, cursor: first.continueCursor },
+    });
     expect(rest.page).toHaveLength(1);
     expect(rest.isDone).toBe(true);
   });
@@ -217,10 +223,12 @@ describe("access and revoke", () => {
       await ctx.db.delete("sessions", id);
       return id;
     });
-    await expect(stranger.mutation(api.api.sessions.revoke, { sessionId })).rejects.toThrow("Event not found");
-    await expect(stranger.mutation(api.api.sessions.revoke, { sessionId: missing })).rejects.toThrow(
+    await expect(stranger.mutation(api.api.sessions.revoke, { sessionId })).rejects.toThrow(
       "Event not found",
     );
+    await expect(
+      stranger.mutation(api.api.sessions.revoke, { sessionId: missing }),
+    ).rejects.toThrow("Event not found");
     expect((await t.run((ctx) => ctx.db.get("sessions", sessionId)))?.revokedAt).toBeUndefined();
   });
 
@@ -234,7 +242,10 @@ describe("access and revoke", () => {
       }
     });
     await expect(
-      friend.query(api.api.sessions.listForEvent, { eventId, paginationOpts: { numItems: 2, cursor: null } }),
+      friend.query(api.api.sessions.listForEvent, {
+        eventId,
+        paginationOpts: { numItems: 2, cursor: null },
+      }),
     ).rejects.toThrow();
     const seen: string[] = [];
     let cursor: string | null = null;
@@ -299,9 +310,7 @@ describe("uploads", () => {
       mime: "image/png",
     });
     await owner.mutation(api.api.sessions.revoke, { sessionId });
-    await expect(
-      friend.mutation(api.api.media.confirmUpload, { mediaId }),
-    ).rejects.toThrow();
+    await expect(friend.mutation(api.api.media.confirmUpload, { mediaId })).rejects.toThrow();
     const media = await t.run((ctx) => ctx.db.get("media", mediaId));
     expect(media?.status).toBe("reserved");
   });
@@ -323,7 +332,8 @@ describe("uploads", () => {
           });
         }
       });
-    const reserve = (mime = "image/png") => owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime });
+    const reserve = (mime = "image/png") =>
+      owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime });
     // Deleted uploads don't count towards the cap.
     await fill("deleted", 60);
     await fill("ready", MAX_PHOTOS_PER_EVENT - 1);
@@ -344,9 +354,7 @@ describe("uploads", () => {
       mime: "image/png",
     });
     await owner.mutation(api.api.media.markDeleted, { mediaId });
-    await expect(
-      owner.mutation(api.api.media.confirmUpload, { mediaId }),
-    ).rejects.toThrow();
+    await expect(owner.mutation(api.api.media.confirmUpload, { mediaId })).rejects.toThrow();
     const media = await t.run((ctx) => ctx.db.get("media", mediaId));
     expect(media?.status).toBe("deleted");
   });
@@ -397,7 +405,11 @@ describe("uploads", () => {
       }),
     );
     // Room for exactly 100 bytes, whichever experience they are for.
-    await owner.mutation(api.api.media.reserveUpload, { eventId: second, size: 100, mime: "image/png" });
+    await owner.mutation(api.api.media.reserveUpload, {
+      eventId: second,
+      size: 100,
+      mime: "image/png",
+    });
     await expect(
       owner.mutation(api.api.media.reserveUpload, { eventId: first, size: 1, mime: "image/png" }),
     ).rejects.toThrow(/UPLOAD_BUDGET/);
@@ -407,7 +419,11 @@ describe("uploads", () => {
     ).rejects.toThrow(/UPLOAD_BUDGET/);
     // Deleting an upload frees its room.
     await t.run((ctx) => ctx.db.patch("media", big, { status: "deleted" }));
-    await owner.mutation(api.api.media.reserveUpload, { eventId: first, size: 1000, mime: "image/png" });
+    await owner.mutation(api.api.media.reserveUpload, {
+      eventId: first,
+      size: 1000,
+      mime: "image/png",
+    });
   });
 
   test("past 5,000 live uploads the budget can't be checked, so new uploads are refused", async () => {

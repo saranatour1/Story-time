@@ -1,5 +1,9 @@
 import { Agent, createThread } from "@convex-dev/agent";
-import { experimental_decide, type Experimental_DecisionAnswer, type Experimental_DecisionQuestion } from "ai";
+import {
+  experimental_decide,
+  type Experimental_DecisionAnswer,
+  type Experimental_DecisionQuestion,
+} from "ai";
 import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 import { z } from "zod";
@@ -87,7 +91,11 @@ const vMomentLine = v.object({
   place: v.optional(v.string()),
   transport: v.optional(vTransport),
   stops: v.array(
-    v.object({ startsAt: v.optional(v.number()), place: v.optional(v.string()), transport: v.optional(vTransport) }),
+    v.object({
+      startsAt: v.optional(v.number()),
+      place: v.optional(v.string()),
+      transport: v.optional(vTransport),
+    }),
   ),
   labels: v.array(v.string()),
   note: v.optional(v.string()),
@@ -119,7 +127,8 @@ export const read = internalQuery({
     const { userId, event, role } = await requireEventAccess(ctx, args.eventId, "contributor");
     assertNotArchived(event);
     const all = await listForEvent(ctx, event);
-    const openId = args.openMomentId === undefined ? null : ctx.db.normalizeId("moments", args.openMomentId);
+    const openId =
+      args.openMomentId === undefined ? null : ctx.db.normalizeId("moments", args.openMomentId);
     const anchor = all.find((m) => m._id === openId)?.startsAt ?? Date.now();
     const kept =
       all.length <= LIST_CAP
@@ -136,14 +145,24 @@ export const read = internalQuery({
         tzOffsetMinutes: m.tzOffsetMinutes,
         place: m.place,
         transport: m.transport,
-        stops: m.stops.map((s) => ({ startsAt: s.startsAt, place: s.place, transport: s.transport })),
+        stops: m.stops.map((s) => ({
+          startsAt: s.startsAt,
+          place: s.place,
+          transport: s.transport,
+        })),
         labels: m.labels,
-        note: said === undefined || (said.type !== "note" && said.type !== "feeling") ? undefined : said.text.slice(0, NOTE_PREVIEW),
+        note:
+          said === undefined || (said.type !== "note" && said.type !== "feeling")
+            ? undefined
+            : said.text.slice(0, NOTE_PREVIEW),
         editable: role === "owner" || m.authorId === userId,
       };
     });
     const open = moments.findIndex((m) => m.id === openId);
-    const zoned = open >= 0 ? moments[open] : [...moments].reverse().find((m) => m.tzOffsetMinutes !== undefined);
+    const zoned =
+      open >= 0
+        ? moments[open]
+        : [...moments].reverse().find((m) => m.tzOffsetMinutes !== undefined);
     return {
       userId,
       title: event.title,
@@ -161,7 +180,8 @@ const INTENTS = {
   new: "It tells what happened, or is a note to keep, and asks for nothing already saved to change.",
   change:
     "It asks to change something already saved: move or rename a moment or stop, set its time, place or transport, add a stop or a note, change labels.",
-  remove: "It asks to delete or remove something already saved: a moment, a stop, a note or a label.",
+  remove:
+    "It asks to delete or remove something already saved: a moment, a stop, a note or a label.",
   unclear: "It is too vague to act on, or is not about this experience.",
 } as const;
 type Intent = keyof typeof INTENTS;
@@ -180,31 +200,38 @@ export const readVerdict = (answers: Answers): Verdict => {
   const removes = answers.removes;
   return {
     intent:
-      intent?.type === "choice" && (intent.probabilities?.[intent.choice] ?? 0) >= 0.5 && isIntent(intent.choice)
+      intent?.type === "choice" &&
+      (intent.probabilities?.[intent.choice] ?? 0) >= 0.5 &&
+      isIntent(intent.choice)
         ? intent.choice
         : undefined,
     removes: removes?.type === "boolean" ? removes.probability : undefined,
   };
 };
 
-const judge = async (ctx: ActionCtx, userId: string, text: string, open: boolean): Promise<Verdict> => {
+const judge = async (
+  ctx: ActionCtx,
+  userId: string,
+  text: string,
+  open: boolean,
+): Promise<Verdict> => {
   try {
     const answers = await metered(ctx, { userId, feature: "intent", model: JEV }, async () => {
       const out = await experimental_decide({
-      model: jevModel(),
-      state: { text, momentOpenOnScreen: open },
-      questions: {
-        intent: {
-          type: "choice",
-          instructions: "What is the person asking for? Read `text`. Say which of these it is.",
-          criteria: INTENTS,
+        model: jevModel(),
+        state: { text, momentOpenOnScreen: open },
+        questions: {
+          intent: {
+            type: "choice",
+            instructions: "What is the person asking for? Read `text`. Say which of these it is.",
+            criteria: INTENTS,
+          },
+          removes: {
+            type: "boolean",
+            instructions:
+              "Does `text` ask to delete or remove something that is already saved (a moment, a stop, a note or a label)?",
+          },
         },
-        removes: {
-          type: "boolean",
-          instructions:
-            "Does `text` ask to delete or remove something that is already saved (a moment, a stop, a note or a label)?",
-        },
-      },
       });
       return { result: out.answers, usage: out.usage, providerMetadata: out.providerMetadata };
     });
@@ -247,20 +274,19 @@ const WHEN = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/;
 const rawPlan = z.object({
   summary: z.string().max(160),
   needs: z.string().max(200).optional(),
-  ops: z
-    .array(
-      z.object({
-        op: z.enum(["add", "edit", "addStop", "remove"]),
-        moment: z.number().int().min(1).optional(),
-        stop: z.number().int().min(1).max(MAX_STOPS_PER_MOMENT).optional(),
-        after: z.number().int().min(1).max(MAX_STOPS_PER_MOMENT).optional(),
-        when: z.string().regex(WHEN).optional(),
-        place: z.string().max(200).optional(),
-        transport: z.enum(TRANSPORTS).nullable().optional(),
-        note: z.string().max(MAX_TEXT_LENGTH).optional(),
-        labels: z.array(z.string().max(MAX_LABEL_LENGTH)).max(MAX_LABELS_PER_MOMENT).optional(),
-      }),
-    )
+  ops: z.array(
+    z.object({
+      op: z.enum(["add", "edit", "addStop", "remove"]),
+      moment: z.number().int().min(1).optional(),
+      stop: z.number().int().min(1).max(MAX_STOPS_PER_MOMENT).optional(),
+      after: z.number().int().min(1).max(MAX_STOPS_PER_MOMENT).optional(),
+      when: z.string().regex(WHEN).optional(),
+      place: z.string().max(200).optional(),
+      transport: z.enum(TRANSPORTS).nullable().optional(),
+      note: z.string().max(MAX_TEXT_LENGTH).optional(),
+      labels: z.array(z.string().max(MAX_LABEL_LENGTH)).max(MAX_LABELS_PER_MOMENT).optional(),
+    }),
+  ),
   // Longer than the limit is cut in resolvePlan, not refused here.
 });
 export type RawPlan = z.infer<typeof rawPlan>;
@@ -296,7 +322,9 @@ const describeLine = (line: Line, n: number, zone: number): string => {
   const offset = line.tzOffsetMinutes ?? zone;
   const route = [
     `${line.place ?? "no place"}${line.transport ? ` (by ${line.transport})` : ""}`,
-    ...line.stops.map((s) => `${s.place ?? "no place"}${s.transport ? ` (by ${s.transport})` : ""}`),
+    ...line.stops.map(
+      (s) => `${s.place ?? "no place"}${s.transport ? ` (by ${s.transport})` : ""}`,
+    ),
   ]
     .map((stop, i) => `${i + 1}) ${stop}`)
     .join(", ");
@@ -306,7 +334,10 @@ const describeLine = (line: Line, n: number, zone: number): string => {
 };
 
 export const promptFor = (c: Context, text: string, now: number, zone: number): string => {
-  const shown = c.total > c.moments.length ? ` (the ${c.moments.length} nearest the open one, of ${c.total})` : "";
+  const shown =
+    c.total > c.moments.length
+      ? ` (the ${c.moments.length} nearest the open one, of ${c.total})`
+      : "";
   return [
     `Experience: ${c.title}`,
     `Today: ${localOf(now, zone).slice(0, 10)}`,
@@ -324,9 +355,21 @@ const trimmed = (s: string | undefined) => {
 
 // How far down a plan an operation goes: new moments first, whole moments last,
 // so a stop's number still means what it did when the plan was read.
-const rank = (op: Op) => (op.op === "add" ? 0 : op.op === "edit" ? 1 : op.op === "addStop" ? 2 : op.stop !== undefined ? 3 : 4);
+const rank = (op: Op) =>
+  op.op === "add"
+    ? 0
+    : op.op === "edit"
+      ? 1
+      : op.op === "addStop"
+        ? 2
+        : op.stop !== undefined
+          ? 3
+          : 4;
 export const orderOps = (ops: Op[]): Op[] => {
-  return ops.map((op, i) => ({ op, i })).sort((a, b) => rank(a.op) - rank(b.op) || a.i - b.i).map(({ op }) => op);
+  return ops
+    .map((op, i) => ({ op, i }))
+    .sort((a, b) => rank(a.op) - rank(b.op) || a.i - b.i)
+    .map(({ op }) => op);
 };
 
 // Checks the model's plan against what exists, and turns numbers into ids and
@@ -341,7 +384,8 @@ export const resolvePlan = (
   const ops: Op[] = [];
   const removed = new Set<string>();
   const structural = new Set<string>();
-  if (raw.ops.length > MAX_COMMAND_OPS) said.push(`I did the first ${MAX_COMMAND_OPS} things; ask again for the rest.`);
+  if (raw.ops.length > MAX_COMMAND_OPS)
+    said.push(`I did the first ${MAX_COMMAND_OPS} things; ask again for the rest.`);
 
   for (const r of raw.ops.slice(0, MAX_COMMAND_OPS)) {
     const place = trimmed(r.place);
@@ -388,7 +432,8 @@ export const resolvePlan = (
         continue;
       }
       const target = stop === 1 ? m.startsAt : m.stops[stop - 2]?.startsAt;
-      const startsAt = r.when === undefined ? undefined : fromLocal(r.when, offset, clockOf(target));
+      const startsAt =
+        r.when === undefined ? undefined : fromLocal(r.when, offset, clockOf(target));
       if (r.when !== undefined && startsAt === undefined) {
         said.push(`I couldn't read the date ${r.when}.`);
         continue;
@@ -421,7 +466,8 @@ export const resolvePlan = (
         said.push("I changed one set of stops per moment at a time; ask again for the rest.");
         continue;
       }
-      const startsAt = r.when === undefined ? undefined : fromLocal(r.when, offset, clockOf(undefined));
+      const startsAt =
+        r.when === undefined ? undefined : fromLocal(r.when, offset, clockOf(undefined));
       if (r.when !== undefined && startsAt === undefined) {
         said.push(`I couldn't read the date ${r.when}.`);
         continue;
@@ -462,7 +508,9 @@ export const resolvePlan = (
   }
 
   // Nothing else touches a moment that is going.
-  const kept = ops.filter((op) => op.op === "remove" || op.momentId === undefined || !removed.has(op.momentId));
+  const kept = ops.filter(
+    (op) => op.op === "remove" || op.momentId === undefined || !removed.has(op.momentId),
+  );
   const needs = trimmed([raw.needs, ...new Set(said)].filter(Boolean).join(" "))?.slice(0, 300);
   return { ops: orderOps(kept), needs };
 };
@@ -478,9 +526,13 @@ const propose = action({
   },
   handler: async (ctx, args): Promise<Proposal> => {
     const text = args.text.trim();
-    if (text === "") throw new ConvexError({ code: "INVALID", message: "Say what to add or change." });
+    if (text === "")
+      throw new ConvexError({ code: "INVALID", message: "Say what to add or change." });
     if (text.length > MAX_COMMAND_CHARS) {
-      throw new ConvexError({ code: "INVALID", message: `Keep it under ${MAX_COMMAND_CHARS} characters.` });
+      throw new ConvexError({
+        code: "INVALID",
+        message: `Keep it under ${MAX_COMMAND_CHARS} characters.`,
+      });
     }
     const started = Date.now();
     const found: Context = await ctx.runQuery(internal.model.ai.command.read, {
@@ -488,7 +540,10 @@ const propose = action({
       openMomentId: args.openMomentId,
     });
     if (!(await takeAi(ctx, found.userId))) {
-      throw new ConvexError({ code: "RATE_LIMITED", message: `${AI_LIMIT_MESSAGE} You can still save it as a moment with "Add as a moment".` });
+      throw new ConvexError({
+        code: "RATE_LIMITED",
+        message: `${AI_LIMIT_MESSAGE} You can still save it as a moment with "Add as a moment".`,
+      });
     }
 
     const t0 = Date.now();
@@ -515,22 +570,33 @@ const propose = action({
         ctx,
         planner,
         threadId,
-        { schema: rawPlan, messages: [{ role: "user", content: prompt }], jsonInstructions: JSON_INSTRUCTIONS, maxOutputTokens: MAX_OUTPUT_TOKENS },
+        {
+          schema: rawPlan,
+          messages: [{ role: "user", content: prompt }],
+          jsonInstructions: JSON_INSTRUCTIONS,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+        },
         { userId: found.userId, feature: "plan" },
       );
     } catch (error) {
       console.warn("Scribe couldn't plan a request:", skipReason(error));
       throw new ConvexError({
         code: "AI_UNAVAILABLE",
-        message: "I couldn't read that just now. Try again, or save it as a moment with \"Add as a moment\".",
+        message:
+          'I couldn\'t read that just now. Try again, or save it as a moment with "Add as a moment".',
       });
     } finally {
       // The thread held nothing; without this each request would leave a row behind.
       await planner.deleteThreadSync(ctx, { threadId }).catch(() => undefined);
     }
-    const { ops, needs } = resolvePlan(plan, found, { removesOk: allowsRemoval(verdict, text), zone });
+    const { ops, needs } = resolvePlan(plan, found, {
+      removesOk: allowsRemoval(verdict, text),
+      zone,
+    });
     // Timings only, never the text: what is slow, if anything is.
-    console.log(`command: Jev ${judged} ms, Haiku ${Date.now() - t0 - judged} ms, total ${Date.now() - started} ms, intent ${verdict.intent ?? "unsure"}`);
+    console.log(
+      `command: Jev ${judged} ms, Haiku ${Date.now() - t0 - judged} ms, total ${Date.now() - started} ms, intent ${verdict.intent ?? "unsure"}`,
+    );
     return { kind: "plan", summary: plan.summary, needs, ops };
   },
 });
@@ -548,16 +614,23 @@ const changeableMoment = async (
 ): Promise<Doc<"moments">> => {
   const moment = momentId === undefined ? null : await ctx.db.get("moments", momentId);
   if (moment === null || moment.eventId !== eventId) {
-    throw new ConvexError({ code: "NOT_FOUND", message: "A moment in this change no longer exists." });
+    throw new ConvexError({
+      code: "NOT_FOUND",
+      message: "A moment in this change no longer exists.",
+    });
   }
   // The rule `update` and `remove` use.
   if (role !== "owner" && moment.authorId !== userId) {
-    throw new ConvexError({ code: "FORBIDDEN", message: "You can only change moments you added yourself." });
+    throw new ConvexError({
+      code: "FORBIDDEN",
+      message: "You can only change moments you added yourself.",
+    });
   }
   return moment;
 };
 
-const noMore = (what: string) => new ConvexError({ code: "FULL", message: `That moment can't take any more ${what}.` });
+const noMore = (what: string) =>
+  new ConvexError({ code: "FULL", message: `That moment can't take any more ${what}.` });
 
 // One op's writes. The experience is read fresh each time: an earlier op may
 // have changed its moment count.
@@ -630,8 +703,12 @@ const runOp = async (
     }
   } else if (op.op === "addStop") {
     if (stops.length >= MAX_STOPS_PER_MOMENT - 1) throw noMore("stops");
-    if (op.place === undefined && note === undefined) invalid("place", "A new stop needs a place or a few words.");
-    const at = Math.max(0, Math.min(op.after === undefined ? stops.length : op.after - 1, stops.length));
+    if (op.place === undefined && note === undefined)
+      invalid("place", "A new stop needs a place or a few words.");
+    const at = Math.max(
+      0,
+      Math.min(op.after === undefined ? stops.length : op.after - 1, stops.length),
+    );
     stops.splice(at, 0, {
       startsAt: op.startsAt,
       place: op.place,
@@ -642,12 +719,19 @@ const runOp = async (
     patch.stops = stops;
   } else {
     // remove a stop after the first
-    if (stop === 1 || stops[stop - 2] === undefined) invalid("stop", "That moment doesn't have that stop.");
+    if (stop === 1 || stops[stop - 2] === undefined)
+      invalid("stop", "That moment doesn't have that stop.");
     stops.splice(stop - 2, 1);
     patch.stops = stops;
   }
 
-  const { removedMediaIds } = await writeMomentUpdate(ctx, { event, moment, userId, actor: human(userId), patch });
+  const { removedMediaIds } = await writeMomentUpdate(ctx, {
+    event,
+    moment,
+    userId,
+    actor: human(userId),
+    patch,
+  });
   return { removed: removedMediaIds };
 };
 
@@ -673,15 +757,21 @@ const apply = mutation({
     const { userId, event, role } = await requireEventAccess(ctx, args.eventId, "contributor");
     assertNotArchived(event);
     if (args.ops.length === 0) invalid("ops", "There is nothing to apply.");
-    if (args.ops.length > MAX_COMMAND_OPS) invalid("ops", `A request can change at most ${MAX_COMMAND_OPS} things.`);
+    if (args.ops.length > MAX_COMMAND_OPS)
+      invalid("ops", `A request can change at most ${MAX_COMMAND_OPS} things.`);
 
     // One structural change per moment, and nothing else on a moment that goes.
     const structural = new Set<string>();
-    const going = new Set(args.ops.flatMap((o) => (o.op === "remove" && o.stop === undefined && o.momentId ? [o.momentId] : [])));
+    const going = new Set(
+      args.ops.flatMap((o) =>
+        o.op === "remove" && o.stop === undefined && o.momentId ? [o.momentId] : [],
+      ),
+    );
     for (const o of args.ops) {
       if (o.momentId === undefined) continue;
       const stopOp = o.op === "addStop" || (o.op === "remove" && o.stop !== undefined);
-      if (stopOp && structural.has(o.momentId)) invalid("ops", "Change one set of stops per moment at a time.");
+      if (stopOp && structural.has(o.momentId))
+        invalid("ops", "Change one set of stops per moment at a time.");
       if (stopOp) structural.add(o.momentId);
       if (going.has(o.momentId) && !(o.op === "remove" && o.stop === undefined)) {
         invalid("ops", "A moment can't be changed and removed in the same request.");

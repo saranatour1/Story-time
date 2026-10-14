@@ -21,7 +21,14 @@ import { useChainPaths, useRoutePath } from "@/lib/use-route-path";
 import { cn } from "@/lib/utils";
 
 // A located stop: its step in the story, its number, and where it is.
-export type MapStop = { step: number; number: number; name: string; transport?: Transport; lng: number; lat: number };
+export type MapStop = {
+  step: number;
+  number: number;
+  name: string;
+  transport?: Transport;
+  lng: number;
+  lat: number;
+};
 // The leg into the stop in focus, when both of its ends are on the map.
 export type MapLeg = { from: LatLng; to: LatLng; transport: Transport };
 
@@ -86,7 +93,12 @@ export const StickyMap = ({
   // keeps the view where it is.
   const framing = useMemo<Point[]>(() => {
     if (!focused) return stops.map((s): Point => [s.lng, s.lat]);
-    return leg ? [[leg.from.lng, leg.from.lat], [focused.lng, focused.lat]] : [[focused.lng, focused.lat]];
+    return leg
+      ? [
+          [leg.from.lng, leg.from.lat],
+          [focused.lng, focused.lat],
+        ]
+      : [[focused.lng, focused.lat]];
   }, [stops, focused, leg]);
   const framingKey = framing.map((p) => p.join(",")).join(";");
   // The leg in focus follows its streets or tracks when a router knows them (the
@@ -94,7 +106,11 @@ export const StickyMap = ({
   // so the highlight never reshapes after it starts.
   const { path, settled } = useRoutePath(leg?.from, leg?.to, leg?.transport ?? "walk");
   const legLine = useMemo(
-    () => (leg ? (path ?? curve([leg.from.lng, leg.from.lat], [leg.to.lng, leg.to.lat], bend(leg.transport))) : undefined),
+    () =>
+      leg
+        ? (path ??
+          curve([leg.from.lng, leg.from.lat], [leg.to.lng, leg.to.lat], bend(leg.transport)))
+        : undefined,
     [leg, path],
   );
 
@@ -138,7 +154,12 @@ export const StickyMap = ({
           const current = s.step === focus;
           const ahead = focus !== null && s.step > focus;
           return (
-            <MapMarker key={s.step} longitude={s.lng} latitude={s.lat} onClick={() => onPick(s.step)}>
+            <MapMarker
+              key={s.step}
+              longitude={s.lng}
+              latitude={s.lat}
+              onClick={() => onPick(s.step)}
+            >
               <MarkerContent>
                 {/* A button, so the stops can be reached from the keyboard. */}
                 <button
@@ -168,7 +189,15 @@ export const StickyMap = ({
 // Frames the stop in focus, or every stop. The first framing is at once; later
 // ones fly, unless the viewer prefers no motion. A theme change reloads the
 // basemap, which mustn't reset the view, so a framing is applied only once.
-const Camera = ({ framing, framingKey, reduced }: { framing: Point[]; framingKey: string; reduced: boolean }) => {
+const Camera = ({
+  framing,
+  framingKey,
+  reduced,
+}: {
+  framing: Point[];
+  framingKey: string;
+  reduced: boolean;
+}) => {
   const { map, isLoaded } = useMap();
   const framed = useRef<string | null>(null);
   useEffect(() => {
