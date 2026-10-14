@@ -2,6 +2,10 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-10-14
+
+- **Dependency vulnerabilities fixed.** `pnpm audit` is clean: `seroval` and `sharp` are pinned to patched versions in `pnpm-workspace.yaml`, and the unused `@tailwindcss/typography` is gone.
+
 ## 2026-10-13
 
 - **The experience page is centered on wide screens.** Header and moments sit in one 80rem column, centered.

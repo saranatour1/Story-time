@@ -6,3 +6,7 @@ allowBuilds:
   esbuild: true
   lightningcss: true
   workerd: true
+
+overrides:
+  seroval: ">=1.6.3"
+  sharp: ">=0.35.5"
