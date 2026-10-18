@@ -243,3 +243,72 @@ describe("email outbox", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("collaboration", () => {
+  const join = async (s: Awaited<ReturnType<typeof setup>>, role: "viewer" | "contributor") => {
+    const { link } = await s.owner.mutation(api.api.invites.create, { eventId: s.eventId, role });
+    await s.guest.mutation(api.api.invites.accept, { token: tokenOf(link) });
+    const page = await s.owner.query(api.api.sessions.listForEvent, {
+      eventId: s.eventId,
+      paginationOpts: firstPage,
+    });
+    return page.page[0]!._id;
+  };
+
+  test("the owner changes a role; a co-owner can do what the owner can and keeps it through a link", async () => {
+    const s = await setup();
+    const sessionId = await join(s, "viewer");
+    await expect(
+      s.guest.mutation(api.api.sessions.setRole, { sessionId, role: "owner" }),
+    ).rejects.toThrow(/Event not found/);
+
+    await s.owner.mutation(api.api.sessions.setRole, { sessionId, role: "owner" });
+    expect((await s.guest.query(api.api.events.get, { eventId: s.eventId }))?.role).toBe("owner");
+    await s.guest.mutation(api.api.invites.create, { eventId: s.eventId, role: "viewer" });
+
+    // A viewer link opened later doesn't take co-ownership away.
+    const { link } = await s.owner.mutation(api.api.invites.create, {
+      eventId: s.eventId,
+      role: "viewer",
+    });
+    await s.guest.mutation(api.api.invites.accept, { token: tokenOf(link) });
+    expect((await s.guest.query(api.api.events.get, { eventId: s.eventId }))?.role).toBe("owner");
+
+    await s.owner.mutation(api.api.sessions.revoke, { sessionId });
+    await expect(
+      s.owner.mutation(api.api.sessions.setRole, { sessionId, role: "contributor" }),
+    ).rejects.toThrow(/REVOKED/);
+  });
+
+  test("everyone on the trip sees who is on it, owner first", async () => {
+    const s = await setup();
+    await join(s, "viewer");
+    const members = await s.guest.query(api.api.sessions.members, { eventId: s.eventId });
+    expect(members.map((m) => m.role)).toEqual(["owner", "viewer"]);
+    expect(members[0]!.sessionId).toBeNull();
+  });
+
+  test("a moment tags only people on the trip", async () => {
+    const s = await setup();
+    await join(s, "contributor");
+    const stranger = await s.t.run((ctx) => ctx.db.insert("users", {}));
+    const [ownerId, guestId] = (
+      await s.owner.query(api.api.sessions.members, { eventId: s.eventId })
+    ).map((m) => m.userId);
+    const momentId = await s.guest.mutation(api.api.moments.create, {
+      eventId: s.eventId,
+      startsAt: Date.UTC(2025, 5, 1),
+      blocks: [{ type: "note", text: "Lunch" }],
+    });
+
+    await expect(
+      s.guest.mutation(api.api.moments.update, { momentId, people: [stranger] }),
+    ).rejects.toThrow(/Only people on this experience/);
+    await s.guest.mutation(api.api.moments.update, {
+      momentId,
+      people: [ownerId!, guestId!, ownerId!],
+    });
+    const [moment] = await s.owner.query(api.api.moments.list, { eventId: s.eventId });
+    expect(moment!.people.map((p) => p.userId)).toEqual([ownerId, guestId]);
+  });
+});

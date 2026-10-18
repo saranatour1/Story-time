@@ -2,6 +2,10 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-10-15
+
+- **Collaboration.** On the Shared tab, an owner can change what each person can do (Can watch, Can add moments, Co-owner) without a new invite. A co-owner can do everything the owner can, including inviting, removing people and deleting the experience; an invite link never lowers anyone's role. Everyone on a trip now sees the Shared tab, with the people on it and what each can do (no join dates or last-seen). Editing a moment has "Who was there" to tag people on the trip, shown as "With …" on the moment's row. Tags stay out of the share link and the journal.
+
 ## 2026-10-14
 
 - **Dependency vulnerabilities fixed.** `pnpm audit` is clean: `seroval` and `sharp` are pinned to patched versions in `pnpm-workspace.yaml`, and the unused `@tailwindcss/typography` is gone.

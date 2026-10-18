@@ -80,6 +80,7 @@ describe("people and invites", () => {
   test("joining and losing access", () => {
     expect(change("session", "accept", ["role"])).toBe("Joined the experience");
     expect(change("session", "revoke", ["revokedAt"])).toBe("Removed someone's access");
+    expect(change("session", "update", ["role"])).toBe("Changed what someone can do");
   });
 
   test("invites sent and removed", () => {

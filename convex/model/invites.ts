@@ -143,11 +143,11 @@ const accept = mutation({
         message: "This invite has expired or was already used",
       });
     }
-    // A viewer link never downgrades an active contributor.
+    // A link never downgrades: not a contributor to viewer, nor a co-owner at all.
     if (
       existing !== null &&
       existing.revokedAt === undefined &&
-      (existing.role === "contributor" || invite.role === "viewer")
+      (existing.role !== "viewer" || invite.role === "viewer")
     ) {
       return { eventId: event._id };
     }

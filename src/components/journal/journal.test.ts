@@ -247,6 +247,7 @@ describe("page ideas", () => {
       ],
       stops: [],
       labels: [],
+      people: [],
     });
     const [day] = groupByDay([m("b", 15, "Tram 28", "p2"), m("a", 9, "Coffee", "p1")]);
     const els = dayIdea(day!).make(trip);

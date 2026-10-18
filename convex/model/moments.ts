@@ -4,7 +4,7 @@ import type { Infer, ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
 import { MOMENT_LIMIT, momentsToRead } from "../lib/limits";
-import { assertNotArchived, requireEventAccess } from "../lib/access";
+import { assertNotArchived, getEventAccessFor, requireEventAccess } from "../lib/access";
 import { changeFields, lastEditOf, type Actor } from "../lib/actors";
 import {
   checkOffset,
@@ -78,6 +78,8 @@ export const vMomentView = v.object({
   transport: v.optional(vTransport),
   stops: v.array(vPlainStop),
   labels: v.array(v.string()),
+  // Who was there: people on the trip, by name when they set one.
+  people: v.array(v.object({ userId: v.id("users"), name: v.optional(v.string()) })),
 });
 
 const viewBlocks = async (
@@ -144,6 +146,12 @@ export const viewMoment = async (
       })),
     ),
     labels: await Promise.all((moment.labels ?? []).map((l) => decryptText(event._id, l))),
+    people: await Promise.all(
+      (moment.people ?? []).map(async (userId) => ({
+        userId,
+        name: (await ctx.db.get("users", userId))?.displayName,
+      })),
+    ),
   };
 };
 
@@ -304,6 +312,8 @@ const momentEdit = {
   // Replace the whole list when passed.
   stops: v.optional(v.array(vPlainStop)),
   labels: v.optional(v.array(v.string())),
+  // Replace the whole list when passed; [] clears it.
+  people: v.optional(v.array(v.id("users"))),
 };
 export type MomentEdit = ObjectType<typeof momentEdit>;
 
@@ -375,6 +385,7 @@ export const writeMomentUpdate = async (
       | "transport"
       | "stops"
       | "labels"
+      | "people"
       | "lastEdit"
     >
   > = {};
@@ -417,6 +428,19 @@ export const writeMomentUpdate = async (
     const labels = await encodeLabels(event, patch.labels);
     docPatch.labels = labels.length > 0 ? labels : undefined;
     fields.push("labels");
+  }
+
+  if (patch.people !== undefined) {
+    const people = [...new Set(patch.people)];
+    if (people.length > 50) invalid("people", "Add at most 50 people");
+    for (const person of people) {
+      // Tagging can't reach past the trip: no names from outside it.
+      if ((await getEventAccessFor(ctx, person, event._id)) === null) {
+        invalid("people", "Only people on this experience can be added");
+      }
+    }
+    docPatch.people = people.length > 0 ? people : undefined;
+    fields.push("people");
   }
 
   if (patch.blocks !== undefined || patch.stops !== undefined) {

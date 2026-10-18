@@ -24,6 +24,7 @@ const flight: MomentView = {
     },
   ],
   labels: [],
+  people: [],
 };
 
 describe("describeOp", () => {

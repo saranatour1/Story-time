@@ -44,7 +44,7 @@ const SECTIONS = [
     path: "/guestbook",
     owner: false,
   },
-  { to: "/e/$id/shared", label: "Shared", icon: UsersIcon, path: "/shared", owner: true },
+  { to: "/e/$id/shared", label: "Shared", icon: UsersIcon, path: "/shared", owner: false },
   { to: "/e/$id/activity", label: "Activity", icon: HistoryIcon, path: "/activity", owner: true },
 ] as const;
 

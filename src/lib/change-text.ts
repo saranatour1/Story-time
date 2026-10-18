@@ -17,6 +17,7 @@ const FIELD_WORDS: Partial<Record<string, string>> = {
   transport: "transport",
   stops: "stops",
   labels: "labels",
+  people: "who was there",
 };
 
 // An experience's own dates read as "dates"; a moment's start is its "time".
@@ -72,6 +73,8 @@ export const describeChange = (c: { entity: string; action: string; fields: stri
       return "Joined the experience";
     case "session.revoke":
       return "Removed someone's access";
+    case "session.update":
+      return "Changed what someone can do";
     case "invite.create":
       return "Invited someone";
     case "invite.dismiss":

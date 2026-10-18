@@ -1,5 +1,6 @@
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import {
   ArrowDownIcon,
@@ -14,6 +15,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { AuthImage } from "@/components/auth-image";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -65,6 +67,7 @@ type StopValue = {
 
 const schema = z.object({
   labels: z.string().max(500, "At most 500 characters"),
+  people: z.array(z.string()),
   stops: z.array(
     z.object({
       transport: z.enum(["", ...TRANSPORT_VALUES]),
@@ -143,6 +146,7 @@ export const MomentForm = ({
   onDone?: () => void;
 }) => {
   const update = useMutation(api.moments.update);
+  const { data: members } = useQuery(queries.sessions.members({ eventId }));
   const remove = useMutation(api.moments.remove);
   const [confirming, setConfirming] = useState(false);
   const token = useAuthToken();
@@ -214,6 +218,7 @@ export const MomentForm = ({
   const form = useForm({
     defaultValues: {
       labels: moment.labels.join(", ") ?? "",
+      people: moment.people.map((p): string => p.userId),
       stops: stopValuesOf(moment),
     },
     validators: { onChange: schema },
@@ -276,6 +281,12 @@ export const MomentForm = ({
           blocks: blocksPerStop[0]!,
           stops,
           labels,
+          // Someone who has since left the trip drops off; the server refuses them.
+          ...(members === undefined
+            ? {}
+            : {
+                people: members.filter((m) => value.people.includes(m.userId)).map((m) => m.userId),
+              }),
         });
         const dropped = settle(value.stops);
         if (latestToken.current)
@@ -629,6 +640,41 @@ export const MomentForm = ({
           </Field>
         )}
       </form.Field>
+
+      {/* Only worth asking once someone else is on the trip. */}
+      {members !== undefined && members.length > 1 && (
+        <form.Field name="people">
+          {(f) => (
+            <Field>
+              <FieldLabel id={`${uid}-people`}>Who was there</FieldLabel>
+              <div role="group" aria-labelledby={`${uid}-people`} className="flex flex-wrap gap-2">
+                {members.map((m) => {
+                  const on = f.state.value.includes(m.userId);
+                  return (
+                    <Button
+                      key={m.userId}
+                      type="button"
+                      size="sm"
+                      variant={on ? "default" : "outline"}
+                      aria-pressed={on}
+                      onClick={() =>
+                        f.handleChange(
+                          on
+                            ? f.state.value.filter((id) => id !== m.userId)
+                            : [...f.state.value, m.userId],
+                        )
+                      }
+                    >
+                      {m.displayName ?? "Anonymous"}
+                    </Button>
+                  );
+                })}
+              </div>
+              <FieldDescription>Only people on this experience see who was there.</FieldDescription>
+            </Field>
+          )}
+        </form.Field>
+      )}
 
       <form.Field name="stops" mode="array">
         {(stops) => (

@@ -9,6 +9,7 @@ const moment = (id: string, startsAt: number, over: Partial<MomentView> = {}): M
   blocks: [],
   stops: [],
   labels: [],
+  people: [],
   ...over,
 });
 

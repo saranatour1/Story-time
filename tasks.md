@@ -21,6 +21,8 @@ After the eight, in this order. Each one stays inside "photos or a sentence in, 
 
 ## Later
 
+- Collaboration follow-ups: tag people when a moment is first added (today it's only on edit), and decide whether "Who was there" belongs on journal pages (it would then reach the share link).
+
 - AI Budget on production: after it's deployed, run `pnpm exec convex run model/aiBudget:configure --deployment production-eu` once, and set `AI_BUDGET_DASHBOARD_TOKEN` there to open the dashboard. Consider a global daily spend cap (`aiBudget.global.setLimits`) as a killswitch.
 - Voice with zero data retention: turn on `provider.zdr` in `convex/model/ai/voice.ts` once the gateway's transcription route accepts it (it answers 400 today).
 - Journal photo frames that take the photo's shape: keep each photo's width and height when it's uploaded, and size frames from it when a page is cut, so a tall photo gets a tall frame instead of paper at its sides.

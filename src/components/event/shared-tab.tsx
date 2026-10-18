@@ -22,8 +22,15 @@ import { Switch } from "@/components/ui/switch";
 import { errorMessage } from "@/lib/errors";
 
 type Role = "viewer" | "contributor";
+// What a person already in may hold: invites give the first two, co-owner is given here.
+type GrantRole = Role | "owner";
 // What each role may do, in the words a person would use.
-const ROLE_LABEL: Record<Role, string> = { viewer: "Can watch", contributor: "Can add moments" };
+const ROLE_LABEL: Record<GrantRole, string> = {
+  viewer: "Can watch",
+  contributor: "Can add moments",
+  owner: "Co-owner",
+};
+const grantRole = (v: string): GrantRole => (v === "owner" || v === "contributor" ? v : "viewer");
 
 const day = (ms: number) =>
   new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -90,6 +97,7 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
   const rotateLink = useMutation(api.share.rotate);
   const emailShare = useMutation(api.share.emailLink);
   const revoke = useMutation(api.sessions.revoke);
+  const setGrantRole = useMutation(api.sessions.setRole);
   const createInvite = useMutation(api.invites.create);
   const dismiss = useMutation(api.invites.dismiss);
   const [role, setRole] = useState<Role>("viewer");
@@ -351,7 +359,7 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
       <Card
         icon={<UsersIcon />}
         title="People with access"
-        lead="Everyone you've invited who opened their invite."
+        lead="Everyone you've invited who opened their invite. A co-owner can do all you can: invite, remove people, and delete the experience."
       >
         {people.status !== "LoadingFirstPage" && people.results.length === 0 ? (
           <p className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
@@ -373,12 +381,32 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {ROLE_LABEL[s.role]} · since {day(s.grantedAt)}
+                        {s.revokedAt ? `${ROLE_LABEL[s.role]} · since` : "Since"} {day(s.grantedAt)}
                       </p>
                     </div>
                     {s.revokedAt ? (
                       <Badge variant="secondary">Removed</Badge>
                     ) : (
+                      <Select
+                        value={s.role}
+                        onValueChange={(v) => {
+                          setGrantRole({ sessionId: s._id, role: grantRole(v) }).then(
+                            () => toast.success(`${name}: ${ROLE_LABEL[grantRole(v)]}`),
+                            (e: unknown) => toast.error(errorMessage(e)),
+                          );
+                        }}
+                      >
+                        <SelectTrigger aria-label={`What ${name} can do`} className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="viewer">{ROLE_LABEL.viewer}</SelectItem>
+                          <SelectItem value="contributor">{ROLE_LABEL.contributor}</SelectItem>
+                          <SelectItem value="owner">{ROLE_LABEL.owner}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {!s.revokedAt && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -418,5 +446,32 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
         />
       </Card>
     </div>
+  );
+};
+
+// Who else is on the trip, for people who don't own it: names and what they can do.
+export const PeopleOnTrip = ({ eventId }: { eventId: Id<"events"> }) => {
+  const { data: members } = useQuery(queries.sessions.members({ eventId }));
+  return (
+    <Card icon={<UsersIcon />} title="People on this experience" lead="Everyone who can open it.">
+      <ul aria-label="People on this experience" className="divide-y rounded-lg border">
+        {(members ?? []).map((m) => (
+          <li key={m.userId} className="flex items-center gap-3 px-4 py-3">
+            <span
+              aria-hidden
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground"
+            >
+              {initials(m.displayName) || <UsersIcon className="size-3.5" />}
+            </span>
+            <p className="min-w-0 flex-1 truncate text-sm font-medium">
+              {m.displayName ?? "Anonymous"}
+            </p>
+            <span className="text-xs text-muted-foreground">
+              {m.sessionId === null ? "Owner" : ROLE_LABEL[m.role]}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 };

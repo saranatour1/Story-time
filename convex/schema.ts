@@ -20,6 +20,9 @@ export const vGeo = v.object({ lat: v.number(), lng: v.number() });
 export const vRegion = v.union(v.literal("us"), v.literal("eu"), v.literal("au"), v.literal("ca"));
 
 export const vRole = v.union(v.literal("viewer"), v.literal("contributor"));
+// What a grant can hold. "owner" is a co-owner: given on the Shared tab, never
+// by an invite, and allowed everything the experience's owner is.
+export const vGrantRole = v.union(vRole, v.literal("owner"));
 
 export const vBlock = v.union(
   v.object({ type: v.literal("photo"), mediaId: v.id("media") }),
@@ -207,6 +210,9 @@ export default defineSchema({
     transport: v.optional(vTransport),
     stops: v.optional(v.array(vStop)),
     labels: v.optional(v.array(vEncrypted)),
+    // People on the trip who were part of it. Only the app shows them; the
+    // share link and the journal leave them out.
+    people: v.optional(v.array(v.id("users"))),
     // Set when an agent created the moment for `authorId`: the agent's name.
     authorAgent: v.optional(v.string()),
     // Absent until the moment is edited.
@@ -293,7 +299,7 @@ export default defineSchema({
     eventId: v.id("events"),
     userId: v.id("users"),
     grantedBy: v.id("users"),
-    role: vRole,
+    role: vGrantRole,
     lastSeenAt: v.optional(v.number()),
     revokedAt: v.optional(v.number()),
   })

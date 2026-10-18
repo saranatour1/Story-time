@@ -10,6 +10,7 @@ const moment = (over: Partial<MomentView>): MomentView => ({
   blocks: [],
   stops: [],
   labels: [],
+  people: [],
   ...over,
 });
 

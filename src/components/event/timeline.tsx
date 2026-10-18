@@ -189,6 +189,11 @@ export const Timeline = ({
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm">{firstLine(m) ?? "A moment"}</span>
+                      {m.people.length > 0 && (
+                        <span className="block truncate text-xs text-muted-foreground">
+                          With {m.people.map((p) => p.name ?? "Anonymous").join(", ")}
+                        </span>
+                      )}
                       {unpaged.has(m._id) && (
                         <span className="block truncate text-xs text-muted-foreground">
                           The journal is full, so this moment has no page.

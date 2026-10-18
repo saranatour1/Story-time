@@ -44,6 +44,9 @@ export const queries = {
   pdf: {
     get: (args: Args<typeof api.pdf.get>) => convexQuery(api.pdf.get, args),
   },
+  sessions: {
+    members: (args: Args<typeof api.sessions.members>) => convexQuery(api.sessions.members, args),
+  },
   share: {
     get: (args: Args<typeof api.share.get>) => convexQuery(api.share.get, args),
     hidePhotos: (args: Args<typeof api.share.hidePhotos>) =>
