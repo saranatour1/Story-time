@@ -219,6 +219,13 @@ Only invites send mail. `invites.create` calls `components.email.lib.send` when 
 
 Invite expiry has a daily cron as a backstop (`convex/crons.ts`, 03:17 UTC) plus a timer on the invite itself.
 
+## What leaves the app
+
+- AI fill-ins (captions, labels, the command bar, voice) send moment details and 512px photo copies to the Convex AI Gateway. Nothing is kept there, and the app works without it. Details in [The command bar and the AI pipeline](#the-command-bar-and-the-ai-pipeline).
+- Place search and photo location names send the typed text or the photo's coordinates to photon.komoot.io (OpenStreetMap).
+- Story legs by foot, bike, car, bus or train ask OpenStreetMap's public routers (routing.openstreetmap.de, routing.openrailrouting.org) for a route from the viewer's browser. Only the two stops are sent, rounded to about 100 m, and answers stay in memory. Without a router the leg is a curve.
+- Journal stickers are cut out on the device (MediaPipe). Only the model is downloaded, from Google.
+
 ## Environment
 
 Convex deployment (set with the Convex CLI, not committed):
@@ -258,7 +265,9 @@ pnpm dev                         # convex dev, and the app on http://localhost:3
 
 `pnpm dev` is `convex dev --start 'vp dev --port 3000'`. `pnpm dev:web` is the app only. `pnpm test` is Vitest. `pnpm typecheck` is `tsc --noEmit`. `pnpm lint` is ESLint. `pnpm build` is `vp build`.
 
-Auth keys for a new Convex dev deployment come from the Convex Auth setup described in `README.md`. Do not set `ALLOW_ANONYMOUS_SIGNIN` on a deployment that other people can reach.
+Auth keys for a new Convex dev deployment come from `pnpm dlx @convex-dev/auth`, which sets `AUTH_PRIVATE_KEY` and `AUTH_JWKS` and leaves `convex/` alone. Do not set `ALLOW_ANONYMOUS_SIGNIN` on a deployment that other people can reach.
+
+Other scripts: `pnpm preview` serves the build, `pnpm generate-routes` regenerates `src/routeTree.gen.ts`, `pnpm typegen` regenerates `worker-configuration.d.ts` from `wrangler.jsonc`.
 
 `postinstall` copies the MapLibre worker into `public/` and generates Worker types from the example env file.
 
@@ -282,12 +291,29 @@ No test performs a real R2 GET with and without the SSE-C key.
 
 ## Deploy and CI
 
-The intended production order is in `README.md` and `tasks.md`: Convex deploy first (so the schema and functions match), set the production env including `APP_URL` and the same `ENCRYPTION_MASTER_KEY`, point the Google and GitHub apps at `https://<deployment>.convex.site/oauth/google/callback` and `.../oauth/github/callback`, build with `VITE_CONVEX_URL` and `VITE_APP_URL`, then deploy the Worker (`wrangler deploy`) after the `story-time-media` bucket exists.
+First deploy, in order:
+
+1. `pnpm exec convex deploy` (so the schema and functions match), then set the production env above with `pnpm exec convex env set NAME value --prod`, including `APP_URL` and the same `ENCRYPTION_MASTER_KEY`.
+2. Point the Google and GitHub apps at `https://<deployment>.convex.site/oauth/google/callback` and `.../oauth/github/callback`.
+3. `pnpm exec wrangler r2 bucket create story-time-media` (bound as `MEDIA`).
+4. `pnpm exec wrangler secret put ENCRYPTION_MASTER_KEY`, the same value Convex has.
+5. Build with `VITE_CONVEX_URL` and `VITE_APP_URL`, then `pnpm exec wrangler deploy`.
+
+Cloudflare Workers Builds settings (Settings → Build):
+
+- Build command:
+  ```bash
+  if [ "$WORKERS_CI_BRANCH" = "master" ]; then WORKERS_CI_BRANCH=main pnpm exec convex deploy --yes --cmd "pnpm build" --cmd-url-env-var-name VITE_CONVEX_URL; else VITE_CONVEX_URL=https://<dev deployment>.convex.cloud pnpm build; fi
+  ```
+  `master` deploys Convex and the site. Other branches build against dev and leave Convex alone. `WORKERS_CI_BRANCH=main` is there because the Convex CLI treats only a branch named `main` as production on Cloudflare (`isNonProdBuildEnvironment` in `convex/src/cli/lib/envvars.ts`).
+- Deploy command: `pnpm exec wrangler deploy`. Preview command: `pnpm exec wrangler preview`.
+- Build variables (not the runtime ones, which the build cannot see): `CONVEX_DEPLOY_KEY` (a `prod:` key), `PNPM_VERSION=12.6.0`, `VITE_APP_URL`.
+- Preview URLs talk to the dev deployment, where sign-in returns to localhost, so sign-in does not work there. Their runtime `ENCRYPTION_MASTER_KEY` and `MEDIA` binding are set on the Previews Base tab.
 
 What GitHub actually runs today:
 
 - There is no `.github/workflows` pipeline. Nothing on GitHub runs `pnpm test` or `pnpm build`.
-- Cloudflare **Workers Builds** is attached to the `story-time` Worker and has been failing immediately, with no compiler log in the GitHub check. `wrangler.jsonc` has no build command. The app builds with `pnpm build` (`vp build`), not a default `npx wrangler deploy` in a fresh npm checkout. `tasks.md` records this as open.
+- Cloudflare **Workers Builds** is attached to the `story-time` Worker with the settings above. It failed on every pull request until 2026-10-18, first because `CONVEX_DEPLOY_KEY` was a runtime secret instead of a build variable, then because of the `main` check.
 - **Entire Gates** posts a failing check. There is no Entire config in the repo. That check has not been a required status, because pull requests have merged while it was red.
 
 `tasks.md` still says each pull request should be green on `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `vp build` before it opens. That is a local habit, not a GitHub requirement.
