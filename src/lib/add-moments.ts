@@ -101,7 +101,7 @@ export const uploadAll = async (
       const item = items[next++]!;
       try {
         // Read at each upload: tokens are short-lived and a batch can run for minutes.
-        uploaded.set(item.id, await uploadMedia(item.file, eventId, token()));
+        uploaded.set(item.id, await uploadMedia(item.file, eventId, token(), true));
       } catch (e) {
         const message = e instanceof Error ? e.message : "Upload failed";
         failures.push(`${item.file.name}: ${message}`);

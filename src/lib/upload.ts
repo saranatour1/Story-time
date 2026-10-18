@@ -9,11 +9,23 @@ export const MEDIA_ACCEPT = `image/*,${VIDEO_TYPES.join(",")}`;
 
 export const isVideoFile = (file: File) => VIDEO_TYPES.includes(file.type);
 
+const sha256Hex = async (file: Blob): Promise<string> => {
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+};
+
 // Streams a photo or video through our server route, which encrypts it into R2.
 // A JPEG goes up without its camera details (where and when it was taken),
 // since a share link can reach it; the file the caller holds is untouched.
 // A photo over the cap (most full-size phone photos) goes up as a smaller JPEG.
-export const uploadMedia = async (file: File, eventId: string, token: string): Promise<string> => {
+// With `refuseCopies`, a file already in the experience is refused (matched by
+// the original file's SHA-256, so stripping and shrinking don't hide a copy).
+export const uploadMedia = async (
+  file: File,
+  eventId: string,
+  token: string,
+  refuseCopies = false,
+): Promise<string> => {
   let upload: Blob;
   if (isVideoFile(file)) {
     if (file.size > MAX_VIDEO_BYTES) throw new Error("Videos can be at most 50 MB");
@@ -25,17 +37,15 @@ export const uploadMedia = async (file: File, eventId: string, token: string): P
   } else {
     upload = await stripExif(file);
   }
-  const res = await fetch("/api/upload", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": upload.type || file.type,
-      "X-Event-Id": eventId,
-      // The server streams exactly this many bytes, so it must be the stripped size.
-      "X-File-Size": String(upload.size),
-    },
-    body: upload,
-  });
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": upload.type || file.type,
+    "X-Event-Id": eventId,
+    // The server streams exactly this many bytes, so it must be the stripped size.
+    "X-File-Size": String(upload.size),
+  };
+  if (refuseCopies) headers["X-File-Sha256"] = await sha256Hex(file);
+  const res = await fetch("/api/upload", { method: "POST", headers, body: upload });
   const body = (await res.json().catch(() => null)) as {
     mediaId?: string;
     error?: string;

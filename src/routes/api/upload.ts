@@ -67,6 +67,7 @@ export const Route = createFileRoute("/api/upload")({
                   eventId: eventId as Id<"events">,
                   size,
                   mime,
+                  sha256: request.headers.get("X-File-Sha256") ?? undefined,
                 });
           // FixedLengthStream errors if the body isn't exactly `size` bytes,
           // so the declared (checked) size is the real size.

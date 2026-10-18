@@ -293,6 +293,21 @@ describe("uploads", () => {
     expect(ok.r2Key).toContain(eventId);
   });
 
+  test("a copy of a photo already in the experience is refused", async () => {
+    const { t, owner } = await setup();
+    const eventId = await owner.mutation(api.api.events.createDraft, {});
+    const photo = { eventId, size: 100, mime: "image/jpeg", sha256: "a".repeat(64) };
+    const { mediaId } = await owner.mutation(api.api.media.reserveUpload, photo);
+    await expect(owner.mutation(api.api.media.reserveUpload, photo)).rejects.toThrow(/DUPLICATE/);
+    await expect(
+      owner.mutation(api.api.media.reserveUpload, { ...photo, sha256: "not-a-hash" }),
+    ).rejects.toThrow(/INVALID/);
+    // Without a hash (the journal), and once the first is deleted, it goes in.
+    await owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime: "image/jpeg" });
+    await t.run((ctx) => ctx.db.patch("media", mediaId, { status: "deleted" }));
+    await owner.mutation(api.api.media.reserveUpload, photo);
+  });
+
   test("a revoked contributor can't confirm a pending upload", async () => {
     const { t, owner, friend, friendId, ownerId } = await setup();
     const eventId = await owner.mutation(api.api.events.createDraft, {});

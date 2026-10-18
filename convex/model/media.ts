@@ -71,7 +71,14 @@ export const assertUploadBudget = async (ctx: MutationCtx, userId: Id<"users">, 
 // Step 1 of an upload: the server route calls this before it streams bytes
 // to R2, so size, type and per-event caps are enforced here.
 const reserveUpload = mutation({
-  args: { eventId: v.id("events"), size: v.number(), mime: v.string() },
+  args: {
+    eventId: v.id("events"),
+    size: v.number(),
+    mime: v.string(),
+    // The original file's SHA-256, hex. When given, a copy of a photo or
+    // video already in the experience is refused.
+    sha256: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "contributor");
     assertNotArchived(event);
@@ -86,6 +93,9 @@ const reserveUpload = mutation({
         message: "Unsupported file type",
       });
     }
+    if (args.sha256 !== undefined && !/^[0-9a-f]{64}$/.test(args.sha256)) {
+      throw new ConvexError({ code: "INVALID", field: "sha256", message: "Bad file hash" });
+    }
     const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_UPLOAD_BYTES;
     if (args.size > maxBytes) {
       throw new ConvexError({
@@ -99,6 +109,7 @@ const reserveUpload = mutation({
     // these caps can hold more, and is full either way.
     let photos = 0;
     let videos = 0;
+    let duplicate = false;
     for (const status of ["reserved", "ready"] as const) {
       const rows = await ctx.db
         .query("media")
@@ -107,9 +118,16 @@ const reserveUpload = mutation({
       for (const row of rows) {
         // Stickers and a locked PDF are stored here too, but aren't photos.
         if (row.purpose !== undefined) continue;
+        if (args.sha256 !== undefined && row.sha256 === args.sha256) duplicate = true;
         if (VIDEO_MIME_TYPES.includes(row.mime)) videos++;
         else photos++;
       }
+    }
+    if (duplicate) {
+      throw new ConvexError({
+        code: "DUPLICATE",
+        message: `This ${isVideo ? "video" : "photo"} is already in this experience`,
+      });
     }
     if (isVideo ? videos >= MAX_VIDEOS_PER_EVENT : photos >= MAX_PHOTOS_PER_EVENT) {
       throw new ConvexError({
@@ -128,6 +146,7 @@ const reserveUpload = mutation({
       r2Key,
       size: args.size,
       mime: args.mime,
+      sha256: args.sha256,
       keyVersion: event.keyVersion,
       status: "reserved",
     });
@@ -170,7 +189,7 @@ const confirmUpload = mutation({
     if (media.status === "ready") return null;
     await ctx.db.patch("media", args.mediaId, {
       status: "ready",
-      sha256: args.sha256,
+      sha256: args.sha256 ?? media.sha256,
     });
     await recordChange(ctx, {
       eventId: media.eventId,

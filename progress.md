@@ -5,6 +5,7 @@ What has landed, newest first. One line per change; the PR has the detail.
 ## 2026-10-18
 
 - **A whole trip's photos upload.** A photo can be 20 MB (was 5 MB), and a bigger one is made smaller on the device and uploads instead of being left out. An experience holds 150 photos (was 50), and a batch stops as soon as the experience is full instead of trying every remaining photo.
+- **Duplicate photos are refused.** Adding photos or videos (Add photos, the box, the moment form) sends each original file's SHA-256, and a copy of one already in the experience is left out with "already in this experience". A deleted photo can be added again. Journal pictures skip the check, and photos uploaded before this have no hash, so a copy of one still goes in.
 - **Worker traces.** `wrangler.jsonc` turns on Cloudflare traces next to the logs, for every request, kept in the dashboard. Query strings are redacted so the one-time sign-in `?code=` isn't stored.
 - **Logo in the README.** The app's logo (`public/favicon.svg`) sits centered above the title on GitHub. It has fixed colours, so one image works in light and dark mode.
 - **README cut to the essentials.** One line on what Story-time is, four bullets, how to run it, and links to the docs. Settings, commands, deploy steps, the Cloudflare Workers Builds settings and what data leaves the app are in `docs/architecture.md`.

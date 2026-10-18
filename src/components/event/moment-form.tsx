@@ -312,7 +312,7 @@ export const MomentForm = ({
       const token = latestToken.current;
       if (closed.current || !token) break;
       try {
-        const mediaId = await uploadMedia(file, eventId, token);
+        const mediaId = await uploadMedia(file, eventId, token, true);
         // Closed mid-upload: nothing will ever save this one.
         if (closed.current) {
           void deletePhotos([mediaId], latestToken.current ?? token);

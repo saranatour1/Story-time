@@ -113,10 +113,8 @@ export const addPhotos = async (args: {
     const words = note?.trim() || undefined;
     for (const [i, m] of moments.entries()) {
       toast.loading(`Creating moment ${i + 1} of ${moments.length}…`, { id: toastId });
-      if (!m.create) {
-        problems.push(`${m.label}: none of its photos uploaded`);
-        continue;
-      }
+      // None of its photos uploaded; each one's failure is already listed.
+      if (!m.create) continue;
       try {
         // The person's words go on the first moment made, after its photos.
         const first = created === 0 && words !== undefined;
