@@ -1,4 +1,8 @@
-# Story-time
+<p align="center">
+  <img src="public/favicon.svg" alt="Story-time logo" width="96" height="96">
+</p>
+
+<h1 align="center">Story-time</h1>
 
 Story-time collects everyone's photos from something you did together, in the order it happened. You start an experience, invite the people who were there with one-time links (or switch on a link anyone can watch from), and each of them adds their own moments. Story mode then plays it back stop by stop, with a typed title page, each leg on a map and the photos in a camera's viewfinder.
 

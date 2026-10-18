@@ -2,6 +2,10 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-10-18
+
+- **Logo in the README.** The app's logo (`public/favicon.svg`) sits centered above the title on GitHub. It has fixed colours, so one image works in light and dark mode.
+
 ## 2026-10-15
 
 - **Collaboration.** On the Shared tab, an owner can change what each person can do (Can watch, Can add moments, Co-owner) without a new invite. A co-owner can do everything the owner can, including inviting, removing people and deleting the experience; an invite link never lowers anyone's role. Everyone on a trip now sees the Shared tab, with the people on it and what each can do (no join dates or last-seen). Editing a moment has "Who was there" to tag people on the trip, shown as "With …" on the moment's row. Tags stay out of the share link and the journal.
