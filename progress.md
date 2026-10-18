@@ -5,7 +5,7 @@ What has landed, newest first. One line per change; the PR has the detail.
 ## 2026-10-18
 
 - **Logo in the README.** The app's logo (`public/favicon.svg`) sits centered above the title on GitHub. It has fixed colours, so one image works in light and dark mode.
-- **README rewritten to be skimmable.** TL;DRs and bullet lists for what it does, what it uses, running it and deploying it, including the Cloudflare Workers Builds settings. The long AI and privacy detail now points to `docs/architecture.md`.
+- **README cut to the essentials.** A link to the live site, a TL;DR, what it does, how to run it and deploy it. Settings, commands, first-deploy steps, the Cloudflare Workers Builds settings and what data leaves the app are in `docs/architecture.md`.
 
 ## 2026-10-15
 
