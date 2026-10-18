@@ -90,7 +90,7 @@ const reserveUpload = mutation({
     if (args.size > maxBytes) {
       throw new ConvexError({
         code: "TOO_LARGE",
-        message: isVideo ? "Videos can be at most 50 MB" : "Photos can be at most 5 MB",
+        message: isVideo ? "Videos can be at most 50 MB" : "Photos can be at most 20 MB",
         maxBytes,
       });
     }

@@ -188,7 +188,7 @@ What stays in the clear: experience title, times, transport, layout numbers, med
 `src/lib/upload.ts` POSTs to `/api/upload` (`src/routes/api/upload.ts`).
 
 1. The Worker checks the bearer token and a coarse size cap.
-2. `media.reserveUpload` or `media.reserveAvatarUpload` (`convex/model/media.ts`) checks membership, mime, the per-experience caps (50 photos, 5 videos), and the 1 GB per-person cap (all in `convex/lib/limits.ts`). It inserts `status: "reserved"` and returns `r2Key`, `keyVersion`, and `keyScope`.
+2. `media.reserveUpload` or `media.reserveAvatarUpload` (`convex/model/media.ts`) checks membership, mime, the per-experience caps (150 photos, 5 videos), and the 1 GB per-person cap (all in `convex/lib/limits.ts`). It inserts `status: "reserved"` and returns `r2Key`, `keyVersion`, and `keyScope`.
 3. The Worker writes the body with `FixedLengthStream` so the declared size is the real size, and `ssecKey` from `ssecKeyFor`.
 4. `media.confirmUpload` sets `status: "ready"`.
 

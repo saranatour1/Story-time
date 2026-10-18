@@ -6,7 +6,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { MAX_THUMB_BYTES } from "../../../convex/lib/limits";
 import { bearerToken, convexAs, json, ssecKeyFor } from "@/server/r2";
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
@@ -52,7 +52,7 @@ export const Route = createFileRoute("/api/upload")({
               ? "The PDF can be at most 50 MB"
               : isVideo
                 ? "Videos can be at most 50 MB"
-                : "Photos can be at most 5 MB";
+                : "Photos can be at most 20 MB";
           return json({ error }, 413);
         }
 

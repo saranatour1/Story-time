@@ -6,7 +6,7 @@ import { IMAGE_MIME_TYPES } from "../../convex/lib/limits";
 import type { Geo, PhotoPoint } from "./photo-groups";
 import { type PhotoMeta, readPhotoMeta } from "./photo-meta";
 import { thumbnail } from "./thumbs";
-import { isVideoFile, MAX_UPLOAD_BYTES, MAX_VIDEO_BYTES, uploadMedia } from "./upload";
+import { isVideoFile, MAX_VIDEO_BYTES, uploadMedia } from "./upload";
 import { trackAi } from "@/lib/analytics";
 
 // The steps that adding moments from picked files shares: the review sheet and
@@ -53,10 +53,9 @@ export const readPicked = async (
         );
         return null;
       }
-      if (file.size > (video ? MAX_VIDEO_BYTES : MAX_UPLOAD_BYTES)) {
-        problems.push(
-          `${file.name}: ${video ? "videos can be at most 50 MB" : "photos can be at most 5 MB"}`,
-        );
+      // A photo over the cap is made smaller when it uploads.
+      if (video && file.size > MAX_VIDEO_BYTES) {
+        problems.push(`${file.name}: videos can be at most 50 MB`);
         return null;
       }
       if (seen.has(key)) return null;
@@ -94,6 +93,7 @@ export const uploadAll = async (
   let done = 0;
   let next = 0;
   let full = false;
+  let eventFull = false;
 
   onProgress(0, items.length);
   const worker = async () => {
@@ -105,8 +105,10 @@ export const uploadAll = async (
       } catch (e) {
         const message = e instanceof Error ? e.message : "Upload failed";
         failures.push(`${item.file.name}: ${message}`);
-        // Every later upload would fail the same way.
-        if (/upload limit/i.test(message)) full = true;
+        // Every later upload would fail the same way: the person's bytes, or
+        // the experience's photo or video cap.
+        if (/holds up to/i.test(message)) eventFull = true;
+        if (/upload limit/i.test(message) || eventFull) full = true;
       }
       done++;
       onProgress(done, items.length);
@@ -115,7 +117,7 @@ export const uploadAll = async (
   await Promise.all(Array.from({ length: UPLOADS_AT_ONCE }, worker));
   if (full && done < items.length) {
     failures.push(
-      `${plural(items.length - done, "more file")} weren't uploaded: the upload limit has been reached`,
+      `${plural(items.length - done, "more file")} weren't uploaded: ${eventFull ? "this experience is full" : "the upload limit has been reached"}`,
     );
   }
   return { uploaded, failures, full };

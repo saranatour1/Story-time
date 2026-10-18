@@ -114,9 +114,37 @@ describe("uploadAll", () => {
       "2 more files weren't uploaded: the upload limit has been reached",
     );
   });
+
+  test("stops once the experience holds all the photos it can", async () => {
+    const error = "An experience holds up to 50 photos. Delete one to add another.";
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ error }), { status: 400 }));
+    const items = ["a", "b", "c", "d", "e"].map((id) => ({
+      id,
+      file: new File(["x"], `${id}.jpg`, { type: "image/jpeg" }),
+    }));
+
+    const { failures, full } = await uploadAll(
+      items,
+      "event-1",
+      () => "token",
+      () => {},
+    );
+
+    expect(full).toBe(true);
+    expect(failures.at(-1)).toBe("2 more files weren't uploaded: this experience is full");
+  });
 });
 
 describe("readPicked", () => {
+  test("keeps a photo over the upload cap: it's made smaller when it uploads", async () => {
+    const big = new File([new Uint8Array(21 * 1024 * 1024)], "big.jpg", { type: "image/jpeg" });
+
+    const { picked, problems } = await readPicked([big], new Set(), () => "p0");
+
+    expect(picked).toHaveLength(1);
+    expect(problems).toEqual([]);
+  });
+
   test("reports the files it leaves out, and picks each file once", async () => {
     const heic = new File(["x"], "IMG_1.HEIC", { type: "image/heic", lastModified: 1 });
     const photo = new File(["p"], "beach.png", { type: "image/png", lastModified: 2 });

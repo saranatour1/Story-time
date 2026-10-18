@@ -268,13 +268,13 @@ describe("access and revoke", () => {
 });
 
 describe("uploads", () => {
-  test("over 5 MB and non-images are rejected", async () => {
+  test("over 20 MB and non-images are rejected", async () => {
     const { owner } = await setup();
     const eventId = await owner.mutation(api.api.events.createDraft, {});
     await expect(
       owner.mutation(api.api.media.reserveUpload, {
         eventId,
-        size: 5 * 1024 * 1024 + 1,
+        size: 20 * 1024 * 1024 + 1,
         mime: "image/png",
       }),
     ).rejects.toThrow(/TOO_LARGE/);
@@ -287,7 +287,7 @@ describe("uploads", () => {
     ).rejects.toThrow();
     const ok = await owner.mutation(api.api.media.reserveUpload, {
       eventId,
-      size: 5 * 1024 * 1024,
+      size: 20 * 1024 * 1024,
       mime: "image/png",
     });
     expect(ok.r2Key).toContain(eventId);

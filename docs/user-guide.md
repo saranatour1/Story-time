@@ -26,7 +26,7 @@ Down the side of an experience:
 
 The box on Moments says **What happened, or what should change?**
 
-**Photos and videos.** Use **Attach photos or videos**, or drop them on the box. They become moments on their own. Words you typed with them become the first moment's note. You do not get a plan to approve. A photo can be up to 5 MB (JPEG, PNG, WebP, GIF, or AVIF). A video can be up to 50 MB (MP4, WebM, or QuickTime). One experience holds up to 1,500 photos and videos in total, and one person holds up to 2 GB of live uploads.
+**Photos and videos.** Use **Attach photos or videos**, or drop them on the box. They become moments on their own. Words you typed with them become the first moment's note. You do not get a plan to approve. A photo can be up to 20 MB (JPEG, PNG, WebP, GIF, or AVIF); a bigger one is made smaller on your device to fit. A video can be up to 50 MB (MP4, WebM, or QuickTime). One experience holds up to 150 photos and 5 videos, and one person holds up to 1 GB of live uploads.
 
 **A sentence about something new.** Press **Go**. If the sentence is something that happened, rather than a change to a moment you already have, it is saved straight away and you see **Moment added**. That moment gets a journal page on its own.
 
@@ -96,10 +96,10 @@ A share link opens on the book as well. **Play** there starts the film. Closing 
 | ---------------------------------------------------------- | ------------------------------------------- |
 | Experiences you own                                        | 10                                          |
 | Moments in one experience                                  | 100                                         |
-| Photos in one experience                                   | 50 (journal stickers don't count)           |
+| Photos in one experience                                   | 150 (journal stickers don't count)          |
 | Videos in one experience                                   | 5                                           |
 | Live uploads for one person                                | 1 GB                                        |
-| One photo                                                  | 5 MB                                        |
+| One photo                                                  | 20 MB (a bigger one is made smaller to fit) |
 | One video                                                  | 50 MB                                       |
 | Stops in one moment                                        | 10, counting the moment itself              |
 | Things on one moment (photos, notes, links)                | 20                                          |

@@ -457,7 +457,7 @@ export const MomentForm = ({
               >
                 <ImageIcon aria-hidden className="size-4 shrink-0" />
                 <span aria-live="polite">
-                  {uploadingStop === i ? "Uploading…" : "Choose photos (5 MB) or videos (50 MB)"}
+                  {uploadingStop === i ? "Uploading…" : "Choose photos (20 MB) or videos (50 MB)"}
                 </span>
                 <input
                   id={id("media")}

@@ -10,9 +10,9 @@ export const MOMENT_LIMIT = 100;
 export const momentsToRead = (momentCount: number) => Math.max(MOMENT_LIMIT, momentCount);
 // Photos and videos an experience holds live (reserved or ready), not counting
 // journal stickers or a locked PDF. Deleting one frees its place.
-export const MAX_PHOTOS_PER_EVENT = 50;
+export const MAX_PHOTOS_PER_EVENT = 150;
 export const MAX_VIDEOS_PER_EVENT = 5;
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 // A list thumbnail: longest side 480px, JPEG. The original stays for the open page.
 export const MAX_THUMB_BYTES = 400 * 1024;
 export const MAX_BLOCKS_PER_MOMENT = 20;
