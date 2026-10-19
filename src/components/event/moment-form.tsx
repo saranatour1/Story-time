@@ -41,7 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { deletePhotos } from "@/lib/actions";
 import { errorMessage } from "@/lib/errors";
 import { fromInput, toInput } from "@/lib/local-time";
-import { readPhotoMeta } from "@/lib/photo-meta";
+import { combinePhotoMeta, type PhotoMeta, readPhotoMeta } from "@/lib/photo-meta";
 import { isVideoFile, MEDIA_ACCEPT, uploadMedia } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 
@@ -306,7 +306,11 @@ export const MomentForm = ({
     input.value = "";
     if (files.length === 0 || !latestToken.current) return;
     setUploadingStop(stop);
-    void locateFromPhotos(stop, files);
+    // Read before any upload: the uploaded copy has its camera details stripped.
+    const metas = await Promise.all(
+      files.map((file) => readPhotoMeta(file).catch((): PhotoMeta => ({}))),
+    );
+    void fillFromPhotos(stop, combinePhotoMeta(metas));
     for (const file of files) {
       // Read per file: tokens are short-lived.
       const token = latestToken.current;
@@ -332,19 +336,16 @@ export const MomentForm = ({
     setUploadingStop(null);
   };
 
-  // A stop with no location takes it from the first photo that has GPS (no
-  // network), then, if its Where is empty, a name for that spot from
-  // OpenStreetMap. Typed text is never overwritten. Stops can't move while
-  // photos upload, so `stop` still points at the same one.
-  const locateFromPhotos = async (stop: number, files: File[]) => {
-    if (form.state.values.stops[stop]?.geo) return;
-    let geo: Geo | undefined;
-    for (const file of files) {
-      geo = (await readPhotoMeta(file)).geo;
-      if (geo) break;
-    }
+  // A stop with no time takes the earliest the photos were taken, and one
+  // with no location the first photo GPS, then, if its Where is empty, a name
+  // for that spot from OpenStreetMap. Typed text is never overwritten. Stops
+  // can't move while photos upload, so `stop` still points at the same one.
+  const fillFromPhotos = async (stop: number, { takenAt, geo }: PhotoMeta) => {
     const current = form.state.values.stops[stop];
-    if (!geo || closed.current || !current || current.geo) return;
+    if (closed.current || !current) return;
+    if (takenAt !== undefined && !current.startsAt)
+      form.setFieldValue(`stops[${stop}].startsAt`, toInput(takenAt, moment.tzOffsetMinutes));
+    if (!geo || current.geo) return;
     form.setFieldValue(`stops[${stop}].geo`, geo);
     form.setFieldValue(`stops[${stop}].geoFromPhoto`, true);
     if (current.place.trim()) return;
