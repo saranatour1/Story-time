@@ -15,6 +15,16 @@ export const readPhotoMeta = async (file: File): Promise<PhotoMeta> => {
   return photoMetaFromJpeg(await file.slice(0, HEAD_BYTES).arrayBuffer());
 };
 
+// What a handful of photos say together: the earliest time any was taken,
+// and the first place any has.
+export const combinePhotoMeta = (metas: PhotoMeta[]): Pick<PhotoMeta, "geo" | "takenAt"> => {
+  const times = metas.flatMap((m) => (m.takenAt === undefined ? [] : [m.takenAt]));
+  return {
+    takenAt: times.length > 0 ? Math.min(...times) : undefined,
+    geo: metas.find((m) => m.geo)?.geo,
+  };
+};
+
 // Walks the JPEG's segments to the Exif APP1, then its TIFF: IFD0 points at
 // the GPS IFD (location) and the Exif IFD (time). Anything malformed or cut
 // short just leaves that part out.

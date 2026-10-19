@@ -21,6 +21,8 @@ After the eight, in this order. Each one stays inside "photos or a sentence in, 
 
 ## Later
 
+- Edit moment: a photo fills only an empty When, so a moment's first stop (which always has a time) keeps its time when photos are added to it. Decide whether a photo taken earlier should move it.
+- The journal page beside the moments list showed empty photo frames in local dev while the story showed the same photos. Check it on production.
 - Collaboration follow-ups: tag people when a moment is first added (today it's only on edit), and decide whether "Who was there" belongs on journal pages (it would then reach the share link).
 
 - AI Budget on production: after it's deployed, run `pnpm exec convex run model/aiBudget:configure --deployment production-eu` once, and set `AI_BUDGET_DASHBOARD_TOKEN` there to open the dashboard. Consider a global daily spend cap (`aiBudget.global.setLimits`) as a killswitch.

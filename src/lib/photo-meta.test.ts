@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { photoMetaFromJpeg } from "./photo-meta";
+import { combinePhotoMeta, photoMetaFromJpeg } from "./photo-meta";
 
 // A minimal JPEG: SOI, then an Exif APP1 whose little-endian TIFF has IFD0
 // pointing at a GPS IFD (Lisbon, 38°41'51.6"N 9°12'57.6"W) and an Exif IFD
@@ -74,4 +74,17 @@ test("reads where and when a JPEG was taken from its EXIF", () => {
 
 test("an empty E/W ref leaves the coordinate unsigned", () => {
   expect(photoMetaFromJpeg(jpeg({ lngRef: "" })).geo?.lng).toBeCloseTo(9.216, 4);
+});
+
+test("several photos give the earliest time and the first place", () => {
+  const lisbon = { lat: 38.7, lng: -9.1 };
+  expect(
+    combinePhotoMeta([
+      {},
+      { takenAt: 300 },
+      { takenAt: 100, geo: lisbon },
+      { geo: { lat: 1, lng: 2 } },
+    ]),
+  ).toEqual({ takenAt: 100, geo: lisbon });
+  expect(combinePhotoMeta([{}, {}])).toEqual({ takenAt: undefined, geo: undefined });
 });

@@ -2,6 +2,10 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-10-19
+
+- **Edit moment reads a photo's details before it uploads.** Adding photos to a stop in Edit moment now reads their time and place first (the upload strips them), then fills an empty When with the earliest time and an empty Where with the place, as Add photos already did. Before, only the place was read, while the upload ran, and never the time. Typed values are never overwritten.
+
 ## 2026-10-18
 
 - **A whole trip's photos upload.** A photo can be 20 MB (was 5 MB), and a bigger one is made smaller on the device and uploads instead of being left out. An experience holds 150 photos (was 50), and a batch stops as soon as the experience is full instead of trying every remaining photo.
