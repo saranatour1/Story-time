@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation, usePaginatedQuery } from "convex/react";
-import { PencilIcon, PlayIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { ImagesIcon, PencilIcon, PlayIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -19,7 +19,7 @@ import { authorOf } from "@/lib/actors";
 import { formatTime } from "@/lib/local-time";
 import { matchesSearch } from "@/lib/moment-filters";
 import { viewerDay } from "@/lib/photo-groups";
-import { groupByDay, mediaOf, rowLabel } from "@/lib/timeline";
+import { type Day, groupByDay, mediaOf, rowLabel } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
 const PAGE = 30;
@@ -128,9 +128,13 @@ export const Timeline = ({
           Loading moments…
         </p>
         <Skeleton aria-hidden className="h-8 w-full" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid auto-rows-[9rem] grid-cols-2 gap-3">
           {Array.from({ length: Math.min(6, event.momentCount) }, (_, i) => (
-            <Skeleton key={i} aria-hidden className="aspect-[4/3] w-full rounded-xl" />
+            <Skeleton
+              key={i}
+              aria-hidden
+              className={cn("size-full rounded-xl", i % 3 === 0 && "col-span-2 row-span-2")}
+            />
           ))}
         </div>
       </div>
@@ -153,18 +157,33 @@ export const Timeline = ({
           No moments match.
         </p>
       )}
-      {/* One grid of moments, oldest first, each card saying its day. */}
-      <ul className="grid grid-cols-2 items-start gap-3 @2xl:grid-cols-3">
+      {/* One bento grid of moments, oldest first: a tile's size follows what
+          it holds, and small tiles fill the gaps between big ones. */}
+      <ul className="grid auto-rows-[9rem] grid-flow-dense grid-cols-2 gap-3 @2xl:grid-cols-4">
         {days.flatMap((day) =>
           day.moments.map((m) => {
             const selected = m._id === selectedMomentId;
             const media = mediaOf(m);
             const editable = canEdit(m.authorId);
+            const caption = (
+              <Caption
+                moment={m}
+                day={day}
+                mine={m.authorId === meId}
+                unpaged={unpaged.has(m._id)}
+                overPhoto={media.length > 0}
+                roomForActions={media.length === 0 && editable}
+              />
+            );
             return (
               <li
                 key={m._id}
                 className={cn(
                   "relative overflow-hidden rounded-xl border bg-card transition-shadow hover:shadow-md",
+                  // Words get width, one photo height, several photos both.
+                  media.length === 0 && "col-span-2",
+                  media.length === 1 && "row-span-2",
+                  media.length > 1 && "col-span-2 row-span-2",
                   selected && "ring-2 ring-ring",
                 )}
               >
@@ -173,40 +192,24 @@ export const Timeline = ({
                   data-moment-id={m._id}
                   aria-current={selected ? "true" : undefined}
                   onClick={() => onPick(m)}
-                  className="block w-full text-left outline-none focus-visible:bg-muted/60"
+                  className="relative block size-full text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 >
-                  {media.length > 0 && <Mosaic media={media} />}
-                  <span className="block space-y-1 p-3">
-                    <span
-                      className={cn(
-                        "block font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase",
-                        // Room for Edit and Delete, which sit over a card with no photo.
-                        media.length === 0 && editable && "pr-16",
-                      )}
-                    >
-                      {day.label} · {formatTime(m.startsAt, m.tzOffsetMinutes)}
-                      {day.today && (
-                        <span className="ml-1.5 font-sans tracking-normal text-primary normal-case">
-                          Today
+                  {media.length > 0 ? (
+                    <>
+                      <Mosaic media={media} />
+                      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent p-3 pt-10">
+                        {caption}
+                      </span>
+                      {media.length > 1 && (
+                        <span className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/55 px-1.5 py-0.5 text-xs text-white backdrop-blur-sm">
+                          <ImagesIcon aria-hidden className="size-3.5" />
+                          {media.length}
                         </span>
                       )}
-                    </span>
-                    <span className="line-clamp-2 text-sm">{rowLabel(m)}</span>
-                    {m.people.length > 0 && (
-                      <span className="block truncate text-xs text-muted-foreground">
-                        With {m.people.map((p) => p.name ?? "Anonymous").join(", ")}
-                      </span>
-                    )}
-                    {unpaged.has(m._id) && (
-                      <span className="block text-xs text-muted-foreground">
-                        The journal is full, so this moment has no page.
-                      </span>
-                    )}
-                    <span className="flex flex-wrap items-center gap-2 pt-0.5">
-                      <PlaceChip place={m.place} />
-                      <ActorBadge actor={authorOf(m)} you={m.authorId === meId} />
-                    </span>
-                  </span>
+                    </>
+                  ) : (
+                    <span className="block p-3">{caption}</span>
+                  )}
                 </button>
                 {editable && (
                   <div className="absolute top-2 right-2 flex rounded-md bg-background/85 shadow-xs backdrop-blur-sm">
@@ -280,28 +283,90 @@ const Empty = ({ event }: { event: EventView }) => {
   );
 };
 
-const PlaceChip = ({ place }: { place?: string }) => {
-  if (!place) return null;
+// When, what and who else, as a tile says it: over a photo in white on a dark
+// fade, else in the card's own colours. The author shows only when it isn't
+// the person looking.
+const Caption = ({
+  moment: m,
+  day,
+  mine,
+  unpaged,
+  overPhoto,
+  roomForActions,
+}: {
+  moment: MomentView;
+  day: Day;
+  mine: boolean;
+  unpaged: boolean;
+  overPhoto: boolean;
+  roomForActions: boolean;
+}) => {
+  const label = rowLabel(m);
+  const where = m.place && !label.startsWith(m.place) ? m.place.split(",")[0] : undefined;
+  const people =
+    m.people.length > 0
+      ? `With ${m.people.map((p) => p.name ?? "Anonymous").join(", ")}`
+      : undefined;
+  const more = [where, people].filter(Boolean).join(" · ");
   return (
-    <span className="hidden h-6 max-w-40 min-w-0 items-center gap-1.5 rounded-full border px-2 text-[13px] text-muted-foreground sm:inline-flex">
+    <span className={cn("block space-y-1", overPhoto && "text-white")}>
       <span
-        aria-hidden
-        className="size-2 shrink-0 rounded-full"
-        style={{ backgroundColor: placeColor(place) }}
-      />
-      <span className="truncate">{place.split(",")[0]}</span>
+        className={cn(
+          "block font-mono text-[11px] tracking-[0.08em] uppercase",
+          overPhoto ? "text-white/75" : "text-muted-foreground",
+          // Room for Edit and Delete, which sit over a tile with no photo.
+          roomForActions && "pr-16",
+        )}
+      >
+        {day.label} · {formatTime(m.startsAt, m.tzOffsetMinutes)}
+        {day.today && (
+          <span
+            className={cn(
+              "ml-1.5 font-sans tracking-normal normal-case",
+              overPhoto ? "text-amber-200" : "text-primary",
+            )}
+          >
+            Today
+          </span>
+        )}
+      </span>
+      <span
+        className={cn(
+          overPhoto
+            ? "line-clamp-2 text-sm font-medium"
+            : "line-clamp-3 font-serif text-lg leading-snug",
+        )}
+      >
+        {label}
+      </span>
+      {more && (
+        <span
+          className={cn(
+            "block truncate text-xs",
+            overPhoto ? "text-white/75" : "text-muted-foreground",
+          )}
+        >
+          {more}
+        </span>
+      )}
+      {unpaged && (
+        <span
+          className={cn("block text-xs", overPhoto ? "text-white/75" : "text-muted-foreground")}
+        >
+          The journal is full, so this moment has no page.
+        </span>
+      )}
+      {!mine && (
+        <ActorBadge
+          actor={authorOf(m)}
+          you={false}
+          className={overPhoto ? "text-white/80" : undefined}
+        />
+      )}
     </span>
   );
 };
 
-// A stable colour per place, so the same place reads the same everywhere.
-const placeColor = (place: string) => {
-  let hue = 0;
-  for (const ch of place.toLowerCase()) hue = (hue * 31 + ch.charCodeAt(0)) % 360;
-  return `oklch(0.65 0.16 ${hue})`;
-};
-
-// Keys typed into a field belong to the field, not to the page's shortcuts.
 const isTyping = (target: EventTarget | null) => {
   return (
     target instanceof HTMLElement &&
@@ -309,16 +374,14 @@ const isTyping = (target: EventTarget | null) => {
   );
 };
 
-// A moment's photos as a small collage: one, two side by side, or one large
-// with two beside it, the last saying how many more. Videos have no stored
-// thumbnail, so they show as a play tile.
+// A moment's photos filling its tile: one, two side by side, or one large with
+// two beside it. Videos have no stored thumbnail, so they show as a play tile.
 const Mosaic = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }) => {
   const shown = media.slice(0, 3);
-  const more = media.length - shown.length;
   return (
     <span
       className={cn(
-        "grid aspect-[4/3] gap-0.5 bg-muted",
+        "grid size-full gap-0.5 bg-muted",
         shown.length === 2 && "grid-cols-2",
         shown.length === 3 && "grid-cols-3 grid-rows-2",
       )}
@@ -337,11 +400,6 @@ const Mosaic = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }
             </span>
           ) : (
             <AuthImage mediaId={mediaId} alt="" className="aspect-auto size-full rounded-none" />
-          )}
-          {more > 0 && i === shown.length - 1 && (
-            <span className="absolute inset-0 grid place-items-center bg-black/50 text-sm font-medium text-white">
-              +{more}
-            </span>
           )}
         </span>
       ))}
