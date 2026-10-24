@@ -1,24 +1,21 @@
 import { cn } from "cn";
 import { useConvexAuth } from "convex/react";
-import {
-  useOauth,
-  useSignInWithGithub,
-  useSignInWithGoogle,
-  type OauthFlowErrorCode,
-} from "@convex-dev/auth/providers/oauth/react";
-import { useAnonymousAuth } from "@convex-dev/auth/providers/anonymous/react";
+import { useSignInAnonymously } from "@convex-dev/auth/methods/anonymous/react";
+import { useSignInWithGithub } from "@convex-dev/auth/methods/github/react";
+import { useSignInWithGoogle } from "@convex-dev/auth/methods/google/react";
+import { type OauthFlowError, useOauth } from "@convex-dev/auth/methods/oauth/react";
 import { authApi } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 // What a failed sign-in says when the server didn't send its own words.
-const FLOW_ERRORS: Record<OauthFlowErrorCode, string> = {
-  access_denied: "Sign-in was cancelled.",
-  expired: "Sign-in took too long. Please try again.",
-  rejected: "Sign-in didn't complete. Please try again.",
-  oauth_error: "Sign-in didn't complete. Please try again.",
-  invalid_flow: "Sign-in didn't complete. Please try again.",
+const FLOW_ERRORS: Record<OauthFlowError["error"], string> = {
+  ACCESS_DENIED: "Sign-in was cancelled.",
+  EXPIRED: "Sign-in took too long. Please try again.",
+  REJECTED: "Sign-in didn't complete. Please try again.",
+  OTHER_ERROR: "Sign-in didn't complete. Please try again.",
+  INVALID_FLOW: "Sign-in didn't complete. Please try again.",
 };
 
 // shadcn login-03, trimmed to the OAuth providers the backend supports.
@@ -72,8 +69,8 @@ export const SignInButtons = ({
 }) => {
   const options = returnTo === undefined ? undefined : { redirectTo: returnTo };
   const { isLoading } = useConvexAuth();
-  const { signInGithub } = useSignInWithGithub(authApi);
-  const { signInGoogle } = useSignInWithGoogle(authApi);
+  const { signIn: signInGithub } = useSignInWithGithub(authApi);
+  const { signIn: signInGoogle } = useSignInWithGoogle(authApi);
   const { flowError } = useOauth();
   const size = prominent ? "h-11 px-5 text-[0.9375rem]" : undefined;
 
@@ -124,7 +121,9 @@ export const SignInButtons = ({
       )}
       {showError && flowError !== null && (
         <p role="alert" className={cn("text-sm text-destructive", !prominent && "text-center")}>
-          {flowError.message ?? FLOW_ERRORS[flowError.code]}
+          {flowError.error === "REJECTED" && typeof flowError.data === "string"
+            ? flowError.data
+            : FLOW_ERRORS[flowError.error]}
         </p>
       )}
     </div>
@@ -134,7 +133,7 @@ export const SignInButtons = ({
 // Dev only: anonymous sign-in for local testing. The backend also rejects it
 // unless ALLOW_ANONYMOUS_SIGNIN is "true" on the deployment.
 const DevAnonymousSignIn = ({ className }: { className?: string }) => {
-  const { signInAnonymous } = useAnonymousAuth(authApi.signInAnonymous);
+  const { signIn } = useSignInAnonymously(authApi);
   return (
     <button
       type="button"
@@ -142,7 +141,7 @@ const DevAnonymousSignIn = ({ className }: { className?: string }) => {
         "text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline",
         className,
       )}
-      onClick={() => void signInAnonymous().catch(() => {})}
+      onClick={() => void signIn().catch(() => {})}
     >
       Continue anonymously (dev only)
     </button>

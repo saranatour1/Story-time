@@ -9,8 +9,6 @@
  */
 
 import type * as api_ai_command from "../api/ai/command.js";
-import type * as api_ai_enrich from "../api/ai/enrich.js";
-import type * as api_ai_title from "../api/ai/title.js";
 import type * as api_ai_voice from "../api/ai/voice.js";
 import type * as api_changes from "../api/changes.js";
 import type * as api_events from "../api/events.js";
@@ -46,13 +44,8 @@ import type * as lib_publicWeb from "../lib/publicWeb.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_seeded from "../lib/seeded.js";
 import type * as lib_sharedPdf from "../lib/sharedPdf.js";
-import type * as model_ai_apply from "../model/ai/apply.js";
 import type * as model_ai_command from "../model/ai/command.js";
-import type * as model_ai_decide from "../model/ai/decide.js";
-import type * as model_ai_enrich from "../model/ai/enrich.js";
 import type * as model_ai_publicFetch from "../model/ai/publicFetch.js";
-import type * as model_ai_scribe from "../model/ai/scribe.js";
-import type * as model_ai_title from "../model/ai/title.js";
 import type * as model_ai_unfurl from "../model/ai/unfurl.js";
 import type * as model_ai_voice from "../model/ai/voice.js";
 import type * as model_aiBudget from "../model/aiBudget.js";
@@ -71,12 +64,14 @@ import type * as model_sessions from "../model/sessions.js";
 import type * as model_share from "../model/share.js";
 import type * as model_users from "../model/users.js";
 
-import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server";
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 
 declare const fullApi: ApiFromModules<{
   "api/ai/command": typeof api_ai_command;
-  "api/ai/enrich": typeof api_ai_enrich;
-  "api/ai/title": typeof api_ai_title;
   "api/ai/voice": typeof api_ai_voice;
   "api/changes": typeof api_changes;
   "api/events": typeof api_events;
@@ -112,13 +107,8 @@ declare const fullApi: ApiFromModules<{
   "lib/rateLimit": typeof lib_rateLimit;
   "lib/seeded": typeof lib_seeded;
   "lib/sharedPdf": typeof lib_sharedPdf;
-  "model/ai/apply": typeof model_ai_apply;
   "model/ai/command": typeof model_ai_command;
-  "model/ai/decide": typeof model_ai_decide;
-  "model/ai/enrich": typeof model_ai_enrich;
   "model/ai/publicFetch": typeof model_ai_publicFetch;
-  "model/ai/scribe": typeof model_ai_scribe;
-  "model/ai/title": typeof model_ai_title;
   "model/ai/unfurl": typeof model_ai_unfurl;
   "model/ai/voice": typeof model_ai_voice;
   "model/aiBudget": typeof model_aiBudget;
@@ -146,7 +136,10 @@ declare const fullApi: ApiFromModules<{
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
 
 /**
  * A utility for referencing Convex functions in your app's internal API.
@@ -156,17 +149,19 @@ export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "publ
  * const myFunctionReference = internal.myModule.myFunction;
  * ```
  */
-export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
 
 export declare const components: {
-  auth: import("@convex-dev/auth/core/_generated/component.js").ComponentApi<"auth">;
-  oauthGithub: import("@convex-dev/auth/providers/oauth/_generated/component.js").ComponentApi<"oauthGithub">;
-  oauthGoogle: import("@convex-dev/auth/providers/oauth/_generated/component.js").ComponentApi<"oauthGoogle">;
-  authAnonymous: import("@convex-dev/auth/providers/anonymous/_generated/component.js").ComponentApi<"authAnonymous">;
+  auth: import("@convex-dev/auth/_generated/component.js").ComponentApi<"auth">;
+  authGithub: import("@convex-dev/auth/components/github/_generated/component.js").ComponentApi<"authGithub">;
+  authGoogle: import("@convex-dev/auth/components/google/_generated/component.js").ComponentApi<"authGoogle">;
+  authAnonymous: import("@convex-dev/auth/components/anonymous/_generated/component.js").ComponentApi<"authAnonymous">;
   email: import("../components/email/_generated/component.js").ComponentApi<"email">;
   invites: import("../components/invites/_generated/component.js").ComponentApi<"invites">;
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
-  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   aiBudget: import("@convex-dev/ai-budget/_generated/component.js").ComponentApi<"aiBudget">;
 };

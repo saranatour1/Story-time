@@ -1,12 +1,12 @@
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
-import auth from "@convex-dev/auth/core/convex.config.js";
+import auth from "@convex-dev/auth/convex.config.js";
 import email from "./components/email/convex.config";
 import invites from "./components/invites/convex.config";
-import oauth from "@convex-dev/auth/providers/oauth/convex.config.js";
-import authAnonymous from "@convex-dev/auth/providers/anonymous/convex.config.js";
+import github from "@convex-dev/auth/components/github/convex.config.js";
+import google from "@convex-dev/auth/components/google/convex.config.js";
+import authAnonymous from "@convex-dev/auth/components/anonymous/convex.config.js";
 import agent from "@convex-dev/agent/convex.config";
-import workflow from "@convex-dev/workflow/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 import aiBudget from "@convex-dev/ai-budget/convex.config";
 
@@ -38,8 +38,7 @@ app.use(auth, {
 });
 
 // Callback URLs: https://<deployment>.convex.site/oauth/{github,google}/callback
-app.use(oauth, {
-  name: "oauthGithub",
+app.use(github, {
   httpPrefix: "/oauth/github",
   env: {
     CLIENT_ID: app.env.AUTH_GITHUB_CLIENT_ID,
@@ -47,8 +46,7 @@ app.use(oauth, {
   },
 });
 
-app.use(oauth, {
-  name: "oauthGoogle",
+app.use(google, {
   httpPrefix: "/oauth/google",
   env: {
     CLIENT_ID: app.env.AUTH_GOOGLE_CLIENT_ID,
@@ -66,9 +64,8 @@ app.use(email, {
   },
 });
 app.use(invites);
-// Haiku captions through the Convex AI Gateway, and durable enrichment steps.
+// The box's requests, read by Haiku through the Convex AI Gateway.
 app.use(agent);
-app.use(workflow);
 // Per-person allowances (convex/lib/rateLimit.ts).
 app.use(rateLimiter);
 // Measures every AI call's cost and usage (lib/ai/budget.ts).

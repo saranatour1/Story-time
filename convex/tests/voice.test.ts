@@ -3,7 +3,6 @@ import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vite-plus/test";
 import { isFormat, readTranscript, toBase64 } from "../model/ai/voice";
-import { promptFor } from "../model/ai/scribe";
 import { api } from "../_generated/api";
 import { MAX_VOICE_BYTES } from "../lib/limits";
 import { rateLimiter } from "../lib/rateLimit";
@@ -88,23 +87,5 @@ describe("transcribe is refused before anything is sent", () => {
     await expect(
       person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" }),
     ).rejects.toThrow("You can still type it");
-  });
-});
-
-describe("the person's words guide the note", () => {
-  const found = {
-    title: "Germany",
-    startsAt: Date.UTC(2025, 1, 20, 14, 29),
-    route: [],
-    labels: [],
-    notes: [],
-    experienceLabels: [],
-  };
-
-  test("a hint goes in the prompt as theirs; no hint adds nothing", () => {
-    expect(promptFor(found, "the dinner in Berlin")).toContain(
-      "The person says the photos are: the dinner in Berlin",
-    );
-    expect(promptFor(found)).not.toContain("The person says");
   });
 });

@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { beforeAll, describe, expect, test } from "vite-plus/test";
-import { api, internal } from "../_generated/api";
+import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { requireEventAccessFor } from "../lib/access";
 import { createMoment } from "../model/moments";
@@ -76,30 +76,6 @@ describe("the log names who made each change", () => {
     expect(moments.every((c) => c.agent === undefined)).toBe(true);
   });
 
-  test("Scribe's edit names the agent and no person", async () => {
-    const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.api.moments.create, {
-      eventId,
-      startsAt: T0,
-      place: "Lisbon",
-      blocks: [{ type: "link", url: "https://example.com/tram" }],
-    });
-    await t.mutation(internal.model.ai.apply.apply, {
-      momentId,
-      note: "We rode the tram",
-      labels: ["tram"],
-    });
-
-    const { page } = await owner.query(api.api.changes.listForEvent, {
-      eventId,
-      paginationOpts: { numItems: 50, cursor: null },
-    });
-    const edit = page.find((c) => c.entity === "moment" && c.action === "update");
-    expect(edit).toMatchObject({ agent: "Scribe" });
-    expect(edit?.actorId).toBeUndefined();
-    expect(edit?.actorName).toBeUndefined();
-  });
-
   test("an agent acting for a person names both the agent and the person", async () => {
     const { t, owner, eventId, ownerId } = await setup();
     await t.run(async (ctx) => {
@@ -140,5 +116,42 @@ describe("only the owner reads the log", () => {
     await expect(read(viewer)).rejects.toThrow("Event not found");
     await expect(read(stranger)).rejects.toThrow("Event not found");
     await expect(read(owner)).resolves.toMatchObject({ page: expect.any(Array) });
+  });
+});
+
+describe("activity counts", () => {
+  test("people, agents and Story-time add up to everyone, for the owner only", async () => {
+    const { t, eventId, ownerId, owner, helper } = await setup();
+    // createDraft already logged one change by the owner.
+    await t.run(async (ctx) => {
+      const change = { eventId, entity: "moment" as const, entityId: "m", fields: [], at: T0 };
+      await ctx.db.insert("changes", { ...change, action: "create", actorId: ownerId });
+      await ctx.db.insert("changes", {
+        ...change,
+        action: "update",
+        actorId: ownerId,
+        agent: "Box",
+      });
+      await ctx.db.insert("changes", { ...change, action: "create" });
+      await ctx.db.insert("changes", { ...change, action: "expire" });
+    });
+    const counts = await owner.query(api.api.changes.counts, { eventId });
+    const all = await t.run((ctx) =>
+      ctx.db
+        .query("changes")
+        .withIndex("by_event_and_at", (q) => q.eq("eventId", eventId))
+        .collect(),
+    );
+    expect(counts).toEqual({
+      everyone: all.length,
+      people: all.length - 3,
+      agents: 1,
+      system: 2,
+      capped: false,
+    });
+    expect(counts.people + counts.agents + counts.system).toBe(counts.everyone);
+    await expect(helper.query(api.api.changes.counts, { eventId })).rejects.toThrow(
+      "Event not found",
+    );
   });
 });

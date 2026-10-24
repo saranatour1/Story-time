@@ -638,22 +638,6 @@ describe("filling a journal", () => {
     expect(await dates()).not.toContain("1 Jun – 4 Jun 2026");
   });
 
-  test("only the owner asks for another title, and only for a moment's page", async () => {
-    const { owner, viewer, eventId, moment } = await setup();
-    const momentId = await moment(JUNE_1, "First");
-    await owner.mutation(api.api.journal.fill, { eventId });
-    const [cover, page] = (await owner.query(api.api.journal.get, { eventId })).pages;
-    expect(
-      await owner.query(internal.model.ai.title.pageMoment, { pageId: page!._id }),
-    ).toMatchObject({ momentId });
-    await expect(
-      viewer.query(internal.model.ai.title.pageMoment, { pageId: page!._id }),
-    ).rejects.toThrow();
-    await expect(
-      owner.query(internal.model.ai.title.pageMoment, { pageId: cover!._id }),
-    ).rejects.toThrow(/moment's page/);
-  });
-
   test("words are encrypted at rest", async () => {
     const { t, owner, eventId, moment } = await setup();
     await moment(JUNE_1, "secret-note");

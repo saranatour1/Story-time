@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vite-plus/test";
 import type { MomentView } from "@/components/event/types";
-import { firstLine, groupByDay } from "./timeline";
+import type { Id } from "../../convex/_generated/dataModel";
+import { firstLine, groupByDay, mediaOf, rowLabel } from "./timeline";
 
 const moment = (id: string, startsAt: number, over: Partial<MomentView> = {}): MomentView => ({
   _id: id as MomentView["_id"],
@@ -62,5 +63,31 @@ describe("the line a moment is listed by", () => {
     ).toBe("A page");
     expect(firstLine(moment("c", 0, { stops: [{ place: "Sintra", blocks: [] }] }))).toBe("Sintra");
     expect(firstLine(moment("d", 0))).toBeUndefined();
+  });
+});
+
+describe("a moment's row", () => {
+  const photo = (id: string) => ({ type: "photo" as const, mediaId: id as Id<"media"> });
+  const video = (id: string) => ({ type: "video" as const, mediaId: id as Id<"media"> });
+
+  test("its photos and videos, in order across stops", () => {
+    const m = moment("a", 0, {
+      blocks: [photo("p1"), video("v1")],
+      stops: [{ blocks: [photo("p2")] }],
+    });
+    expect(mediaOf(m)).toEqual([
+      { mediaId: "p1", video: false },
+      { mediaId: "v1", video: true },
+      { mediaId: "p2", video: false },
+    ]);
+    expect(rowLabel(m)).toBe("2 photos · 1 video");
+  });
+
+  test("words come first; an empty moment is just a moment", () => {
+    expect(
+      rowLabel(moment("b", 0, { blocks: [{ type: "note", text: "Dinner" }, photo("p1")] })),
+    ).toBe("Dinner");
+    expect(rowLabel(moment("c", 0, { blocks: [video("v1")] }))).toBe("1 video");
+    expect(rowLabel(moment("d", 0))).toBe("A moment");
   });
 });
