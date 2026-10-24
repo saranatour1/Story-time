@@ -93,5 +93,30 @@ const listForEvent = query({
   },
 });
 
+// How many changes each kind of actor made, for Activity's filters: people,
+// agents, and Story-time itself (no person or agent), which add up to all of
+// them. Counting stops at COUNT_CAP; `capped` says there are more.
+const COUNT_CAP = 1000;
+const counts = query({
+  args: { eventId: v.id("events") },
+  handler: async (ctx, args) => {
+    await requireEventAccess(ctx, args.eventId, "owner");
+    const rows = await ctx.db
+      .query("changes")
+      .withIndex("by_event_and_at", (q) => q.eq("eventId", args.eventId))
+      .take(COUNT_CAP + 1);
+    const counted = rows.slice(0, COUNT_CAP);
+    const agents = counted.filter((c) => c.agent !== undefined).length;
+    const people = counted.filter((c) => c.agent === undefined && c.actorId !== undefined).length;
+    return {
+      everyone: counted.length,
+      people,
+      agents,
+      system: counted.length - people - agents,
+      capped: rows.length > COUNT_CAP,
+    };
+  },
+});
+
 // What the app calls. Registered once, by convex/api/changes.ts, which re-exports it.
-export const changesApi = { unreadCount, markRead, listForEvent };
+export const changesApi = { unreadCount, markRead, listForEvent, counts };

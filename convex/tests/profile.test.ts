@@ -299,4 +299,34 @@ describe("oauth contact email", () => {
     });
     expect((await t.run((ctx) => ctx.db.get("users", bad)))?.email).toBeUndefined();
   });
+
+  test("a verified email that one person here confirmed signs in as that person", async () => {
+    const t = convexTest(schema, modules);
+    rateLimiterTest.register(t);
+    const person = (email: string, emailVerified: boolean) =>
+      t.run((ctx) => ctx.db.insert("users", { email, emailVerified }));
+    const github = (email: string, emailVerified: boolean) =>
+      t.mutation(internal.model.users.createGithubUser, {
+        provider: {
+          name: "github",
+          accountId: "gh-9",
+          profile: { id: "gh-9", login: "someone", email, emailVerified },
+        },
+      });
+
+    const sara = await person("sara@example.com", true);
+    expect(await github(" Sara@Example.com ", true)).toBe(sara);
+    // The provider hasn't verified it: a new person.
+    expect(await github("sara@example.com", false)).not.toBe(sara);
+    // Nobody here confirmed it: a new person.
+    const ada = await person("ada@example.com", false);
+    expect(await github("ada@example.com", true)).not.toBe(ada);
+    // Two people confirmed it: too unclear to choose, so a new person.
+    const [sam, samToo] = [
+      await person("sam@example.com", true),
+      await person("sam@example.com", true),
+    ];
+    const signedIn = await github("sam@example.com", true);
+    expect([sam, samToo]).not.toContain(signedIn);
+  });
 });

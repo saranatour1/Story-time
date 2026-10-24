@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation, usePaginatedQuery } from "convex/react";
-import { PencilIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { ImagesIcon, PencilIcon, PlayIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { queries } from "@/lib/queries";
+import { AuthImage } from "@/components/auth-image";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ActorBadge } from "@/components/event/actor-badge";
 import { QuickAddButton } from "@/components/event/quick-add";
@@ -18,14 +19,14 @@ import { authorOf } from "@/lib/actors";
 import { formatTime } from "@/lib/local-time";
 import { matchesSearch } from "@/lib/moment-filters";
 import { viewerDay } from "@/lib/photo-groups";
-import { firstLine, groupByDay } from "@/lib/timeline";
+import { type Day, groupByDay, mediaOf, rowLabel } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
 const PAGE = 30;
 
-// The moments of an experience, by day, with a search box. Picking one hands
-// it to the page, which edits it or opens it in the story. Each row you may
-// change has its own Edit and Delete buttons.
+// The moments of an experience as a grid of cards, oldest first, with a search
+// box. Picking one hands it to the page, which edits it or opens it in the
+// story. Each card you may change has its own Edit and Delete buttons.
 export const Timeline = ({
   event,
   meId,
@@ -127,9 +128,15 @@ export const Timeline = ({
           Loading moments…
         </p>
         <Skeleton aria-hidden className="h-8 w-full" />
-        {Array.from({ length: Math.min(6, event.momentCount) }, (_, i) => (
-          <Skeleton key={i} aria-hidden className="h-10 w-full" />
-        ))}
+        <div className="grid auto-rows-[9rem] grid-cols-2 gap-3">
+          {Array.from({ length: Math.min(6, event.momentCount) }, (_, i) => (
+            <Skeleton
+              key={i}
+              aria-hidden
+              className={cn("size-full rounded-xl", i % 3 === 0 && "col-span-2 row-span-2")}
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -138,7 +145,7 @@ export const Timeline = ({
   const shown = moments.filter((m) => matchesSearch(m, query));
   const days = groupByDay(shown, viewerDay());
   return (
-    <div className="space-y-4">
+    <div className="@container space-y-4">
       {search}
       {query.trim() !== "" && (
         <p className="text-xs text-muted-foreground" role="status">
@@ -150,93 +157,89 @@ export const Timeline = ({
           No moments match.
         </p>
       )}
-      {days.map((day) => (
-        <section
-          key={day.day}
-          aria-label={day.today ? `${day.label}, today` : day.label}
-          className="space-y-1.5"
-        >
-          <h2 className="sticky top-0 z-10 bg-background/95 py-1 font-mono text-[11px] tracking-[0.12em] text-muted-foreground uppercase backdrop-blur">
-            {day.label}
-            {day.today && (
-              <span className="ml-1.5 font-sans normal-case tracking-normal text-primary">
-                Today
-              </span>
-            )}
-            {" · "}
-            {day.moments.length} {day.moments.length === 1 ? "moment" : "moments"}
-          </h2>
-          <ul className="divide-y overflow-hidden rounded-xl border bg-card">
-            {day.moments.map((m) => {
-              const selected = m._id === selectedMomentId;
-              return (
-                <li
-                  key={m._id}
-                  className={cn(
-                    "group flex items-center hover:bg-muted/60",
-                    selected && "bg-muted",
-                  )}
+      {/* One bento grid of moments, oldest first: a tile's size follows what
+          it holds, and small tiles fill the gaps between big ones. */}
+      <ul className="grid auto-rows-[9rem] grid-flow-dense grid-cols-2 gap-3 @2xl:grid-cols-4">
+        {days.flatMap((day) =>
+          day.moments.map((m) => {
+            const selected = m._id === selectedMomentId;
+            const media = mediaOf(m);
+            const editable = canEdit(m.authorId);
+            const caption = (
+              <Caption
+                moment={m}
+                day={day}
+                mine={m.authorId === meId}
+                unpaged={unpaged.has(m._id)}
+                overPhoto={media.length > 0}
+                roomForActions={media.length === 0 && editable}
+              />
+            );
+            return (
+              <li
+                key={m._id}
+                className={cn(
+                  "relative overflow-hidden rounded-xl border bg-card transition-shadow hover:shadow-md",
+                  // Words get width, one photo height, several photos both.
+                  media.length === 0 && "col-span-2",
+                  media.length === 1 && "row-span-2",
+                  media.length > 1 && "col-span-2 row-span-2",
+                  selected && "ring-2 ring-ring",
+                )}
+              >
+                <button
+                  type="button"
+                  data-moment-id={m._id}
+                  aria-current={selected ? "true" : undefined}
+                  onClick={() => onPick(m)}
+                  className="relative block size-full text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 >
-                  <button
-                    type="button"
-                    data-moment-id={m._id}
-                    aria-current={selected ? "true" : undefined}
-                    onClick={() => onPick(m)}
-                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left outline-none focus-visible:bg-muted/60"
-                  >
-                    <span className="w-16 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
-                      {formatTime(m.startsAt, m.tzOffsetMinutes)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">{firstLine(m) ?? "A moment"}</span>
-                      {m.people.length > 0 && (
-                        <span className="block truncate text-xs text-muted-foreground">
-                          With {m.people.map((p) => p.name ?? "Anonymous").join(", ")}
+                  {media.length > 0 ? (
+                    <>
+                      <Mosaic media={media} />
+                      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent p-3 pt-10">
+                        {caption}
+                      </span>
+                      {media.length > 1 && (
+                        <span className="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/55 px-1.5 py-0.5 text-xs text-white backdrop-blur-sm">
+                          <ImagesIcon aria-hidden className="size-3.5" />
+                          {media.length}
                         </span>
                       )}
-                      {unpaged.has(m._id) && (
-                        <span className="block truncate text-xs text-muted-foreground">
-                          The journal is full, so this moment has no page.
-                        </span>
-                      )}
-                    </span>
-                    <PlaceChip place={m.place} />
-                    <ActorBadge
-                      actor={authorOf(m)}
-                      you={m.authorId === meId}
-                      className="hidden md:inline-flex"
-                    />
-                  </button>
-                  {canEdit(m.authorId) && (
-                    <div className="flex shrink-0 items-center pr-1.5">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Edit moment"
-                        className="text-muted-foreground"
-                        onClick={() => onEdit(m)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Delete moment"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => setDeleting(m)}
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </div>
+                    </>
+                  ) : (
+                    <span className="block p-3">{caption}</span>
                   )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+                </button>
+                {editable && (
+                  <div className="absolute top-2 right-2 flex rounded-md bg-background/85 shadow-xs backdrop-blur-sm">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Edit moment"
+                      className="text-muted-foreground"
+                      onClick={() => onEdit(m)}
+                    >
+                      <PencilIcon />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Delete moment"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleting(m)}
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  </div>
+                )}
+              </li>
+            );
+          }),
+        )}
+      </ul>
       {!searching && paged.status !== "Exhausted" && (
         <Button
           type="button"
@@ -280,31 +283,126 @@ const Empty = ({ event }: { event: EventView }) => {
   );
 };
 
-const PlaceChip = ({ place }: { place?: string }) => {
-  if (!place) return null;
+// When, what and who else, as a tile says it: over a photo in white on a dark
+// fade, else in the card's own colours. The author shows only when it isn't
+// the person looking.
+const Caption = ({
+  moment: m,
+  day,
+  mine,
+  unpaged,
+  overPhoto,
+  roomForActions,
+}: {
+  moment: MomentView;
+  day: Day;
+  mine: boolean;
+  unpaged: boolean;
+  overPhoto: boolean;
+  roomForActions: boolean;
+}) => {
+  const label = rowLabel(m);
+  const where = m.place && !label.startsWith(m.place) ? m.place.split(",")[0] : undefined;
+  const people =
+    m.people.length > 0
+      ? `With ${m.people.map((p) => p.name ?? "Anonymous").join(", ")}`
+      : undefined;
+  const more = [where, people].filter(Boolean).join(" · ");
   return (
-    <span className="hidden h-6 max-w-40 min-w-0 items-center gap-1.5 rounded-full border px-2 text-[13px] text-muted-foreground sm:inline-flex">
+    <span className={cn("block space-y-1", overPhoto && "text-white")}>
       <span
-        aria-hidden
-        className="size-2 shrink-0 rounded-full"
-        style={{ backgroundColor: placeColor(place) }}
-      />
-      <span className="truncate">{place.split(",")[0]}</span>
+        className={cn(
+          "block font-mono text-[11px] tracking-[0.08em] uppercase",
+          overPhoto ? "text-white/75" : "text-muted-foreground",
+          // Room for Edit and Delete, which sit over a tile with no photo.
+          roomForActions && "pr-16",
+        )}
+      >
+        {day.label} · {formatTime(m.startsAt, m.tzOffsetMinutes)}
+        {day.today && (
+          <span
+            className={cn(
+              "ml-1.5 font-sans tracking-normal normal-case",
+              overPhoto ? "text-amber-200" : "text-primary",
+            )}
+          >
+            Today
+          </span>
+        )}
+      </span>
+      <span
+        className={cn(
+          overPhoto
+            ? "line-clamp-2 text-sm font-medium"
+            : "line-clamp-3 font-serif text-lg leading-snug",
+        )}
+      >
+        {label}
+      </span>
+      {more && (
+        <span
+          className={cn(
+            "block truncate text-xs",
+            overPhoto ? "text-white/75" : "text-muted-foreground",
+          )}
+        >
+          {more}
+        </span>
+      )}
+      {unpaged && (
+        <span
+          className={cn("block text-xs", overPhoto ? "text-white/75" : "text-muted-foreground")}
+        >
+          The journal is full, so this moment has no page.
+        </span>
+      )}
+      {!mine && (
+        <ActorBadge
+          actor={authorOf(m)}
+          you={false}
+          className={overPhoto ? "text-white/80" : undefined}
+        />
+      )}
     </span>
   );
 };
 
-// A stable colour per place, so the same place reads the same everywhere.
-const placeColor = (place: string) => {
-  let hue = 0;
-  for (const ch of place.toLowerCase()) hue = (hue * 31 + ch.charCodeAt(0)) % 360;
-  return `oklch(0.65 0.16 ${hue})`;
-};
-
-// Keys typed into a field belong to the field, not to the page's shortcuts.
 const isTyping = (target: EventTarget | null) => {
   return (
     target instanceof HTMLElement &&
     (target.isContentEditable || target.closest("input, textarea, select") !== null)
+  );
+};
+
+// A moment's photos filling its tile: one, two side by side, or one large with
+// two beside it. Videos have no stored thumbnail, so they show as a play tile.
+const Mosaic = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }) => {
+  const shown = media.slice(0, 3);
+  return (
+    <span
+      className={cn(
+        "grid size-full gap-0.5 bg-muted",
+        shown.length === 2 && "grid-cols-2",
+        shown.length === 3 && "grid-cols-3 grid-rows-2",
+      )}
+    >
+      {shown.map(({ mediaId, video }, i) => (
+        <span
+          key={mediaId}
+          className={cn(
+            "relative min-h-0 overflow-hidden",
+            shown.length === 3 && i === 0 && "col-span-2 row-span-2",
+          )}
+        >
+          {video ? (
+            <span className="grid size-full place-items-center bg-muted text-muted-foreground">
+              <PlayIcon aria-label="Video" className="size-5" />
+            </span>
+          ) : (
+            <AuthImage mediaId={mediaId} alt="" className="aspect-auto size-full rounded-none" />
+          )}
+        </span>
+      ))}
+    </span>
   );
 };

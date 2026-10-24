@@ -1,41 +1,46 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
 import { requireEventAccess } from "../lib/access";
 import { recordChange } from "../lib/changes";
 import { vGrantRole } from "../schema";
 
-// Grants an experience can hold. shortcut: members reads this many, raise it if trips grow past it.
-const MAX_MEMBERS = 200;
-
-// Everyone on the trip, owner first: names and roles, for anyone with access.
-// Nothing about when they joined or were last seen; that stays the owner's.
+// Everyone on the trip, a page at a time, the owner first on the first page:
+// names and roles, for anyone with access. Nothing about when they joined or
+// were last seen; that stays the owner's. People whose access was removed are
+// left out, so a page can come back short.
 const members = query({
-  args: { eventId: v.id("events") },
+  args: { eventId: v.id("events"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
-    const grants = await ctx.db
+    const result = await ctx.db
       .query("sessions")
       .withIndex("by_event_and_user", (q) => q.eq("eventId", args.eventId))
-      .take(MAX_MEMBERS);
-    const owner = await ctx.db.get("users", event.ownerId);
-    const active = grants.filter((s) => s.revokedAt === undefined);
-    return [
-      {
-        userId: event.ownerId,
-        displayName: owner?.displayName,
-        role: "owner" as const,
-        sessionId: null,
-      },
-      ...(await Promise.all(
-        active.map(async (s) => ({
+      .paginate(args.paginationOpts);
+    const nameOf = async (userId: Id<"users">) => (await ctx.db.get("users", userId))?.displayName;
+    const people = await Promise.all(
+      result.page
+        .filter((s) => s.revokedAt === undefined)
+        .map(async (s) => ({
           userId: s.userId,
-          displayName: (await ctx.db.get("users", s.userId))?.displayName,
+          displayName: await nameOf(s.userId),
           role: s.role,
           sessionId: s._id,
         })),
-      )),
-    ];
+    );
+    const owner =
+      args.paginationOpts.cursor === null
+        ? [
+            {
+              userId: event.ownerId,
+              displayName: await nameOf(event.ownerId),
+              role: "owner" as const,
+              sessionId: null,
+            },
+          ]
+        : [];
+    return { ...result, page: [...owner, ...people] };
   },
 });
 

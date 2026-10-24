@@ -7,19 +7,15 @@ import { reversePlace } from "@/components/event/place-input";
 import type { EventView } from "@/components/event/types";
 import { deletePhotos } from "@/lib/actions";
 import {
-  type Enrich,
-  enrichMoment,
   momentsFromPlan,
   type Picked,
   type PlannedDay,
   plural,
   readPicked,
-  samplePhotos,
   uploadAll,
 } from "@/lib/add-moments";
 import { errorMessage } from "@/lib/errors";
 import { groupPhotos, type PhotoDay, type PhotoStop } from "@/lib/photo-groups";
-import { thumbnail } from "@/lib/thumbs";
 
 // The geocoder asks for one lookup at a time, spaced out.
 const LOOKUP_GAP_MS = 1100;
@@ -49,9 +45,8 @@ const details = (problems: string[]): string => {
 };
 
 // Reads, uploads and plans the picked photos and videos, then makes their
-// moments: grouped as the review sheet groups them, each with its AI note.
-// `note`, when given, is the person's own words: it becomes the first moment's
-// note as written, and guides the notes the AI drafts for the rest. Returns
+// moments, grouped as the review sheet groups them. `note`, when given, is
+// the person's own words: it becomes the first moment's note as written. Returns
 // whether any moment was made. Progress and problems are shown as toasts.
 export const addPhotos = async (args: {
   event: Pick<EventView, "_id" | "momentCount">;
@@ -60,9 +55,8 @@ export const addPhotos = async (args: {
   // Read at each call: tokens are short-lived and a batch can run for minutes.
   token: () => string | undefined;
   createMoment: (args: FunctionArgs<typeof api.moments.create>) => Promise<Id<"moments">>;
-  enrich: Enrich;
 }): Promise<boolean> => {
-  const { event, files, note, createMoment, enrich } = args;
+  const { event, files, note, createMoment } = args;
   const token = args.token();
   if (files.length === 0 || !token) return false;
   const toastId = toast.loading("Reading photos…");
@@ -89,12 +83,7 @@ export const addPhotos = async (args: {
     }
 
     const pickedOf = new Map<string, Picked>(picked.map((p) => [p.point.id, p]));
-    const picksOf = (stops: PhotoStop[]) =>
-      stops.flatMap((s) => s.photos).flatMap((p) => pickedOf.get(p.id) ?? []);
-    // The AI's thumbnails and the place names are made while the uploads run.
-    for (const stops of days.flatMap((d) => d.moments)) {
-      for (const p of samplePhotos(picksOf(stops))) void thumbnail(p.file);
-    }
+    // The place names are found while the uploads run.
     const naming = namePlaces(days);
 
     const { uploaded, failures } = await uploadAll(
@@ -123,18 +112,9 @@ export const addPhotos = async (args: {
         const create = first
           ? { ...m.create, blocks: [...m.create.blocks, { type: "note" as const, text: words }] }
           : m.create;
-        const momentId = await createMoment({ eventId: event._id, ...create });
+        await createMoment({ eventId: event._id, ...create });
         created++;
         for (const u of m.uses) used.add(u.mediaId);
-        enrichMoment(
-          enrich,
-          momentId,
-          m.uses.flatMap((u) => {
-            const p = pickedOf.get(u.photoId);
-            return p ? [{ mediaId: u.mediaId, file: p.file }] : [];
-          }),
-          words,
-        );
       } catch (e) {
         problems.push(`${m.label}: ${errorMessage(e)}`);
       }
@@ -154,7 +134,7 @@ export const addPhotos = async (args: {
         description: details(problems),
       });
     } else {
-      toast.success(`${added} · writing the notes…`, { id: toastId });
+      toast.success(added, { id: toastId });
     }
     return created > 0;
   } catch (e) {

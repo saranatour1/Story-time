@@ -1,22 +1,15 @@
 import type { FunctionArgs } from "convex/server";
-import { toast } from "sonner";
 import type { api } from "@/lib/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { IMAGE_MIME_TYPES } from "../../convex/lib/limits";
 import type { Geo, PhotoPoint } from "./photo-groups";
 import { type PhotoMeta, readPhotoMeta } from "./photo-meta";
-import { thumbnail } from "./thumbs";
 import { isVideoFile, MAX_VIDEO_BYTES, uploadMedia } from "./upload";
-import { trackAi } from "@/lib/analytics";
 
 // The steps that adding moments from picked files shares: the review sheet and
 // the one-tap add both read, upload, plan and create the same way.
 
 const UPLOADS_AT_ONCE = 3;
-// Thumbnails sent per moment: as many as the server reads (MAX_THUMBS in
-// convex/model/ai/scribe.ts), so keep the two in step.
-export const THUMBS_PER_MOMENT = 4;
-
 export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export const dayLabel = (day: string) => {
@@ -182,57 +175,4 @@ export const momentsFromPlan = (
       };
     }),
   );
-};
-
-export type Thumb = { mediaId: Id<"media">; jpeg: string };
-
-// The photos the AI looks at: the first few that are pictures.
-export const samplePhotos = <T extends { file: File }>(photos: T[]): T[] => {
-  return photos.filter((p) => p.file.type.startsWith("image/")).slice(0, THUMBS_PER_MOMENT);
-};
-
-export type Enrich = (args: {
-  momentId: Id<"moments">;
-  thumbs: Thumb[];
-  hint?: string;
-}) => Promise<unknown>;
-
-// Once the server says the day's AI uses are spent, new moments skip the
-// thumbnails and the request, from any form on the page: the allowance is the
-// person's. It comes back at midnight UTC; asking again after an hour costs
-// one cheap refusal at most.
-const PAUSE_MS = 60 * 60_000;
-let pausedUntil = 0;
-
-// Asks the server to draft a saved moment's note, labels, transport and link
-// titles, from small copies of its photos. The moment is already saved, so a
-// failure here is only logged.
-export const enrichMoment = (
-  enrich: Enrich,
-  momentId: Id<"moments">,
-  photos: Array<{ mediaId: Id<"media">; file: File }>,
-  // What the person said the photos are, to guide the note.
-  hint?: string,
-): void => {
-  if (Date.now() < pausedUntil) return;
-  void Promise.all(
-    samplePhotos(photos).map(async ({ mediaId, file }) => {
-      const jpeg = await thumbnail(file);
-      return jpeg ? [{ mediaId, jpeg }] : [];
-    }),
-  )
-    .then((made) =>
-      trackAi("note", enrich({ momentId, thumbs: made.flat(), hint }), (admitted) =>
-        admitted === false ? "limit" : "ok",
-      ),
-    )
-    .then((admitted) => {
-      if (admitted !== false || Date.now() < pausedUntil) return;
-      pausedUntil = Date.now() + PAUSE_MS;
-      toast.info("No more AI notes today", {
-        description:
-          "You've used today's 10 AI uses. New moments still save, without a drafted note. They come back at midnight UTC.",
-      });
-    })
-    .catch((error: unknown) => console.warn("Couldn't draft the moment's notes:", error));
 };

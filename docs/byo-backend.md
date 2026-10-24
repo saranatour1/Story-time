@@ -105,7 +105,7 @@ Rules for 2:
 
 I read "subs" as their own plans and bills: Convex usage, storage, the AI gateway and email land on their accounts. If you meant something else, change this section.
 
-- **AI fill-ins** use the Convex AI Gateway on their team. If their plan has none, enrichment fails quietly and the moment is still saved, which is how failures behave today.
+- **The box and voice** use the Convex AI Gateway on their team. If their plan has none, a request in the box fails and nothing changes, which is how failures behave today.
 - **Invite emails** need `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN` and `EMAIL_FROM`, all optional already. Without them, invites are copy-link only.
 - **Limits** (10 AI uses a day, 20 waiting invites, upload caps, all in `convex/lib/limits.ts`) are per deployment. The owner can change the numbers on their own deployment.
 

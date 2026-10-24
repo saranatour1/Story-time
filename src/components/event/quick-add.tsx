@@ -1,5 +1,5 @@
 import { useAuthToken } from "@convex-dev/auth/react";
-import { useAction, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { ImagePlusIcon } from "lucide-react";
 import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
@@ -15,7 +15,7 @@ export const canAddTo = (event: EventView) =>
 type ButtonProps = ComponentProps<typeof Button>;
 
 // Picks photos and videos and makes their moments in one go, grouped by day
-// and place, each with its AI note.
+// and place.
 export const QuickAddButton = ({
   event,
   variant = "default",
@@ -28,7 +28,6 @@ export const QuickAddButton = ({
   children?: ReactNode;
 }) => {
   const createMoment = useMutation(api.moments.create);
-  const enrich = useAction(api.ai.enrich.enrich);
   const token = useAuthToken();
   // Read at each call: tokens are short-lived and a batch can run for minutes.
   const latestToken = useRef(token);
@@ -47,7 +46,6 @@ export const QuickAddButton = ({
         files: Array.from(list ?? []),
         token: () => latestToken.current ?? undefined,
         createMoment,
-        enrich,
       });
     } finally {
       setBusy(false);

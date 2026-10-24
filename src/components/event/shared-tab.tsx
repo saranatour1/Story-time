@@ -25,7 +25,7 @@ type Role = "viewer" | "contributor";
 // What a person already in may hold: invites give the first two, co-owner is given here.
 type GrantRole = Role | "owner";
 // What each role may do, in the words a person would use.
-const ROLE_LABEL: Record<GrantRole, string> = {
+export const ROLE_LABEL: Record<GrantRole, string> = {
   viewer: "Can watch",
   contributor: "Can add moments",
   owner: "Co-owner",
@@ -451,11 +451,11 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
 
 // Who else is on the trip, for people who don't own it: names and what they can do.
 export const PeopleOnTrip = ({ eventId }: { eventId: Id<"events"> }) => {
-  const { data: members } = useQuery(queries.sessions.members({ eventId }));
+  const people = usePaginatedQuery(api.sessions.members, { eventId }, { initialNumItems: 25 });
   return (
     <Card icon={<UsersIcon />} title="People on this experience" lead="Everyone who can open it.">
       <ul aria-label="People on this experience" className="divide-y rounded-lg border">
-        {(members ?? []).map((m) => (
+        {people.results.map((m) => (
           <li key={m.userId} className="flex items-center gap-3 px-4 py-3">
             <span
               aria-hidden
@@ -472,6 +472,11 @@ export const PeopleOnTrip = ({ eventId }: { eventId: Id<"events"> }) => {
           </li>
         ))}
       </ul>
+      {people.status === "CanLoadMore" && (
+        <Button variant="outline" onClick={() => people.loadMore(25)}>
+          Show more people
+        </Button>
+      )}
     </Card>
   );
 };
