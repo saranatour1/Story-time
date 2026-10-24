@@ -1,5 +1,5 @@
 import { PDFDocument } from "@cantoo/pdf-lib";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import { lockPdf, newPassword } from "./locked-pdf";
 
 describe("a locked PDF", () => {

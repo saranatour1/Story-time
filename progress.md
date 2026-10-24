@@ -2,6 +2,13 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-10-24
+
+- **Toolchain up to date.** Vite+ 1.4.0 (`vp migrate`: tests import from `vite-plus/test`, `vite` and `vite-plus` come from the pnpm catalog), Convex 1.48, its components, convex-test 0.0.64. Node is pinned to 24.22.1 LTS in `devEngines`, Convex Node actions run on 24 (`convex.json`), and `@types/node` is 24. `pnpm typecheck` runs tsrs, the Rust port of the TypeScript 7 compiler, over the app and `convex/` in under a second; `typescript` stays on 6 because typescript-eslint needs it.
+- **Four unused indexes dropped**: `events.search_title`, `moments.by_author`, `media.by_moment`, `changes.by_entity`. Nothing queried them.
+- **Email caps on the rate limiter.** Invite emails (10 a day), share-link emails (10) and address confirmations (5) are three limits in `convex/lib/rateLimit.ts`, with the same messages, instead of three copies of one function counting rows. The `inviteEmails`, `shareEmails` and `emailChecks` tables are gone from the schema; rows a deployment still has stay, unvalidated, until deleted in the dashboard.
+- **Tests that follow convex-test's clock.** A transaction's time no longer runs behind an earlier commit, so the day-later checks jump a minute past the day, On this day sets its date before anything runs, and the activity badge test waits a tick before a guest's note. Tests also blank the Cloudflare email variables, so a shell that exports them can't turn email on.
+
 ## 2026-10-19
 
 - **Edit moment reads a photo's details before it uploads.** Adding photos to a stop in Edit moment now reads their time and place first (the upload strips them), then fills an empty When with the earliest time and an empty Where with the place, as Add photos already did. Before, only the place was read, while the upload ran, and never the time. Typed values are never overwritten.

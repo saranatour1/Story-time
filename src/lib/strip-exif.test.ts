@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import { stripExif, withoutExif } from "./strip-exif";
 
 // A segment: its marker, a two-byte length that counts itself, then the body.

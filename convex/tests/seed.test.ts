@@ -2,7 +2,7 @@
 /* eslint-disable @convex-dev/no-process-env -- this test switches the deployment variables seed:japan checks */
 import { convexTest } from "convex-test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
-import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vite-plus/test";
 import { api, internal } from "../_generated/api";
 import schema from "../schema";
 

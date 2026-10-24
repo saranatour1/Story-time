@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import { classifySwipe, isForward, type SwipeDirection } from "./use-swipe";
 
 describe("classifySwipe", () => {

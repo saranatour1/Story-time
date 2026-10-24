@@ -1,6 +1,6 @@
 import { ConvexError, v, type Infer } from "convex/values";
 import { components } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Doc } from "../_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { assertNotArchived, requireEventAccess } from "../lib/access";
 import { appOrigin } from "../lib/appUrl";
@@ -12,6 +12,7 @@ import { MAX_JOURNAL_PAGES } from "../lib/journal";
 import { isSharedPdf } from "../lib/sharedPdf";
 import { listForEvent, type PlainBlock, vMomentView } from "./moments";
 import { SHARE_EMAILS_PER_DAY } from "../lib/limits";
+import { chargeEmail } from "../lib/rateLimit";
 
 // "Anyone with the link can watch". The link carries a random token in its
 // fragment, which browsers never send to a server, so it stays out of logs.
@@ -29,31 +30,6 @@ const newToken = (): string => {
 const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,64}$/;
 
 const linkFor = (token: string) => `${appOrigin()}/s#${token}`;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const EMAILS_PER_DAY = SHARE_EMAILS_PER_DAY;
-
-// Counts share-link emails per sender over a rolling day. The address itself
-// is not stored.
-const chargeShareEmail = async (ctx: MutationCtx, userId: Id<"users">) => {
-  const since = Date.now() - DAY_MS;
-  const recent = await ctx.db
-    .query("shareEmails")
-    .withIndex("by_user", (q) => q.eq("userId", userId).gt("_creationTime", since))
-    .take(EMAILS_PER_DAY);
-  if (recent.length >= EMAILS_PER_DAY) {
-    throw new ConvexError({
-      code: "RATE_LIMITED",
-      message: `You can email a share link up to ${EMAILS_PER_DAY} times a day. Copy the link and send it yourself.`,
-    });
-  }
-  const stale = await ctx.db
-    .query("shareEmails")
-    .withIndex("by_user", (q) => q.eq("userId", userId).lte("_creationTime", since))
-    .take(EMAILS_PER_DAY);
-  for (const row of stale) await ctx.db.delete("shareEmails", row._id);
-  await ctx.db.insert("shareEmails", { userId });
-};
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (ch) => {
@@ -251,7 +227,12 @@ const emailLink = mutation({
       });
     }
     if (!emailConfigured()) return { emailed: false };
-    await chargeShareEmail(ctx, userId);
+    await chargeEmail(
+      ctx,
+      "shareEmail",
+      userId,
+      `You can email a share link up to ${SHARE_EMAILS_PER_DAY} times a day. Copy the link and send it yourself.`,
+    );
     const link = linkFor(token);
     const title = escapeHtml(event.title);
     const replyTo = await replyAddress(ctx, userId);

@@ -18,3 +18,4 @@ worker-configuration.d.ts
 # Copied from node_modules on install
 public/maplibre-gl-worker.mjs
 .entire/
+.vitest/

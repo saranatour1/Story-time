@@ -1,12 +1,16 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
-import { beforeAll, describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test } from "vite-plus/test";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
+
+// A note left in the same millisecond as the read would count as seen. A real
+// guest is never that quick, so the test waits a tick like one would.
+const nextMs = () => new Promise((resolve) => setTimeout(resolve, 2));
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
@@ -52,6 +56,7 @@ describe("activity badge", () => {
     await owner.mutation(api.api.changes.markRead, { eventId });
     expect(await owner.query(api.api.changes.unreadCount, { eventId })).toBe(0);
 
+    await nextMs();
     await viewer.mutation(api.api.guestNotes.leave, { eventId, text: "Wish I had been there" });
     expect(await owner.query(api.api.changes.unreadCount, { eventId })).toBe(1);
     const notes = await owner.query(api.api.guestNotes.list, { eventId });
@@ -91,6 +96,7 @@ describe("activity badge", () => {
         });
       }
     });
+    await nextMs();
     await viewer.mutation(api.api.guestNotes.leave, { eventId, text: "Still here" });
     expect(await owner.query(api.api.changes.unreadCount, { eventId })).toBe(1);
   });

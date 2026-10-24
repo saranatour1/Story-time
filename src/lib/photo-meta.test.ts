@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import { combinePhotoMeta, photoMetaFromJpeg } from "./photo-meta";
 
 // A minimal JPEG: SOI, then an Exif APP1 whose little-endian TIFF has IFD0

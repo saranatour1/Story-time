@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { beforeAll, describe, expect, test, vi } from "vitest";
+import { beforeAll, describe, expect, test, vi } from "vite-plus/test";
 import { readDecisions, transportFromSpeed, withDistance } from "../model/ai/decide";
 import { titleFromHtml } from "../model/ai/unfurl";
 import { limitWrites, rateLimiter, takeAi } from "../lib/rateLimit";

@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
-import { beforeAll, describe, expect, test, vi } from "vitest";
+import { beforeAll, describe, expect, test, vi } from "vite-plus/test";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import emailSchema from "../components/email/schema";
@@ -466,18 +466,15 @@ describe("share links", () => {
         expect((await send(`friend${i}@example.com`)).emailed).toBe(true);
       }
       await expect(send("one-more@example.com")).rejects.toThrow(/RATE_LIMITED/);
-      const rows = await t.run((ctx) => ctx.db.query("shareEmails").collect());
-      expect(rows).toHaveLength(SHARE_EMAILS_PER_DAY);
-      expect(JSON.stringify(rows)).not.toContain("friend");
       const changes = await t.run((ctx) => ctx.db.query("changes").collect());
       const logged = JSON.stringify(changes);
       expect(logged).not.toContain(token);
       expect(logged).not.toContain("friend0@example.com");
       expect(changes.some((c) => c.fields.includes("shareEmail"))).toBe(true);
 
-      vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000 + 1);
+      // A minute past the day: convex-test's clock creeps ahead of a frozen fake one.
+      vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000 + 60_000);
       expect((await send("tomorrow@example.com")).emailed).toBe(true);
-      expect(await t.run((ctx) => ctx.db.query("shareEmails").collect())).toHaveLength(1);
     } finally {
       // eslint-disable-next-line @convex-dev/no-process-env -- test setup
       for (const key of Object.keys(cf)) delete process.env[key];

@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import type { MomentView } from "@/components/event/types";
 import type { Id } from "../../convex/_generated/dataModel";
 import { matchesSearch } from "./moment-filters";

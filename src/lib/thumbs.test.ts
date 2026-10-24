@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import { displayThumbnail, thumbnail } from "./thumbs";
 
 test("videos have no thumbnail", async () => {

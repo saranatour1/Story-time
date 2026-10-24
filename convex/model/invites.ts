@@ -1,39 +1,15 @@
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
-import { internalMutation, mutation, query, type MutationCtx } from "../_generated/server";
+import { internalMutation, mutation, query } from "../_generated/server";
 import { assertNotArchived, requireEventAccess, requireUserId } from "../lib/access";
 import { appOrigin } from "../lib/appUrl";
 import { emailConfigured, replyAddress } from "../lib/emailAddress";
 import { recordChange } from "../lib/changes";
 import { vRole } from "../schema";
 import { INVITE_EMAILS_PER_DAY, MAX_WAITING_INVITES } from "../lib/limits";
+import { chargeEmail } from "../lib/rateLimit";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const EMAILS_PER_DAY = INVITE_EMAILS_PER_DAY;
-
-// Counts invite emails per sender over a rolling day, so the form can't be
-// used to mail arbitrary addresses in bulk.
-const chargeInviteEmail = async (ctx: MutationCtx, userId: Id<"users">) => {
-  const since = Date.now() - DAY_MS;
-  const recent = await ctx.db
-    .query("inviteEmails")
-    .withIndex("by_user", (q) => q.eq("userId", userId).gt("_creationTime", since))
-    .take(EMAILS_PER_DAY);
-  if (recent.length >= EMAILS_PER_DAY) {
-    throw new ConvexError({
-      code: "RATE_LIMITED",
-      message: `You can email up to ${EMAILS_PER_DAY} invites a day. Create a link without an email and share it yourself.`,
-    });
-  }
-  // Rows older than the window are no longer needed.
-  const stale = await ctx.db
-    .query("inviteEmails")
-    .withIndex("by_user", (q) => q.eq("userId", userId).lte("_creationTime", since))
-    .take(EMAILS_PER_DAY);
-  for (const row of stale) await ctx.db.delete("inviteEmails", row._id);
-  await ctx.db.insert("inviteEmails", { userId });
-};
 
 // Invites waiting to be opened, per experience. The list shows them all.
 
@@ -71,7 +47,13 @@ const create = mutation({
     }
     // Unconfigured, the email component could only mark the send failed.
     const emailed = sendTo !== "" && emailConfigured();
-    if (emailed) await chargeInviteEmail(ctx, userId);
+    if (emailed)
+      await chargeEmail(
+        ctx,
+        "inviteEmail",
+        userId,
+        `You can email up to ${INVITE_EMAILS_PER_DAY} invites a day. Create a link without an email and share it yourself.`,
+      );
     const ttlDays = Math.min(Math.max(args.ttlDays ?? 7, 1), 14);
     const { token, expiresAt, inviteId } = await ctx.runMutation(components.invites.lib.create, {
       eventId: args.eventId,

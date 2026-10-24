@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import type { Id } from "../../convex/_generated/dataModel";
 import { blocksForShelf } from "./command-shelf";
 

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import { FRAME_LOOKS, PAPERS, seeded, tornPolygon } from "./look";
 
 describe("looks", () => {

@@ -50,6 +50,8 @@ export const MAX_VOICE_BYTES = 900_000;
 export const MAX_JOURNAL_PAGES = 150;
 // Invites waiting to be opened, per experience.
 export const MAX_WAITING_INVITES = 20;
-// Emails one person may send a day: invites, and share links.
+// Emails one person may send a day: invites, share links, and links that
+// confirm their own address (see lib/rateLimit.ts).
 export const INVITE_EMAILS_PER_DAY = 10;
 export const SHARE_EMAILS_PER_DAY = 10;
+export const EMAIL_CHECKS_PER_DAY = 5;
