@@ -190,11 +190,7 @@ export default defineSchema({
     coverMediaId: v.optional(v.id("media")),
   })
     .index("by_owner", ["ownerId"])
-    .index("by_shareKey", ["shareKey"])
-    .searchIndex("search_title", {
-      searchField: "title",
-      filterFields: ["ownerId"],
-    }),
+    .index("by_shareKey", ["shareKey"]),
 
   moments: defineTable({
     eventId: v.id("events"),
@@ -221,7 +217,6 @@ export default defineSchema({
     monthDay: v.optional(v.string()),
   })
     .index("by_event_and_startsAt", ["eventId", "startsAt"])
-    .index("by_author", ["authorId"])
     .index("by_monthDay", ["monthDay"]),
 
   // Legacy: nothing reads or writes it. Cleared and removed in the next step.
@@ -263,20 +258,10 @@ export default defineSchema({
     detachedBy: v.optional(v.id("users")),
   })
     .index("by_event_and_status", ["eventId", "status"])
-    .index("by_moment", ["momentId"])
     // The reserved-upload sweep finds stale rows across experiences.
     .index("by_status", ["status"])
     // One person's live uploads, summed for their upload budget.
     .index("by_uploader_and_status", ["uploaderId", "status"]),
-
-  // One row per invite email sent, for the daily cap. No address is kept.
-  inviteEmails: defineTable({ userId: v.id("users") }).index("by_user", ["userId"]),
-
-  // One row per share-link email sent, for the daily cap. No address is kept.
-  shareEmails: defineTable({ userId: v.id("users") }).index("by_user", ["userId"]),
-
-  // One row per address-confirmation email, for the daily cap. No address is kept.
-  emailChecks: defineTable({ userId: v.id("users") }).index("by_user", ["userId"]),
 
   // One row per person per UTC day, so the memory email is sent once.
   memoryMails: defineTable({
@@ -327,7 +312,6 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_event_and_at", ["eventId", "at"])
-    .index("by_entity", ["entity", "entityId", "at"])
     // Unread counts one kind of create at a time, so other changes cannot crowd them out.
     .index("by_event_entity_action_at", ["eventId", "entity", "action", "at"]),
 

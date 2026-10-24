@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import type { StoryEvent, StoryMoment } from "@/components/event/types";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { dateRange } from "./title-card";

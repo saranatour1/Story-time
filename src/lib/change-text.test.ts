@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import { describeChange } from "./change-text";
 
 const change = (entity: string, action: string, fields: string[] = []) =>

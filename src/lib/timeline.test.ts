@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import type { MomentView } from "@/components/event/types";
 import { firstLine, groupByDay } from "./timeline";
 

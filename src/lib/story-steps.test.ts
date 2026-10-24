@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import type { MomentView, StoryMoment } from "@/components/event/types";
 import type { Id } from "../../convex/_generated/dataModel";
 import { buildStorySteps, clampStep, stepForMoment } from "./story-steps";

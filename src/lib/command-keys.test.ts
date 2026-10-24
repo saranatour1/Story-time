@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import { commandTakesSlash, pageClaimsSlash, wantsCommand } from "./command-keys";
 
 const press = (

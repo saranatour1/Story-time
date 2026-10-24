@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv } from "vite-plus";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { devtools } from "@tanstack/devtools-vite";
 
@@ -15,6 +15,8 @@ const config = defineConfig(({ command, mode }) => {
   }
   return {
     resolve: { tsconfigPaths: true },
+    // TanStack Router rewrites this on every build, in its own style.
+    fmt: { ignorePatterns: ["src/routeTree.gen.ts"] },
     // Fonts stay separate files, fetched only for the scripts a page uses;
     // inlined, a small subset would ride along in every page's CSS.
     build: { assetsInlineLimit: (file: string) => (file.endsWith(".woff2") ? false : undefined) },

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { ConvexError } from "convex/values";
 
 const sent = vi.hoisted(() => [] as Array<[string, unknown]>);

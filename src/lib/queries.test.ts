@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import { signInGate } from "./queries";
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));

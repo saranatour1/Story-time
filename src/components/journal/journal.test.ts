@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { MomentView } from "@/components/event/types";

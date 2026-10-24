@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import readme from "../README.md?raw";
 
 // The rules in convex/README.md, checked, so the folder stays the way the map

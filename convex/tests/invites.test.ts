@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
-import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { api, components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import emailSchema from "../components/email/schema";
@@ -168,7 +168,7 @@ describe("invites", () => {
   });
 
   test("invite emails are validated, only sent when configured, and capped daily", async () => {
-    const { t, owner, eventId } = await setup();
+    const { owner, eventId } = await setup();
     const send = (sendTo: string) =>
       owner.mutation(api.api.invites.create, { eventId, role: "viewer", sendTo });
     await expect(send("not-an-email")).rejects.toThrow(/Enter a valid email/);
@@ -189,11 +189,10 @@ describe("invites", () => {
       // A link without an email is still fine.
       await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
 
-      // A day later there's room again, and the old rows are cleared.
-      vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000 + 1);
+      // A day later there's room again. A minute past the day: convex-test's
+      // clock creeps ahead of a frozen fake one.
+      vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000 + 60_000);
       expect((await send("tomorrow@example.com")).emailed).toBe(true);
-      const rows = await t.run((ctx) => ctx.db.query("inviteEmails").collect());
-      expect(rows).toHaveLength(1);
     } finally {
       // eslint-disable-next-line @convex-dev/no-process-env -- test setup
       for (const key of Object.keys(cf)) delete process.env[key];

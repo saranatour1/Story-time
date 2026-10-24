@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import { type LabelBox, thinLabels } from "./map-labels";
 
 // Ten wide and four tall, so two centres ten apart in x touch edge to edge.

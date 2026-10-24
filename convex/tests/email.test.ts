@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
-import { beforeAll, describe, expect, test, vi } from "vitest";
+import { beforeAll, describe, expect, test, vi } from "vite-plus/test";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import emailSchema from "../components/email/schema";
@@ -88,9 +88,6 @@ describe("email confirmation", () => {
       );
       expect(confirm?.to).toBe("sara@example.com");
       const token = tokenIn(confirm ?? {});
-      const checks = await t.run((ctx) => ctx.db.query("emailChecks").collect());
-      expect(JSON.stringify(checks)).not.toContain("sara@example.com");
-      expect(JSON.stringify(checks)).not.toContain(token);
 
       await expect(b.mutation(api.api.users.verifyEmail, { token })).rejects.toThrow(
         /Sign in as the person/,
@@ -196,6 +193,10 @@ describe("reply-to", () => {
 
 describe("on this day", () => {
   test("mails a link and nothing about the memory, once, for a past year", async () => {
+    // Set the day before anything runs: convex-test never moves a
+    // transaction's clock back behind an earlier commit.
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.UTC(2026, 9, 12, 15));
     const { t, a, aId, eventId } = await setup();
     await t.run((ctx) =>
       ctx.db.patch("users", aId, {
