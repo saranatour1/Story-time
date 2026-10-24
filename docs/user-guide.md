@@ -18,7 +18,7 @@ Give it a name. **Starts** is optional. The name is the title people see. It is 
 
 Down the side of an experience:
 
-- **Moments** is the list, and the box where you add things.
+- **Moments** is a photo grid of the moments, with the box where you add things. Beside it are **Play story**, **Add photos**, **More** and an **Overview** of the experience; **Settings** there changes its name, description and dates.
 - **Journal** is the book.
 - **Shared** and **Activity** are only for the owner. Activity is a log of what changed. It does not send a message to anyone.
 

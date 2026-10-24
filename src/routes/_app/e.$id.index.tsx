@@ -4,9 +4,13 @@ import type { Id } from "../../../convex/_generated/dataModel";
 import { z } from "zod";
 import { queries } from "@/lib/queries";
 import { CommandBar } from "@/components/event/command-bar";
-import { ExperienceShell } from "@/components/event/experience-shell";
+import { ArrowRightIcon } from "lucide-react";
+import { eventDates } from "@/components/event/event-dates";
+import { ExperienceActions, ExperienceShell } from "@/components/event/experience-shell";
 import { EditorPanel, type Panel } from "@/components/event/itinerary-panel";
 import { Timeline } from "@/components/event/timeline";
+import type { EventView } from "@/components/event/types";
+import { Button } from "@/components/ui/button";
 
 const search = z.object({
   // Sections that were tabs here are pages of their own now; links to them
@@ -30,7 +34,7 @@ const EventPage = () => {
   const { data: me } = useQuery(queries.users.getCurrentUser());
 
   return (
-    <ExperienceShell id={id} section="Moments">
+    <ExperienceShell id={id} section="Moments" actions={false}>
       {(event) => {
         const isOwner = event.role === "owner";
         const archived = event.status === "archived";
@@ -52,17 +56,16 @@ const EventPage = () => {
           else
             void navigate({ to: "/e/$id/story", params: { id }, search: { momentId: moment._id } });
         };
-        const editing = panel !== "outline";
         return (
-          /* The moments, and beside them whatever is being edited. Stacked on
-             narrow screens, the editor first. */
-          <div
-            className={
-              editing ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-start" : undefined
-            }
-          >
-            {editing && (
-              <div className="min-w-0 lg:sticky lg:top-4 lg:order-2 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:overscroll-contain">
+          /* The moments on the left. On the right, the experience's buttons
+             and its overview, or whatever is being edited. Stacked on narrow
+             screens, the right column first. */
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start">
+            <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:order-2 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:overscroll-contain">
+              <ExperienceActions event={event} />
+              {panel === "outline" ? (
+                <Overview event={event} onSettings={() => openPanel("details")} />
+              ) : (
                 <EditorPanel
                   event={event}
                   panel={panel}
@@ -70,8 +73,8 @@ const EventPage = () => {
                   canEditMoment={canEditMoment}
                   onClose={() => openPanel("outline")}
                 />
-              </div>
-            )}
+              )}
+            </aside>
             <div className="min-w-0 space-y-4 lg:order-1">
               <CommandBar event={event} openMomentId={momentId} />
               <Timeline
@@ -87,6 +90,40 @@ const EventPage = () => {
         );
       }}
     </ExperienceShell>
+  );
+};
+
+// The experience at a glance, from its details: what it is, when, how big and
+// who can see it, with the way to its settings for the owner.
+const Overview = ({ event, onSettings }: { event: EventView; onSettings: () => void }) => {
+  const dates = eventDates(event);
+  const canChange = event.role === "owner" && event.status !== "archived";
+  return (
+    <section aria-labelledby="overview" className="space-y-3 rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="overview" className="text-sm font-medium">
+          Overview
+        </h2>
+        {canChange && (
+          <Button variant="ghost" size="sm" className="-mr-2" onClick={onSettings}>
+            Settings <ArrowRightIcon />
+          </Button>
+        )}
+      </div>
+      {event.description ? (
+        <p className="line-clamp-6 text-sm whitespace-pre-line">{event.description}</p>
+      ) : (
+        canChange && <p className="text-sm text-muted-foreground">No description yet.</p>
+      )}
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+        <dt className="text-muted-foreground">Dates</dt>
+        <dd>{dates ?? "Not set"}</dd>
+        <dt className="text-muted-foreground">Moments</dt>
+        <dd>{event.momentCount}</dd>
+        <dt className="text-muted-foreground">Who can see it</dt>
+        <dd>{event.visibility === "link" ? "Anyone with the link" : "Only people invited"}</dd>
+      </dl>
+    </section>
   );
 };
 

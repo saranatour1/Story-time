@@ -24,9 +24,9 @@ import { cn } from "@/lib/utils";
 
 const PAGE = 30;
 
-// The moments of an experience, by day, with a search box. Picking one hands
-// it to the page, which edits it or opens it in the story. Each row you may
-// change has its own Edit and Delete buttons.
+// The moments of an experience as a grid of cards, oldest first, with a search
+// box. Picking one hands it to the page, which edits it or opens it in the
+// story. Each card you may change has its own Edit and Delete buttons.
 export const Timeline = ({
   event,
   meId,
@@ -128,9 +128,11 @@ export const Timeline = ({
           Loading moments…
         </p>
         <Skeleton aria-hidden className="h-8 w-full" />
-        {Array.from({ length: Math.min(6, event.momentCount) }, (_, i) => (
-          <Skeleton key={i} aria-hidden className="h-10 w-full" />
-        ))}
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: Math.min(6, event.momentCount) }, (_, i) => (
+            <Skeleton key={i} aria-hidden className="aspect-[4/3] w-full rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -139,7 +141,7 @@ export const Timeline = ({
   const shown = moments.filter((m) => matchesSearch(m, query));
   const days = groupByDay(shown, viewerDay());
   return (
-    <div className="space-y-4">
+    <div className="@container space-y-4">
       {search}
       {query.trim() !== "" && (
         <p className="text-xs text-muted-foreground" role="status">
@@ -151,91 +153,90 @@ export const Timeline = ({
           No moments match.
         </p>
       )}
-      {days.map((day) => (
-        <section
-          key={day.day}
-          aria-label={day.today ? `${day.label}, today` : day.label}
-          className="space-y-1.5"
-        >
-          <h2 className="sticky top-0 z-10 bg-background/95 py-1 font-mono text-[11px] tracking-[0.12em] text-muted-foreground uppercase backdrop-blur">
-            {day.label}
-            {day.today && (
-              <span className="ml-1.5 font-sans normal-case tracking-normal text-primary">
-                Today
-              </span>
-            )}
-            {" · "}
-            {day.moments.length} {day.moments.length === 1 ? "moment" : "moments"}
-          </h2>
-          <ul className="divide-y overflow-hidden rounded-xl border bg-card">
-            {day.moments.map((m) => {
-              const selected = m._id === selectedMomentId;
-              return (
-                <li
-                  key={m._id}
-                  className={cn("group flex items-start hover:bg-muted/60", selected && "bg-muted")}
+      {/* One grid of moments, oldest first, each card saying its day. */}
+      <ul className="grid grid-cols-2 items-start gap-3 @2xl:grid-cols-3">
+        {days.flatMap((day) =>
+          day.moments.map((m) => {
+            const selected = m._id === selectedMomentId;
+            const media = mediaOf(m);
+            const editable = canEdit(m.authorId);
+            return (
+              <li
+                key={m._id}
+                className={cn(
+                  "relative overflow-hidden rounded-xl border bg-card transition-shadow hover:shadow-md",
+                  selected && "ring-2 ring-ring",
+                )}
+              >
+                <button
+                  type="button"
+                  data-moment-id={m._id}
+                  aria-current={selected ? "true" : undefined}
+                  onClick={() => onPick(m)}
+                  className="block w-full text-left outline-none focus-visible:bg-muted/60"
                 >
-                  <button
-                    type="button"
-                    data-moment-id={m._id}
-                    aria-current={selected ? "true" : undefined}
-                    onClick={() => onPick(m)}
-                    className="flex min-w-0 flex-1 items-start gap-3 px-3 py-2.5 text-left outline-none focus-visible:bg-muted/60"
-                  >
-                    <span className="w-16 shrink-0 pt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
-                      {formatTime(m.startsAt, m.tzOffsetMinutes)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">{rowLabel(m)}</span>
-                      {m.people.length > 0 && (
-                        <span className="block truncate text-xs text-muted-foreground">
-                          With {m.people.map((p) => p.name ?? "Anonymous").join(", ")}
+                  {media.length > 0 && <Mosaic media={media} />}
+                  <span className="block space-y-1 p-3">
+                    <span
+                      className={cn(
+                        "block font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase",
+                        // Room for Edit and Delete, which sit over a card with no photo.
+                        media.length === 0 && editable && "pr-16",
+                      )}
+                    >
+                      {day.label} · {formatTime(m.startsAt, m.tzOffsetMinutes)}
+                      {day.today && (
+                        <span className="ml-1.5 font-sans tracking-normal text-primary normal-case">
+                          Today
                         </span>
                       )}
-                      {unpaged.has(m._id) && (
-                        <span className="block truncate text-xs text-muted-foreground">
-                          The journal is full, so this moment has no page.
-                        </span>
-                      )}
-                      <MediaStrip media={mediaOf(m)} />
                     </span>
-                    <PlaceChip place={m.place} />
-                    <ActorBadge
-                      actor={authorOf(m)}
-                      you={m.authorId === meId}
-                      className="hidden md:inline-flex"
-                    />
-                  </button>
-                  {canEdit(m.authorId) && (
-                    <div className="flex shrink-0 items-center pt-1.5 pr-1.5">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Edit moment"
-                        className="text-muted-foreground"
-                        onClick={() => onEdit(m)}
-                      >
-                        <PencilIcon />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Delete moment"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => setDeleting(m)}
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+                    <span className="line-clamp-2 text-sm">{rowLabel(m)}</span>
+                    {m.people.length > 0 && (
+                      <span className="block truncate text-xs text-muted-foreground">
+                        With {m.people.map((p) => p.name ?? "Anonymous").join(", ")}
+                      </span>
+                    )}
+                    {unpaged.has(m._id) && (
+                      <span className="block text-xs text-muted-foreground">
+                        The journal is full, so this moment has no page.
+                      </span>
+                    )}
+                    <span className="flex flex-wrap items-center gap-2 pt-0.5">
+                      <PlaceChip place={m.place} />
+                      <ActorBadge actor={authorOf(m)} you={m.authorId === meId} />
+                    </span>
+                  </span>
+                </button>
+                {editable && (
+                  <div className="absolute top-2 right-2 flex rounded-md bg-background/85 shadow-xs backdrop-blur-sm">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Edit moment"
+                      className="text-muted-foreground"
+                      onClick={() => onEdit(m)}
+                    >
+                      <PencilIcon />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Delete moment"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleting(m)}
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  </div>
+                )}
+              </li>
+            );
+          }),
+        )}
+      </ul>
       {!searching && paged.status !== "Exhausted" && (
         <Button
           type="button"
@@ -308,36 +309,42 @@ const isTyping = (target: EventTarget | null) => {
   );
 };
 
-// A moment's photos and videos as small squares: the first few, then how
-// many more. Videos have no stored thumbnail, so they show as a play tile.
-const SHOWN = 6;
-const MediaStrip = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }) => {
-  if (media.length === 0) return null;
-  const more = media.length - SHOWN;
+// A moment's photos as a small collage: one, two side by side, or one large
+// with two beside it, the last saying how many more. Videos have no stored
+// thumbnail, so they show as a play tile.
+const Mosaic = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }) => {
+  const shown = media.slice(0, 3);
+  const more = media.length - shown.length;
   return (
-    <span className="mt-2 flex flex-wrap gap-1.5">
-      {media.slice(0, SHOWN).map(({ mediaId, video }) =>
-        video ? (
-          <span
-            key={mediaId}
-            className="grid size-16 shrink-0 sm:size-20 place-items-center rounded-md bg-muted text-muted-foreground"
-          >
-            <PlayIcon aria-label="Video" className="size-4" />
-          </span>
-        ) : (
-          <AuthImage
-            key={mediaId}
-            mediaId={mediaId}
-            alt=""
-            className="aspect-square size-16 shrink-0 sm:size-20 rounded-md"
-          />
-        ),
+    <span
+      className={cn(
+        "grid aspect-[4/3] gap-0.5 bg-muted",
+        shown.length === 2 && "grid-cols-2",
+        shown.length === 3 && "grid-cols-3 grid-rows-2",
       )}
-      {more > 0 && (
-        <span className="grid size-16 shrink-0 sm:size-20 place-items-center rounded-md bg-muted text-xs text-muted-foreground">
-          +{more}
+    >
+      {shown.map(({ mediaId, video }, i) => (
+        <span
+          key={mediaId}
+          className={cn(
+            "relative min-h-0 overflow-hidden",
+            shown.length === 3 && i === 0 && "col-span-2 row-span-2",
+          )}
+        >
+          {video ? (
+            <span className="grid size-full place-items-center bg-muted text-muted-foreground">
+              <PlayIcon aria-label="Video" className="size-5" />
+            </span>
+          ) : (
+            <AuthImage mediaId={mediaId} alt="" className="aspect-auto size-full rounded-none" />
+          )}
+          {more > 0 && i === shown.length - 1 && (
+            <span className="absolute inset-0 grid place-items-center bg-black/50 text-sm font-medium text-white">
+              +{more}
+            </span>
+          )}
         </span>
-      )}
+      ))}
     </span>
   );
 };
