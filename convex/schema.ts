@@ -161,7 +161,9 @@ export default defineSchema({
     locale: v.optional(v.string()),
   })
     .index("by_username", ["username"])
-    .index("by_emailVerifyKey", ["emailVerifyKey"]),
+    .index("by_emailVerifyKey", ["emailVerifyKey"])
+    // Finds the person a provider sign-in's verified email belongs to.
+    .index("by_email", ["email"]),
 
   events: defineTable({
     ownerId: v.id("users"),

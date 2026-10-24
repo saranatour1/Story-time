@@ -13,6 +13,8 @@ import { eventDates } from "@/components/event/event-dates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TripCalendar } from "@/components/trip-calendar";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
@@ -92,11 +94,22 @@ const Home = () => {
           <PlusIcon /> New experience
         </Button>
       </header>
-      {/* Headings only when there's more than one kind to tell apart. */}
-      {owned.length > 0 && (
-        <Section title={shared.length > 0 ? "Yours" : undefined} events={owned} />
-      )}
-      {shared.length > 0 && <Section title="Shared with you" events={shared} />}
+      <Tabs defaultValue="grid" className="gap-6">
+        <TabsList>
+          <TabsTrigger value="grid">Grid</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar</TabsTrigger>
+        </TabsList>
+        <TabsContent value="grid" className="space-y-10">
+          {/* Headings only when there's more than one kind to tell apart. */}
+          {owned.length > 0 && (
+            <Section title={shared.length > 0 ? "Yours" : undefined} events={owned} />
+          )}
+          {shared.length > 0 && <Section title="Shared with you" events={shared} />}
+        </TabsContent>
+        <TabsContent value="calendar">
+          <TripCalendar trips={events} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

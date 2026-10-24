@@ -12,7 +12,7 @@ On the sign-in screen, use **Continue with Google** or **Continue with GitHub**.
 
 ## Start an experience
 
-On the home page, choose **Start an experience** or **New experience**. You can own up to 20.
+On the home page, choose **Start an experience** or **New experience**. You can own up to 20. **Grid** shows each experience as a card; **Calendar** puts them on a month calendar across their dates. An experience with no dates is only in Grid.
 
 Give it a name. **Starts** is optional. The name is the title people see. It is not locked away the way a note is. See the encryption section below.
 
@@ -26,7 +26,7 @@ Down the side of an experience:
 
 The box on Moments says **What happened, or what should change?**
 
-**Photos and videos.** Use **Attach photos or videos**, or drop them on the box. They become moments on their own. Words you typed with them become the first moment's note. You do not get a plan to approve. A photo can be up to 20 MB (JPEG, PNG, WebP, GIF, or AVIF); a bigger one is made smaller on your device to fit. A video can be up to 50 MB (MP4, WebM, or QuickTime). One experience holds up to 150 photos and 5 videos, and one person holds up to 1 GB of live uploads.
+**Photos and videos.** Use **Attach photos or videos**, or drop them on the box. They become moments on their own, grouped by when and where they were taken. Words you typed with them become the first moment's note; nothing else is written for you. You do not get a plan to approve. A photo can be up to 20 MB (JPEG, PNG, WebP, GIF, or AVIF); a bigger one is made smaller on your device to fit. A video can be up to 50 MB (MP4, WebM, or QuickTime). One experience holds up to 150 photos and 5 videos, and one person holds up to 1 GB of live uploads.
 
 **A sentence about something new.** Press **Go**. If the sentence is something that happened, rather than a change to a moment you already have, it is saved straight away and you see **Moment added**. That moment gets a journal page on its own.
 
@@ -80,37 +80,37 @@ A trip that already had moments before pages were cut automatically gets those p
 
 The secret part of a share link sits after `#` in the address. Send the whole address. A link that is only the part before `#` does not open the trip.
 
-**Invite someone.** An invite works once, for the first person who opens it. **Can watch** lets them read. **Can add moments** lets them add their own. **Email them (optional)** sends the invite if email is set up on the server. The address is used to send and is not stored. If email is not set up, you still get a link and the toast says **Invite link ready: copy it below**. When a message is sent, the toast says **Invite emailed**. The link is shown only then. You can email up to 20 invites a day. An experience can have 50 invites waiting.
+**Invite someone.** An invite works once, for the first person who opens it. **Can watch** lets them read. **Can add moments** lets them add their own. **Email them (optional)** sends the invite if email is set up on the server. The address is used to send and is not stored. If email is not set up, you still get a link and the toast says **Invite link ready: copy it below**. When a message is sent, the toast says **Invite emailed**. The link is shown only then. You can email up to 10 invites a day. An experience can have 20 invites waiting.
 
 An archived experience cannot turn on a new share link, and it takes no new people.
 
 ## Play
 
-On Moments, **Play from here** opens the journal on that moment's page. **Play** on the book starts the film at that moment. Closing the film brings you back to the book. If that moment has no page, you get the story you scroll instead.
+On Moments, picking a moment you can change opens it to edit. Picking anyone else's opens Play at that moment: the journal on its page, or the story you scroll if it has no page. **Play** on the book starts the film at that moment. Closing the film brings you back to the book.
 
 A share link opens on the book as well. **Play** there starts the film. Closing it returns to the book.
 
 ## Limits, in one place
 
-| What                                                       | Limit                                       |
-| ---------------------------------------------------------- | ------------------------------------------- |
-| Experiences you own                                        | 10                                          |
-| Moments in one experience                                  | 100                                         |
-| Photos in one experience                                   | 150 (journal stickers don't count)          |
-| Videos in one experience                                   | 5                                           |
-| Live uploads for one person                                | 1 GB                                        |
-| One photo                                                  | 20 MB (a bigger one is made smaller to fit) |
-| One video                                                  | 50 MB                                       |
-| Stops in one moment                                        | 10, counting the moment itself              |
-| Things on one moment (photos, notes, links)                | 20                                          |
-| Labels on one moment                                       | 10, 40 characters each                      |
-| One note                                                   | 5,000 characters                            |
-| Journal pages                                              | 150                                         |
-| AI (notes for your photos, the box, voice, journal titles) | 10 uses a day, shared, back at midnight UTC |
-| One sentence in the box                                    | 600 characters, 8 changes                   |
-| A voice recording                                          | 1 minute                                    |
-| Waiting invites                                            | 20 per experience, 10 invite emails a day   |
-| Emailing a share link                                      | 10 a day                                    |
+| What                                        | Limit                                       |
+| ------------------------------------------- | ------------------------------------------- |
+| Experiences you own                         | 10                                          |
+| Moments in one experience                   | 100                                         |
+| Photos in one experience                    | 150 (journal stickers don't count)          |
+| Videos in one experience                    | 5                                           |
+| Live uploads for one person                 | 1 GB                                        |
+| One photo                                   | 20 MB (a bigger one is made smaller to fit) |
+| One video                                   | 50 MB                                       |
+| Stops in one moment                         | 10, counting the moment itself              |
+| Things on one moment (photos, notes, links) | 20                                          |
+| Labels on one moment                        | 10, 40 characters each                      |
+| One note                                    | 5,000 characters                            |
+| Journal pages                               | 150                                         |
+| AI (the box and voice)                      | 10 uses a day, shared, back at midnight UTC |
+| One sentence in the box                     | 600 characters, 8 changes                   |
+| A voice recording                           | 1 minute                                    |
+| Waiting invites                             | 20 per experience, 10 invite emails a day   |
+| Emailing a share link                       | 10 a day                                    |
 
 When the book is already at 150 pages, a new moment does not get a page. The moments list says so on that row.
 

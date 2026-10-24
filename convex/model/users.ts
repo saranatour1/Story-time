@@ -1,7 +1,8 @@
 import { ConvexError, v } from "convex/values";
-import { env, internalMutation, mutation, query } from "../_generated/server";
-import { vGithubProfile } from "@convex-dev/auth/providers/oauth/github";
-import { vGoogleProfile } from "@convex-dev/auth/providers/oauth/google";
+import type { Id } from "../_generated/dataModel";
+import { env, internalMutation, type MutationCtx, mutation, query } from "../_generated/server";
+import { vGithubProfile } from "@convex-dev/auth/methods/github/server";
+import { vGoogleProfile } from "@convex-dev/auth/methods/google/server";
 import { calculateRateLimit, DAY } from "@convex-dev/rate-limiter";
 import { getUserId, requireUserId } from "../lib/access";
 import { AI_PER_DAY, MAX_EVENTS_PER_USER, MAX_LIVE_UPLOAD_BYTES } from "../lib/limits";
@@ -29,8 +30,24 @@ const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string
   return email;
 };
 
-// Privacy by default: the row starts empty apart from a verified contact
-// email. Nothing else from the OAuth profile is copied.
+// The person a provider sign-in belongs to. Someone already here with that
+// confirmed address is that person: logins from before the 2.0 auth upgrade
+// come back this way. Two or more with the same address is ambiguous, so it
+// makes a new user instead. Privacy by default: a new row starts empty apart
+// from the verified contact email; nothing else from the profile is copied.
+const userFor = async (ctx: MutationCtx, email: string | undefined): Promise<Id<"users">> => {
+  if (email !== undefined) {
+    const known = (
+      await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .take(10)
+    ).filter((user) => user.emailVerified === true);
+    if (known.length === 1 && known[0] !== undefined) return known[0]._id;
+  }
+  return await ctx.db.insert("users", email === undefined ? {} : { email, emailVerified: true });
+};
+
 export const createGithubUser = internalMutation({
   args: {
     provider: v.object({
@@ -41,8 +58,7 @@ export const createGithubUser = internalMutation({
   },
   returns: v.id("users"),
   handler: async (ctx, args) => {
-    const email = oauthEmail(args.provider.profile);
-    return await ctx.db.insert("users", email === undefined ? {} : { email, emailVerified: true });
+    return await userFor(ctx, oauthEmail(args.provider.profile));
   },
 });
 
@@ -56,8 +72,7 @@ export const createGoogleUser = internalMutation({
   },
   returns: v.id("users"),
   handler: async (ctx, args) => {
-    const email = oauthEmail(args.provider.profile);
-    return await ctx.db.insert("users", email === undefined ? {} : { email, emailVerified: true });
+    return await userFor(ctx, oauthEmail(args.provider.profile));
   },
 });
 

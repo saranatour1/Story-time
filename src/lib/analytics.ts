@@ -9,7 +9,7 @@ import { ConvexError } from "convex/values";
 // instead (Databuddy sends the attribute's value as the event, and the
 // button's other data-* attributes with it).
 
-export type AiFeature = "note" | "box" | "voice" | "title";
+export type AiFeature = "box" | "voice";
 
 const outcomeOf = (error: unknown): "limit" | "error" => {
   const data: unknown = error instanceof ConvexError ? error.data : undefined;
