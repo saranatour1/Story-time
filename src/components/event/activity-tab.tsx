@@ -1,8 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { format, formatDistanceToNow, isThisYear, isToday, isYesterday } from "date-fns";
 import { BotIcon, CogIcon, UserRoundIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ActorBadge } from "@/components/event/actor-badge";
 import { Button } from "@/components/ui/button";
@@ -11,19 +13,27 @@ import { changeActorOf, type ActorView } from "@/lib/actors";
 import { describeChange } from "@/lib/change-text";
 import { cn } from "@/lib/utils";
 
-type Filter = "everyone" | "people" | "agents";
+type Filter = "everyone" | "people" | "agents" | "system";
 
+// People, agents and Story-time's own changes add up to everyone's.
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "everyone", label: "Everyone" },
   { value: "people", label: "People" },
   { value: "agents", label: "Agents" },
+  { value: "system", label: "Story-time" },
 ];
 
-// The system's changes have no person or agent behind them, so they only show under Everyone.
 const matches = (filter: Filter, actor: ActorView): boolean => {
   if (filter === "agents") return actor.kind === "agent";
   if (filter === "people") return actor.kind === "human";
+  if (filter === "system") return actor.kind === "system";
   return true;
+};
+
+const WHO: Record<Exclude<Filter, "everyone">, string> = {
+  people: "people",
+  agents: "agents",
+  system: "Story-time",
 };
 
 // The full date, for the tooltip on the relative one.
@@ -49,6 +59,8 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
     { initialNumItems: 25 },
   );
   const [filter, setFilter] = useState<Filter>("everyone");
+  // Totals from the server: the list only holds the pages loaded so far.
+  const { data: counts } = useQuery(queries.changes.counts({ eventId }));
   const markRead = useMutation(api.changes.markRead);
   // Opening the list is looking at it. A later moment, page or note counts again.
   useEffect(() => {
@@ -79,7 +91,7 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Every change to this experience, by people and by agents.
+          Every change to this experience: by people, by agents, and by Story-time itself.
         </p>
         <div
           role="radiogroup"
@@ -100,7 +112,7 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
             >
               {label}
               <span className="text-xs tabular-nums opacity-70">
-                {results.filter((c) => matches(value, actorOf(c))).length}
+                {counts && `${counts[value].toLocaleString()}${counts.capped ? "+" : ""}`}
               </span>
             </button>
           ))}
@@ -109,7 +121,7 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
 
       {shown.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          None of the loaded edits are from {filter === "agents" ? "agents" : "people"}.
+          None of the loaded edits are from {filter === "everyone" ? "anyone" : WHO[filter]}.
         </p>
       ) : (
         days.map(({ label, changes }) => (

@@ -41,7 +41,7 @@ for callers in `api/`, without losing jump-to-definition.
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
 | The app reading (`src/`) | `useQuery(queries.moments.list({ eventId }))`, with `useQuery` from `@tanstack/react-query` and `queries` from `@/lib/queries` | not reachable                      |
 | The app writing (`src/`) | `useMutation(api.moments.create)`, with `api` from `@/lib/api`                                                                 | not reachable                      |
-| Sign-in (`src/`)         | `authApi.signInAnonymous`, from `@/lib/api`                                                                                    |                                    |
+| Sign-in (`src/`)         | `authApi.signInAnonymously`, from `@/lib/api`                                                                                  |                                    |
 | Backend code and tests   | `api.api.moments.list` (from `_generated/api`)                                                                                 | `internal.model.journal.makePages` |
 
 `@/lib/api` is `api.api` from `_generated/api`, so the app never spells out the
@@ -72,7 +72,7 @@ use `usePaginatedQuery` from `convex/react`.
 `api/changes.ts`, `api/events.ts`, `api/guestNotes.ts`, `api/invites.ts`,
 `api/journal.ts`, `api/media.ts`, `api/moments.ts`, `api/pdf.ts`,
 `api/sessions.ts`, `api/share.ts`, `api/users.ts`, `api/ai/command.ts`,
-`api/ai/enrich.ts`, `api/ai/title.ts`, `api/ai/voice.ts`. Each re-exports
+`api/ai/voice.ts`. Each re-exports
 the `…Api` object of the `model/` file with the same path.
 
 ### model/
@@ -96,12 +96,7 @@ the `…Api` object of the `model/` file with the same path.
 | `model/seed.ts`           | Dev only: `pnpm exec convex run model/seed:japan '{"userId":"..."}'`, a ten-day demo trip. Refuses production.  |
 | `model/ai/command.ts`     | The box: a sentence becomes a plan to add, change or remove moments.                                            |
 | `model/ai/voice.ts`       | Speech to text for the box. Nothing is stored.                                                                  |
-| `model/ai/enrich.ts`      | Captions, transport and link titles after photos come in.                                                       |
-| `model/ai/scribe.ts`      | What Haiku is told about a moment, and the caption it writes.                                                   |
-| `model/ai/apply.ts`       | Writes AI suggestions into gaps only; what a person typed stays.                                                |
-| `model/ai/decide.ts`      | Jev's quick decisions (transport between stops).                                                                |
-| `model/ai/title.ts`       | "Try another" titles for a journal page. Only a suggestion.                                                     |
-| `model/ai/unfurl.ts`      | Link titles and previews, reading only public pages.                                                            |
+| `model/ai/unfurl.ts`      | Reads a page's title and preview for a journal link card.                                                       |
 | `model/ai/publicFetch.ts` | Node action that fetches a public page, pinned to the addresses just checked.                                   |
 
 ### lib/ (helpers, no functions)
@@ -127,4 +122,4 @@ the `…Api` object of the `model/` file with the same path.
 | `lib/sharedPdf.ts`    | Whether an upload is the journal's locked PDF.                                                                   |
 | `lib/ai/budget.ts`    | AI Budget: `metered()` records each AI call's model, person, feature, tokens and cost. Dashboard at `/aibudget`. |
 | `lib/ai/generate.ts`  | Structured output from Haiku, with a JSON fallback.                                                              |
-| `lib/ai/models.ts`    | Which models the AI features use.                                                                                |
+| `lib/ai/models.ts`    | Which models the box and voice use.                                                                              |

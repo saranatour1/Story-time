@@ -24,7 +24,7 @@ import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deletePhotos } from "@/lib/actions";
-import { enrichMoment, plural } from "@/lib/add-moments";
+import { plural } from "@/lib/add-moments";
 import { addPhotos } from "@/lib/add-photos";
 import { blocksForShelf, type ShelfItem } from "@/lib/command-shelf";
 import { commandTakesSlash, pageClaimsSlash } from "@/lib/command-keys";
@@ -73,7 +73,6 @@ export const CommandBar = ({
   const createMoment = useMutation(api.moments.create);
   const apply = useMutation(api.ai.command.apply);
   const propose = useAction(api.ai.command.propose);
-  const enrich = useAction(api.ai.enrich.enrich);
   const [text, setText] = useState("");
   const [phase, setPhase] = useState<"idle" | "reading" | "applying">("idle");
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -134,7 +133,7 @@ export const CommandBar = ({
 
   // Something that happened, saved as a moment with only a note, stamped now.
   const addAsMoment = async (note: string) => {
-    const momentId = await createMoment({
+    await createMoment({
       eventId: event._id,
       startsAt: Date.now(),
       tzOffsetMinutes: -new Date().getTimezoneOffset(),
@@ -142,7 +141,6 @@ export const CommandBar = ({
     });
     setText("");
     setPlan(null);
-    enrichMoment(enrich, momentId, []);
     toast.success("Moment added");
   };
 
@@ -156,13 +154,12 @@ export const CommandBar = ({
       // Photos already in the trip become one moment. The words are its note,
       // unless new files are going out too, in which case the words go with them.
       if (picked.length > 0) {
-        const momentId = await createMoment({
+        await createMoment({
           eventId: event._id,
           startsAt: Date.now(),
           tzOffsetMinutes: -new Date().getTimezoneOffset(),
           blocks: blocksForShelf(picked, files.length > 0 ? "" : said),
         });
-        enrichMoment(enrich, momentId, []);
         setPicked([]);
         setShelfOpen(false);
         if (files.length === 0) {
@@ -180,7 +177,6 @@ export const CommandBar = ({
           note: said,
           token: () => latestToken.current ?? undefined,
           createMoment,
-          enrich,
         });
         if (made) {
           setFiles([]);
@@ -220,7 +216,6 @@ export const CommandBar = ({
       track("ai_plan_applied", { changes: plan.ops.length });
       // Photos that went with a stop or a moment are cleared from storage too.
       if (token) await deletePhotos(done.removedMediaIds, token);
-      for (const id of done.created) enrichMoment(enrich, id, []);
       toast.success(done.summary.charAt(0).toUpperCase() + done.summary.slice(1), {
         description: plan.summary || undefined,
       });

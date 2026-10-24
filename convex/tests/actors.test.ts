@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { beforeAll, describe, expect, test } from "vite-plus/test";
-import { api, internal } from "../_generated/api";
+import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { requireEventAccessFor } from "../lib/access";
 import { createMoment } from "../model/moments";
@@ -74,33 +74,6 @@ describe("people are people", () => {
 });
 
 describe("agents are labelled", () => {
-  test("Scribe's edit is the agent's, for no one in particular", async () => {
-    const { t, owner, eventId } = await setup();
-    const momentId = await owner.mutation(api.api.moments.create, {
-      eventId,
-      startsAt: T0,
-      place: "Lisbon",
-      blocks: [{ type: "link", url: "https://example.com/tram" }],
-    });
-    await t.mutation(internal.model.ai.apply.apply, {
-      momentId,
-      note: "We rode the tram",
-      labels: ["tram"],
-    });
-
-    const [m] = await owner.query(api.api.moments.list, { eventId });
-    expect(m?.editedByAgent).toBe("Scribe");
-    expect(m?.editedById).toBeUndefined();
-    expect(m?.editedByName).toBeUndefined();
-    // The moment is still the person's.
-    expect(m?.authorAgent).toBeUndefined();
-
-    const changes = await t.run((ctx) => ctx.db.query("changes").collect());
-    const edit = changes.find((c) => c.entity === "moment" && c.action === "update");
-    expect(edit?.agent).toBe("Scribe");
-    expect(edit?.actorId).toBeUndefined();
-  });
-
   test("a moment an agent adds names the agent and the person it acts for", async () => {
     const { t, owner, eventId, ownerId } = await setup();
     const momentId = await t.run(async (ctx) => {

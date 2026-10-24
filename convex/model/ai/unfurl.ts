@@ -1,75 +1,8 @@
-import { v } from "convex/values";
-import type { Infer } from "convex/values";
-import { internal } from "../../_generated/api";
-import { internalAction, internalQuery, type ActionCtx } from "../../_generated/server";
-import { decryptText } from "../../lib/crypto";
 import { isPublicWebUrl } from "../../lib/publicWeb";
 
 export { isPublicWebUrl, publicRedirect, readHead } from "../../lib/publicWeb";
 
-const vLinkRef = v.object({
-  stopIndex: v.number(),
-  blockIndex: v.number(),
-  url: v.string(),
-});
-type LinkRef = Infer<typeof vLinkRef>;
-
-// A moment's links are capped, and each fetch gets 5 seconds and 64 KB.
-const MAX_LINKS = 10;
-const HEAD_BYTES = 64 * 1024;
 const TITLE_CHARS = 200;
-
-// Links with no title yet, with their URLs decrypted for the fetch.
-export const linksToUnfurl = internalQuery({
-  args: { momentId: v.id("moments") },
-  returns: v.array(vLinkRef),
-  handler: async (ctx, args): Promise<LinkRef[]> => {
-    const moment = await ctx.db.get("moments", args.momentId);
-    if (moment === null) return [];
-    const event = await ctx.db.get("events", moment.eventId);
-    if (event === null) return [];
-
-    const refs: LinkRef[] = [];
-    const stops = [moment.blocks, ...(moment.stops ?? []).map((s) => s.blocks)];
-    for (const [stopIndex, blocks] of stops.entries()) {
-      for (const [blockIndex, block] of blocks.entries()) {
-        if (block.type === "link" && block.title === undefined) {
-          const url = await decryptText(event._id, block.url);
-          refs.push({ stopIndex, blockIndex, url });
-        }
-      }
-    }
-    return refs;
-  },
-});
-
-// Takes a page's <title>, from its first 64 KB, for each untitled link. A link
-// that fails for any reason just keeps no title.
-export const unfurlLinks = internalAction({
-  args: { momentId: v.id("moments") },
-  returns: v.null(),
-  handler: async (ctx, args): Promise<null> => {
-    const links: LinkRef[] = await ctx.runQuery(internal.model.ai.unfurl.linksToUnfurl, {
-      momentId: args.momentId,
-    });
-    // Fetched in parallel, and capped, so one moment can't hold up the workflow.
-    const found = await Promise.all(
-      links.slice(0, MAX_LINKS).map(async (link) => {
-        const title = await titleOf(ctx, link.url);
-        return title === undefined
-          ? null
-          : { stopIndex: link.stopIndex, blockIndex: link.blockIndex, title };
-      }),
-    );
-    const linkTitles = found.filter(
-      (t): t is { stopIndex: number; blockIndex: number; title: string } => t !== null,
-    );
-    if (linkTitles.length > 0) {
-      await ctx.runMutation(internal.model.ai.apply.apply, { momentId: args.momentId, linkTitles });
-    }
-    return null;
-  },
-});
 
 // The page's <title>: entities decoded, whitespace collapsed, at most 200 characters.
 export const titleFromHtml = (html: string): string | undefined => {
@@ -79,20 +12,6 @@ export const titleFromHtml = (html: string): string | undefined => {
     .trim()
     .slice(0, TITLE_CHARS);
   return title === "" ? undefined : title;
-};
-
-// The page is read by the node action, which looks the hostname up and refuses
-// a private address. A failure of any kind leaves the link untitled.
-const titleOf = async (ctx: ActionCtx, raw: string): Promise<string | undefined> => {
-  try {
-    const read = await ctx.runAction(internal.model.ai.publicFetch.fetchPage, {
-      url: raw,
-      limit: HEAD_BYTES,
-    });
-    return read === null ? undefined : titleFromHtml(read.html);
-  } catch {
-    return undefined;
-  }
 };
 
 const NAMED_ENTITIES: Record<string, string> = {

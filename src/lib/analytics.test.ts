@@ -31,11 +31,11 @@ describe("trackAi", () => {
       code: "RATE_LIMITED",
       message: "You've used today's 10 AI requests.",
     });
-    await expect(trackAi("title", Promise.reject(limited))).rejects.toBe(limited);
-    await expect(trackAi("note", Promise.reject(new Error("offline")))).rejects.toThrow("offline");
+    await expect(trackAi("box", Promise.reject(limited))).rejects.toBe(limited);
+    await expect(trackAi("voice", Promise.reject(new Error("offline")))).rejects.toThrow("offline");
     expect(sent).toEqual([
-      ["ai_used", { feature: "title", result: "limit" }],
-      ["ai_used", { feature: "note", result: "error" }],
+      ["ai_used", { feature: "box", result: "limit" }],
+      ["ai_used", { feature: "voice", result: "error" }],
     ]);
   });
 });

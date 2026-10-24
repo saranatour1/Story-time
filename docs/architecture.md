@@ -32,7 +32,7 @@ flowchart LR
   browser -->|"/api/upload, /api/media, /api/events"| worker
   worker -->|"reserve, confirm, may I read this?"| convex
   worker -->|"put and get with ssecKeyFor"| r2
-  convex -->|"enrich, command, voice"| gateway
+  convex -->|"command, voice"| gateway
   convex -->|"invite only"| email
 ```
 
@@ -60,9 +60,8 @@ A share link is not a user. `convex/model/share.ts` `eventFor` hashes the token,
 | `journalPages` | One A4 page. Order, paper, optional `momentId`, encrypted element text, layout numbers in the clear. Optional `builtFrom` and `edited` for catch-up. Capped in code at 400 (`MAX_JOURNAL_PAGES` in `convex/lib/journal.ts`). |
 | `sessions`     | Invite grants: user, experience, role, `revokedAt`.                                                                                                                                                                          |
 | `changes`      | The Activity log. Names the field that changed, not the secret.                                                                                                                                                              |
-| `inviteEmails` | A counter of invite emails sent. No address is stored.                                                                                                                                                                       |
 
-Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (`convex/components/email`), plus the auth, agent, workflow, and rate-limiter components mounted in `convex/convex.config.ts`.
+Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (`convex/components/email`), plus the auth (core, GitHub, Google, anonymous), agent, AI budget and rate-limiter components mounted in `convex/convex.config.ts`.
 
 These tables are still in the schema and are not part of the product. Nothing in the app writes them. `purgeEventData` in `convex/model/events.ts` deletes per-experience rows when a trip is removed. Account-wide `agentTokens` (no `eventId`) stay until that cleanup is done by hand:
 
@@ -158,15 +157,13 @@ The box is `src/components/event/command-bar.tsx`. It is not an MCP client. `con
 
 `api.ai.command.apply` writes those operations in one transaction or not at all. New moments go through `createMoment`, so they get pages. The client deletes any R2 objects the mutation reports as removed.
 
-After a save, `api.ai.enrich.enrich` (`convex/model/ai/enrich.ts`) may run, 120 times an hour:
+Voice is separate: `api.ai.voice.transcribe` (`convex/model/ai/voice.ts`), Whisper `openai/whisper-large-v3-turbo`, 40 an hour. It fills the box. It does not save.
 
-1. `captionMoment` in `convex/model/ai/scribe.ts` sees 512px JPEG thumbs the browser sent, plus a short hint. It does not read the original from R2.
-2. A workflow then runs `decideTransport` (`convex/model/ai/decide.ts`) and `unfurlLinks` (`convex/model/ai/unfurl.ts`). `apply` in `convex/model/ai/apply.ts` will not overwrite a note or a place a person already wrote.
-3. Voice is separate: `api.ai.voice.transcribe` (`convex/model/ai/voice.ts`), Whisper `openai/whisper-large-v3-turbo`, 40 an hour. It fills the box. It does not save.
+Nothing else calls AI. Added photos are grouped into moments and their places named from GPS without it, and a moment's note is only what a person wrote.
 
-Models are called through the Convex AI Gateway (`convex/lib/ai/models.ts`). No provider key is stored in this repo. Without the gateway the moment still saves. Enrich and propose fail soft or return `AI_UNAVAILABLE`.
+Models are called through the Convex AI Gateway (`convex/lib/ai/models.ts`). No provider key is stored in this repo. Propose fails soft or returns `AI_UNAVAILABLE`.
 
-Link unfurling fetches a public `http` or `https` URL from an action, with a size and time cap, and refuses localhost and literal IPs (`isPublicWebUrl`). It does not check where a hostname resolves. Titles land on the link block. A journal link card can also store an `https` preview image inside the encrypted element text (`readLink` in `convex/lib/journal.ts`).
+A journal link card's preview fetches a public `http` or `https` URL from an action, with a size and time cap, and refuses localhost and literal IPs (`isPublicWebUrl`). It does not check where a hostname resolves. The card can store an `https` preview image inside the encrypted element text (`readLink` in `convex/lib/journal.ts`).
 
 ## Encryption and keys
 
@@ -204,24 +201,23 @@ Delete of a trip is `DELETE /api/events/$id` (`src/routes/api/events.$id.ts`): l
 
 Only invites send mail. `invites.create` calls `components.email.lib.send` when `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN`, and `EMAIL_FROM` are all set and the owner typed an address. Otherwise it returns the link and `emailed: false`.
 
-`convex/components/email/lib.ts` queues an `outbox` row and `deliver` POSTs to Cloudflare's email sending API. After success or the last failure it clears the address and the body. Up to five attempts. `chargeInviteEmail` allows 20 invite emails per person per rolling day. No other mail is implemented. There is no browser push. Toasts are `sonner`, mounted in `src/routes/__root.tsx`. Activity is `convex/model/changes.ts` `listForEvent`, shown by `src/routes/_app/e.$id.activity.tsx`.
+`convex/components/email/lib.ts` queues an `outbox` row and `deliver` POSTs to Cloudflare's email sending API. After success or the last failure it clears the address and the body. Up to five attempts. The `inviteEmail` rate limit allows 10 invite emails per person a day. No other mail is implemented. There is no browser push. Toasts are `sonner`, mounted in `src/routes/__root.tsx`. Activity is `convex/model/changes.ts` `listForEvent`, shown by `src/routes/_app/e.$id.activity.tsx`.
 
 ## Rate limits and other caps
 
-| Name                         | Where                                       | Amount                                          |
-| ---------------------------- | ------------------------------------------- | ----------------------------------------------- |
-| `enrich`                     | `convex/lib/rateLimit.ts`                   | 120 an hour per person                          |
-| `command`                    | same                                        | 60 an hour                                      |
-| `voice`                      | same                                        | 40 an hour                                      |
-| Invite emails                | `convex/model/invites.ts`                   | 20 a day                                        |
-| Waiting invites              | same                                        | 50 per experience                               |
-| Moments, media, bytes, pages | `convex/lib/limits.ts`, `MAX_JOURNAL_PAGES` | See the table in [user-guide.md](user-guide.md) |
+| Name                               | Where                                       | Amount                                          |
+| ---------------------------------- | ------------------------------------------- | ----------------------------------------------- |
+| `command`                          | `convex/lib/rateLimit.ts`                   | 60 an hour                                      |
+| `voice`                            | same                                        | 40 an hour                                      |
+| Invite, share, confirmation emails | `convex/lib/rateLimit.ts`                   | 10, 10 and 5 a day                              |
+| Waiting invites                    | same                                        | 50 per experience                               |
+| Moments, media, bytes, pages       | `convex/lib/limits.ts`, `MAX_JOURNAL_PAGES` | See the table in [user-guide.md](user-guide.md) |
 
 Invite expiry has a daily cron as a backstop (`convex/crons.ts`, 03:17 UTC) plus a timer on the invite itself.
 
 ## What leaves the app
 
-- AI fill-ins (captions, labels, the command bar, voice) send moment details and 512px photo copies to the Convex AI Gateway. Nothing is kept there, and the app works without it. Details in [The command bar and the AI pipeline](#the-command-bar-and-the-ai-pipeline).
+- The box and voice send the sentence (with the trip's moments for context) or the recording to the Convex AI Gateway. Nothing is kept there, and the app works without it. Details in [The command bar and the AI pipeline](#the-command-bar-and-the-ai-pipeline).
 - Place search and photo location names send the typed text or the photo's coordinates to photon.komoot.io (OpenStreetMap).
 - Story legs by foot, bike, car, bus or train ask OpenStreetMap's public routers (routing.openstreetmap.de, routing.openrailrouting.org) for a route from the viewer's browser. Only the two stops are sent, rounded to about 100 m, and answers stay in memory. Without a router the leg is a curve.
 - Journal stickers are cut out on the device (MediaPipe). Only the model is downloaded, from Google.
@@ -284,7 +280,7 @@ Convex tests use `convex-test`. They register the email and invites components w
 | `convex/tests/moment-actions.test.ts`                   | Coordinates stored as `iv` / `ct`, not as the raw numbers.                            |
 | `convex/tests/command.test.ts`                          | Plans and apply.                                                                      |
 | `convex/tests/invites.test.ts`                          | Email only when the Cloudflare vars are present, and the daily cap.                   |
-| `convex/tests/ai.test.ts`, `convex/tests/voice.test.ts` | Enrich and transcription helpers.                                                     |
+| `convex/tests/ai.test.ts`, `convex/tests/voice.test.ts` | The AI allowance, page titles and transcription helpers.                              |
 | `src/components/journal/journal.test.ts`                | Contents grouping, the long-PDF label, play surface. Pure functions, not the browser. |
 
 No test performs a real R2 GET with and without the SSE-C key.
@@ -332,7 +328,7 @@ convex/model/moments.ts        create and edit
 convex/model/journal.ts        pages, outline, catch-up
 convex/model/share.ts          the public link
 convex/model/media.ts          reserve, confirm, download rights
-convex/model/ai/               command, enrich, scribe, voice, unfurl
+convex/model/ai/               command, voice, unfurl
 convex/lib/              access, crypto, limits, rate limits, page layout
 convex/components/       email and invites
 convex/tests/            convex-test

@@ -1,17 +1,21 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { usePaginatedQuery } from "convex/react";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { BookOpenIcon, PencilIcon, PlayIcon } from "lucide-react";
 import { z } from "zod";
 import { queries } from "@/lib/queries";
 import { CommandBar } from "@/components/event/command-bar";
-import { ExperienceShell } from "@/components/event/experience-shell";
+import { ArrowRightIcon, UsersIcon } from "lucide-react";
+import { eventDates } from "@/components/event/event-dates";
+import { ExperienceActions, ExperienceShell } from "@/components/event/experience-shell";
 import { EditorPanel, type Panel } from "@/components/event/itinerary-panel";
 import { Timeline } from "@/components/event/timeline";
+import { ROLE_LABEL } from "@/components/event/shared-tab";
 import type { EventView } from "@/components/event/types";
-import { JournalPreview } from "@/components/journal/preview";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { initials } from "@/components/user-avatar";
 
 const search = z.object({
   // Sections that were tabs here are pages of their own now; links to them
@@ -35,7 +39,7 @@ const EventPage = () => {
   const { data: me } = useQuery(queries.users.getCurrentUser());
 
   return (
-    <ExperienceShell id={id} section="Moments">
+    <ExperienceShell id={id} section="Moments" actions={false}>
       {(event) => {
         const isOwner = event.role === "owner";
         const archived = event.status === "archived";
@@ -51,22 +55,25 @@ const EventPage = () => {
               editId: next === "moment" ? nextMomentId : undefined,
             }),
           });
-        // On a wide screen picking a moment shows its journal page beside the
-        // list. On a phone it edits it when you may, else opens it in the story.
+        // Picking a moment edits it when you may, else plays the story from it.
         const pick = (moment: { _id: string; authorId: string }) => {
-          if (window.matchMedia("(min-width: 64rem)").matches)
-            void navigate({ search: (s) => ({ ...s, tab: undefined, momentId: moment._id }) });
-          else if (canEditMoment(moment.authorId)) openPanel("moment", moment._id);
+          if (canEditMoment(moment.authorId)) openPanel("moment", moment._id);
           else
             void navigate({ to: "/e/$id/story", params: { id }, search: { momentId: moment._id } });
         };
         return (
-          /* The moments, and beside them whatever is being edited, else the
-             picked moment's journal page. Stacked on narrow screens, the
-             editor first; the page is for wide screens only. */
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-start">
-            {panel !== "outline" ? (
-              <div className="min-w-0 lg:sticky lg:top-4 lg:order-2 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:overscroll-contain">
+          /* The moments on the left. On the right, the experience's buttons
+             and its overview, or whatever is being edited. Stacked on narrow
+             screens, the right column first. */
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start">
+            <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:order-2 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:overscroll-contain">
+              <ExperienceActions event={event} />
+              {panel === "outline" ? (
+                <>
+                  <Overview event={event} onSettings={() => openPanel("details")} />
+                  <People eventId={event._id} />
+                </>
+              ) : (
                 <EditorPanel
                   event={event}
                   panel={panel}
@@ -74,15 +81,8 @@ const EventPage = () => {
                   canEditMoment={canEditMoment}
                   onClose={() => openPanel("outline")}
                 />
-              </div>
-            ) : (
-              <PickedPage
-                event={event}
-                momentId={momentId}
-                canEditMoment={canEditMoment}
-                onEdit={(id) => openPanel("moment", id)}
-              />
-            )}
+              )}
+            </aside>
             <div className="min-w-0 space-y-4 lg:order-1">
               <CommandBar event={event} openMomentId={momentId} />
               <Timeline
@@ -101,63 +101,80 @@ const EventPage = () => {
   );
 };
 
-// Beside the list on a wide screen: the picked moment's journal page with ways
-// on from it, or the cover when nothing is picked.
-const PickedPage = ({
-  event,
-  momentId,
-  canEditMoment,
-  onEdit,
-}: {
-  event: EventView;
-  momentId?: string;
-  canEditMoment: (authorId: string) => boolean;
-  onEdit: (id: Id<"moments">) => void;
-}) => {
-  const { data: moments } = useQuery(queries.moments.list({ eventId: event._id }));
-  const moment = moments?.find((m) => m._id === momentId);
-  // The aside is hidden below `lg`. Mounting it there would still subscribe
-  // to the page, so a phone does not.
-  const [wide, setWide] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(min-width: 64rem)").matches,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 64rem)");
-    const sync = () => setWide(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
-  if (!wide) return null;
+// The experience at a glance, from its details: what it is, when, how big and
+// who can see it, with the way to its settings for the owner.
+const Overview = ({ event, onSettings }: { event: EventView; onSettings: () => void }) => {
+  const dates = eventDates(event);
+  const canChange = event.role === "owner" && event.status !== "archived";
   return (
-    <aside
-      aria-label="Its journal page"
-      className="hidden min-w-0 space-y-3 lg:sticky lg:top-4 lg:order-2 lg:block"
-    >
-      <JournalPreview event={event} momentId={moment?._id} scale={448 / 794} />
-      <div className="flex flex-wrap gap-2">
-        {moment && (
-          <Button size="sm" asChild>
-            <Link to="/e/$id/story" params={{ id: event._id }} search={{ momentId: moment._id }}>
-              <PlayIcon aria-hidden /> Play from here
-            </Link>
+    <section aria-labelledby="overview" className="space-y-3 rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="overview" className="text-sm font-medium">
+          Overview
+        </h2>
+        {canChange && (
+          <Button variant="ghost" size="sm" className="-mr-2" onClick={onSettings}>
+            Settings <ArrowRightIcon />
           </Button>
         )}
-        {moment && canEditMoment(moment.authorId) && (
-          <Button size="sm" variant="outline" onClick={() => onEdit(moment._id)}>
-            <PencilIcon aria-hidden /> Edit
-          </Button>
-        )}
-        <Button size="sm" variant="outline" asChild>
-          <Link to="/e/$id/journal" params={{ id: event._id }} search={{ momentId: moment?._id }}>
-            <BookOpenIcon aria-hidden /> {moment ? "Open in the journal" : "Open the journal"}
+      </div>
+      {event.description ? (
+        <p className="line-clamp-6 text-sm whitespace-pre-line">{event.description}</p>
+      ) : (
+        canChange && <p className="text-sm text-muted-foreground">No description yet.</p>
+      )}
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+        <dt className="text-muted-foreground">Dates</dt>
+        <dd>{dates ?? "Not set"}</dd>
+        <dt className="text-muted-foreground">Moments</dt>
+        <dd>{event.momentCount}</dd>
+        <dt className="text-muted-foreground">Who can see it</dt>
+        <dd>{event.visibility === "link" ? "Anyone with the link" : "Only people invited"}</dd>
+      </dl>
+    </section>
+  );
+};
+
+// Who is on the trip, as Shared lists them: the first page, and the way to
+// Shared itself, where the rest are.
+const People = ({ eventId }: { eventId: Id<"events"> }) => {
+  const people = usePaginatedQuery(api.sessions.members, { eventId }, { initialNumItems: 5 });
+  return (
+    <section aria-labelledby="people" className="space-y-3 rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="people" className="text-sm font-medium">
+          People
+        </h2>
+        <Button variant="ghost" size="sm" className="-mr-2" asChild>
+          <Link to="/e/$id/shared" params={{ id: eventId }}>
+            Shared <ArrowRightIcon />
           </Link>
         </Button>
       </div>
-      {!moment && event.momentCount > 0 && (
-        <p className="text-sm text-muted-foreground">Pick a moment to see its page.</p>
+      {people.status === "LoadingFirstPage" ? (
+        <Skeleton aria-hidden className="h-16 w-full" />
+      ) : (
+        <ul className="space-y-2">
+          {people.results.map((m) => (
+            <li key={m.userId} className="flex items-center gap-2.5 text-sm">
+              <span
+                aria-hidden
+                className="grid size-7 shrink-0 place-items-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground"
+              >
+                {initials(m.displayName) || <UsersIcon className="size-3.5" />}
+              </span>
+              <span className="min-w-0 flex-1 truncate">{m.displayName ?? "Anonymous"}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {m.sessionId === null ? "Owner" : ROLE_LABEL[m.role]}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
-    </aside>
+      {people.status === "CanLoadMore" && (
+        <p className="text-xs text-muted-foreground">And more on Shared.</p>
+      )}
+    </section>
   );
 };
 

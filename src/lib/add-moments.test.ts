@@ -1,12 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vite-plus/test";
-import type { Id } from "../../convex/_generated/dataModel";
-import {
-  enrichMoment,
-  momentsFromPlan,
-  type PlannedDay,
-  readPicked,
-  uploadAll,
-} from "./add-moments";
+import { momentsFromPlan, type PlannedDay, readPicked, uploadAll } from "./add-moments";
 import type { Geo, PhotoPoint } from "./photo-groups";
 
 // Local times, so the day holds in any time zone.
@@ -17,7 +10,6 @@ const point = (id: string, takenAt: number, offsetMinutes?: number): PhotoPoint 
   offsetMinutes,
 });
 const LISBON: Geo = { lat: 38.72, lng: -9.14 };
-const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -161,56 +153,5 @@ describe("readPicked", () => {
     expect(picked.map((p) => p.kind)).toEqual(["photo", "video"]);
     expect(problems).toEqual(["IMG_1.HEIC: HEIC photos aren't supported yet; export them as JPEG"]);
     expect(seen.size).toBe(2);
-  });
-});
-
-describe("enrichMoment", () => {
-  test("asks for the notes even when no thumbnail can be made", async () => {
-    const enrich = vi.fn(async () => null);
-    const file = new File(["x"], "a.jpg", { type: "image/jpeg" });
-
-    enrichMoment(enrich, "m1" as Id<"moments">, [{ mediaId: "p1" as Id<"media">, file }]);
-    await flush();
-
-    expect(enrich).toHaveBeenCalledWith({ momentId: "m1", thumbs: [] });
-  });
-
-  test("after a refusal, every form skips the request for a while, then asks again", async () => {
-    // Clock at 0, so the pause it leaves behind is long over in real time.
-    vi.useFakeTimers({ now: 0 });
-    try {
-      const refuse = vi.fn(async () => false);
-      enrichMoment(refuse, "m1" as Id<"moments">, []);
-      await vi.runAllTimersAsync();
-      expect(refuse).toHaveBeenCalledOnce();
-
-      // Another form, with its own enrich function, waits too.
-      const other = vi.fn(async () => true);
-      enrichMoment(other, "m2" as Id<"moments">, []);
-      await vi.runAllTimersAsync();
-      expect(other).not.toHaveBeenCalled();
-
-      vi.advanceTimersByTime(60 * 60_000);
-      enrichMoment(other, "m3" as Id<"moments">, []);
-      await vi.runAllTimersAsync();
-      expect(other).toHaveBeenCalledOnce();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  test("a failed request is logged, not thrown", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    enrichMoment(
-      async () => {
-        throw new Error("offline");
-      },
-      "m1" as Id<"moments">,
-      [],
-    );
-    await flush();
-
-    expect(warn).toHaveBeenCalledOnce();
   });
 });

@@ -4,17 +4,14 @@ import {
   CopyIcon,
   ImagePlusIcon,
   LinkIcon,
-  LoaderCircleIcon,
   LockIcon,
   PencilIcon,
   PenLineIcon,
   ScissorsIcon,
-  SparklesIcon,
   Trash2Icon,
   UnlockIcon,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { toast } from "sonner";
 import {
   DECOS,
   type JournalElement,
@@ -26,7 +23,6 @@ import {
 import type { MomentView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { errorMessage } from "@/lib/errors";
 import { firstLine, groupByDay } from "@/lib/timeline";
 import { useMediaUrl, useWhenSeen } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
@@ -479,7 +475,6 @@ export const Inspector = ({
   onDuplicate,
   onDelete,
   onCut,
-  onSuggest,
 }: {
   e: JournalElement;
   onChange: (change: Partial<JournalElement>) => void;
@@ -488,8 +483,6 @@ export const Inspector = ({
   onDuplicate: () => void;
   onDelete: () => void;
   onCut: () => void;
-  // Another title for a moment's page, from its moment. Absent elsewhere.
-  onSuggest?: () => Promise<string>;
 }) => {
   const name = e.kind === "deco" ? (DECO_NAMES[e.style ?? ""] ?? NAMES.deco) : NAMES[e.kind];
   return (
@@ -516,10 +509,6 @@ export const Inspector = ({
           />
           <p className="text-[11px] text-stone-500">Or double-click it on the page.</p>
         </Section>
-      )}
-
-      {e.kind === "title" && onSuggest && !e.locked && (
-        <TryAnother key={e.id} ask={onSuggest} onUse={(text) => onChange({ text })} />
       )}
 
       {e.kind === "title" && (
@@ -717,61 +706,5 @@ export const Inspector = ({
         </Button>
       </div>
     </div>
-  );
-};
-
-// "Try another": a title from the moment, offered under the one there now.
-// Nothing changes until "Use it".
-const TryAnother = ({
-  ask,
-  onUse,
-}: {
-  ask: () => Promise<string>;
-  onUse: (text: string) => void;
-}) => {
-  const [idea, setIdea] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const more = async () => {
-    setBusy(true);
-    try {
-      setIdea(await ask());
-    } catch (error) {
-      toast.error(errorMessage(error));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Section title="Another title">
-      {idea && (
-        <p
-          className="rounded-md border border-dashed border-stone-400 bg-white/70 px-2 py-1.5 text-lg leading-snug"
-          style={{ fontFamily: FONTS.hand }}
-        >
-          {idea}
-        </p>
-      )}
-      <div className="flex gap-1.5">
-        {idea && (
-          <Button size="sm" className="flex-1" onClick={() => (onUse(idea), setIdea(null))}>
-            Use it
-          </Button>
-        )}
-        <Button
-          size="sm"
-          variant="outline"
-          className="flex-1"
-          disabled={busy}
-          onClick={() => void more()}
-        >
-          {busy ? (
-            <LoaderCircleIcon aria-hidden className="animate-spin" />
-          ) : (
-            <SparklesIcon aria-hidden />
-          )}{" "}
-          {idea ? "Another" : "Try another"}
-        </Button>
-      </div>
-    </Section>
   );
 };
