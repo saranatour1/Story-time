@@ -1,16 +1,19 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { z } from "zod";
 import { queries } from "@/lib/queries";
 import { CommandBar } from "@/components/event/command-bar";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, UsersIcon } from "lucide-react";
 import { eventDates } from "@/components/event/event-dates";
 import { ExperienceActions, ExperienceShell } from "@/components/event/experience-shell";
 import { EditorPanel, type Panel } from "@/components/event/itinerary-panel";
 import { Timeline } from "@/components/event/timeline";
+import { ROLE_LABEL } from "@/components/event/shared-tab";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { initials } from "@/components/user-avatar";
 
 const search = z.object({
   // Sections that were tabs here are pages of their own now; links to them
@@ -64,7 +67,10 @@ const EventPage = () => {
             <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:order-2 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:overscroll-contain">
               <ExperienceActions event={event} />
               {panel === "outline" ? (
-                <Overview event={event} onSettings={() => openPanel("details")} />
+                <>
+                  <Overview event={event} onSettings={() => openPanel("details")} />
+                  <People eventId={event._id} />
+                </>
               ) : (
                 <EditorPanel
                   event={event}
@@ -127,6 +133,49 @@ const Overview = ({ event, onSettings }: { event: EventView; onSettings: () => v
   );
 };
 
+// Who is on the trip, as Shared lists them: the first few, how many more, and
+// the way to Shared itself.
+const PEOPLE_SHOWN = 5;
+const People = ({ eventId }: { eventId: Id<"events"> }) => {
+  const { data: members } = useQuery(queries.sessions.members({ eventId }));
+  const more = (members?.length ?? 0) - PEOPLE_SHOWN;
+  return (
+    <section aria-labelledby="people" className="space-y-3 rounded-xl border bg-card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="people" className="text-sm font-medium">
+          People
+        </h2>
+        <Button variant="ghost" size="sm" className="-mr-2" asChild>
+          <Link to="/e/$id/shared" params={{ id: eventId }}>
+            Shared <ArrowRightIcon />
+          </Link>
+        </Button>
+      </div>
+      {members === undefined ? (
+        <Skeleton aria-hidden className="h-16 w-full" />
+      ) : (
+        <ul className="space-y-2">
+          {members.slice(0, PEOPLE_SHOWN).map((m) => (
+            <li key={m.userId} className="flex items-center gap-2.5 text-sm">
+              <span
+                aria-hidden
+                className="grid size-7 shrink-0 place-items-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground"
+              >
+                {initials(m.displayName) || <UsersIcon className="size-3.5" />}
+              </span>
+              <span className="min-w-0 flex-1 truncate">{m.displayName ?? "Anonymous"}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {m.sessionId === null ? "Owner" : ROLE_LABEL[m.role]}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {more > 0 && <p className="text-xs text-muted-foreground">and {more} more</p>}
+    </section>
+  );
+};
+
 // Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/e/$id/")({
   // Old edit links name the moment in `momentId` only.
@@ -144,6 +193,7 @@ export const Route = createFileRoute("/_app/e/$id/")({
     prefetch(queries.events.get({ eventId }));
     prefetch(queries.moments.list({ eventId }));
     prefetch(queries.journal.unpaged({ eventId }));
+    prefetch(queries.sessions.members({ eventId }));
   },
   component: EventPage,
 });

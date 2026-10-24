@@ -25,7 +25,7 @@ type Role = "viewer" | "contributor";
 // What a person already in may hold: invites give the first two, co-owner is given here.
 type GrantRole = Role | "owner";
 // What each role may do, in the words a person would use.
-const ROLE_LABEL: Record<GrantRole, string> = {
+export const ROLE_LABEL: Record<GrantRole, string> = {
   viewer: "Can watch",
   contributor: "Can add moments",
   owner: "Co-owner",
