@@ -1,5 +1,7 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { usePaginatedQuery } from "convex/react";
+import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { z } from "zod";
 import { queries } from "@/lib/queries";
@@ -133,12 +135,10 @@ const Overview = ({ event, onSettings }: { event: EventView; onSettings: () => v
   );
 };
 
-// Who is on the trip, as Shared lists them: the first few, how many more, and
-// the way to Shared itself.
-const PEOPLE_SHOWN = 5;
+// Who is on the trip, as Shared lists them: the first page, and the way to
+// Shared itself, where the rest are.
 const People = ({ eventId }: { eventId: Id<"events"> }) => {
-  const { data: members } = useQuery(queries.sessions.members({ eventId }));
-  const more = (members?.length ?? 0) - PEOPLE_SHOWN;
+  const people = usePaginatedQuery(api.sessions.members, { eventId }, { initialNumItems: 5 });
   return (
     <section aria-labelledby="people" className="space-y-3 rounded-xl border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
@@ -151,11 +151,11 @@ const People = ({ eventId }: { eventId: Id<"events"> }) => {
           </Link>
         </Button>
       </div>
-      {members === undefined ? (
+      {people.status === "LoadingFirstPage" ? (
         <Skeleton aria-hidden className="h-16 w-full" />
       ) : (
         <ul className="space-y-2">
-          {members.slice(0, PEOPLE_SHOWN).map((m) => (
+          {people.results.map((m) => (
             <li key={m.userId} className="flex items-center gap-2.5 text-sm">
               <span
                 aria-hidden
@@ -171,7 +171,9 @@ const People = ({ eventId }: { eventId: Id<"events"> }) => {
           ))}
         </ul>
       )}
-      {more > 0 && <p className="text-xs text-muted-foreground">and {more} more</p>}
+      {people.status === "CanLoadMore" && (
+        <p className="text-xs text-muted-foreground">And more on Shared.</p>
+      )}
     </section>
   );
 };
@@ -193,7 +195,6 @@ export const Route = createFileRoute("/_app/e/$id/")({
     prefetch(queries.events.get({ eventId }));
     prefetch(queries.moments.list({ eventId }));
     prefetch(queries.journal.unpaged({ eventId }));
-    prefetch(queries.sessions.members({ eventId }));
   },
   component: EventPage,
 });

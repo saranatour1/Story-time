@@ -118,3 +118,40 @@ describe("only the owner reads the log", () => {
     await expect(read(owner)).resolves.toMatchObject({ page: expect.any(Array) });
   });
 });
+
+describe("activity counts", () => {
+  test("people, agents and Story-time add up to everyone, for the owner only", async () => {
+    const { t, eventId, ownerId, owner, helper } = await setup();
+    // createDraft already logged one change by the owner.
+    await t.run(async (ctx) => {
+      const change = { eventId, entity: "moment" as const, entityId: "m", fields: [], at: T0 };
+      await ctx.db.insert("changes", { ...change, action: "create", actorId: ownerId });
+      await ctx.db.insert("changes", {
+        ...change,
+        action: "update",
+        actorId: ownerId,
+        agent: "Box",
+      });
+      await ctx.db.insert("changes", { ...change, action: "create" });
+      await ctx.db.insert("changes", { ...change, action: "expire" });
+    });
+    const counts = await owner.query(api.api.changes.counts, { eventId });
+    const all = await t.run((ctx) =>
+      ctx.db
+        .query("changes")
+        .withIndex("by_event_and_at", (q) => q.eq("eventId", eventId))
+        .collect(),
+    );
+    expect(counts).toEqual({
+      everyone: all.length,
+      people: all.length - 3,
+      agents: 1,
+      system: 2,
+      capped: false,
+    });
+    expect(counts.people + counts.agents + counts.system).toBe(counts.everyone);
+    await expect(helper.query(api.api.changes.counts, { eventId })).rejects.toThrow(
+      "Event not found",
+    );
+  });
+});
