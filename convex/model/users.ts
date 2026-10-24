@@ -30,10 +30,11 @@ const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string
   return email;
 };
 
-// The person a provider sign-in belongs to. Someone already here with that
-// confirmed address is that person: logins from before the 2.0 auth upgrade
-// come back this way. Two or more with the same address is ambiguous, so it
-// makes a new user instead. Privacy by default: a new row starts empty apart
+// The person a new provider login belongs to. A login seen before never gets
+// here: Convex Auth finds it in its accounts table. A new one (say Google, for
+// someone who signed up with GitHub) whose verified email exactly one person
+// here has confirmed is that person; two or more is ambiguous, so it makes a
+// new user instead. Privacy by default: a new row starts empty apart
 // from the verified contact email; nothing else from the profile is copied.
 const userFor = async (ctx: MutationCtx, email: string | undefined): Promise<Id<"users">> => {
   if (email !== undefined) {
