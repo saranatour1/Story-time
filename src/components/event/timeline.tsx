@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation, usePaginatedQuery } from "convex/react";
-import { PencilIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { PencilIcon, PlayIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { queries } from "@/lib/queries";
+import { AuthImage } from "@/components/auth-image";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ActorBadge } from "@/components/event/actor-badge";
 import { QuickAddButton } from "@/components/event/quick-add";
@@ -18,7 +19,7 @@ import { authorOf } from "@/lib/actors";
 import { formatTime } from "@/lib/local-time";
 import { matchesSearch } from "@/lib/moment-filters";
 import { viewerDay } from "@/lib/photo-groups";
-import { firstLine, groupByDay } from "@/lib/timeline";
+import { groupByDay, mediaOf, rowLabel } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
 
 const PAGE = 30;
@@ -172,23 +173,20 @@ export const Timeline = ({
               return (
                 <li
                   key={m._id}
-                  className={cn(
-                    "group flex items-center hover:bg-muted/60",
-                    selected && "bg-muted",
-                  )}
+                  className={cn("group flex items-start hover:bg-muted/60", selected && "bg-muted")}
                 >
                   <button
                     type="button"
                     data-moment-id={m._id}
                     aria-current={selected ? "true" : undefined}
                     onClick={() => onPick(m)}
-                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left outline-none focus-visible:bg-muted/60"
+                    className="flex min-w-0 flex-1 items-start gap-3 px-3 py-2.5 text-left outline-none focus-visible:bg-muted/60"
                   >
-                    <span className="w-16 shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                    <span className="w-16 shrink-0 pt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
                       {formatTime(m.startsAt, m.tzOffsetMinutes)}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">{firstLine(m) ?? "A moment"}</span>
+                      <span className="block truncate text-sm">{rowLabel(m)}</span>
                       {m.people.length > 0 && (
                         <span className="block truncate text-xs text-muted-foreground">
                           With {m.people.map((p) => p.name ?? "Anonymous").join(", ")}
@@ -199,6 +197,7 @@ export const Timeline = ({
                           The journal is full, so this moment has no page.
                         </span>
                       )}
+                      <MediaStrip media={mediaOf(m)} />
                     </span>
                     <PlaceChip place={m.place} />
                     <ActorBadge
@@ -208,7 +207,7 @@ export const Timeline = ({
                     />
                   </button>
                   {canEdit(m.authorId) && (
-                    <div className="flex shrink-0 items-center pr-1.5">
+                    <div className="flex shrink-0 items-center pt-1.5 pr-1.5">
                       <Button
                         type="button"
                         variant="ghost"
@@ -306,5 +305,39 @@ const isTyping = (target: EventTarget | null) => {
   return (
     target instanceof HTMLElement &&
     (target.isContentEditable || target.closest("input, textarea, select") !== null)
+  );
+};
+
+// A moment's photos and videos as small squares: the first few, then how
+// many more. Videos have no stored thumbnail, so they show as a play tile.
+const SHOWN = 6;
+const MediaStrip = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }) => {
+  if (media.length === 0) return null;
+  const more = media.length - SHOWN;
+  return (
+    <span className="mt-2 flex flex-wrap gap-1.5">
+      {media.slice(0, SHOWN).map(({ mediaId, video }) =>
+        video ? (
+          <span
+            key={mediaId}
+            className="grid size-16 shrink-0 sm:size-20 place-items-center rounded-md bg-muted text-muted-foreground"
+          >
+            <PlayIcon aria-label="Video" className="size-4" />
+          </span>
+        ) : (
+          <AuthImage
+            key={mediaId}
+            mediaId={mediaId}
+            alt=""
+            className="aspect-square size-16 shrink-0 sm:size-20 rounded-md"
+          />
+        ),
+      )}
+      {more > 0 && (
+        <span className="grid size-16 shrink-0 sm:size-20 place-items-center rounded-md bg-muted text-xs text-muted-foreground">
+          +{more}
+        </span>
+      )}
+    </span>
   );
 };

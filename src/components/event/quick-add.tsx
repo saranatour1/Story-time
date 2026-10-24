@@ -15,7 +15,7 @@ export const canAddTo = (event: EventView) =>
 type ButtonProps = ComponentProps<typeof Button>;
 
 // Picks photos and videos and makes their moments in one go, grouped by day
-// and place, each with its AI note.
+// and place.
 export const QuickAddButton = ({
   event,
   variant = "default",

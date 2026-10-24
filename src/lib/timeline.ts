@@ -38,3 +38,24 @@ export const firstLine = (m: MomentView): string | undefined => {
   }
   return m.place ?? m.stops.find((s) => s.place)?.place;
 };
+
+// A moment's photos and videos, in order, across its stops.
+export const mediaOf = (m: MomentView): Array<{ mediaId: string; video: boolean }> =>
+  allBlocks(m).flatMap((b) =>
+    b.type === "photo" || b.type === "video"
+      ? [{ mediaId: b.mediaId, video: b.type === "video" }]
+      : [],
+  );
+
+const count = (n: number, word: string) => (n === 0 ? "" : `${n} ${word}${n === 1 ? "" : "s"}`);
+
+// What a moment's row says: its first line, else what it holds ("6 photos ·
+// 1 video"), else only that it is a moment.
+export const rowLabel = (m: MomentView): string => {
+  const line = firstLine(m);
+  if (line !== undefined) return line;
+  const media = mediaOf(m);
+  const videos = media.filter((x) => x.video).length;
+  const holds = [count(media.length - videos, "photo"), count(videos, "video")].filter(Boolean);
+  return holds.length > 0 ? holds.join(" · ") : "A moment";
+};

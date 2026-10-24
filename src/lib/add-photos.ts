@@ -45,9 +45,8 @@ const details = (problems: string[]): string => {
 };
 
 // Reads, uploads and plans the picked photos and videos, then makes their
-// moments: grouped as the review sheet groups them, each with its AI note.
-// `note`, when given, is the person's own words: it becomes the first moment's
-// note as written, and guides the notes the AI drafts for the rest. Returns
+// moments, grouped as the review sheet groups them. `note`, when given, is
+// the person's own words: it becomes the first moment's note as written. Returns
 // whether any moment was made. Progress and problems are shown as toasts.
 export const addPhotos = async (args: {
   event: Pick<EventView, "_id" | "momentCount">;
@@ -135,7 +134,7 @@ export const addPhotos = async (args: {
         description: details(problems),
       });
     } else {
-      toast.success(`${added} · writing the notes…`, { id: toastId });
+      toast.success(added, { id: toastId });
     }
     return created > 0;
   } catch (e) {
