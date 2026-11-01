@@ -5,6 +5,7 @@ What has landed, newest first. One line per change; the PR has the detail.
 ## 2026-11-02
 
 - **Agent discovery.** The home page sends `Link` headers, `/.well-known/api-catalog` lists the Worker's routes (RFC 9727), `/openapi.json` describes them, and `/auth.md` says agents can't register and which credentials a person can hand them. No OAuth metadata: the app has no OAuth server for agents.
+- **Deploys survive a Node patch release.** `devEngines` asks for `^24.22.1` instead of exactly 24.22.1. Cloudflare's build moved to 24.22.2, and `npx wrangler deploy` refused to run on anything but the pinned version.
 
 ## 2026-10-24
 
