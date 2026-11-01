@@ -2,6 +2,10 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-11-02
+
+- **Agent discovery.** The home page sends `Link` headers, `/.well-known/api-catalog` lists the Worker's routes (RFC 9727), `/openapi.json` describes them, and `/auth.md` says agents can't register and which credentials a person can hand them. No OAuth metadata: the app has no OAuth server for agents.
+
 ## 2026-10-24
 
 - **Toolchain up to date.** Vite+ 1.4.0 (`vp migrate`: tests import from `vite-plus/test`, `vite` and `vite-plus` come from the pnpm catalog), Convex 1.48, its components, convex-test 0.0.64. Node is pinned to 24.22.1 LTS in `devEngines`, Convex Node actions run on 24 (`convex.json`), and `@types/node` is 24. `pnpm typecheck` runs tsrs, the Rust port of the TypeScript 7 compiler, over the app and `convex/` in under a second; `typescript` stays on 6 because typescript-eslint needs it.

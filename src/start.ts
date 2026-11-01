@@ -1,6 +1,6 @@
 import { createMiddleware, createStart } from "@tanstack/react-start";
 import { pageMeta } from "@/lib/seo";
-import { markdownForAgents, wantsMarkdown } from "@/server/agents";
+import { AGENT_LINKS, markdownForAgents, wantsMarkdown } from "@/server/agents";
 import { trackAgents } from "@databuddy/sdk/agents";
 import { waitUntil } from "cloudflare:workers";
 
@@ -29,7 +29,8 @@ const aiAgents = createMiddleware({ type: "request" }).server(async ({ next, req
 
 // Search engines get one answer per page: only the home page is indexed, and
 // the header covers crawlers that never run the page's script. An agent that
-// asks the home page for markdown gets the site as text (src/server/llms.md).
+// asks the home page for markdown gets the site as text (src/server/llms.md),
+// and either answer links to the machine-readable files.
 const forCrawlers = createMiddleware({ type: "request" }).server(async ({ next, request }) => {
   const { pathname } = new URL(request.url);
   if (pathname === "/" && wantsMarkdown(request)) return markdownForAgents();
@@ -37,7 +38,10 @@ const forCrawlers = createMiddleware({ type: "request" }).server(async ({ next, 
   const headers = result.response.headers;
   if (headers.get("content-type")?.startsWith("text/html")) {
     if (!pageMeta(pathname).index) headers.set("X-Robots-Tag", "noindex");
-    if (pathname === "/") headers.append("Vary", "Accept");
+    if (pathname === "/") {
+      headers.append("Vary", "Accept");
+      headers.set("Link", AGENT_LINKS);
+    }
   }
   return result;
 });

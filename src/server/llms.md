@@ -25,6 +25,8 @@ This file is for AI agents and assistants. Served at /llms.txt, and at / when a 
 
 - The home page is the only public page: https://story-time.saranatour.dev/
 - There is no public API. Pages under /e/, /home and /settings need the person's own sign-in. Agents should not try to reach them without it.
+- The routes under /api store and serve the app's photos, and also need a sign-in or a share link. They are listed at /.well-known/api-catalog and described at /openapi.json.
+- Agents can't register or get credentials of their own: see /auth.md.
 - A share link carries its key after the `#`. Treat one as private: don't store it, index it or pass it on.
 - Search engines: index the home page only. Shared and invite pages answer with `noindex`.
 - Content signals (robots.txt): search=yes, ai-input=yes, ai-train=no.

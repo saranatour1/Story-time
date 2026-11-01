@@ -11,9 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AuthDotmdRouteImport } from './routes/auth[.]md'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as SRouteImport } from './routes/s'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known/api-catalog'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
@@ -41,6 +43,11 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthDotmdRoute = AuthDotmdRouteImport.update({
+  id: '/auth.md',
+  path: '/auth.md',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
   id: '/llms.txt',
   path: '/llms.txt',
@@ -54,6 +61,11 @@ const SRoute = SRouteImport.update({
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotwellKnownApiCatalogRoute = DotwellKnownApiCatalogRouteImport.update({
+  id: '/.well-known/api-catalog',
+  path: '/.well-known/api-catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppHomeRoute = AppHomeRouteImport.update({
@@ -144,9 +156,11 @@ const AppEIdSharedRoute = AppEIdSharedRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth.md': typeof AuthDotmdRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/s': typeof SRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/home': typeof AppHomeRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/api/upload': typeof ApiUploadRoute
@@ -167,9 +181,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth.md': typeof AuthDotmdRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/s': typeof SRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/home': typeof AppHomeRoute
   '/api/upload': typeof ApiUploadRoute
   '/invite/$token': typeof InviteTokenRoute
@@ -191,9 +207,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/auth.md': typeof AuthDotmdRoute
   '/llms.txt': typeof LlmsDottxtRoute
   '/s': typeof SRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/api/upload': typeof ApiUploadRoute
@@ -216,9 +234,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth.md'
     | '/llms.txt'
     | '/s'
     | '/verify-email'
+    | '/.well-known/api-catalog'
     | '/home'
     | '/settings'
     | '/api/upload'
@@ -239,9 +259,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth.md'
     | '/llms.txt'
     | '/s'
     | '/verify-email'
+    | '/.well-known/api-catalog'
     | '/home'
     | '/api/upload'
     | '/invite/$token'
@@ -262,9 +284,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/auth.md'
     | '/llms.txt'
     | '/s'
     | '/verify-email'
+    | '/.well-known/api-catalog'
     | '/_app/home'
     | '/_app/settings'
     | '/api/upload'
@@ -287,9 +311,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  AuthDotmdRoute: typeof AuthDotmdRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
   SRoute: typeof SRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
   ApiUploadRoute: typeof ApiUploadRoute
   InviteTokenRoute: typeof InviteTokenRoute
   InviteIndexRoute: typeof InviteIndexRoute
@@ -314,6 +340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth.md': {
+      id: '/auth.md'
+      path: '/auth.md'
+      fullPath: '/auth.md'
+      preLoaderRoute: typeof AuthDotmdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/llms.txt': {
       id: '/llms.txt'
       path: '/llms.txt'
@@ -333,6 +366,13 @@ declare module '@tanstack/react-router' {
       path: '/verify-email'
       fullPath: '/verify-email'
       preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/api-catalog': {
+      id: '/.well-known/api-catalog'
+      path: '/.well-known/api-catalog'
+      fullPath: '/.well-known/api-catalog'
+      preLoaderRoute: typeof DotwellKnownApiCatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/home': {
@@ -500,9 +540,11 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  AuthDotmdRoute: AuthDotmdRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
   SRoute: SRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
   ApiUploadRoute: ApiUploadRoute,
   InviteTokenRoute: InviteTokenRoute,
   InviteIndexRoute: InviteIndexRoute,

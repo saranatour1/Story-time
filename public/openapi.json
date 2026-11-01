@@ -1,0 +1,174 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Story-time Worker API",
+    "version": "1.0.0",
+    "description": "The routes the Story-time app uses to store and serve photos. Every call needs a person's sign-in or a share link: see /auth.md. Everything else the app does goes through Convex functions, which aren't described here."
+  },
+  "paths": {
+    "/api/upload": {
+      "post": {
+        "summary": "Upload a photo, video, profile image, thumbnail or journal PDF",
+        "security": [{ "bearer": [] }],
+        "parameters": [
+          {
+            "name": "X-File-Size",
+            "in": "header",
+            "required": true,
+            "description": "The body's exact size in bytes.",
+            "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "X-Purpose",
+            "in": "header",
+            "description": "Leave out for a photo or video.",
+            "schema": { "type": "string", "enum": ["avatar", "thumb", "journal-pdf"] }
+          },
+          {
+            "name": "X-Event-Id",
+            "in": "header",
+            "description": "The experience. Required for a photo, video or journal PDF.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Media-Id",
+            "in": "header",
+            "description": "The photo this thumbnail belongs to. Required when X-Purpose is thumb.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Image-Width",
+            "in": "header",
+            "description": "Required when X-Purpose is thumb.",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "X-Image-Height",
+            "in": "header",
+            "description": "Required when X-Purpose is thumb.",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "*/*": { "schema": { "type": "string", "format": "binary" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "mediaId": { "type": "string" } },
+                  "required": ["mediaId"]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "413": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/media/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/id" }],
+      "get": {
+        "summary": "Read a photo or video",
+        "security": [{ "bearer": [] }, { "share": [] }],
+        "parameters": [
+          {
+            "name": "variant",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["full", "thumb"], "default": "full" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file",
+            "content": {
+              "*/*": { "schema": { "type": "string", "format": "binary" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "delete": {
+        "summary": "Delete a replaced or cleared profile image",
+        "security": [{ "bearer": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/events/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/id" }],
+      "delete": {
+        "summary": "Delete an experience and its files",
+        "security": [{ "bearer": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "A person's access token, from signing in."
+      },
+      "share": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "`Share <token>`, with the key from a share link."
+      }
+    },
+    "parameters": {
+      "id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    },
+    "responses": {
+      "Ok": {
+        "description": "Done",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": { "ok": { "type": "boolean" } },
+              "required": ["ok"]
+            }
+          }
+        }
+      },
+      "Error": {
+        "description": "What went wrong",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": { "error": { "type": "string" } },
+              "required": ["error"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
