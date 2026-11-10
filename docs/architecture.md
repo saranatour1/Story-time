@@ -308,11 +308,11 @@ Cloudflare Workers Builds settings (Settings → Build):
 
 What GitHub actually runs today:
 
-- There is no `.github/workflows` pipeline. Nothing on GitHub runs `pnpm test` or `pnpm build`.
+- `.github/workflows/checks.yml` runs `pnpm typecheck`, `pnpm lint` and `pnpm test` on every pull request and on pushes to `master`. It does not build or deploy.
 - Cloudflare **Workers Builds** is attached to the `story-time` Worker with the settings above. It failed on every pull request until 2026-10-18, first because `CONVEX_DEPLOY_KEY` was a runtime secret instead of a build variable, then because of the `main` check.
 - **Entire Gates** posts a failing check. There is no Entire config in the repo. That check has not been a required status, because pull requests have merged while it was red.
 
-`tasks.md` still says each pull request should be green on `pnpm typecheck`, `pnpm lint`, `pnpm test`, and `vp build` before it opens. That is a local habit, not a GitHub requirement.
+The Checks workflow only blocks a merge once it is marked as a required status check in the GitHub branch protection for `master`.
 
 ## File index
 
