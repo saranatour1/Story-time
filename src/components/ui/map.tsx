@@ -3,7 +3,6 @@
 import * as MapLibreGL from "maplibre-gl";
 import type { PopupOptions, MarkerOptions } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import builtWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import type * as GeoJSON from "geojson";
 import {
   createContext,
@@ -24,10 +23,11 @@ import { X, Minus, Plus, Locate, Maximize, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Our own copy rather than unpkg, so maps don't depend on a third-party CDN.
-// Builds emit it as an asset; dev serves the one postinstall copies into
-// public/, since Vite's dev server would inject its client into the worker.
+// Served from public/, where postinstall copies it: bundled as a ?url asset it
+// also lands in the server build, where wrangler rejects its source map comment.
 if (typeof window !== "undefined" && !MapLibreGL.getWorkerUrl()) {
-  MapLibreGL.setWorkerUrl(import.meta.env.DEV ? "/maplibre-gl-worker.mjs" : builtWorkerUrl);
+  // The version makes the URL change on upgrade; public/_headers caches it for good.
+  MapLibreGL.setWorkerUrl(`/maplibre-gl-worker.mjs?v=${MapLibreGL.getVersion()}`);
 }
 
 const defaultStyles = {
