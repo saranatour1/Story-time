@@ -147,7 +147,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
           trackErrors
           trackAttributes
           trackInteractions={false}
-          maskPatterns={["/e/*", "/invite/*"]}
+          maskPatterns={["/e/*", "/invite/*", "/s/*"]}
         />
       )}
     </ThemeProvider>

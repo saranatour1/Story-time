@@ -2,6 +2,7 @@ import type { Infer } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import type { vChangeAction, vChangeEntity } from "../schema";
+import { changeCounts } from "./aggregates";
 import { limitWrites } from "./rateLimit";
 
 type Snapshot = Record<string, string | number | boolean | null>;
@@ -29,5 +30,7 @@ export const recordChange = async (
   // is stopped. An agent's change is counted against the AI allowance instead.
   if (change.actorId !== undefined && change.agent === undefined)
     await limitWrites(ctx, change.actorId);
-  await ctx.db.insert("changes", { ...change, at: Date.now() });
+  const id = await ctx.db.insert("changes", { ...change, at: Date.now() });
+  const row = await ctx.db.get("changes", id);
+  if (row !== null) await changeCounts.insert(ctx, row);
 };

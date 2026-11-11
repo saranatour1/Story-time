@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { CopyIcon, Link2Icon, UserPlusIcon, UsersIcon } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { queries } from "@/lib/queries";
@@ -85,14 +85,52 @@ const Card = ({
   );
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+// A <input type="date"> value for a local day, and the end of the day one names.
+const dateInput = (ms: number) => {
+  const d = new Date(ms);
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+};
+const endOfDay = (value: string) => new Date(`${value}T23:59:59`).getTime();
+
+// The app pings every five minutes while someone has the experience open.
+const LOOKING_MS = 6 * 60 * 1000;
+const lastSeen = (at: number | undefined, now: number) => {
+  if (at === undefined) return "Hasn't opened it yet";
+  if (now - at < LOOKING_MS) return "Looking now";
+  const when = new Date(at).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `Last here ${when}`;
+};
+
+// What the link can leave out, in the order the switches show.
+const PARTS = [
+  {
+    part: "photos",
+    label: "Photos and videos",
+    hint: "Off, the link keeps the words and no picture loads.",
+  },
+  {
+    part: "film",
+    label: "Play and map",
+    hint: "Off, there's no film to play and no map pins leave.",
+  },
+  { part: "pdf", label: "Locked PDF", hint: "Off, the PDF can't be downloaded from the link." },
+] as const;
+
 export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) => {
   const people = usePaginatedQuery(api.sessions.listForEvent, { eventId }, { initialNumItems: 25 });
   const { data: invites } = useQuery(queries.invites.listForEvent({ eventId }));
   // The switched-on link, or null. Undefined while it loads.
   const { data: publicLink } = useQuery(queries.share.link({ eventId }));
-  const { data: hidePhotos } = useQuery(queries.share.hidePhotos({ eventId }));
+  const { data: shown } = useQuery(queries.share.shown({ eventId }));
   const enableLink = useMutation(api.share.enable);
-  const setHidePhotos = useMutation(api.share.setHidePhotos);
+  const setShown = useMutation(api.share.setShown);
   const disableLink = useMutation(api.share.disable);
   const rotateLink = useMutation(api.share.rotate);
   const emailShare = useMutation(api.share.emailLink);
@@ -101,6 +139,7 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
   const createInvite = useMutation(api.invites.create);
   const dismiss = useMutation(api.invites.dismiss);
   const [role, setRole] = useState<Role>("viewer");
+  const [expires, setExpires] = useState(() => dateInput(Date.now() + 7 * DAY_MS));
   const [email, setEmail] = useState("");
   const [shareTo, setShareTo] = useState("");
   const [sendingLink, setSendingLink] = useState(false);
@@ -109,6 +148,12 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
   const [inviting, setInviting] = useState(false);
   // The person whose access is about to be taken away, while they confirm.
   const [removing, setRemoving] = useState<{ id: Id<"sessions">; name: string } | null>(null);
+  // Ticks each minute, so "Looking now" lapses when someone leaves.
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const setLinkOn = async (on: boolean) => {
     try {
@@ -141,7 +186,12 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
   const invite = async () => {
     setInviting(true);
     try {
-      const res = await createInvite({ eventId, role, sendTo: email.trim() || undefined });
+      const res = await createInvite({
+        eventId,
+        role,
+        expiresAt: endOfDay(expires),
+        sendTo: email.trim() || undefined,
+      });
       setLink(res.link);
       setEmail("");
       // `emailed` is false when email isn't set up on the server.
@@ -153,16 +203,16 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
     }
   };
 
+  const waiting = invites ?? [];
+  const nobody =
+    people.status !== "LoadingFirstPage" && people.results.length === 0 && waiting.length === 0;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <Card
         icon={<Link2Icon />}
-        title="Share a link"
-        lead={
-          hidePhotos
-            ? "Anyone with the link can read the story, without an account. Photos, videos and stickers stay off the link."
-            : "Anyone with the link can watch the story, without an account. They see the moments and photos, not who added them."
-        }
+        title="Public link"
+        lead="Anyone with the link can read the story, without an account. They never see who added what. You choose what it shows."
         aside={
           <Switch
             aria-label="Anyone with the link can watch"
@@ -179,7 +229,7 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
           </p>
         )}
         {publicLink && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex gap-2">
               <Input
                 readOnly
@@ -192,27 +242,34 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
                 <CopyIcon /> Copy
               </Button>
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
-              <div className="min-w-0">
-                <Label htmlFor="hide-photos" className="text-sm">
-                  Hide photos
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  The link keeps the words. Pictures never load for someone who only has it.
-                </p>
-              </div>
-              <Switch
-                id="hide-photos"
-                aria-label="Hide photos on the share link"
-                checked={hidePhotos === true}
-                disabled={hidePhotos === undefined}
-                onCheckedChange={(hide) => {
-                  void setHidePhotos({ eventId, hide }).catch((e: unknown) =>
-                    toast.error(errorMessage(e)),
-                  );
-                }}
-              />
-            </div>
+            <ul aria-label="What the link shows" className="divide-y rounded-lg border">
+              {PARTS.map(({ part, label, hint }) => {
+                // The PDF is the book's pictures, so it goes when photos do.
+                const follows = part === "pdf" && shown?.photos === false;
+                return (
+                  <li key={part} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <Label htmlFor={`show-${part}`} className="text-sm">
+                        {label}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {follows ? "Off while photos are off." : hint}
+                      </p>
+                    </div>
+                    <Switch
+                      id={`show-${part}`}
+                      checked={shown?.[part] === true && !follows}
+                      disabled={shown === undefined || follows}
+                      onCheckedChange={(show) => {
+                        void setShown({ eventId, part, show }).catch((e: unknown) =>
+                          toast.error(errorMessage(e)),
+                        );
+                      }}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
             <form
               onSubmit={(e) => void sendLink(e)}
               className="flex flex-col gap-2 sm:flex-row sm:items-end"
@@ -265,16 +322,16 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
       </Card>
 
       <Card
-        icon={<UserPlusIcon />}
-        title="Invite someone"
-        lead="An invite works once, for the first person who opens it. Choose what they can do."
+        icon={<UsersIcon />}
+        title="People and invites"
+        lead="An invite works once, for the first person who opens it, until the day you pick. Then they're listed here, with when they were last looking. A co-owner can do all you can."
       >
         <form
           onSubmit={(e) => {
             e.preventDefault();
             void invite();
           }}
-          className="grid gap-3 sm:grid-cols-[11rem_minmax(0,1fr)_auto] sm:items-end"
+          className="grid gap-3 sm:grid-cols-[10rem_10rem_minmax(0,1fr)] sm:items-end"
         >
           {/* gap, not space-y: inside a form the Select adds a hidden <select> after
               its trigger, and space-y would push the trigger up by a margin. */}
@@ -293,6 +350,18 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
               </SelectContent>
             </Select>
           </div>
+          <div className="grid gap-2">
+            <Label htmlFor="invite-expires">Link expires</Label>
+            <Input
+              id="invite-expires"
+              type="date"
+              required
+              min={dateInput(now)}
+              max={dateInput(now + 365 * DAY_MS)}
+              value={expires}
+              onChange={(e) => setExpires(e.target.value)}
+            />
+          </div>
           <div className="grid min-w-0 gap-2">
             <Label htmlFor="invite-email">Email them (optional)</Label>
             <Input
@@ -303,13 +372,15 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <Button type="submit" disabled={archived || inviting}>
-            <UserPlusIcon /> {inviting ? "Making it…" : "Create invite"}
-          </Button>
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:col-span-3">
+            <p className="text-xs text-muted-foreground">
+              The email address is used to send the invite and isn't stored.
+            </p>
+            <Button type="submit" disabled={archived || inviting}>
+              <UserPlusIcon /> {inviting ? "Making it…" : "Create invite"}
+            </Button>
+          </div>
         </form>
-        <p className="text-xs text-muted-foreground">
-          The email address is used to send the invite and isn't stored.
-        </p>
         {link && (
           <div className="space-y-2 rounded-lg border border-dashed p-3">
             <div className="flex gap-2">
@@ -329,47 +400,39 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
             </p>
           </div>
         )}
-        {invites && invites.length > 0 && (
-          <ul aria-label="Invites waiting to be opened" className="divide-y rounded-lg border">
-            {invites.map((i) => (
-              <li
-                key={i.inviteId}
-                className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm"
-              >
-                <span className="min-w-0">
-                  <span className="font-medium">{ROLE_LABEL[i.role]}</span>
-                  <span className="text-muted-foreground">
-                    {" "}
-                    · waiting, until {day(i.expiresAt)}
-                  </span>
-                </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void dismiss({ eventId, inviteId: i.inviteId })}
-                >
-                  Cancel invite
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <Card
-        icon={<UsersIcon />}
-        title="People with access"
-        lead="Everyone you've invited who opened their invite. A co-owner can do all you can: invite, remove people, and delete the experience."
-      >
-        {people.status !== "LoadingFirstPage" && people.results.length === 0 ? (
+        {nobody ? (
           <p className="rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
             Nobody yet. Only you can see this experience.
           </p>
         ) : (
           <div className="space-y-3">
-            <ul aria-label="People with access" className="divide-y rounded-lg border">
+            <ul aria-label="People and invites" className="divide-y rounded-lg border">
+              {waiting.map((i) => (
+                <li key={i.inviteId} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <span
+                    aria-hidden
+                    className="grid size-8 shrink-0 place-items-center rounded-full border border-dashed text-muted-foreground"
+                  >
+                    <UserPlusIcon className="size-3.5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">Invite not opened yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      {ROLE_LABEL[i.role]} · expires {day(i.expiresAt)}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void dismiss({ eventId, inviteId: i.inviteId })}
+                  >
+                    Cancel invite
+                  </Button>
+                </li>
+              ))}
               {people.results.map((s) => {
                 const name = s.displayName ?? "Anonymous";
+                const looking = !s.revokedAt && lastSeen(s.lastSeenAt, now) === "Looking now";
                 return (
                   <li key={s._id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                     <span
@@ -380,8 +443,16 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {s.revokedAt ? `${ROLE_LABEL[s.role]} · since` : "Since"} {day(s.grantedAt)}
+                      <p
+                        className={
+                          looking
+                            ? "text-xs font-medium text-emerald-700 dark:text-emerald-400"
+                            : "text-xs text-muted-foreground"
+                        }
+                      >
+                        {s.revokedAt
+                          ? `${ROLE_LABEL[s.role]} · removed ${day(s.revokedAt)}`
+                          : `${lastSeen(s.lastSeenAt, now)} · joined ${day(s.grantedAt)}`}
                       </p>
                     </div>
                     {s.revokedAt ? (
@@ -432,7 +503,7 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
             if (!open) setRemoving(null);
           }}
           title={`Remove ${removing?.name ?? "this person"}'s access?`}
-          description="They can't open this experience any more. What they added stays. You can invite them again later."
+          description="They can't open this experience any more, straight away. What they added stays. You can invite them again later."
           confirmLabel="Remove access"
           onConfirm={async () => {
             if (removing === null) return;

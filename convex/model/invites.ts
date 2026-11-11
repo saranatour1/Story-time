@@ -3,10 +3,10 @@ import { components, internal } from "../_generated/api";
 import { internalMutation, mutation, query } from "../_generated/server";
 import { assertNotArchived, requireEventAccess, requireUserId } from "../lib/access";
 import { appOrigin } from "../lib/appUrl";
-import { emailConfigured, replyAddress } from "../lib/emailAddress";
+import { emailConfigured, queueMail, replyAddress } from "../lib/emailAddress";
 import { recordChange } from "../lib/changes";
 import { vRole } from "../schema";
-import { INVITE_EMAILS_PER_DAY, MAX_WAITING_INVITES } from "../lib/limits";
+import { INVITE_EMAILS_PER_DAY, MAX_INVITE_DAYS, MAX_WAITING_INVITES } from "../lib/limits";
 import { chargeEmail } from "../lib/rateLimit";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -21,6 +21,8 @@ const create = mutation({
     eventId: v.id("events"),
     role: vRole,
     ttlDays: v.optional(v.number()),
+    // When the link stops working, picked by the owner. Wins over ttlDays.
+    expiresAt: v.optional(v.number()),
     sendTo: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -35,6 +37,14 @@ const create = mutation({
       throw new ConvexError({
         code: "LIMIT",
         message: `This experience has ${MAX_WAITING_INVITES} invites waiting to be opened. Cancel some first.`,
+      });
+    }
+    const now = Date.now();
+    if (args.expiresAt !== undefined && args.expiresAt <= now) {
+      throw new ConvexError({
+        code: "INVALID",
+        field: "expiresAt",
+        message: "Pick an expiry date in the future",
       });
     }
     const sendTo = args.sendTo?.trim() ?? "";
@@ -54,19 +64,22 @@ const create = mutation({
         userId,
         `You can email up to ${INVITE_EMAILS_PER_DAY} invites a day. Create a link without an email and share it yourself.`,
       );
-    const ttlDays = Math.min(Math.max(args.ttlDays ?? 7, 1), 14);
+    const ttlMs =
+      args.expiresAt !== undefined
+        ? Math.min(args.expiresAt - now, MAX_INVITE_DAYS * DAY_MS)
+        : Math.min(Math.max(args.ttlDays ?? 7, 1), 14) * DAY_MS;
     const { token, expiresAt, inviteId } = await ctx.runMutation(components.invites.lib.create, {
       eventId: args.eventId,
       invitedBy: userId,
       role: args.role,
-      ttlMs: ttlDays * DAY_MS,
+      ttlMs,
     });
     // After "#", so the token never reaches a server log or a Referer header.
     const link = `${appOrigin()}/invite#${token}`;
 
     if (emailed) {
       const replyTo = await replyAddress(ctx, userId);
-      await ctx.runMutation(components.email.lib.send, {
+      await queueMail(ctx, {
         to: sendTo,
         ...(replyTo === undefined ? {} : { replyTo }),
         subject: `You're invited to "${event.title}"`,

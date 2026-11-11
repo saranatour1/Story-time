@@ -285,12 +285,18 @@ const list = query({
 // The same moments, oldest first, one page at a time: the moments list asks
 // for these, and only reads them all while searching.
 const page = query({
-  args: { eventId: v.id("events"), paginationOpts: paginationOptsValidator },
+  args: {
+    eventId: v.id("events"),
+    paginationOpts: paginationOptsValidator,
+    // The latest moment first, for a list read from the top down.
+    newestFirst: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
     const result = await ctx.db
       .query("moments")
       .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
+      .order(args.newestFirst === true ? "desc" : "asc")
       .paginate(args.paginationOpts);
     return {
       ...result,

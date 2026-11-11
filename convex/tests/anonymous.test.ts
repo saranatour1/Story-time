@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import { afterEach, expect, test } from "vite-plus/test";
 import { internal } from "../_generated/api";
 import schema from "../schema";
@@ -20,6 +22,7 @@ afterEach(() => {
 test("anonymous sign-up is rejected unless the deployment allows it", async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   await expect(t.mutation(internal.model.users.createAnonymousUser, args)).rejects.toThrow(
     "Anonymous sign-in is disabled.",
   );
@@ -32,6 +35,7 @@ test("anonymous sign-up is rejected unless the deployment allows it", async () =
 test("anonymous sign-up needs every app origin to be local, not just the flag", async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ALLOW_ANONYMOUS_SIGNIN = "true";
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup

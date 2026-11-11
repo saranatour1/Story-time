@@ -22,6 +22,7 @@ import { SignInScreen } from "@/components/sign-in-screen";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useSeen } from "@/hooks/use-seen";
 import { buildStorySteps, stepForMoment } from "@/lib/story-steps";
 
 const StoryPlayer = lazy(() =>
@@ -57,6 +58,7 @@ const StoryPage = () => {
   );
   const { data: me } = useQuery(queries.users.getCurrentUser(isAuthenticated ? {} : "skip"));
   useDocumentTitle(event ? `${event.title} · Story-time` : undefined);
+  useSeen(event?._id);
   const momentById = useMemo(
     () => new Map((moments ?? []).map((moment) => [moment._id, moment])),
     [moments],

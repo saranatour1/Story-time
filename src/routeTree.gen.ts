@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AuthDotmdRouteImport } from './routes/auth[.]md'
 import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
-import { Route as SRouteImport } from './routes/s'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as DotwellKnownApiCatalogRouteImport } from './routes/[.]well-known/api-catalog'
 import { Route as AppHomeRouteImport } from './routes/_app/home'
@@ -21,6 +20,7 @@ import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as InviteIndexRouteImport } from './routes/invite.index'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as SChar123NameChar125RouteImport } from './routes/s.{-$name}'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.index'
 import { Route as AppSettingsAccountRouteImport } from './routes/_app/settings.account'
 import { Route as AppSettingsDataRouteImport } from './routes/_app/settings.data'
@@ -51,11 +51,6 @@ const AuthDotmdRoute = AuthDotmdRouteImport.update({
 const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
   id: '/llms.txt',
   path: '/llms.txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SRoute = SRouteImport.update({
-  id: '/s',
-  path: '/s',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
@@ -91,6 +86,11 @@ const InviteIndexRoute = InviteIndexRouteImport.update({
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SChar123NameChar125Route = SChar123NameChar125RouteImport.update({
+  id: '/s/{-$name}',
+  path: '/s/{-$name}',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
@@ -158,13 +158,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth.md': typeof AuthDotmdRoute
   '/llms.txt': typeof LlmsDottxtRoute
-  '/s': typeof SRoute
   '/verify-email': typeof VerifyEmailRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/home': typeof AppHomeRoute
   '/settings': typeof AppSettingsRouteWithChildren
   '/api/upload': typeof ApiUploadRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/s/{-$name}': typeof SChar123NameChar125Route
   '/invite/': typeof InviteIndexRoute
   '/settings/account': typeof AppSettingsAccountRoute
   '/settings/data': typeof AppSettingsDataRoute
@@ -183,12 +183,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth.md': typeof AuthDotmdRoute
   '/llms.txt': typeof LlmsDottxtRoute
-  '/s': typeof SRoute
   '/verify-email': typeof VerifyEmailRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/home': typeof AppHomeRoute
   '/api/upload': typeof ApiUploadRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/s/{-$name}': typeof SChar123NameChar125Route
   '/invite': typeof InviteIndexRoute
   '/settings/account': typeof AppSettingsAccountRoute
   '/settings/data': typeof AppSettingsDataRoute
@@ -209,13 +209,13 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/auth.md': typeof AuthDotmdRoute
   '/llms.txt': typeof LlmsDottxtRoute
-  '/s': typeof SRoute
   '/verify-email': typeof VerifyEmailRoute
   '/.well-known/api-catalog': typeof DotwellKnownApiCatalogRoute
   '/_app/home': typeof AppHomeRoute
   '/_app/settings': typeof AppSettingsRouteWithChildren
   '/api/upload': typeof ApiUploadRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/s/{-$name}': typeof SChar123NameChar125Route
   '/invite/': typeof InviteIndexRoute
   '/_app/settings/account': typeof AppSettingsAccountRoute
   '/_app/settings/data': typeof AppSettingsDataRoute
@@ -236,13 +236,13 @@ export interface FileRouteTypes {
     | '/'
     | '/auth.md'
     | '/llms.txt'
-    | '/s'
     | '/verify-email'
     | '/.well-known/api-catalog'
     | '/home'
     | '/settings'
     | '/api/upload'
     | '/invite/$token'
+    | '/s/{-$name}'
     | '/invite/'
     | '/settings/account'
     | '/settings/data'
@@ -261,12 +261,12 @@ export interface FileRouteTypes {
     | '/'
     | '/auth.md'
     | '/llms.txt'
-    | '/s'
     | '/verify-email'
     | '/.well-known/api-catalog'
     | '/home'
     | '/api/upload'
     | '/invite/$token'
+    | '/s/{-$name}'
     | '/invite'
     | '/settings/account'
     | '/settings/data'
@@ -286,13 +286,13 @@ export interface FileRouteTypes {
     | '/_app'
     | '/auth.md'
     | '/llms.txt'
-    | '/s'
     | '/verify-email'
     | '/.well-known/api-catalog'
     | '/_app/home'
     | '/_app/settings'
     | '/api/upload'
     | '/invite/$token'
+    | '/s/{-$name}'
     | '/invite/'
     | '/_app/settings/account'
     | '/_app/settings/data'
@@ -313,11 +313,11 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthDotmdRoute: typeof AuthDotmdRoute
   LlmsDottxtRoute: typeof LlmsDottxtRoute
-  SRoute: typeof SRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   DotwellKnownApiCatalogRoute: typeof DotwellKnownApiCatalogRoute
   ApiUploadRoute: typeof ApiUploadRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  SChar123NameChar125Route: typeof SChar123NameChar125Route
   InviteIndexRoute: typeof InviteIndexRoute
   ApiEventsIdRoute: typeof ApiEventsIdRoute
   ApiMediaIdRoute: typeof ApiMediaIdRoute
@@ -352,13 +352,6 @@ declare module '@tanstack/react-router' {
       path: '/llms.txt'
       fullPath: '/llms.txt'
       preLoaderRoute: typeof LlmsDottxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/s': {
-      id: '/s'
-      path: '/s'
-      fullPath: '/s'
-      preLoaderRoute: typeof SRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify-email': {
@@ -408,6 +401,13 @@ declare module '@tanstack/react-router' {
       path: '/invite/$token'
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s/{-$name}': {
+      id: '/s/{-$name}'
+      path: '/s/{-$name}'
+      fullPath: '/s/{-$name}'
+      preLoaderRoute: typeof SChar123NameChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/settings/': {
@@ -542,11 +542,11 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthDotmdRoute: AuthDotmdRoute,
   LlmsDottxtRoute: LlmsDottxtRoute,
-  SRoute: SRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   DotwellKnownApiCatalogRoute: DotwellKnownApiCatalogRoute,
   ApiUploadRoute: ApiUploadRoute,
   InviteTokenRoute: InviteTokenRoute,
+  SChar123NameChar125Route: SChar123NameChar125Route,
   InviteIndexRoute: InviteIndexRoute,
   ApiEventsIdRoute: ApiEventsIdRoute,
   ApiMediaIdRoute: ApiMediaIdRoute,

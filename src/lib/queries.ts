@@ -47,12 +47,11 @@ export const queries = {
   },
   share: {
     get: (args: Args<typeof api.share.get>) => convexQuery(api.share.get, args),
-    hidePhotos: (args: Args<typeof api.share.hidePhotos>) =>
-      convexQuery(api.share.hidePhotos, args),
     journal: (args: Args<typeof api.share.journal>) => convexQuery(api.share.journal, args),
     link: (args: Args<typeof api.share.link>) => convexQuery(api.share.link, args),
     page: (args: Args<typeof api.share.page>) => convexQuery(api.share.page, args),
     pdf: (args: Args<typeof api.share.pdf>) => convexQuery(api.share.pdf, args),
+    shown: (args: Args<typeof api.share.shown>) => convexQuery(api.share.shown, args),
   },
   users: {
     getCurrentUser: (args: Args<typeof api.users.getCurrentUser> = {}) =>

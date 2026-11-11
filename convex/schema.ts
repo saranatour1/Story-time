@@ -157,6 +157,11 @@ export default defineSchema({
     // Opt-in: a daily note that a memory is waiting. No memory text is mailed.
     onThisDay: v.optional(v.boolean()),
     imageMediaId: v.optional(v.id("media")),
+    // Set by the operator (users:block) on an account that abused the service.
+    // A blocked person reads as signed out everywhere, their experiences and
+    // links stop opening for everyone, and their email can't sign up again.
+    blockedAt: v.optional(v.number()),
+    blockedReason: v.optional(v.string()),
     region: v.optional(vRegion), // legacy, unused
     locale: v.optional(v.string()),
   })
@@ -185,6 +190,13 @@ export default defineSchema({
     // Opt-in: a live link shows the words and leaves out every picture. Off
     // (or unset) keeps the link as it was, photos included.
     shareRedacted: v.optional(v.boolean()),
+    // More the owner switched off on the link: the film with its map, the PDF.
+    shareHide: v.optional(
+      v.object({ film: v.optional(v.boolean()), pdf: v.optional(v.boolean()) }),
+    ),
+    // The link's name in its address (/s/<name>#<key>): the title plus a few
+    // random characters, unique. Only a name: the key after # opens the story.
+    shareSlug: v.optional(v.string()),
     region: v.optional(vRegion), // legacy, unused
     momentLimit: v.optional(v.number()), // legacy, unused: lib/limits.ts holds the one limit
     momentCount: v.number(),
@@ -192,7 +204,8 @@ export default defineSchema({
     coverMediaId: v.optional(v.id("media")),
   })
     .index("by_owner", ["ownerId"])
-    .index("by_shareKey", ["shareKey"]),
+    .index("by_shareKey", ["shareKey"])
+    .index("by_shareSlug", ["shareSlug"]),
 
   moments: defineTable({
     eventId: v.id("events"),

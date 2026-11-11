@@ -14,7 +14,7 @@ convex/
   model/      where functions are written, one file per feature.
   lib/        plain helpers. No Convex functions here.
   tests/      convex-test suites, one per feature.
-  components/ local components (email, invites).
+  components/ the local invites component. Email is @sarant/cloudflare-email-component.
   schema.ts  convex.config.ts  auth.ts  auth.config.ts  http.ts  crons.ts
 ```
 
@@ -84,10 +84,11 @@ the `…Api` object of the `model/` file with the same path.
 | `model/media.ts`          | Uploads (reserved by the Worker, then confirmed), avatars, who may download or delete, the upload sweep.        |
 | `model/journal.ts`        | The journal: outline and pages, cutting pages for moments, saving, catching up, locks, stickers, link previews. |
 | `model/pdf.ts`            | The password-locked PDF on the share link.                                                                      |
-| `model/share.ts`          | The share link: switching it on, the book and pages it opens, its media, hiding photos, emailing it.            |
+| `model/share.ts`          | The share link: switching it on, its name, what it shows, the book and pages it opens, its media, emailing it.  |
 | `model/invites.ts`        | Invites: making, accepting, dismissing, invite emails.                                                          |
-| `model/sessions.ts`       | Who has access to an experience, and revoking it.                                                               |
-| `model/users.ts`          | Profile, settings, email confirmation, the memory reminder, and the users sign-in creates.                      |
+| `model/sessions.ts`       | Who has access to an experience, when they were last looking, and revoking it.                                  |
+| `model/users.ts`          | Profile, settings, email confirmation, the memory reminder, the users sign-in creates, blocking an account.     |
+| `model/mail.ts`           | Sends each queued email through the Cloudflare email component, then clears its address and words.              |
 | `model/aiBudget.ts`       | AI Budget's one-time setup (no prompts or responses kept) and a spend summary for the CLI.                      |
 | `model/changes.ts`        | The Activity log, and its unread count.                                                                         |
 | `model/guestNotes.ts`     | The guestbook invited people sign.                                                                              |
@@ -106,6 +107,7 @@ the `…Api` object of the `model/` file with the same path.
 | `lib/access.ts`       | Who may do what on an experience (`requireEventAccess`).                                                         |
 | `lib/actors.ts`       | Who is acting: a person, an AI working for one, or the system.                                                   |
 | `lib/appUrl.ts`       | The web app's origins, from `APP_URL`.                                                                           |
+| `lib/aggregates.ts`   | Running counts and sums (upload bytes, photos and videos, changes), and the helpers that write uploads.          |
 | `lib/blocks.ts`       | Checking and encrypting a moment's blocks, stops, places and labels.                                             |
 | `lib/changes.ts`      | `recordChange`, for the Activity log.                                                                            |
 | `lib/cover.ts`        | Keeping the journal cover's name and dates in step with the trip.                                                |

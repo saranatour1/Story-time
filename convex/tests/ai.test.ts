@@ -4,7 +4,9 @@ import { beforeAll, describe, expect, test, vi } from "vite-plus/test";
 import { titleFromHtml } from "../model/ai/unfurl";
 import { limitWrites, takeAi } from "../lib/rateLimit";
 import { AI_PER_DAY } from "../lib/limits";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import schema from "../schema";
@@ -19,6 +21,7 @@ beforeAll(() => {
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, helperId, viewerId] = [await make(), await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
@@ -45,6 +48,7 @@ describe("AI: ten uses a day per person, across every feature", () => {
     try {
       const t = convexTest(schema, modules);
       rateLimiterTest.register(t);
+      for (const name of AGGREGATES) aggregateTest.register(t, name);
       const take = (key: string) => t.run((ctx) => takeAi(ctx, key));
       for (let i = 0; i < AI_PER_DAY; i++) expect(await take("sara")).toBe(true);
       expect(await take("sara")).toBe(false);
@@ -81,6 +85,7 @@ describe("AI: ten uses a day per person, across every feature", () => {
   test("a client changing things in a loop is stopped", async () => {
     const t = convexTest(schema, modules);
     rateLimiterTest.register(t);
+    for (const name of AGGREGATES) aggregateTest.register(t, name);
     await t.run(async (ctx) => {
       for (let i = 0; i < 300; i++) await limitWrites(ctx, "sara");
       await expect(limitWrites(ctx, "sara")).rejects.toThrow("a lot of changes");

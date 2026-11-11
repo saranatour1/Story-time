@@ -19,6 +19,7 @@ describe("pageMeta", () => {
 
   test("shared and invite links get their own card, and never a trip's details", () => {
     expect(pageMeta("/s").image).toBe("/og-share.png");
+    expect(pageMeta("/s/lisbon-k3f9").index).toBe(false);
     expect(pageMeta("/e/abc/story").image).toBe("/og-share.png");
     expect(pageMeta("/invite/tok").image).toBe("/og-invite.png");
     expect(pageMeta("/invite").image).toBe("/og-invite.png");

@@ -1,18 +1,16 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import { beforeAll, describe, expect, test, vi } from "vite-plus/test";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import emailSchema from "../components/email/schema";
+import cloudflareEmailTest from "@sarant/cloudflare-email-component/test";
 import schema from "../schema";
 import { SHARE_EMAILS_PER_DAY } from "../lib/limits";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
-const emailModules = import.meta.glob([
-  "../components/email/**/*.ts",
-  "../components/email/**/*.js",
-]);
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
@@ -22,7 +20,8 @@ beforeAll(() => {
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
-  t.registerComponent("email", emailSchema, emailModules);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
+  cloudflareEmailTest.register(t);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, guestId] = [await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
@@ -67,7 +66,8 @@ describe("share links", () => {
     const { t, ownerId, owner, eventId } = await setup();
     await momentWithPhoto(owner, eventId);
     const link = await owner.mutation(api.api.share.enable, { eventId });
-    expect(link).toMatch(/\/s#[A-Za-z0-9_-]{20,64}$/);
+    // Named after the title, with the key after "#".
+    expect(link).toMatch(/\/s\/untitled-experience-[a-z0-9]{4}#[A-Za-z0-9_-]{20,64}$/);
     // Switching on again hands back the same link.
     expect(await owner.mutation(api.api.share.enable, { eventId })).toBe(link);
     expect(await owner.query(api.api.share.link, { eventId })).toBe(link);
@@ -389,17 +389,17 @@ describe("share links", () => {
       ],
     });
 
-    expect(await owner.query(api.api.share.hidePhotos, { eventId })).toBe(false);
+    expect((await owner.query(api.api.share.shown, { eventId })).photos).toBe(true);
     await expect(
-      guest.mutation(api.api.share.setHidePhotos, { eventId, hide: true }),
+      guest.mutation(api.api.share.setShown, { eventId, part: "photos", show: false }),
     ).rejects.toThrow(/Event not found/);
     const link = await owner.mutation(api.api.share.enable, { eventId });
     const token = tokenOf(link);
     // The ordinary link still carries the picture, so hiding is a choice.
     expect(JSON.stringify(await t.query(api.api.share.get, { token }))).toContain(photo);
 
-    await owner.mutation(api.api.share.setHidePhotos, { eventId, hide: true });
-    expect(await owner.query(api.api.share.hidePhotos, { eventId })).toBe(true);
+    await owner.mutation(api.api.share.setShown, { eventId, part: "photos", show: false });
+    expect((await owner.query(api.api.share.shown, { eventId })).photos).toBe(false);
     const story = await t.query(api.api.share.get, { token });
     const page = await t.query(api.api.share.page, { token, pageId });
     const owned = await owner.query(api.api.journal.page, { pageId });
@@ -432,7 +432,7 @@ describe("share links", () => {
     expect(await t.query(api.api.share.mediaForShare, { token, mediaId: video })).toBeNull();
     expect(await t.query(api.api.share.mediaForShare, { token, mediaId: sticker })).toBeNull();
 
-    await owner.mutation(api.api.share.setHidePhotos, { eventId, hide: false });
+    await owner.mutation(api.api.share.setShown, { eventId, part: "photos", show: true });
     const shown = JSON.stringify(await t.query(api.api.share.page, { token, pageId }));
     expect(shown).toContain(photo);
     expect(shown).toContain(httpImage);
@@ -489,5 +489,89 @@ describe("share links", () => {
     await owner.mutation(api.api.events.update, { eventId, visibility: "private" });
     expect(await t.query(api.api.share.get, { token })).toBeNull();
     expect(await owner.query(api.api.share.link, { eventId })).toBeNull();
+  });
+
+  test("a link keeps its name when it is renewed, and no two share one", async () => {
+    const { owner, eventId } = await setup();
+    const nameOf = (link: string) => link.slice(link.indexOf("/s/") + 3, link.indexOf("#"));
+    const first = await owner.mutation(api.api.share.enable, { eventId });
+    const second = await owner.mutation(api.api.share.rotate, { eventId });
+    expect(nameOf(second)).toBe(nameOf(first));
+    expect(tokenOf(second)).not.toBe(tokenOf(first));
+
+    const other = await owner.mutation(api.api.events.createDraft, {});
+    const theirs = await owner.mutation(api.api.share.enable, { eventId: other });
+    expect(nameOf(theirs)).not.toBe(nameOf(first));
+  });
+
+  test("with the film off, the link says so and carries no map pins", async () => {
+    const { t, owner, guest, eventId } = await setup();
+    await owner.mutation(api.api.moments.create, {
+      eventId,
+      startsAt: Date.UTC(2026, 5, 1, 12),
+      place: "Lisbon",
+      geo: { lat: 38.7, lng: -9.1 },
+      blocks: [{ type: "note", text: "Tram 28" }],
+    });
+    const token = tokenOf(await owner.mutation(api.api.share.enable, { eventId }));
+    const before = await t.query(api.api.share.get, { token });
+    expect(before?.film).toBe(true);
+    expect(before?.moments[0]?.geo).toEqual({ lat: 38.7, lng: -9.1 });
+
+    await expect(
+      guest.mutation(api.api.share.setShown, { eventId, part: "film", show: false }),
+    ).rejects.toThrow(/Event not found/);
+    await owner.mutation(api.api.share.setShown, { eventId, part: "film", show: false });
+    expect(await owner.query(api.api.share.shown, { eventId })).toEqual({
+      photos: true,
+      film: false,
+      pdf: true,
+    });
+    const after = await t.query(api.api.share.get, { token });
+    expect(after?.film).toBe(false);
+    expect(after?.moments[0]?.place).toBe("Lisbon");
+    expect(JSON.stringify(after)).not.toContain("38.7");
+  });
+
+  test("a blocked account is shut out, and so is everything it shared", async () => {
+    const { t, ownerId, owner, guest, eventId } = await setup();
+    await t.run(async (ctx) => {
+      const guestId = (await ctx.db.query("users").collect()).find((u) => u._id !== ownerId)!._id;
+      await ctx.db.insert("sessions", {
+        eventId,
+        userId: guestId,
+        grantedBy: ownerId,
+        role: "viewer",
+      });
+    });
+    expect(await guest.query(api.api.events.get, { eventId })).not.toBeNull();
+    const token = tokenOf(await owner.mutation(api.api.share.enable, { eventId }));
+    await t.run((ctx) => ctx.db.patch("users", ownerId, { email: "a@b.co", emailVerified: true }));
+
+    await t.mutation(internal.model.users.block, { userId: ownerId, reason: "malware" });
+    expect(await owner.query(api.api.users.getCurrentUser, {})).toBeNull();
+    expect(await owner.query(api.api.events.get, { eventId })).toBeNull();
+    await expect(
+      owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime: "image/jpeg" }),
+    ).rejects.toThrow();
+    await expect(owner.mutation(api.api.events.createDraft, {})).rejects.toThrow();
+    // The public link and the invited guest are closed too.
+    expect(await t.query(api.api.share.get, { token })).toBeNull();
+    expect(await guest.query(api.api.events.get, { eventId })).toBeNull();
+    // A new login on the same verified email gets no fresh account.
+    const again = {
+      provider: {
+        name: "google" as const,
+        accountId: "new-login",
+        profile: { id: "new-login", email: "a@b.co", emailVerified: true },
+      },
+    };
+    await expect(t.mutation(internal.model.users.createGoogleUser, again)).rejects.toThrow(
+      /closed/,
+    );
+
+    await t.mutation(internal.model.users.block, { userId: ownerId, lift: true });
+    expect(await t.query(api.api.share.get, { token })).not.toBeNull();
+    expect(await t.mutation(internal.model.users.createGoogleUser, again)).toBe(ownerId);
   });
 });

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 
-const MAX_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const MAX_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 const vRole = v.union(v.literal("viewer"), v.literal("contributor"));
 
 const sha256Hex = async (text: string): Promise<string> => {

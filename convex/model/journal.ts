@@ -5,6 +5,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { action, internalMutation, internalQuery, mutation, query } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { assertNotArchived, requireEventAccess } from "../lib/access";
+import { patchMedia } from "../lib/aggregates";
 import { invalid } from "../lib/blocks";
 import { recordChange } from "../lib/changes";
 import { decryptText, encryptText } from "../lib/crypto";
@@ -961,7 +962,7 @@ const keepSticker = mutation({
     ) {
       invalid("mediaId", "Only a picture you just added can go in the journal.");
     }
-    await ctx.db.patch("media", media._id, { purpose: "sticker" });
+    await patchMedia(ctx, media._id, { purpose: "sticker" });
     return null;
   },
 });

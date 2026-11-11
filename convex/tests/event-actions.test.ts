@@ -1,10 +1,12 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { api, components } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import emailSchema from "../components/email/schema";
+import cloudflareEmailTest from "@sarant/cloudflare-email-component/test";
 import invitesSchema from "../components/invites/schema";
 import schema from "../schema";
 import { MAX_EVENTS_PER_USER } from "../lib/limits";
@@ -13,10 +15,6 @@ const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"
 const invitesModules = import.meta.glob([
   "../components/invites/**/*.ts",
   "../components/invites/**/*.js",
-]);
-const emailModules = import.meta.glob([
-  "../components/email/**/*.ts",
-  "../components/email/**/*.js",
 ]);
 
 beforeAll(() => {
@@ -29,8 +27,9 @@ afterEach(() => vi.useRealTimers());
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   t.registerComponent("invites", invitesSchema, invitesModules);
-  t.registerComponent("email", emailSchema, emailModules);
+  cloudflareEmailTest.register(t);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, friendId] = [await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });

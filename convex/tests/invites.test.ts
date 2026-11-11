@@ -1,11 +1,13 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import type { FunctionReturnType } from "convex/server";
-import { api, components, internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import emailSchema from "../components/email/schema";
+import cloudflareEmailTest from "@sarant/cloudflare-email-component/test";
 import invitesSchema from "../components/invites/schema";
 import schema from "../schema";
 import { INVITE_EMAILS_PER_DAY, MAX_WAITING_INVITES } from "../lib/limits";
@@ -14,10 +16,6 @@ const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"
 const invitesModules = import.meta.glob([
   "../components/invites/**/*.ts",
   "../components/invites/**/*.js",
-]);
-const emailModules = import.meta.glob([
-  "../components/email/**/*.ts",
-  "../components/email/**/*.js",
 ]);
 
 beforeAll(() => {
@@ -30,8 +28,9 @@ afterEach(() => vi.useRealTimers());
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   t.registerComponent("invites", invitesSchema, invitesModules);
-  t.registerComponent("email", emailSchema, emailModules);
+  cloudflareEmailTest.register(t);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, guestId] = [await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
@@ -223,27 +222,6 @@ describe("invites", () => {
   });
 });
 
-describe("email outbox", () => {
-  test("queues a message and rejects bad recipients", async () => {
-    const { t } = await setup();
-    const id = await t.mutation(components.email.lib.send, {
-      to: "friend@example.com",
-      subject: "Hi",
-      html: "<p>Hi</p>",
-    });
-    expect(await t.query(components.email.lib.status, { id })).toMatchObject({
-      status: "queued",
-    });
-    await expect(
-      t.mutation(components.email.lib.send, {
-        to: "not-an-email",
-        subject: "Hi",
-        html: "<p>Hi</p>",
-      }),
-    ).rejects.toThrow();
-  });
-});
-
 describe("collaboration", () => {
   const join = async (s: Awaited<ReturnType<typeof setup>>, role: "viewer" | "contributor") => {
     const { link } = await s.owner.mutation(api.api.invites.create, { eventId: s.eventId, role });
@@ -355,5 +333,63 @@ describe("collaboration", () => {
     });
     const [moment] = await s.owner.query(api.api.moments.list, { eventId: s.eventId });
     expect(moment!.people.map((p) => p.userId)).toEqual([ownerId, guestId]);
+  });
+
+  test("an invite expires when its owner says, up to a year out", async () => {
+    const { owner, guest, eventId } = await setup();
+    const DAY = 24 * 60 * 60 * 1000;
+    await expect(
+      owner.mutation(api.api.invites.create, { eventId, role: "viewer", expiresAt: Date.now() }),
+    ).rejects.toThrow(/future/);
+    const far = await owner.mutation(api.api.invites.create, {
+      eventId,
+      role: "viewer",
+      expiresAt: Date.now() + 900 * DAY,
+    });
+    expect(far.expiresAt).toBeLessThan(Date.now() + 366 * DAY);
+    expect(far.expiresAt).toBeGreaterThan(Date.now() + 364 * DAY);
+
+    const at = Date.now() + 30 * DAY;
+    const { link, expiresAt } = await owner.mutation(api.api.invites.create, {
+      eventId,
+      role: "viewer",
+      expiresAt: at,
+    });
+    expect(expiresAt).toBe(at);
+    vi.advanceTimersByTime(31 * DAY);
+    await expect(guest.mutation(api.api.invites.accept, { token: tokenOf(link) })).rejects.toThrow(
+      /INVITE_INVALID/,
+    );
+  });
+
+  test("the owner sees when a guest was last looking, until their access is removed", async () => {
+    const { owner, guest, eventId } = await setup();
+    const { link } = await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
+    await guest.mutation(api.api.invites.accept, { token: tokenOf(link) });
+    const session = async () =>
+      (await owner.query(api.api.sessions.listForEvent, { eventId, paginationOpts: firstPage }))
+        .page[0]!;
+    expect((await session()).lastSeenAt).toBeUndefined();
+
+    // The owner has no grant: their own visit stamps nothing.
+    await owner.mutation(api.api.sessions.seen, { eventId });
+    expect((await session()).lastSeenAt).toBeUndefined();
+
+    await guest.mutation(api.api.sessions.seen, { eventId });
+    const first = (await session()).lastSeenAt;
+    expect(first).toBeDefined();
+    // A ping a minute later is not written; one five minutes later is.
+    vi.advanceTimersByTime(60_000);
+    await guest.mutation(api.api.sessions.seen, { eventId });
+    expect((await session()).lastSeenAt).toBe(first);
+    vi.advanceTimersByTime(5 * 60_000);
+    await guest.mutation(api.api.sessions.seen, { eventId });
+    expect((await session()).lastSeenAt).toBeGreaterThan(first!);
+
+    const last = (await session()).lastSeenAt;
+    await owner.mutation(api.api.sessions.revoke, { sessionId: (await session())._id });
+    vi.advanceTimersByTime(10 * 60_000);
+    await guest.mutation(api.api.sessions.seen, { eventId });
+    expect((await session()).lastSeenAt).toBe(last);
   });
 });

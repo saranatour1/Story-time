@@ -10,7 +10,14 @@ const RANK: Record<EventRole, number> = { viewer: 0, contributor: 1, owner: 2 };
 export const getUserId = async (ctx: Ctx): Promise<Id<"users"> | null> => {
   const identity = await ctx.auth.getUserIdentity();
   if (identity === null) return null;
-  return ctx.db.normalizeId("users", identity.subject);
+  const userId = ctx.db.normalizeId("users", identity.subject);
+  // A blocked account is signed out as far as every function is concerned.
+  return userId === null || (await isBlocked(ctx, userId)) ? null : userId;
+};
+
+// Whether the operator blocked this account (model/users.ts, `block`).
+export const isBlocked = async (ctx: Ctx, userId: Id<"users">): Promise<boolean> => {
+  return (await ctx.db.get("users", userId))?.blockedAt !== undefined;
 };
 
 export const requireUserId = async (ctx: Ctx): Promise<Id<"users">> => {
@@ -34,6 +41,8 @@ export const getEventAccessFor = async (
   const event = await ctx.db.get("events", eventId);
   if (event === null) return null;
   if (event.ownerId === userId) return { userId, event, role: "owner" };
+  // What a blocked account made is closed to the people it invited too.
+  if (await isBlocked(ctx, event.ownerId)) return null;
   const session = await ctx.db
     .query("sessions")
     .withIndex("by_event_and_user", (q) => q.eq("eventId", eventId).eq("userId", userId))

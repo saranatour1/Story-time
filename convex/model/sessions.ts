@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
-import { requireEventAccess } from "../lib/access";
+import { getUserId, requireEventAccess } from "../lib/access";
 import { recordChange } from "../lib/changes";
 import { vGrantRole } from "../schema";
 
@@ -97,6 +97,31 @@ const revoke = mutation({
   },
 });
 
+// How often a visit is written down. The app pings every five minutes while
+// the experience is open; a little under that, so each ping lands.
+const SEEN_EVERY_MS = 4 * 60 * 1000;
+
+// "I'm looking at this": stamps the caller's grant, for the owner's list.
+// The owner has no grant, and a revoked one stays as it was.
+// shortcut: the stamp is on the grant every access check reads, so the
+// viewer's queries rerun once per stamp; move it to its own table if that shows up.
+const seen = mutation({
+  args: { eventId: v.id("events") },
+  handler: async (ctx, args) => {
+    const userId = await getUserId(ctx);
+    if (userId === null) return null;
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_event_and_user", (q) => q.eq("eventId", args.eventId).eq("userId", userId))
+      .unique();
+    if (session === null || session.revokedAt !== undefined) return null;
+    const now = Date.now();
+    if (session.lastSeenAt !== undefined && now - session.lastSeenAt < SEEN_EVERY_MS) return null;
+    await ctx.db.patch("sessions", session._id, { lastSeenAt: now });
+    return null;
+  },
+});
+
 // Change what someone may do: watch, add moments, or co-own. Owners only.
 const setRole = mutation({
   args: { sessionId: v.id("sessions"), role: vGrantRole },
@@ -128,4 +153,4 @@ const setRole = mutation({
 });
 
 // What the app calls. Registered once, by convex/api/sessions.ts, which re-exports it.
-export const sessionsApi = { listForEvent, members, revoke, setRole };
+export const sessionsApi = { listForEvent, members, revoke, seen, setRole };

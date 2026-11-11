@@ -1,11 +1,13 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import type { FunctionArgs } from "convex/server";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
-import emailSchema from "../components/email/schema";
+import cloudflareEmailTest from "@sarant/cloudflare-email-component/test";
 import invitesSchema from "../components/invites/schema";
 import { isPublicWebUrl, previewFromHtml, publicRedirect } from "../model/ai/unfurl";
 import {
@@ -25,10 +27,6 @@ const invitesModules = import.meta.glob([
   "../components/invites/**/*.ts",
   "../components/invites/**/*.js",
 ]);
-const emailModules = import.meta.glob([
-  "../components/email/**/*.ts",
-  "../components/email/**/*.js",
-]);
 
 beforeAll(() => {
   // eslint-disable-next-line @convex-dev/no-process-env -- test setup
@@ -44,8 +42,9 @@ const JUNE_1 = Date.UTC(2026, 5, 1, 12);
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   t.registerComponent("invites", invitesSchema, invitesModules);
-  t.registerComponent("email", emailSchema, emailModules);
+  cloudflareEmailTest.register(t);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, viewerId, otherId] = [await make(), await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });

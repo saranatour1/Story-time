@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import { beforeAll, expect, test } from "vite-plus/test";
 import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -16,6 +18,7 @@ beforeAll(() => {
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, viewerId, otherId] = [await make(), await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
@@ -102,7 +105,14 @@ test("a hidden share does not name the locked PDF", async () => {
   });
   expect(await t.query(api.api.share.pdf, { token })).toMatchObject({ mediaId });
 
-  await owner.mutation(api.api.share.setHidePhotos, { eventId, hide: true });
+  // Switched off on its own, the PDF goes and the photos stay.
+  await owner.mutation(api.api.share.setShown, { eventId, part: "pdf", show: false });
+  expect(await t.query(api.api.share.pdf, { token })).toBeNull();
+  expect(await t.query(api.api.share.mediaForShare, { token, mediaId })).toBeNull();
+  await owner.mutation(api.api.share.setShown, { eventId, part: "pdf", show: true });
+  expect(await t.query(api.api.share.pdf, { token })).toMatchObject({ mediaId });
+
+  await owner.mutation(api.api.share.setShown, { eventId, part: "photos", show: false });
   expect(await t.query(api.api.share.pdf, { token })).toBeNull();
   expect(await t.query(api.api.share.mediaForShare, { token, mediaId })).toBeNull();
   // The owner still has the file and its password.
@@ -112,7 +122,7 @@ test("a hidden share does not name the locked PDF", async () => {
     password: "kq7m-3vtx-p9ra-w2hc",
   });
 
-  await owner.mutation(api.api.share.setHidePhotos, { eventId, hide: false });
+  await owner.mutation(api.api.share.setShown, { eventId, part: "photos", show: true });
   expect(await t.query(api.api.share.pdf, { token })).toMatchObject({ mediaId, pages: 12 });
   expect(await t.query(api.api.share.mediaForShare, { token, mediaId })).toMatchObject({
     mime: "application/pdf",

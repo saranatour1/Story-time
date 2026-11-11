@@ -3,6 +3,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { mutation, query } from "../_generated/server";
 import { assertNotArchived, requireEventAccess } from "../lib/access";
+import { insertMedia } from "../lib/aggregates";
 import { recordChange } from "../lib/changes";
 import { decryptText, encryptText } from "../lib/crypto";
 import { MAX_JOURNAL_PAGES } from "../lib/journal";
@@ -41,7 +42,7 @@ const reserve = mutation({
       });
     await assertUploadBudget(ctx, userId, args.size);
     const r2Key = `events/${event._id}/${crypto.randomUUID()}`;
-    const mediaId = await ctx.db.insert("media", {
+    const mediaId = await insertMedia(ctx, {
       eventId: event._id,
       uploaderId: userId,
       purpose: "pdf",

@@ -41,7 +41,8 @@ const INVITE: PageMeta = {
 
 export const pageMeta = (pathname: string): PageMeta => {
   if (pathname === "/") return HOME;
-  if (pathname === "/s" || /^\/e\/[^/]+\/story\/?$/.test(pathname)) return SHARED;
+  if (pathname === "/s" || pathname.startsWith("/s/") || /^\/e\/[^/]+\/story\/?$/.test(pathname))
+    return SHARED;
   if (pathname === "/invite" || pathname.startsWith("/invite/")) return INVITE;
   // Signed-in pages: the site's own preview, kept out of search.
   return { ...HOME, index: false };

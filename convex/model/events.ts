@@ -9,6 +9,7 @@ import {
   requireUserId,
   type EventRole,
 } from "../lib/access";
+import { changeCounts, eventMedia, uploadBytes } from "../lib/aggregates";
 import { recordChange } from "../lib/changes";
 import { coverWords, followCover } from "../lib/cover";
 import { decryptGeo, encryptText, readText } from "../lib/crypto";
@@ -287,6 +288,10 @@ export const purgeEventData = internalMutation({
   returns: v.null(),
   handler: async (ctx, { eventId }): Promise<null> => {
     let deleted = 0;
+    // The experience's running counts go in one piece each; its uploads leave
+    // their owners' byte totals row by row, below.
+    await eventMedia.clear(ctx, { namespace: eventId });
+    await changeCounts.clear(ctx, { namespace: eventId });
 
     for (const row of await ctx.db
       .query("moments")
@@ -300,6 +305,7 @@ export const purgeEventData = internalMutation({
       .withIndex("by_event_and_status", (q) => q.eq("eventId", eventId))
       .take(PURGE_BATCH)) {
       await ctx.db.delete("media", row._id);
+      await uploadBytes.deleteIfExists(ctx, row);
       deleted++;
     }
     for (const row of await ctx.db

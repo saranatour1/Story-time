@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test } from "vite-plus/test";
 import { isFormat, readTranscript, toBase64 } from "../model/ai/voice";
@@ -21,6 +23,7 @@ const clip = (bytes: number) => new Uint8Array(bytes).fill(1).buffer;
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   const userId = await t.run((ctx) => ctx.db.insert("users", {}));
   return { t, userId, person: t.withIdentity({ subject: userId }) };
 };

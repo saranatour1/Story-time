@@ -12,8 +12,7 @@ import {
 
 const SECTION_NAMES: Record<string, string> = {
   "/journal": "Journal",
-  "/guestbook": "Guestbook",
-  "/shared": "Shared",
+  "/shared": "People",
   "/activity": "Activity",
 };
 

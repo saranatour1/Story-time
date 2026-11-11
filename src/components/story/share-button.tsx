@@ -50,7 +50,7 @@ export const ShareButton = ({
       const description = shared
         ? "Anyone with it can watch."
         : canShareLink
-          ? "Switch it off under Shared."
+          ? "Switch it off under People."
           : "Only people who already have access to this experience can open it.";
       if (await copied) {
         toast.success(canShareLink ? "Link copied · anyone with it can watch" : "Link copied", {

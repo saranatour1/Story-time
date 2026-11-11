@@ -44,6 +44,10 @@ const userFor = async (ctx: MutationCtx, email: string | undefined): Promise<Id<
         .withIndex("by_email", (q) => q.eq("email", email))
         .take(10)
     ).filter((user) => user.emailVerified === true);
+    // A new login on a blocked account's email doesn't get a fresh account.
+    if (known.some((user) => user.blockedAt !== undefined)) {
+      throw new ConvexError("This account has been closed.");
+    }
     if (known.length === 1 && known[0] !== undefined) return known[0]._id;
   }
   return await ctx.db.insert("users", email === undefined ? {} : { email, emailVerified: true });
@@ -74,6 +78,25 @@ export const createGoogleUser = internalMutation({
   returns: v.id("users"),
   handler: async (ctx, args) => {
     return await userFor(ctx, oauthEmail(args.provider.profile));
+  },
+});
+
+// Operator only, from the CLI:
+//   pnpm exec convex run model/users:block '{"userId":"...","reason":"malware"}'
+// Takes effect at once and deletes nothing, so there is evidence to report.
+// `lift: true` undoes it.
+export const block = internalMutation({
+  args: { userId: v.id("users"), reason: v.optional(v.string()), lift: v.optional(v.boolean()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(
+      "users",
+      args.userId,
+      args.lift === true
+        ? { blockedAt: undefined, blockedReason: undefined }
+        : { blockedAt: Date.now(), blockedReason: args.reason },
+    );
+    return null;
   },
 });
 
@@ -108,7 +131,7 @@ const getCurrentUser = query({
     const userId = ctx.db.normalizeId("users", identity.subject);
     if (userId === null) return null;
     const user = await ctx.db.get("users", userId);
-    if (user === null) return null;
+    if (user === null || user.blockedAt !== undefined) return null;
     const verified = user.emailVerified === true;
     return {
       id: user._id,

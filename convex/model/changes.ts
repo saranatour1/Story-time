@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireEventAccess } from "../lib/access";
+import { changeCounts } from "../lib/aggregates";
 
 // What the Activity badge counts: new moments, new pages, and guestbook notes.
 const NOTABLE = ["moment", "page", "guestNote"] as const;
@@ -95,26 +96,16 @@ const listForEvent = query({
 
 // How many changes each kind of actor made, for Activity's filters: people,
 // agents, and Story-time itself (no person or agent), which add up to all of
-// them. Counting stops at COUNT_CAP; `capped` says there are more.
-const COUNT_CAP = 1000;
+// them. Kept as running counts (lib/aggregates.ts), so nothing is scanned.
 const counts = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
     await requireEventAccess(ctx, args.eventId, "owner");
-    const rows = await ctx.db
-      .query("changes")
-      .withIndex("by_event_and_at", (q) => q.eq("eventId", args.eventId))
-      .take(COUNT_CAP + 1);
-    const counted = rows.slice(0, COUNT_CAP);
-    const agents = counted.filter((c) => c.agent !== undefined).length;
-    const people = counted.filter((c) => c.agent === undefined && c.actorId !== undefined).length;
-    return {
-      everyone: counted.length,
-      people,
-      agents,
-      system: counted.length - people - agents,
-      capped: rows.length > COUNT_CAP,
-    };
+    const namespace = args.eventId;
+    const everyone = await changeCounts.count(ctx, { namespace });
+    const people = await changeCounts.count(ctx, { namespace, bounds: { eq: "people" } });
+    const agents = await changeCounts.count(ctx, { namespace, bounds: { eq: "agents" } });
+    return { everyone, people, agents, system: everyone - people - agents };
   },
 });
 

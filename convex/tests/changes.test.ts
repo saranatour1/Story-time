@@ -1,8 +1,10 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import { beforeAll, describe, expect, test } from "vite-plus/test";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { requireEventAccessFor } from "../lib/access";
 import { createMoment } from "../model/moments";
@@ -20,6 +22,7 @@ const T0 = Date.UTC(2026, 5, 1, 12);
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   const make = (displayName: string) => t.run((ctx) => ctx.db.insert("users", { displayName }));
   const [ownerId, helperId, viewerId, strangerId] = [
     await make("Sara"),
@@ -135,6 +138,8 @@ describe("activity counts", () => {
       await ctx.db.insert("changes", { ...change, action: "create" });
       await ctx.db.insert("changes", { ...change, action: "expire" });
     });
+    // Written straight into the table, so counted the way old rows are.
+    await t.mutation(internal.model.migrations.backfillAggregates, { table: "changes" });
     const counts = await owner.query(api.api.changes.counts, { eventId });
     const all = await t.run((ctx) =>
       ctx.db
@@ -147,7 +152,6 @@ describe("activity counts", () => {
       people: all.length - 3,
       agents: 1,
       system: 2,
-      capped: false,
     });
     expect(counts.people + counts.agents + counts.system).toBe(counts.everyone);
     await expect(helper.query(api.api.changes.counts, { eventId })).rejects.toThrow(

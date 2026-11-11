@@ -38,7 +38,7 @@ describe("page load", () => {
     expect(elements).not.toContain('StickyMap } from "@/components/story/memoir/sticky-map"');
     expect(elements).toContain('import("@/components/story/memoir/sticky-map")');
 
-    const share = source("src/routes/s.tsx");
+    const share = source("src/routes/s.{-$name}.tsx");
     expect(share).not.toContain('from "@/components/story/story-player"');
     expect(share).toContain('import("@/components/story/story-player")');
 

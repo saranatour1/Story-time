@@ -1,9 +1,9 @@
 import { v } from "convex/values";
-import { components, internal } from "../_generated/api";
+import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation } from "../_generated/server";
 import { appOrigin } from "../lib/appUrl";
-import { emailConfigured } from "../lib/emailAddress";
+import { emailConfigured, queueMail } from "../lib/emailAddress";
 import { localYear, monthDayOf } from "../lib/monthDay";
 
 const BATCH = 100;
@@ -75,7 +75,7 @@ export const send = internalMutation({
         .unique();
       if (already !== null) continue;
       await ctx.db.insert("memoryMails", { userId, day });
-      await ctx.runMutation(components.email.lib.send, {
+      await queueMail(ctx, {
         to: user.email,
         subject: "A memory is waiting",
         html: `<p>A memory is waiting.</p><p><a href="${home}">Open Story-time</a></p>`,

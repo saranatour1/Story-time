@@ -1,10 +1,9 @@
 import { ConvexError, v, type Infer } from "convex/values";
-import { components } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { assertNotArchived, requireEventAccess } from "../lib/access";
+import { assertNotArchived, isBlocked, requireEventAccess } from "../lib/access";
 import { appOrigin } from "../lib/appUrl";
-import { emailConfigured, replyAddress } from "../lib/emailAddress";
+import { emailConfigured, queueMail, replyAddress } from "../lib/emailAddress";
 import { recordChange } from "../lib/changes";
 import { decryptText, encryptText, readText, shareKeyFor } from "../lib/crypto";
 import { contentsOf, pageInEvent } from "./journal";
@@ -29,7 +28,32 @@ const newToken = (): string => {
 // Checked before any hashing, so junk never reaches the key derivation.
 const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,64}$/;
 
-const linkFor = (token: string) => `${appOrigin()}/s#${token}`;
+// A link switched on before names existed has none, and keeps its old address.
+const linkFor = (event: { shareSlug?: string }, token: string) =>
+  `${appOrigin()}/s${event.shareSlug === undefined ? "" : `/${event.shareSlug}`}#${token}`;
+
+// The link's name: the title in plain letters, then four random characters.
+// Not a secret, so the small bias of % 36 doesn't matter.
+const newSlug = async (ctx: MutationCtx, title: string): Promise<string> => {
+  const words =
+    title
+      .normalize("NFKD")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 40)
+      .replace(/^-+|-+$/g, "") || "story";
+  for (;;) {
+    const tail = [...crypto.getRandomValues(new Uint8Array(4))]
+      .map((b) => (b % 36).toString(36))
+      .join("");
+    const slug = `${words}-${tail}`;
+    const taken = await ctx.db
+      .query("events")
+      .withIndex("by_shareSlug", (q) => q.eq("shareSlug", slug))
+      .first();
+    if (taken === null) return slug;
+  }
+};
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (ch) => {
@@ -46,15 +70,18 @@ const activeToken = async (event: Doc<"events">): Promise<string | null> => {
   return decryptText(event._id, event.shareToken);
 };
 
-// Points the experience at a new token. Any link made before stops working.
+// Points the experience at a new token, and returns its link. Any link made
+// before stops working. The name is given once and kept, off and on again.
 const switchOn = async (ctx: MutationCtx, event: Doc<"events">): Promise<string> => {
   const token = newToken();
+  const shareSlug = event.shareSlug ?? (await newSlug(ctx, event.title));
   await ctx.db.patch("events", event._id, {
     visibility: "link",
     shareKey: await shareKeyFor(token),
     shareToken: await encryptText(event._id, event.keyVersion, token),
+    shareSlug,
   });
-  return token;
+  return linkFor({ shareSlug }, token);
 };
 
 // The experience a link opens, or null. A malformed, unknown and switched-off
@@ -66,7 +93,9 @@ const eventFor = async (ctx: QueryCtx, token: string): Promise<Doc<"events"> | n
     .query("events")
     .withIndex("by_shareKey", (q) => q.eq("shareKey", shareKey))
     .unique();
-  return event?.visibility === "link" ? event : null;
+  if (event?.visibility !== "link") return null;
+  // A blocked account's links are off, like everything else of theirs.
+  return (await isBlocked(ctx, event.ownerId)) ? null : event;
 };
 
 // Shared stories leave out who wrote each moment: the people watching them
@@ -79,17 +108,20 @@ const withoutPictures = (blocks: PlainBlock[]): PlainBlock[] => {
   return blocks.filter((block) => block.type !== "photo" && block.type !== "video");
 };
 
-const sharedMoment = (moment: Infer<typeof vMomentView>, redact: boolean) => {
-  const stops = redact
-    ? moment.stops.map((stop) => ({ ...stop, blocks: withoutPictures(stop.blocks) }))
-    : moment.stops;
+// With the film off, the map pins stay behind too: only the film draws them.
+const sharedMoment = (moment: Infer<typeof vMomentView>, redact: boolean, film: boolean) => {
+  const stops = moment.stops.map((stop) => ({
+    ...stop,
+    geo: film ? stop.geo : undefined,
+    blocks: redact ? withoutPictures(stop.blocks) : stop.blocks,
+  }));
   return {
     _id: moment._id,
     startsAt: moment.startsAt,
     // Not personal: it's the zone the moment happened in.
     tzOffsetMinutes: moment.tzOffsetMinutes,
     place: moment.place,
-    geo: moment.geo,
+    geo: film ? moment.geo : undefined,
     blocks: redact ? withoutPictures(moment.blocks) : moment.blocks,
     transport: moment.transport,
     stops,
@@ -97,33 +129,46 @@ const sharedMoment = (moment: Infer<typeof vMomentView>, redact: boolean) => {
   };
 };
 
-// Whether this experience's link hides photos. False until the owner opts in,
+// What the link shows. Everything, until the owner switches a part off,
 // including while the link itself is off, so the choice is waiting when they
 // switch it on.
-const hidePhotos = query({
+const vPart = v.union(v.literal("photos"), v.literal("film"), v.literal("pdf"));
+const shownOf = (event: Doc<"events">) => ({
+  photos: event.shareRedacted !== true,
+  film: event.shareHide?.film !== true,
+  pdf: event.shareHide?.pdf !== true,
+});
+
+const shown = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "owner");
-    return event.shareRedacted === true;
+    return shownOf(event);
   },
 });
 
-// Opts the link into hiding photos, or back out. Existing links change at
-// once: the same token, with pictures gone or returned.
-const setHidePhotos = mutation({
-  args: { eventId: v.id("events"), hide: v.boolean() },
+// Switches one part of the link on or off. Existing links change at once:
+// the same token, with that part gone or returned.
+const setShown = mutation({
+  args: { eventId: v.id("events"), part: vPart, show: v.boolean() },
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
-    const current = event.shareRedacted === true;
-    if (current === args.hide) return null;
-    await ctx.db.patch("events", event._id, { shareRedacted: args.hide ? true : undefined });
+    if (shownOf(event)[args.part] === args.show) return null;
+    const hide = args.show ? undefined : true;
+    await ctx.db.patch(
+      "events",
+      event._id,
+      args.part === "photos"
+        ? { shareRedacted: hide }
+        : { shareHide: { ...event.shareHide, [args.part]: hide } },
+    );
     await recordChange(ctx, {
       eventId: args.eventId,
       entity: "event",
       entityId: args.eventId,
       actorId: userId,
       action: "update",
-      fields: ["shareRedacted"],
+      fields: [args.part === "photos" ? "shareRedacted" : "shareShown"],
     });
     return null;
   },
@@ -135,7 +180,7 @@ const link = query({
   handler: async (ctx, args) => {
     const { event } = await requireEventAccess(ctx, args.eventId, "owner");
     const token = await activeToken(event);
-    return token === null ? null : linkFor(token);
+    return token === null ? null : linkFor(event, token);
   },
 });
 
@@ -146,8 +191,8 @@ const enable = mutation({
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
     const current = await activeToken(event);
-    if (current !== null) return linkFor(current);
-    const token = await switchOn(ctx, event);
+    if (current !== null) return linkFor(event, current);
+    const link = await switchOn(ctx, event);
     await recordChange(ctx, {
       eventId: args.eventId,
       entity: "event",
@@ -158,7 +203,7 @@ const enable = mutation({
       before: { visibility: event.visibility },
       after: { visibility: "link" },
     });
-    return linkFor(token);
+    return link;
   },
 });
 
@@ -193,7 +238,7 @@ const rotate = mutation({
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
-    const token = await switchOn(ctx, event);
+    const link = await switchOn(ctx, event);
     await recordChange(ctx, {
       eventId: args.eventId,
       entity: "event",
@@ -202,7 +247,7 @@ const rotate = mutation({
       action: "update",
       fields: ["shareLink"],
     });
-    return linkFor(token);
+    return link;
   },
 });
 
@@ -233,10 +278,10 @@ const emailLink = mutation({
       userId,
       `You can email a share link up to ${SHARE_EMAILS_PER_DAY} times a day. Copy the link and send it yourself.`,
     );
-    const link = linkFor(token);
+    const link = linkFor(event, token);
     const title = escapeHtml(event.title);
     const replyTo = await replyAddress(ctx, userId);
-    await ctx.runMutation(components.email.lib.send, {
+    await queueMail(ctx, {
       to,
       ...(replyTo === undefined ? {} : { replyTo }),
       subject: `A story to read: "${event.title}"`,
@@ -262,7 +307,11 @@ const get = query({
     const event = await eventFor(ctx, args.token);
     if (event === null) return null;
     const moments = await listForEvent(ctx, event);
+    const { photos, film } = shownOf(event);
     return {
+      // The name this link goes by, so an old address can move to it.
+      slug: event.shareSlug,
+      film,
       event: {
         _id: event._id,
         title: event.title,
@@ -274,7 +323,7 @@ const get = query({
       },
       // Field by field, so a field added to moments later isn't shared by accident.
       // A redacted link drops photo and video blocks, so no mediaId leaves.
-      moments: moments.map((m) => sharedMoment(m, event.shareRedacted === true)),
+      moments: moments.map((m) => sharedMoment(m, !photos, film)),
     };
   },
 });
@@ -308,7 +357,7 @@ const pdf = query({
   args: { token: v.string() },
   handler: async (ctx, args) => {
     const event = await eventFor(ctx, args.token);
-    if (event === null || event.shareRedacted === true) return null;
+    if (event === null || !shownOf(event).photos || !shownOf(event).pdf) return null;
     const journal = await ctx.db
       .query("journals")
       .withIndex("by_event", (q) => q.eq("eventId", event._id))
@@ -337,7 +386,7 @@ const mediaForShare = query({
     // of this experience shows it, and a PDF only while it is the journal's
     // locked one. A loose upload, or a sticker only on the shelf, does not.
     if (media.momentId === undefined && media.purpose === "pdf") {
-      if (!(await isSharedPdf(ctx, event._id, media._id))) return null;
+      if (!shownOf(event).pdf || !(await isSharedPdf(ctx, event._id, media._id))) return null;
     } else if (media.momentId === undefined) {
       if (media.purpose !== "sticker") return null;
       const pages = await ctx.db
@@ -359,8 +408,8 @@ const mediaForShare = query({
 
 // What the app calls. Registered once, by convex/api/share.ts, which re-exports it.
 export const shareApi = {
-  hidePhotos,
-  setHidePhotos,
+  shown,
+  setShown,
   link,
   enable,
   disable,

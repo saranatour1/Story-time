@@ -63,6 +63,7 @@ export const describeChange = (c: { entity: string; action: string; fields: stri
       if (onlyField(fields, "shareLink")) return "Made a new share link";
       if (onlyField(fields, "sharedPdf")) return "Changed the locked PDF on the share link";
       if (onlyField(fields, "shareRedacted")) return "Changed whether the share link shows photos";
+      if (onlyField(fields, "shareShown")) return "Changed what the share link shows";
       if (onlyField(fields, "shareEmail")) return "Emailed the share link";
       return edited("the experience");
     case "media.create":

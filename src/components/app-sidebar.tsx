@@ -1,14 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  BookHeartIcon,
-  ChevronRightIcon,
-  HistoryIcon,
-  HomeIcon,
-  ListIcon,
-  MessageSquareHeartIcon,
-  UsersIcon,
-} from "lucide-react";
+import { BookHeartIcon, ChevronRightIcon, HomeIcon, ListIcon, UsersIcon } from "lucide-react";
 import { queries } from "@/lib/queries";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -22,7 +14,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuAction,
   SidebarMenuItem,
@@ -33,19 +24,12 @@ import {
 } from "@/components/ui/sidebar";
 
 // The sections of an experience, in the sidebar under it while it is open.
-// Sharing and activity are its owner's.
+// People is who can see it and what they wrote in the guestbook. Activity is
+// under the experience's More menu (event-actions-menu.tsx).
 const SECTIONS = [
-  { to: "/e/$id", label: "Moments", icon: ListIcon, path: "", owner: false },
-  { to: "/e/$id/journal", label: "Journal", icon: BookHeartIcon, path: "/journal", owner: false },
-  {
-    to: "/e/$id/guestbook",
-    label: "Guestbook",
-    icon: MessageSquareHeartIcon,
-    path: "/guestbook",
-    owner: false,
-  },
-  { to: "/e/$id/shared", label: "Shared", icon: UsersIcon, path: "/shared", owner: false },
-  { to: "/e/$id/activity", label: "Activity", icon: HistoryIcon, path: "/activity", owner: true },
+  { to: "/e/$id", label: "Moments", icon: ListIcon, path: "" },
+  { to: "/e/$id/journal", label: "Journal", icon: BookHeartIcon, path: "/journal" },
+  { to: "/e/$id/shared", label: "People", icon: UsersIcon, path: "/shared" },
 ] as const;
 
 export const AppSidebar = () => {
@@ -55,9 +39,6 @@ export const AppSidebar = () => {
   const eventId = open?.[1];
   const section = open?.[2] ?? "";
   const { data: event } = useQuery(queries.events.get(eventId ? { eventId } : "skip"));
-  const { data: unread } = useQuery(
-    queries.changes.unreadCount(eventId && event?.role === "owner" ? { eventId } : "skip"),
-  );
   const { data: events } = useQuery(queries.events.listMine());
 
   return (
@@ -124,7 +105,7 @@ export const AppSidebar = () => {
           <SidebarGroup>
             <SidebarGroupLabel className="truncate">{event.title}</SidebarGroupLabel>
             <SidebarMenu>
-              {SECTIONS.filter((s) => !s.owner || event.role === "owner").map((s) => (
+              {SECTIONS.map((s) => (
                 <SidebarMenuItem key={s.label}>
                   <SidebarMenuButton asChild tooltip={s.label} isActive={section === s.path}>
                     <Link to={s.to} params={{ id: eventId }}>
@@ -132,11 +113,6 @@ export const AppSidebar = () => {
                       <span>{s.label}</span>
                     </Link>
                   </SidebarMenuButton>
-                  {s.path === "/activity" && unread !== undefined && unread > 0 && (
-                    <SidebarMenuBadge aria-label={`${unread} new`}>
-                      {unread > 99 ? "99+" : unread}
-                    </SidebarMenuBadge>
-                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

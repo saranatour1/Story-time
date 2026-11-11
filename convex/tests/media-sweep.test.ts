@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -31,6 +33,7 @@ const row = (uploaderId: Id<"users">, status: "reserved" | "ready") => ({
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   const uploaderId = await t.run((ctx) => ctx.db.insert("users", {}));
   const insert = (status: "reserved" | "ready") =>
     t.run((ctx) => ctx.db.insert("media", row(uploaderId, status)));

@@ -61,7 +61,7 @@ A share link is not a user. `convex/model/share.ts` `eventFor` hashes the token,
 | `sessions`     | Invite grants: user, experience, role, `revokedAt`.                                                                                                                                                                          |
 | `changes`      | The Activity log. Names the field that changed, not the secret.                                                                                                                                                              |
 
-Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (`convex/components/email`), plus the auth (core, GitHub, Google, anonymous), agent, AI budget and rate-limiter components mounted in `convex/convex.config.ts`.
+Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (the `@sarant/cloudflare-email-component` package), three aggregates for counts and byte totals (`convex/lib/aggregates.ts`), plus the auth (core, GitHub, Google, anonymous), agent, AI budget and rate-limiter components mounted in `convex/convex.config.ts`.
 
 These tables are still in the schema and are not part of the product. Nothing in the app writes them. `purgeEventData` in `convex/model/events.ts` deletes per-experience rows when a trip is removed. Account-wide `agentTokens` (no `eventId`) stay until that cleanup is done by hand:
 
@@ -199,9 +199,9 @@ Delete of a trip is `DELETE /api/events/$id` (`src/routes/api/events.$id.ts`): l
 
 ## Email
 
-Only invites send mail. `invites.create` calls `components.email.lib.send` when `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN`, and `EMAIL_FROM` are all set and the owner typed an address. Otherwise it returns the link and `emailed: false`.
+Only invites send mail. `invites.create` calls `queueMail` (`convex/lib/emailAddress.ts`) when `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN`, and `EMAIL_FROM` are all set and the owner typed an address. Otherwise it returns the link and `emailed: false`.
 
-`convex/components/email/lib.ts` queues an `outbox` row and `deliver` POSTs to Cloudflare's email sending API. After success or the last failure it clears the address and the body. Up to five attempts. The `inviteEmail` rate limit allows 10 invite emails per person a day. No other mail is implemented. There is no browser push. Toasts are `sonner`, mounted in `src/routes/__root.tsx`. Activity is `convex/model/changes.ts` `listForEvent`, shown by `src/routes/_app/e.$id.activity.tsx`.
+`queueMail` queues the message in the email component and schedules `convex/model/mail.ts` `deliver`, which sends it through Cloudflare's email sending API, blanks the stored body, and logs how many addresses were delivered, bounced or suppressed. The `inviteEmail` rate limit allows 10 invite emails per person a day. No other mail is implemented. There is no browser push. Toasts are `sonner`, mounted in `src/routes/__root.tsx`. Activity is `convex/model/changes.ts` `listForEvent`, shown by `src/routes/_app/e.$id.activity.tsx`.
 
 ## Rate limits and other caps
 

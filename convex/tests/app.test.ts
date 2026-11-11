@@ -1,6 +1,8 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
+import { AGGREGATES } from "../lib/aggregates";
 import type { FunctionReturnType } from "convex/server";
 import { beforeAll, describe, expect, test } from "vite-plus/test";
 import { api, internal } from "../_generated/api";
@@ -23,6 +25,7 @@ beforeAll(() => {
 const setup = async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
+  for (const name of AGGREGATES) aggregateTest.register(t, name);
   const make = () => t.run((ctx) => ctx.db.insert("users", {}));
   const [ownerId, friendId] = [await make(), await make()];
   const as = (id: Id<"users">) => t.withIdentity({ subject: id });
@@ -52,6 +55,12 @@ const changeCount = async (t: Awaited<ReturnType<typeof setup>>["t"], eventId: I
         .collect(),
     )
   ).length;
+};
+
+// Rows a test writes straight into the table are counted the way old rows are.
+const backfill = async (t: ReturnType<typeof convexTest>) => {
+  await t.mutation(internal.model.migrations.backfillAggregates, {});
+  await t.finishAllScheduledFunctions(() => undefined);
 };
 
 describe("the moment limit", () => {
@@ -337,10 +346,12 @@ describe("uploads", () => {
     // Deleted uploads don't count towards the cap.
     await fill("deleted", 60);
     await fill("ready", MAX_PHOTOS_PER_EVENT - 1);
+    await backfill(t);
     await reserve();
     await expect(reserve()).rejects.toThrow(`up to ${MAX_PHOTOS_PER_EVENT} photos`);
     // Videos have their own cap, so a full photo count doesn't stop one.
     await fill("ready", MAX_VIDEOS_PER_EVENT - 1, "video/mp4");
+    await backfill(t);
     await reserve("video/mp4");
     await expect(reserve("video/mp4")).rejects.toThrow(`up to ${MAX_VIDEOS_PER_EVENT} videos`);
   });
@@ -404,6 +415,7 @@ describe("uploads", () => {
         status: "ready",
       }),
     );
+    await backfill(t);
     // Room for exactly 100 bytes, whichever experience they are for.
     await owner.mutation(api.api.media.reserveUpload, {
       eventId: second,
@@ -418,34 +430,12 @@ describe("uploads", () => {
       owner.mutation(api.api.media.reserveAvatarUpload, { size: 1, mime: "image/png" }),
     ).rejects.toThrow(/UPLOAD_BUDGET/);
     // Deleting an upload frees its room.
-    await t.run((ctx) => ctx.db.patch("media", big, { status: "deleted" }));
+    await owner.mutation(api.api.media.markDeleted, { mediaId: big });
     await owner.mutation(api.api.media.reserveUpload, {
       eventId: first,
       size: 1000,
       mime: "image/png",
     });
-  });
-
-  test("past 5,000 live uploads the budget can't be checked, so new uploads are refused", async () => {
-    const { t, owner, ownerId } = await setup();
-    const eventId = await owner.mutation(api.api.events.createDraft, {});
-    // Profile images count toward the budget too, and sit outside any experience's cap.
-    await t.run(async (ctx) => {
-      for (let i = 0; i < 5001; i++) {
-        await ctx.db.insert("media", {
-          purpose: "avatar",
-          uploaderId: ownerId,
-          r2Key: `avatars/${i}`,
-          size: 1,
-          mime: "image/png",
-          keyVersion: 1,
-          status: "ready",
-        });
-      }
-    });
-    await expect(
-      owner.mutation(api.api.media.reserveUpload, { eventId, size: 1, mime: "image/png" }),
-    ).rejects.toThrow(/UPLOAD_BUDGET/);
   });
 });
 

@@ -13,27 +13,32 @@ import { changeActorOf, type ActorView } from "@/lib/actors";
 import { describeChange } from "@/lib/change-text";
 import { cn } from "@/lib/utils";
 
-type Filter = "everyone" | "people" | "agents" | "system";
+type Kind = "everyone" | "people" | "agents" | "system";
+// Everything, one person's own changes (their user id), agents', or the
+// app's own.
+type Filter = "everyone" | "agents" | "system" | { person: string };
 
-// People, agents and Story-time's own changes add up to everyone's.
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: "everyone", label: "Everyone" },
-  { value: "people", label: "People" },
-  { value: "agents", label: "Agents" },
-  { value: "system", label: "Story-time" },
-];
-
-const matches = (filter: Filter, actor: ActorView): boolean => {
+const matches = (filter: Filter, actor: ActorView, actorId?: string): boolean => {
+  if (filter === "everyone") return true;
   if (filter === "agents") return actor.kind === "agent";
-  if (filter === "people") return actor.kind === "human";
   if (filter === "system") return actor.kind === "system";
-  return true;
+  return actor.kind === "human" && actorId === filter.person;
 };
 
-const WHO: Record<Exclude<Filter, "everyone">, string> = {
+const WHO: Record<Exclude<Kind, "everyone">, string> = {
   people: "people",
   agents: "agents",
   system: "Story-time",
+};
+
+// What the numbers count, in a sentence: "44 changes: 37 by people, 7 by
+// Story-time." A bare number beside "People" reads as a head count.
+const summary = (counts: Record<Kind, number>): string => {
+  const total = `${counts.everyone.toLocaleString()} ${counts.everyone === 1 ? "change" : "changes"}`;
+  const kinds = (["people", "agents", "system"] as const).filter((who) => counts[who] > 0);
+  // One kind of author made them all: the split would only repeat the total.
+  if (kinds.length < 2) return `${total}${kinds[0] ? `, all by ${WHO[kinds[0]]}` : ""}.`;
+  return `${total}: ${kinds.map((who) => `${counts[who].toLocaleString()} by ${WHO[who]}`).join(", ")}.`;
 };
 
 // The full date, for the tooltip on the relative one.
@@ -77,7 +82,34 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
   }
 
   const actorOf = (c: (typeof results)[number]) => changeActorOf(c, c.actorName);
-  const shown = results.filter((c) => matches(filter, actorOf(c)));
+  const shown = results.filter((c) => matches(filter, actorOf(c), c.actorId));
+  // One button per person in the changes loaded so far, you first; then
+  // agents and the app itself, when they have made any.
+  const people = new Map<string, string>();
+  for (const c of results) {
+    if (c.actorId === undefined || c.agent !== undefined || people.has(c.actorId)) continue;
+    people.set(c.actorId, c.actorId === meId ? "You" : (c.actorName ?? "Anonymous"));
+  }
+  const filters: { value: Filter; label: string; title?: string }[] = [
+    { value: "everyone", label: "All" },
+    ...[...people]
+      .sort(([a], [b]) => Number(b === meId) - Number(a === meId))
+      .map(([person, label]) => ({ value: { person }, label })),
+    ...(counts?.agents ? [{ value: "agents" as const, label: "Agents" }] : []),
+    ...(counts?.system
+      ? [
+          {
+            value: "system" as const,
+            label: "Automatic",
+            title: "What Story-time did by itself, like adding a journal page for a new moment",
+          },
+        ]
+      : []),
+  ];
+  const picked = (value: Filter) =>
+    typeof value === "object" && typeof filter === "object"
+      ? value.person === filter.person
+      : value === filter;
   // Newest first, as they come; a new heading wherever the day changes.
   const days: Array<{ label: string; changes: typeof shown }> = [];
   for (const c of shown) {
@@ -91,29 +123,29 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Every change to this experience: by people, by agents, and by Story-time itself.
+          {counts
+            ? summary(counts)
+            : "Every change to this experience: by people, by agents, and by Story-time itself."}
         </p>
         <div
           role="radiogroup"
           aria-label="Show changes by"
-          className="flex w-fit gap-1 rounded-lg bg-muted p-1"
+          className="flex w-fit flex-wrap gap-1 rounded-lg bg-muted p-1"
         >
-          {FILTERS.map(({ value, label }) => (
+          {filters.map(({ value, label, title }) => (
             <button
-              key={value}
+              key={typeof value === "object" ? value.person : value}
               type="button"
               role="radio"
-              aria-checked={filter === value}
+              title={title}
+              aria-checked={picked(value)}
               onClick={() => setFilter(value)}
               className={cn(
                 "flex items-center gap-1.5 rounded-md px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                filter === value && "bg-background font-medium text-foreground shadow-sm",
+                picked(value) && "bg-background font-medium text-foreground shadow-sm",
               )}
             >
               {label}
-              <span className="text-xs tabular-nums opacity-70">
-                {counts && `${counts[value].toLocaleString()}${counts.capped ? "+" : ""}`}
-              </span>
             </button>
           ))}
         </div>
@@ -121,7 +153,7 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
 
       {shown.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          None of the loaded edits are from {filter === "everyone" ? "anyone" : WHO[filter]}.
+          None of the loaded edits match. Show more below to look further back.
         </p>
       ) : (
         days.map(({ label, changes }) => (

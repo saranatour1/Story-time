@@ -17,6 +17,7 @@ import {
   requireUserId,
   sharesExperience,
 } from "../lib/access";
+import { eventMedia, insertMedia, patchMedia, uploadBytes } from "../lib/aggregates";
 import { recordChange } from "../lib/changes";
 import { mediaOnAPage } from "./journal";
 import {
@@ -32,34 +33,17 @@ import {
   VIDEO_MIME_TYPES,
 } from "../lib/limits";
 
-// Live rows read per status when checking one person's upload budget. Past
-// this the total can't be known, so the upload is refused instead of
-// under-counted (a flood of tiny files would otherwise hide the rest).
-const BUDGET_SCAN = 5000;
-// Live rows read per status when counting an experience's photos and videos.
-const MEDIA_SCAN = 500;
-
 // One person's live bytes across every experience. Profile images count too.
-// Deleted uploads don't, so removing frees room. `complete` is false when
-// there were too many rows to count.
+// Deleted uploads don't, so removing frees room. A running sum
+// (lib/aggregates.ts), so it is exact however many files there are.
 export const liveUploadBytes = async (ctx: QueryCtx, userId: Id<"users">) => {
-  let bytes = 0;
-  let complete = true;
-  for (const status of ["ready", "reserved"] as const) {
-    const rows = await ctx.db
-      .query("media")
-      .withIndex("by_uploader_and_status", (q) => q.eq("uploaderId", userId).eq("status", status))
-      .take(BUDGET_SCAN + 1);
-    if (rows.length > BUDGET_SCAN) complete = false;
-    for (const row of rows) bytes += row.size + (row.thumbSize ?? 0);
-  }
-  return { bytes, complete };
+  return { bytes: await uploadBytes.sum(ctx, { namespace: userId }) };
 };
 
 // So one account can't fill the bucket.
 export const assertUploadBudget = async (ctx: MutationCtx, userId: Id<"users">, size: number) => {
-  const { bytes, complete } = await liveUploadBytes(ctx, userId);
-  if (!complete || bytes + size > MAX_LIVE_UPLOAD_BYTES) {
+  const { bytes } = await liveUploadBytes(ctx, userId);
+  if (bytes + size > MAX_LIVE_UPLOAD_BYTES) {
     throw new ConvexError({
       code: "UPLOAD_BUDGET",
       message:
@@ -94,24 +78,13 @@ const reserveUpload = mutation({
         maxBytes,
       });
     }
-    // Photos and videos have their own caps. Deleted uploads don't count, so
-    // removing one frees room. The scan is bounded: an experience from before
-    // these caps can hold more, and is full either way.
-    let photos = 0;
-    let videos = 0;
-    for (const status of ["reserved", "ready"] as const) {
-      const rows = await ctx.db
-        .query("media")
-        .withIndex("by_event_and_status", (q) => q.eq("eventId", args.eventId).eq("status", status))
-        .take(MEDIA_SCAN);
-      for (const row of rows) {
-        // Stickers and a locked PDF are stored here too, but aren't photos.
-        if (row.purpose !== undefined) continue;
-        if (VIDEO_MIME_TYPES.includes(row.mime)) videos++;
-        else photos++;
-      }
-    }
-    if (isVideo ? videos >= MAX_VIDEOS_PER_EVENT : photos >= MAX_PHOTOS_PER_EVENT) {
+    // Photos and videos have their own caps. Deleted uploads, stickers and a
+    // locked PDF don't count, so removing one frees room.
+    const held = await eventMedia.count(ctx, {
+      namespace: args.eventId,
+      bounds: { eq: isVideo ? "video" : "photo" },
+    });
+    if (held >= (isVideo ? MAX_VIDEOS_PER_EVENT : MAX_PHOTOS_PER_EVENT)) {
       throw new ConvexError({
         code: "MEDIA_LIMIT",
         message: isVideo
@@ -122,7 +95,7 @@ const reserveUpload = mutation({
     await assertUploadBudget(ctx, userId, args.size);
 
     const r2Key = `events/${args.eventId}/${crypto.randomUUID()}`;
-    const mediaId = await ctx.db.insert("media", {
+    const mediaId = await insertMedia(ctx, {
       eventId: args.eventId,
       uploaderId: userId,
       r2Key,
@@ -156,7 +129,7 @@ const confirmUpload = mutation({
     }
     if (media.purpose === "avatar") {
       if (media.status === "reserved") {
-        await ctx.db.patch("media", args.mediaId, {
+        await patchMedia(ctx, args.mediaId, {
           status: "ready",
           sha256: args.sha256,
         });
@@ -168,7 +141,7 @@ const confirmUpload = mutation({
     const { event } = await requireEventAccess(ctx, media.eventId, "contributor");
     assertNotArchived(event);
     if (media.status === "ready") return null;
-    await ctx.db.patch("media", args.mediaId, {
+    await patchMedia(ctx, args.mediaId, {
       status: "ready",
       sha256: args.sha256,
     });
@@ -249,7 +222,7 @@ const attachThumb = mutation({
       throw new Error("Upload not found");
     }
     const previous = media.thumbR2Key ?? null;
-    await ctx.db.patch("media", args.mediaId, {
+    await patchMedia(ctx, args.mediaId, {
       thumbR2Key: args.thumbR2Key,
       thumbSize: args.thumbSize,
       width: args.width,
@@ -336,7 +309,7 @@ const reserveAvatarUpload = mutation({
     }
     await assertUploadBudget(ctx, userId, args.size);
     const r2Key = `avatars/${userId}/${crypto.randomUUID()}`;
-    const mediaId = await ctx.db.insert("media", {
+    const mediaId = await insertMedia(ctx, {
       purpose: "avatar",
       uploaderId: userId,
       r2Key,
@@ -439,7 +412,7 @@ const markDeleted = mutation({
     if (media === null || !(await deletableBy(ctx, userId, media))) {
       throw new Error("Not found");
     }
-    await ctx.db.patch("media", args.mediaId, { status: "deleted" });
+    await patchMedia(ctx, args.mediaId, { status: "deleted" });
     return null;
   },
 });
@@ -461,7 +434,7 @@ export const sweepReservedUploads = internalMutation({
       )
       .take(SWEEP_BATCH);
     for (const media of stale) {
-      await ctx.db.patch("media", media._id, { status: "deleted" });
+      await patchMedia(ctx, media._id, { status: "deleted" });
     }
     // A full batch may leave more behind: continue in a fresh transaction.
     if (stale.length === SWEEP_BATCH) {

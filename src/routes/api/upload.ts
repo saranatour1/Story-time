@@ -5,11 +5,14 @@ import { api } from "@/lib/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { MAX_THUMB_BYTES } from "../../../convex/lib/limits";
 import { bearerToken, convexAs, json, ssecKeyFor } from "@/server/r2";
+import { looksLike, peek } from "@/server/sniff";
 
 const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const MAX_PDF_BYTES = 50 * 1024 * 1024;
+
+const WRONG_TYPE = "This file isn't the kind it says it is, so it wasn't added.";
 
 export const Route = createFileRoute("/api/upload")({
   server: {
@@ -56,6 +59,10 @@ export const Route = createFileRoute("/api/upload")({
           return json({ error }, 413);
         }
 
+        // Before anything is reserved: the bytes must start like the type named.
+        const { head, body } = await peek(request.body);
+        if (!looksLike(head, mime)) return json({ error: WRONG_TYPE }, 415);
+
         const convex = convexAs(token);
         try {
           // Convex enforces access, type and caps before any bytes move.
@@ -70,14 +77,10 @@ export const Route = createFileRoute("/api/upload")({
                 });
           // FixedLengthStream errors if the body isn't exactly `size` bytes,
           // so the declared (checked) size is the real size.
-          await env.MEDIA.put(
-            reserved.r2Key,
-            request.body.pipeThrough(new FixedLengthStream(size)),
-            {
-              httpMetadata: { contentType: mime },
-              ssecKey: await ssecKeyFor(reserved.keyScope, reserved.keyVersion),
-            },
-          );
+          await env.MEDIA.put(reserved.r2Key, body.pipeThrough(new FixedLengthStream(size)), {
+            httpMetadata: { contentType: mime },
+            ssecKey: await ssecKeyFor(reserved.keyScope, reserved.keyVersion),
+          });
           await convex.mutation(api.media.confirmUpload, {
             mediaId: reserved.mediaId,
           });
@@ -119,12 +122,14 @@ const storeThumb = async (
   }
   if (size < 1 || size > MAX_THUMB_BYTES)
     return json({ error: "Thumbnails can be at most 400 KB" }, 413);
+  const { head, body } = await peek(request.body);
+  if (!looksLike(head, mime)) return json({ error: WRONG_TYPE }, 415);
   try {
     const reserved = await convex.mutation(api.media.reserveThumb, {
       mediaId: mediaId as Id<"media">,
       size,
     });
-    await env.MEDIA.put(reserved.r2Key, request.body.pipeThrough(new FixedLengthStream(size)), {
+    await env.MEDIA.put(reserved.r2Key, body.pipeThrough(new FixedLengthStream(size)), {
       httpMetadata: { contentType: "image/jpeg" },
       ssecKey: await ssecKeyFor(reserved.keyScope, reserved.keyVersion),
     });

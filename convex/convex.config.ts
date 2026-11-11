@@ -1,7 +1,7 @@
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
 import auth from "@convex-dev/auth/convex.config.js";
-import email from "./components/email/convex.config";
+import cloudflareEmail from "@sarant/cloudflare-email-component/convex.config.js";
 import invites from "./components/invites/convex.config";
 import github from "@convex-dev/auth/components/github/convex.config.js";
 import google from "@convex-dev/auth/components/google/convex.config.js";
@@ -9,6 +9,7 @@ import authAnonymous from "@convex-dev/auth/components/anonymous/convex.config.j
 import agent from "@convex-dev/agent/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 import aiBudget from "@convex-dev/ai-budget/convex.config";
+import aggregate from "@convex-dev/aggregate/convex.config";
 
 const app = defineApp({
   env: {
@@ -56,13 +57,9 @@ app.use(google, {
 
 app.use(authAnonymous);
 
-app.use(email, {
-  env: {
-    CF_ACCOUNT_ID: app.env.CF_ACCOUNT_ID,
-    CF_EMAIL_TOKEN: app.env.CF_EMAIL_TOKEN,
-    EMAIL_FROM: app.env.EMAIL_FROM,
-  },
-});
+// Sends through Cloudflare Email Sending (model/mail.ts), which passes the
+// account and token on each send, so nothing is bound here.
+app.use(cloudflareEmail);
 app.use(invites);
 // The box's requests, read by Haiku through the Convex AI Gateway.
 app.use(agent);
@@ -70,5 +67,11 @@ app.use(agent);
 app.use(rateLimiter);
 // Measures every AI call's cost and usage (lib/ai/budget.ts).
 app.use(aiBudget);
+
+// Running counts and sums (lib/aggregates.ts): a person's upload bytes, an
+// experience's photos and videos, and its changes by who made them.
+app.use(aggregate, { name: "uploadBytes" });
+app.use(aggregate, { name: "eventMedia" });
+app.use(aggregate, { name: "changeCounts" });
 
 export default app;

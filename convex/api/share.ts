@@ -2,8 +2,8 @@ import { shareApi } from "../model/share";
 
 // Written in convex/model/share.ts.
 export const {
-  hidePhotos,
-  setHidePhotos,
+  shown,
+  setShown,
   link,
   enable,
   disable,

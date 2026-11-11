@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useSeen } from "@/hooks/use-seen";
 
 // An experience, loaded once for whichever of its sections is open (moments,
 // journal, sharing, activity): the not-found and loading states, and, unless
@@ -30,6 +31,7 @@ export const ExperienceShell = ({
   children: (event: EventView) => ReactNode;
 }) => {
   const { data: event } = useQuery(queries.events.get({ eventId: id }));
+  useSeen(event?._id);
   useDocumentTitle(
     event ? `${section ? `${section} · ` : ""}${event.title} · Story-time` : undefined,
   );

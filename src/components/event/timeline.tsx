@@ -1,7 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation, usePaginatedQuery } from "convex/react";
-import { ImagesIcon, PencilIcon, PlayIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import {
+  ArrowDownUpIcon,
+  ImagesIcon,
+  PencilIcon,
+  PlayIcon,
+  SearchIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -24,6 +31,15 @@ import { cn } from "@/lib/utils";
 
 const PAGE = 30;
 
+const ORDER_KEY = "moments-order";
+const readNewestFirst = (): boolean => {
+  try {
+    return localStorage.getItem(ORDER_KEY) === "newest";
+  } catch {
+    return false;
+  }
+};
+
 // The moments of an experience as a grid of cards, oldest first, with a search
 // box. Picking one hands it to the page, which edits it or opens it in the
 // story. Each card you may change has its own Edit and Delete buttons.
@@ -44,12 +60,22 @@ export const Timeline = ({
 }) => {
   const [query, setQuery] = useState("");
   const searching = query.trim() !== "";
-  // Thirty at a time, oldest first. Searching needs every moment (places and
+  // Which end of the trip leads. Remembered on this device.
+  const [newestFirst, setNewestFirst] = useState(readNewestFirst);
+  const flip = () => {
+    setNewestFirst(!newestFirst);
+    try {
+      localStorage.setItem(ORDER_KEY, newestFirst ? "oldest" : "newest");
+    } catch {
+      // Private mode: the choice lasts until the page is left.
+    }
+  };
+  // Thirty at a time, in that order. Searching needs every moment (places and
   // notes are encrypted, so only the browser can match them), so it reads them
   // all, and only while something is typed.
   const paged = usePaginatedQuery(
     api.moments.page,
-    { eventId: event._id },
+    { eventId: event._id, newestFirst },
     { initialNumItems: PAGE },
   );
   const { data: all } = useQuery(queries.moments.list(searching ? { eventId: event._id } : "skip"));
@@ -89,34 +115,45 @@ export const Timeline = ({
   }, [selectedMomentId, moments, searching, paged]);
 
   const search = (
-    <div className="relative">
-      <SearchIcon
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-      />
-      <Input
-        ref={searchInput}
-        type="search"
-        aria-label="Search moments"
-        aria-keyshortcuts="/"
-        placeholder="Search places, notes, people…"
-        className="h-8 pr-8 pl-8"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key !== "Escape") return;
-          setQuery("");
-          e.currentTarget.blur();
-        }}
-      />
-      {query === "" && (
-        <kbd
+    <div className="flex items-center gap-2">
+      <div className="relative min-w-0 flex-1">
+        <SearchIcon
           aria-hidden
-          className="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 rounded border px-1 text-[11px] text-muted-foreground sm:block"
-        >
-          /
-        </kbd>
-      )}
+          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          ref={searchInput}
+          type="search"
+          aria-label="Search moments"
+          aria-keyshortcuts="/"
+          placeholder="Search places, notes, people…"
+          className="h-8 pr-8 pl-8"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Escape") return;
+            setQuery("");
+            e.currentTarget.blur();
+          }}
+        />
+        {query === "" && (
+          <kbd
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 rounded border px-1 text-[11px] text-muted-foreground sm:block"
+          >
+            /
+          </kbd>
+        )}
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        aria-pressed={newestFirst}
+        title="Switch between newest first and oldest first"
+        onClick={flip}
+      >
+        <ArrowDownUpIcon /> {newestFirst ? "Newest first" : "Oldest first"}
+      </Button>
     </div>
   );
 
@@ -143,7 +180,11 @@ export const Timeline = ({
   if (moments.length === 0) return <Empty event={event} />;
 
   const shown = moments.filter((m) => matchesSearch(m, query));
-  const days = groupByDay(shown, viewerDay());
+  // Grouped oldest first, then turned round whole: days, and moments in a day.
+  const ordered = groupByDay(shown, viewerDay());
+  const days = newestFirst
+    ? ordered.reverse().map((day) => ({ ...day, moments: [...day.moments].reverse() }))
+    : ordered;
   return (
     <div className="@container space-y-4">
       {search}

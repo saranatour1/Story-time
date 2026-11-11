@@ -1,9 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useAuthToken } from "@convex-dev/auth/react";
+import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "convex/react";
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
+  HistoryIcon,
   LinkIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -13,6 +15,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { queries } from "@/lib/queries";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
@@ -46,6 +49,11 @@ export const EventActionsMenu = ({
   const [confirming, setConfirming] = useState(false);
   const isOwner = event.role === "owner";
   const archived = event.status === "archived";
+  // New moments, pages and guestbook notes since the owner last opened
+  // Activity. Not asked for on a Home card: one count per card is too many.
+  const { data: unread = 0 } = useQuery(
+    queries.changes.unreadCount(isOwner && !compact ? { eventId: event._id } : "skip"),
+  );
 
   const setArchived = async (next: boolean) => {
     const status = (on: boolean) => (on ? ("archived" as const) : ("active" as const));
@@ -78,12 +86,18 @@ export const EventActionsMenu = ({
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`More actions for ${event.title}`}
-            title="More: edit details, share, archive"
-            className={compact ? undefined : "sm:w-auto sm:gap-1.5 sm:px-3"}
+            aria-label={`More actions for ${event.title}${unread > 0 ? `, ${unread} new in Activity` : ""}`}
+            title="More: edit details, activity, archive"
+            className={compact ? "relative" : "relative sm:w-auto sm:gap-1.5 sm:px-3"}
           >
             <MoreHorizontalIcon />
             {!compact && <span className="hidden sm:inline">More</span>}
+            {unread > 0 && (
+              <span
+                aria-hidden
+                className="absolute top-1 right-1 size-2 rounded-full bg-amber-400"
+              />
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-72">
@@ -111,6 +125,18 @@ export const EventActionsMenu = ({
           <DropdownMenuItem data-track="link_copied" onSelect={() => void copyLink()}>
             <LinkIcon /> Copy link
           </DropdownMenuItem>
+          {isOwner && !compact && (
+            <DropdownMenuItem
+              onSelect={() => void navigate({ to: "/e/$id/activity", params: { id: event._id } })}
+            >
+              <HistoryIcon /> Activity
+              {unread > 0 && (
+                <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                  {unread > 99 ? "99+" : unread} new
+                </span>
+              )}
+            </DropdownMenuItem>
+          )}
           {isOwner && (
             <>
               <DropdownMenuSeparator />

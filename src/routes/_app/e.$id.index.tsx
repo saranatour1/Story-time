@@ -10,6 +10,7 @@ import { ArrowRightIcon, UsersIcon } from "lucide-react";
 import { eventDates } from "@/components/event/event-dates";
 import { ExperienceActions, ExperienceShell } from "@/components/event/experience-shell";
 import { EditorPanel, type Panel } from "@/components/event/itinerary-panel";
+import { MomentPeek } from "@/components/event/moment-peek";
 import { Timeline } from "@/components/event/timeline";
 import { ROLE_LABEL } from "@/components/event/shared-tab";
 import type { EventView } from "@/components/event/types";
@@ -25,16 +26,17 @@ const search = z.object({
     .optional()
     .catch(undefined),
   panel: z.enum(["outline", "details", "moment"]).default("outline").catch("outline"),
-  // The moment picked in the list.
+  // The moment picked in the list, open to look at when `peek` is set.
   momentId: z.string().optional().catch(undefined),
   // The moment open in the editor, kept apart so picking another never swaps
   // out unsaved edits.
   editId: z.string().optional().catch(undefined),
+  peek: z.boolean().optional().catch(undefined),
 });
 
 const EventPage = () => {
   const { id } = Route.useParams();
-  const { panel, momentId, editId } = Route.useSearch();
+  const { panel, momentId, editId, peek } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { data: me } = useQuery(queries.users.getCurrentUser());
 
@@ -53,14 +55,18 @@ const EventPage = () => {
               panel: next,
               momentId: nextMomentId ?? (next === "outline" ? s.momentId : undefined),
               editId: next === "moment" ? nextMomentId : undefined,
+              peek: undefined,
             }),
           });
-        // Picking a moment edits it when you may, else plays the story from it.
-        const pick = (moment: { _id: string; authorId: string }) => {
-          if (canEditMoment(moment.authorId)) openPanel("moment", moment._id);
-          else
-            void navigate({ to: "/e/$id/story", params: { id }, search: { momentId: moment._id } });
-        };
+        // Picking a moment opens it to look at; Edit is a step from there, or
+        // the tile's own button.
+        const pick = (moment: { _id: string }) =>
+          void navigate({
+            search: (s) => ({ ...s, tab: undefined, momentId: moment._id, peek: true }),
+            resetScroll: false,
+          });
+        const closePeek = () =>
+          void navigate({ search: (s) => ({ ...s, peek: undefined }), resetScroll: false });
         return (
           /* The moments on the left. On the right, the experience's buttons
              and its overview, or whatever is being edited. Stacked on narrow
@@ -84,6 +90,15 @@ const EventPage = () => {
               )}
             </aside>
             <div className="min-w-0 space-y-4 lg:order-1">
+              {peek && momentId && (
+                <Peek
+                  eventId={event._id}
+                  momentId={momentId}
+                  canEdit={canEditMoment}
+                  onEdit={() => openPanel("moment", momentId)}
+                  onClose={closePeek}
+                />
+              )}
               <CommandBar event={event} openMomentId={momentId} />
               <Timeline
                 event={event}
@@ -98,6 +113,32 @@ const EventPage = () => {
         );
       }}
     </ExperienceShell>
+  );
+};
+
+// The picked moment, open to look at. Nothing shows until the list has it.
+const Peek = ({
+  eventId,
+  momentId,
+  canEdit,
+  onEdit,
+  onClose,
+}: {
+  eventId: Id<"events">;
+  momentId: string;
+  canEdit: (authorId: string) => boolean;
+  onEdit: () => void;
+  onClose: () => void;
+}) => {
+  const { data: moments } = useQuery(queries.moments.list({ eventId }));
+  const moment = moments?.find((m) => m._id === momentId);
+  if (!moment) return null;
+  return (
+    <MomentPeek
+      moment={moment}
+      onEdit={canEdit(moment.authorId) ? onEdit : undefined}
+      onClose={onClose}
+    />
   );
 };
 

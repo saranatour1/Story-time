@@ -33,6 +33,7 @@ const readToken = (): string => {
 
 const SharedStoryPage = () => {
   const { step, page, mode } = Route.useSearch();
+  const { name } = Route.useParams();
   const navigate = useNavigate({ from: Route.fullPath });
   const [token] = useState(readToken);
   const { data: shared } = useQuery(queries.share.get(token ? { token } : "skip"));
@@ -44,6 +45,18 @@ const SharedStoryPage = () => {
     () => new Map((shared?.moments ?? []).map((m) => [m._id, m])),
     [shared?.moments],
   );
+  // An address without the link's name, or with an old one, moves to it.
+  const slug = shared?.slug;
+  useEffect(() => {
+    if (slug === undefined || slug === name) return;
+    void navigate({
+      params: { name: slug },
+      search: (prev) => prev,
+      hash: true,
+      replace: true,
+      resetScroll: false,
+    });
+  }, [slug, name, navigate]);
   const stage = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 900 });
   useEffect(() => {
@@ -96,7 +109,7 @@ const SharedStoryPage = () => {
     return <Skeleton className="h-svh w-full rounded-none" />;
   return (
     <MediaAuthContext.Provider value={{ kind: "share", token }}>
-      {mode === "film" ? (
+      {mode === "film" && shared.film ? (
         <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
           <StoryPlayer
             event={shared.event}
@@ -130,7 +143,7 @@ const SharedStoryPage = () => {
                   PDF
                 </Button>
               )}
-              {shared.moments.length > 0 && (
+              {shared.film && shared.moments.length > 0 && (
                 <Button variant="outline" size="sm" onClick={playFilm}>
                   <PlayIcon aria-hidden />
                   Play
@@ -200,10 +213,10 @@ const downloadPdf = async (
   }
 };
 
-// A book anyone can turn with its link, so there's no sign-in gate. The token
-// is the URL's fragment, which browsers never send to a server, and search
+// A book anyone can turn with its link, so there's no sign-in gate. The path
+// carries the link's name, which is only a name; the token is the URL's fragment, which browsers never send to a server, and search
 // engines are kept out. Play opens the film; the book is the page.
-export const Route = createFileRoute("/s")({
+export const Route = createFileRoute("/s/{-$name}")({
   validateSearch: search,
   // The link is the key, so these don't wait for sign-in.
   loader: ({ context: { queryClient } }) => {

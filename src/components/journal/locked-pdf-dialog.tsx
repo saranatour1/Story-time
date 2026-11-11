@@ -140,7 +140,7 @@ export const LockedPdfDialog = ({
           <p className="text-sm text-stone-600">
             The share link is off, so nobody can download it yet.{" "}
             <Link to="/e/$id/shared" params={{ id: event._id }} className="underline">
-              Switch it on in Shared
+              Switch it on in People
             </Link>
             .
           </p>
