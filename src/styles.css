@@ -123,9 +123,9 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
-  /* Signed in: the landing page's first screen stays hidden on the way to
-     /home (see SESSION_SCRIPT in __root.tsx). */
-  [data-signed-in] [data-first-paint] {
+  /* Signed in: the landing page stays hidden on the way to /home (see
+     SESSION_SCRIPT in __root.tsx). */
+  [data-signed-in] [data-auth-pending] {
     visibility: hidden;
   }
   .maplibregl-popup-content {

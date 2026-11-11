@@ -46,9 +46,10 @@ const forCrawlers = createMiddleware({ type: "request" }).server(async ({ next, 
   return result;
 });
 
-// SSR is off app-wide: routes render in the browser. The shell and the root
+// SSR is off by default: routes render in the browser. The shell and the root
 // route's head() still render on the server, for link previews and the
-// no-flash theme script.
+// no-flash theme script. The home page opts in (src/routes/index.tsx), so
+// crawlers that run no script can read it.
 export const startInstance = createStart(() => ({
   defaultSsr: false,
   // Crawler reads are recorded before the markdown answer can return early.
