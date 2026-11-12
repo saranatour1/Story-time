@@ -22,10 +22,10 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { DuskScene, useScrollDepth } from "@/components/landing/dusk";
-import { HERO_LEAD, HERO_NOTE, LandingFirstPaint } from "@/components/landing/first-paint";
 import { FilmDemo } from "@/components/landing/film-demo";
 import { MapFrame } from "@/components/landing/frames";
 import {
@@ -40,6 +40,7 @@ import { SignInButtons } from "@/components/login-form";
 import { Logo } from "@/components/logo";
 import { CONTAINER } from "@/components/sign-in-screen";
 import { Button } from "@/components/ui/button";
+import { pageMeta } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 // MapLibre is heavy, so the globe arrives only when its band comes near.
@@ -49,16 +50,22 @@ const LiveGlobe = lazy(() =>
 
 const Landing = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
+  // The server renders with motion. For someone who asked for less, the key
+  // remounts the page once the browser knows, so every part starts still.
+  const reduced = useReducedMotion();
 
   if (isAuthenticated) return <Navigate to="/home" replace />;
-  // Until auth settles, the same first screen the server sent. It stays hidden
-  // for someone with a session, so they don't see sign-in on the way to /home.
-  if (isLoading) return <LandingFirstPaint />;
 
   // Always story mode's dark room: `dark` gives the app's own buttons and
-  // cards their dark colours inside.
+  // cards their dark colours inside. The server renders this page, so crawlers
+  // that run no script read all of it. Until auth settles it is marked, and
+  // styles.css hides it for someone with a session on their way to /home.
   return (
-    <div className="dark relative flex min-h-svh flex-col overflow-x-clip bg-[#141210] text-stone-100 [color-scheme:dark]">
+    <div
+      key={reduced ? "still" : "moving"}
+      data-auth-pending={isLoading ? "" : undefined}
+      className="dark relative flex min-h-svh flex-col overflow-x-clip bg-[#141210] text-stone-100 [color-scheme:dark]"
+    >
       <Nav />
       <main className="flex flex-1 flex-col">
         <Hero />
@@ -176,6 +183,10 @@ const Nav = () => {
     </header>
   );
 };
+
+const HERO_LEAD =
+  "Everyone who was there adds what they caught. Story-time puts it in order and plays it back as a little film, with your route drawn on a map.";
+const HERO_NOTE = "New here? Signing in creates your account. It's private until you share it.";
 
 // Short single words: the first line never changes how it wraps.
 const WORDS = ["sunset", "photo", "detour", "picnic", "ferry", "toast"];
@@ -454,17 +465,21 @@ const LEGS = [
   { from: "Kyoto", to: "Tokyo", by: "By train", icon: TrainFrontIcon, time: "2h 15m" },
 ];
 
-// Asks for a context and gives it straight back: browsers allow only a few.
+// Asks for a context once and gives it straight back: browsers allow only a few.
+let webglSupport: boolean | undefined;
 const supportsWebGL = (): boolean => {
+  if (webglSupport !== undefined) return webglSupport;
   try {
     const canvas = document.createElement("canvas");
     const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
     gl?.getExtension("WEBGL_lose_context")?.loseContext();
-    return gl !== null;
+    webglSupport = gl !== null;
   } catch {
-    return false;
+    webglSupport = false;
   }
+  return webglSupport;
 };
+const neverChanges = () => () => {};
 
 // The live globe once the band is near, turning only while it's on screen.
 // Without WebGL, the drawn map stands in.
@@ -473,7 +488,8 @@ const Globe = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
   const [onScreen, setOnScreen] = useState(false);
-  const [webgl] = useState(supportsWebGL);
+  // The server can't ask, so it assumes WebGL and the browser corrects it.
+  const webgl = useSyncExternalStore(neverChanges, supportsWebGL, () => true);
 
   useEffect(() => {
     const el = ref.current;
@@ -747,4 +763,29 @@ const Footer = () => {
 };
 
 // Last, so the components it names are defined above it.
-export const Route = createFileRoute("/")({ component: Landing });
+// What search engines read about the app itself, from the same words as the
+// page's title and description.
+const HOME = pageMeta("/");
+const APP_URL: string = import.meta.env.VITE_APP_URL ?? "";
+const JSON_LD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "WebSite", name: "Story-time", url: `${APP_URL}/` },
+    {
+      "@type": "WebApplication",
+      name: "Story-time",
+      url: `${APP_URL}/`,
+      description: HOME.description,
+      applicationCategory: "TravelApplication",
+      operatingSystem: "Any",
+      image: `${APP_URL}${HOME.image}`,
+    },
+  ],
+});
+
+export const Route = createFileRoute("/")({
+  // The one page the server renders in full (see defaultSsr in src/start.ts).
+  ssr: true,
+  head: () => ({ scripts: [{ type: "application/ld+json", children: JSON_LD }] }),
+  component: Landing,
+});

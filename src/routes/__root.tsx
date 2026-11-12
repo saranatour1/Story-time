@@ -4,15 +4,12 @@ import {
   ScriptOnce,
   createRootRouteWithContext,
   Outlet,
-  useRouterState,
 } from "@tanstack/react-router";
 import type { RouterContext } from "@/router";
 import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { Databuddy } from "@databuddy/sdk/react";
-import { LandingFirstPaint } from "@/components/landing/first-paint";
-import { LogoSplash } from "@/components/logo";
 import { pageMeta } from "@/lib/seo";
 
 import appCss from "../styles.css?url";
@@ -55,17 +52,13 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// What the server sends before the app loads, since server rendering is off:
-// the landing page's first screen on "/", else an empty screen.
-const RootPending = () => {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  return pathname === "/" ? <LandingFirstPaint /> : <LogoSplash />;
-};
-
 // Last, so the components it names are defined above it.
 export const Route = createRootRouteWithContext<RouterContext>()({
-  // Server rendering is off, so this is the only head link previews and
-  // crawlers see: it picks the page's tags from the path (src/lib/seo.ts).
+  // A child can't be server-rendered unless its parent is, so the root opts in
+  // for the home page, the only route that sets `ssr: true`.
+  ssr: ({ location }) => location.pathname === "/",
+  // Elsewhere server rendering is off, so this is the only head link previews
+  // and crawlers see: it picks the page's tags from the path (src/lib/seo.ts).
   head: ({ matches }) => {
     const pathname = matches.at(-1)?.pathname ?? "/";
     const page = pageMeta(pathname);
@@ -118,11 +111,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     };
   },
   shellComponent: RootDocument,
-  pendingComponent: RootPending,
   component: () => (
-    // The root renders client-side, where next-themes' own inline script can
-    // never run; a data type keeps React from warning about it. ScriptOnce in
-    // the shell does the no-flash work instead.
+    // Outside the home page the root renders client-side, where next-themes'
+    // own inline script can never run; a data type keeps React from warning
+    // about it. ScriptOnce in the shell does the no-flash work instead.
     <ThemeProvider
       attribute="class"
       defaultTheme="system"

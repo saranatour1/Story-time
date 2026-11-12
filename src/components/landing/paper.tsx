@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 
 // Story mode's typewriter and colours. The paper stays cream in both
@@ -11,11 +11,11 @@ export const PAPER = "#f3e9d6";
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// Read once: a page that starts still stays still.
-export const useReducedMotion = () => {
-  const [reduced] = useState(prefersReducedMotion);
-  return reduced;
-};
+const neverChanges = () => () => {};
+
+// The server can't know, so it renders with motion and the browser corrects it.
+export const useReducedMotion = () =>
+  useSyncExternalStore(neverChanges, prefersReducedMotion, () => false);
 
 // True once the element has scrolled into view, so a frame's motion starts
 // where someone can see it.
