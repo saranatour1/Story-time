@@ -16,6 +16,7 @@ import {
   requireEventAccess,
   requireUserId,
   sharesExperience,
+  withheld,
 } from "../lib/access";
 import { eventMedia, insertMedia, patchMedia, uploadBytes } from "../lib/aggregates";
 import { recordChange } from "../lib/changes";
@@ -281,6 +282,7 @@ const getForDownload = query({
     ) {
       return null;
     }
+    if (await withheld(ctx, media, access)) return null;
     return delivered(media, args.variant, media.eventId);
   },
 });

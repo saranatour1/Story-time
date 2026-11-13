@@ -74,10 +74,11 @@ const DataSettings = () => {
               Its layout isn't.
             </li>
             <li>
-              From your GitHub or Google account, only an email address the provider says is
-              verified is copied, as the address replies and reminders go to. Your name and picture
-              are not. An address you type in Settings is used only after you open the link sent to
-              it.
+              From your GitHub or Google account we copy your name, the address of your profile
+              picture, and an email address only if the provider says it is verified, as the address
+              replies and reminders go to. The picture stays with GitHub or Google and loads from
+              there until you upload your own. An address you type in Settings is used only after
+              you open the link sent to it.
             </li>
             <li>
               If you turn on the memory reminder, its email says only that a memory is waiting, with

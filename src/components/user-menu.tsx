@@ -30,6 +30,7 @@ export const UserMenu = () => {
     <>
       <UserAvatar
         mediaId={user?.imageMediaId}
+        imageUrl={user?.imageUrl}
         name={user?.displayName?.trim() || user?.username}
         className="size-8"
       />

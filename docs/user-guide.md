@@ -6,13 +6,13 @@ The shape of it is simple. You put in photos, or one sentence. You get a book of
 
 ## Sign in
 
-On the sign-in screen, use **Continue with Google** or **Continue with GitHub**. There is no password in the app. Story-time does not copy your name or email from Google or GitHub. What you later type under Settings is what the app stores.
+On the sign-in screen, use **Continue with Google** or **Continue with GitHub**. There is no password in the app. Story-time copies your name, your profile picture's address and your verified email from Google or GitHub. You can change the name and upload a different picture under Settings.
 
 **Continue anonymously (dev only)** is for a private test copy. It should not appear on the real site, and the switch that allows it (`ALLOW_ANONYMOUS_SIGNIN`) should be left unset there.
 
 ## Start an experience
 
-On the home page, choose **Start an experience** or **New experience**. You can own up to 20. **Grid** shows each experience as a card; **Calendar** puts them on a month calendar across their dates. An experience with no dates is only in Grid.
+On the home page, choose **Start an experience** or **New experience**. You can own up to 20. **Grid** shows each experience as a card; **Calendar** puts them on a calendar across their dates, one bar per experience, with month, week, day and agenda views. Click an experience there for a preview of its latest moments. If you own it, drag it to other dates in the month view; the message that confirms the move has an Undo. An experience with no dates is only in Grid.
 
 Give it a name. **Starts** is optional. The name is the title people see. It is not locked away the way a note is. See the encryption section below.
 
@@ -83,6 +83,10 @@ The secret part of a share link sits after `#` in the address. Send the whole ad
 **Invite someone.** An invite works once, for the first person who opens it. **Can watch** lets them read. **Can add moments** lets them add their own. **Email them (optional)** sends the invite if email is set up on the server. The address is used to send and is not stored. If email is not set up, you still get a link and the toast says **Invite link ready: copy it below**. When a message is sent, the toast says **Invite emailed**. The link is shown only then. You can email up to 10 invites a day. An experience can have 20 invites waiting.
 
 An archived experience cannot turn on a new share link, and it takes no new people.
+
+**Hiding a photo.** When you edit a moment, each photo and video has an eye button. Press it and that picture is hidden from other people: the people you invited and anyone with the share link no longer get it, in the list, in the story or by its address. You, the experience's owners and whoever wrote the moment still see it, marked with a crossed-out eye. Press the button again to show it. A moment whose every picture is hidden, with no words left, is not shown to other people at all.
+
+**Archiving a moment.** **Archive** on a moment takes it out of the story and hides it from everyone but you and the experience's owners. It stays in your Moments list, dimmed and marked **Archived**, and **Restore** brings it back. The moment count leaves archived moments out. Whoever can edit a moment can archive it.
 
 ## Play
 

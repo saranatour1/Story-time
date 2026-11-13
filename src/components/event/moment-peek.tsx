@@ -26,6 +26,7 @@ export const MomentPeek = ({
 }) => {
   const blocks = [...moment.blocks, ...moment.stops.flatMap((stop) => stop.blocks)];
   const media = blocks.filter((b) => b.type === "photo" || b.type === "video");
+  const hidden = media.filter((b) => b.hidden).length;
   const places = [moment.place, ...moment.stops.map((stop) => stop.place)].filter(Boolean);
   const when = formatDateTime(moment.startsAt, moment.tzOffsetMinutes, {
     dateStyle: "medium",
@@ -58,6 +59,11 @@ export const MomentPeek = ({
               ),
             )}
           </div>
+        )}
+        {hidden > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {hidden} of these {hidden === 1 ? "is" : "are"} hidden from other people.
+          </p>
         )}
         {blocks.map((b, i) =>
           b.type === "note" || b.type === "feeling" ? (
