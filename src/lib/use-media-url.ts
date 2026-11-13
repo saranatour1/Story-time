@@ -91,6 +91,10 @@ export const clearMediaCache = () => {
   }
 };
 
+export const isCached = (mediaId: string, variant: MediaVariant): boolean => {
+  return Boolean(cache.get(cacheKey(mediaId, variant))?.state.url);
+};
+
 export const useMediaUrl = (
   mediaId: string | undefined,
   variant: MediaVariant = "full",

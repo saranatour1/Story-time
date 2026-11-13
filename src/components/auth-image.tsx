@@ -1,4 +1,4 @@
-import { useMediaUrl, useWhenSeen, type MediaVariant } from "@/lib/use-media-url";
+import { isCached, useMediaUrl, useWhenSeen, type MediaVariant } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 
 export const AuthImage = ({
@@ -19,7 +19,13 @@ export const AuthImage = ({
   sizes?: string;
 }) => {
   const [ref, seen] = useWhenSeen();
-  const { url, failed } = useMediaUrl(seen ? mediaId : undefined, variant);
+  const full = useMediaUrl(seen ? mediaId : undefined, variant);
+  const thumbAlreadyLoaded = useMediaUrl(
+    variant === "full" && isCached(mediaId, "thumb") ? mediaId : undefined,
+    "thumb",
+  );
+  const url = full.url ?? thumbAlreadyLoaded.url;
+  const failed = full.failed && !url;
 
   return (
     <div
@@ -54,7 +60,8 @@ export const AuthImage = ({
 };
 
 export const AuthVideo = ({ mediaId, label }: { mediaId: string; label: string }) => {
-  const { url, failed } = useMediaUrl(mediaId);
+  const [ref, seen] = useWhenSeen();
+  const { url, failed } = useMediaUrl(seen ? mediaId : undefined);
 
   if (failed) {
     return (
@@ -63,7 +70,7 @@ export const AuthVideo = ({ mediaId, label }: { mediaId: string; label: string }
       </div>
     );
   }
-  if (!url) return <div className="aspect-video animate-pulse rounded-md bg-muted" />;
+  if (!url) return <div ref={ref} className="aspect-video animate-pulse rounded-md bg-muted" />;
   return (
     <video
       src={url}
