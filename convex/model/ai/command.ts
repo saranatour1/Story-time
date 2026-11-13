@@ -1,4 +1,3 @@
-import { Agent, createThread } from "@convex-dev/agent";
 import {
   experimental_decide,
   type Experimental_DecisionAnswer,
@@ -6,7 +5,7 @@ import {
 } from "ai";
 import { ConvexError, v, type Infer } from "convex/values";
 import { z } from "zod";
-import { components, internal } from "../../_generated/api";
+import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
 import { action, internalQuery, mutation, type MutationCtx } from "../../_generated/server";
 import { assertNotArchived, requireEventAccess } from "../../lib/access";
@@ -32,7 +31,7 @@ import {
   type PlainStop,
 } from "../moments";
 import { generateStructured } from "../../lib/ai/generate";
-import { jevModel, scribeModel, skipReason } from "../../lib/ai/models";
+import { jevModel, skipReason } from "../../lib/ai/models";
 
 const LIST_CAP = 60;
 const MAX_OUTPUT_TOKENS = 900;
@@ -235,13 +234,6 @@ const rawPlan = z.object({
   ),
 });
 export type RawPlan = z.infer<typeof rawPlan>;
-
-const planner = new Agent(components.agent, {
-  name: "Scribe",
-  languageModel: scribeModel,
-  instructions: INSTRUCTIONS,
-  storageOptions: { saveMessages: "none" },
-});
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -483,13 +475,13 @@ const propose = action({
 
     const zone = found.zone ?? args.zone;
     const prompt = promptFor(found, text, Date.now(), zone);
-    const threadId = await createThread(ctx, components.agent);
     let plan: RawPlan;
     try {
-      plan = await generateStructured(ctx, planner, threadId, {
+      plan = await generateStructured({
         schema: rawPlan,
-        messages: [{ role: "user", content: prompt }],
+        instructions: INSTRUCTIONS,
         jsonInstructions: JSON_INSTRUCTIONS,
+        messages: [{ role: "user", content: prompt }],
         maxOutputTokens: MAX_OUTPUT_TOKENS,
       });
     } catch (error) {
@@ -500,8 +492,6 @@ const propose = action({
         message:
           'I couldn\'t read that just now. Try again, or save it as a moment with "Add as a moment".',
       });
-    } finally {
-      await planner.deleteThreadSync(ctx, { threadId }).catch(() => undefined);
     }
     const { ops, needs } = resolvePlan(plan, found, {
       removesOk: allowsRemoval(verdict, text),

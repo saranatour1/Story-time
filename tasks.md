@@ -31,7 +31,7 @@ After the eight, in this order. Each one stays inside "photos or a sentence in, 
 - Edit moment: a photo fills only an empty When, so a moment's first stop (which always has a time) keeps its time when photos are added to it. Decide whether a photo taken earlier should move it.
 - Collaboration follow-ups: tag people when a moment is first added (today it's only on edit), and decide whether "Who was there" belongs on journal pages (it would then reach the share link).
 
-- After the AI Budget: its component is unmounted. Delete the `aiBudget` component's data in the dashboard (dev, then prod), and remove `AI_BUDGET_DASHBOARD_TOKEN` from the deployments that have it.
+- After the AI Budget and the agent: both components are unmounted. Delete the `aiBudget` and `agent` components' data in the dashboard (dev, then prod), and remove `AI_BUDGET_DASHBOARD_TOKEN` from the deployments that have it.
 - Voice with zero data retention: turn on `provider.zdr` in `convex/model/ai/voice.ts` once the gateway's transcription route accepts it (it answers 400 today).
 - Journal photo frames that take the photo's shape: keep each photo's width and height when it's uploaded, and size frames from it when a page is cut, so a tall photo gets a tall frame instead of paper at its sides.
 - Databuddy: after the next production deploy, check the dashboard shows the first page view (localhost is ignored).

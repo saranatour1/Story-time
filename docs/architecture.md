@@ -61,7 +61,7 @@ A share link is not a user. `convex/model/share.ts` `eventFor` hashes the token,
 | `sessions`     | Invite grants: user, experience, role, `revokedAt`.                                                                                                                                                                          |
 | `changes`      | The Activity log. Names the field that changed, not the secret.                                                                                                                                                              |
 
-Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (the `@sarant/cloudflare-email-component` package), three aggregates for counts and byte totals (`convex/lib/aggregates.ts`), plus the auth (core, GitHub, Google, anonymous), agent and rate-limiter components mounted in `convex/convex.config.ts`.
+Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (the `@sarant/cloudflare-email-component` package), three aggregates for counts and byte totals (`convex/lib/aggregates.ts`), plus the auth (core, GitHub, Google, anonymous) and rate-limiter components mounted in `convex/convex.config.ts`.
 
 These tables are still in the schema and are not part of the product. Nothing in the app writes them. `purgeEventData` in `convex/model/events.ts` deletes per-experience rows when a trip is removed. Account-wide `agentTokens` (no `eventId`) stay until that cleanup is done by hand:
 
@@ -152,7 +152,7 @@ The box is `src/components/event/command-bar.tsx`. It is not an MCP client. `con
 2. `takeAi` takes one of the person's ten AI uses for the day (`convex/lib/rateLimit.ts`). If Haiku can't plan, `creditAi` gives it back.
 3. Jev (`typesafe/jev-1.13`, `jevModel` in `convex/lib/ai/models.ts`) labels the sentence new, change, remove, or unclear.
 4. A new sentence returns `{ kind: "new" }`. The client saves a note moment. No plan.
-5. Otherwise Haiku (`anthropic/claude-haiku-5.5`, `scribeModel`) plans through `@convex-dev/agent`. Instructions are the `INSTRUCTIONS` string in `command.ts`. The thread is deleted afterward (`saveMessages: "none"`).
+5. Otherwise Haiku (`anthropic/claude-haiku-5.5`, `scribeModel`) plans with one AI SDK call (`generateStructured` in `convex/lib/ai/generate.ts`). Instructions are the `INSTRUCTIONS` string in `command.ts`. Nothing is stored: there is no thread, message history or tool loop.
 6. `resolvePlan` drops removals unless `allowsRemoval` says the sentence asked for one. At most 8 operations (`MAX_COMMAND_OPS`).
 
 `api.ai.command.apply` writes those operations in one transaction or not at all. New moments go through `createMoment`, so they get pages. The client deletes any R2 objects the mutation reports as removed.

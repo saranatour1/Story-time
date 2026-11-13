@@ -161,7 +161,6 @@ export declare const components: {
   authAnonymous: import("@convex-dev/auth/components/anonymous/_generated/component.js").ComponentApi<"authAnonymous">;
   cloudflareEmail: import("@sarant/cloudflare-email-component/_generated/component.js").ComponentApi<"cloudflareEmail">;
   invites: import("../components/invites/_generated/component.js").ComponentApi<"invites">;
-  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   uploadBytes: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"uploadBytes">;
   eventMedia: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"eventMedia">;

@@ -183,9 +183,6 @@ importers:
       '@cantoo/pdf-lib':
         specifier: 2.9.2
         version: 2.9.2(html-entities@2.6.0)
-      '@convex-dev/agent':
-        specifier: ^0.7.9
-        version: 0.7.9(@ai-sdk/provider-utils@5.0.75(zod@4.6.7))(@ai-sdk/provider@4.0.36)(ai@7.0.163(zod@4.6.7))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(convex@1.49.0(react@19.3.1))(prettier@3.9.10)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)
       '@convex-dev/aggregate':
         specifier: ^0.3.4
         version: 0.3.4(@standard-schema/spec@1.1.0)(convex@1.49.0(react@19.3.1))(prettier@3.9.10)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
@@ -599,20 +596,6 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
-
-  '@convex-dev/agent@0.7.9':
-    resolution: {integrity: sha512-/P7IU6CyzopR3olJmqQsLmy0sb9bTvubeuLTInsgqqQBgr7S7Z/N6L22AIer9dGcYTnW1sb7Lzacw61H2ptqbw==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      '@ai-sdk/provider': ^4.0.0
-      '@ai-sdk/provider-utils': ^5.0.0
-      ai: ^7.0.129
-      convex: ^1.46.0
-      convex-helpers: ^0.1.127
-      react: ^18.3.1 || ^19.0.0
-    peerDependenciesMeta:
-      react:
-        optional: true
 
   '@convex-dev/aggregate@0.3.4':
     resolution: {integrity: sha512-w60E4fLuysza8sBIQsLlYFxnzMB7ed8yqYpu/JfDhkUYvnnvW3CzLEf74zCwb/RfLrR6u5a/0pfvVtIp4XNIoA==}
@@ -3182,9 +3165,6 @@ packages:
     resolution: {integrity: sha512-SB8xqipSzZHUePCCLNeYxqnxq83X61/qzNhjQGbTfjxGZIeOEP7tBgWYX05Tcd6CgE02WdTJnh5b8kMZJ/+bnQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@ungap/structured-clone@1.4.0':
-    resolution: {integrity: sha512-1mEZtMKPM09vDmQt5y7YvmN2+DFTP7Tg0EWXdic8/C6VRnpb33e4ghisCIE3WZjsE2N8mf+QV1Zqh7ZFYLWInQ==}
-
   '@vercel/oidc@3.2.0':
     resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
     engines: {node: '>= 20'}
@@ -5270,17 +5250,6 @@ snapshots:
 
   '@cloudflare/workerd-windows-64@1.20261104.1':
     optional: true
-
-  '@convex-dev/agent@0.7.9(@ai-sdk/provider-utils@5.0.75(zod@4.6.7))(@ai-sdk/provider@4.0.36)(ai@7.0.163(zod@4.6.7))(convex-helpers@0.1.134(@standard-schema/spec@1.1.0)(convex@1.49.0(react@19.3.1))(prettier@3.9.10)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7))(convex@1.49.0(react@19.3.1))(react@19.3.1)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.36
-      '@ai-sdk/provider-utils': 5.0.75(zod@4.6.7)
-      ai: 7.0.163(zod@4.6.7)
-      convex: 1.49.0(react@19.3.1)
-      convex-helpers: 0.1.134(@standard-schema/spec@1.1.0)(convex@1.49.0(react@19.3.1))(prettier@3.9.10)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)
-    optionalDependencies:
-      '@ungap/structured-clone': 1.4.0
-      react: 19.3.1
 
   '@convex-dev/aggregate@0.3.4(@standard-schema/spec@1.1.0)(convex@1.49.0(react@19.3.1))(prettier@3.9.10)(react@19.3.1)(typescript@6.0.3)(zod@4.6.7)':
     dependencies:
@@ -7737,9 +7706,6 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.72.1
       eslint-visitor-keys: 5.0.1
-
-  '@ungap/structured-clone@1.4.0':
-    optional: true
 
   '@vercel/oidc@3.2.0': {}
 

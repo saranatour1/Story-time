@@ -5,6 +5,7 @@ What has landed, newest first. One line per change; the PR has the detail.
 ## 2026-11-13
 
 - **AI limits on the rate limiter alone.** The ten AI uses a day live only in `convex/lib/rateLimit.ts`, and a request the AI couldn't answer (the box's plan, a transcription) gives its use back with the rate limiter's `credit`. The AI Budget component, its `/aibudget` dashboard, `metered()` and `AI_PER_DAY` are gone, and `@convex-dev/ai-budget` left `package.json`. `convex/model/ai/command.ts` lost its comments and some nesting; it does what it did.
+- **No agent component.** The box's plan was the only thing on `@convex-dev/agent`, and it made a thread per request only to delete it: no history, no stored messages, no tools. Haiku is now called straight through the AI SDK (`convex/lib/ai/generate.ts`), with the same instructions and the same JSON fallback. Jev and voice never used it.
 
 ## 2026-11-02
 

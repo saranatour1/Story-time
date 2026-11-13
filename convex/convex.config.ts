@@ -6,7 +6,6 @@ import invites from "./components/invites/convex.config";
 import github from "@convex-dev/auth/components/github/convex.config.js";
 import google from "@convex-dev/auth/components/google/convex.config.js";
 import authAnonymous from "@convex-dev/auth/components/anonymous/convex.config.js";
-import agent from "@convex-dev/agent/convex.config";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 import aggregate from "@convex-dev/aggregate/convex.config";
 
@@ -60,8 +59,6 @@ app.use(authAnonymous);
 // account and token on each send, so nothing is bound here.
 app.use(cloudflareEmail);
 app.use(invites);
-// The box's requests, read by Haiku through the Convex AI Gateway.
-app.use(agent);
 // Per-person allowances (convex/lib/rateLimit.ts).
 app.use(rateLimiter);
 
