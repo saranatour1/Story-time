@@ -4,15 +4,26 @@ export type PhotoMeta = {
   offsetMinutes?: number;
 };
 
-const HEAD_BYTES = 128 * 1024;
+const EDGE_BYTES = 128 * 1024;
 const INTEL_BYTE_ORDER_II = 0x4949;
 const EXIF_IN_ASCII = 0x45786966;
+const PNG_SIGNATURE = 0x89504e47;
+const PNG_EXIF_CHUNK = 0x65584966; // "eXIf"
+const PNG_END_CHUNK = 0x49454e44; // "IEND"
+const WEBP_EXIF_CHUNK = 0x45584946; // "EXIF"
+const DATE_TAGS = [0x9003, 0x9004] as const; // taken, then digitized
+const OFFSET_OF = { 0x9003: 0x9011, 0x9004: 0x9012 } as const;
+const IFD0_DATE = 0x0132;
+const OFFSET_TIME = 0x9010;
 
 const noGpsFix = (lat: number, lng: number): boolean => lat === 0 && lng === 0;
 
+// JPEG and PNG keep EXIF near the start; WebP often keeps it at the end.
 export const readPhotoMeta = async (file: File): Promise<PhotoMeta> => {
-  if (file.type !== "image/jpeg") return {};
-  return photoMetaFromJpeg(await file.slice(0, HEAD_BYTES).arrayBuffer());
+  if (!file.type.startsWith("image/")) return {};
+  const head = photoMetaFrom(await file.slice(0, EDGE_BYTES).arrayBuffer());
+  if (head.takenAt !== undefined || file.size <= EDGE_BYTES) return head;
+  return { ...photoMetaFrom(await file.slice(-EDGE_BYTES).arrayBuffer()), ...head };
 };
 
 export const combinePhotoMeta = (metas: PhotoMeta[]): Pick<PhotoMeta, "geo" | "takenAt"> => {
@@ -23,9 +34,9 @@ export const combinePhotoMeta = (metas: PhotoMeta[]): Pick<PhotoMeta, "geo" | "t
   };
 };
 
-export const photoMetaFromJpeg = (buffer: ArrayBuffer): PhotoMeta => {
+export const photoMetaFrom = (buffer: ArrayBuffer): PhotoMeta => {
   const view = new DataView(buffer);
-  const tiff = attempt(() => exifStart(view));
+  const tiff = attempt(() => jpegExif(view) ?? pngExif(view) ?? chunkExif(view));
   const little = attempt(() => tiff !== undefined && view.getUint16(tiff) === INTEL_BYTE_ORDER_II);
   if (tiff === undefined || little === undefined) return {};
   const u16 = (o: number) => view.getUint16(tiff + o, little);
@@ -67,12 +78,16 @@ export const photoMetaFromJpeg = (buffer: ArrayBuffer): PhotoMeta => {
   });
   const time = attempt(() => {
     const pointer = ifd0?.get(0x8769);
-    if (!pointer) return undefined;
-    const exif = ifd(u32(pointer.at));
-    const original = exif.get(0x9003);
-    if (!original) return undefined;
-    const offset = exif.get(0x9011);
-    return parseExifTime(ascii(original), offset && ascii(offset));
+    const exif: ReturnType<typeof ifd> = pointer ? ifd(u32(pointer.at)) : new Map();
+    for (const tag of DATE_TAGS) {
+      const date = exif.get(tag);
+      const offset = exif.get(OFFSET_OF[tag]) ?? exif.get(OFFSET_TIME);
+      const read = date && parseExifTime(ascii(date), offset && ascii(offset));
+      if (read) return read;
+    }
+    const saved = ifd0?.get(IFD0_DATE);
+    const offset = exif.get(OFFSET_TIME);
+    return saved && parseExifTime(ascii(saved), offset && ascii(offset));
   });
 
   const meta: PhotoMeta = { ...time };
@@ -96,7 +111,30 @@ const parseExifTime = (
   return { takenAt: new Date(y, mo - 1, d, h, mi, s).getTime() };
 };
 
-const exifStart = (view: DataView): number | undefined => {
+const pngExif = (view: DataView): number | undefined => {
+  if (view.getUint32(0) !== PNG_SIGNATURE) return undefined;
+  let at = 8;
+  while (at + 8 <= view.byteLength) {
+    const type = view.getUint32(at + 4);
+    if (type === PNG_EXIF_CHUNK) return at + 8;
+    if (type === PNG_END_CHUNK) return undefined;
+    at += 12 + view.getUint32(at);
+  }
+  return undefined;
+};
+
+// A WebP "EXIF" chunk, wherever it is in these bytes. Some writers put
+// "Exif\0\0" before the TIFF header, as JPEG does.
+const chunkExif = (view: DataView): number | undefined => {
+  for (let at = 0; at + 12 <= view.byteLength; at++) {
+    if (view.getUint32(at) !== WEBP_EXIF_CHUNK) continue;
+    const data = at + 8;
+    return view.getUint32(data) === EXIF_IN_ASCII ? data + 6 : data;
+  }
+  return undefined;
+};
+
+const jpegExif = (view: DataView): number | undefined => {
   if (view.getUint16(0) !== 0xffd8) return undefined;
   let at = 2;
   while (at + 4 <= view.byteLength) {

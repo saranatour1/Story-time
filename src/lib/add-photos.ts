@@ -40,6 +40,14 @@ const details = (problems: string[]): string => {
   return problems.length > 3 ? `${shown} · and ${problems.length - 3} more` : shown;
 };
 
+// Without a date inside, a photo is dated by when its file was last saved,
+// which is often when it was copied or downloaded, not when it was taken.
+const undated = (picked: Picked[]): string | undefined => {
+  const n = picked.filter((p) => p.guessed && p.kind === "photo").length;
+  if (n === 0) return undefined;
+  return `${plural(n, "photo")} had no date inside, so ${n === 1 ? "it's" : "they're"} dated by when the file was saved. Edit the moment to change it.`;
+};
+
 export const addPhotos = async (args: {
   event: Pick<EventView, "_id" | "momentCount">;
   files: File[];
@@ -118,10 +126,10 @@ export const addPhotos = async (args: {
     } else if (problems.length > 0) {
       toast.warning(`${added} · ${plural(problems.length, "problem")}`, {
         id: toastId,
-        description: details(problems),
+        description: [details(problems), undated(picked)].filter(Boolean).join(" · "),
       });
     } else {
-      toast.success(added, { id: toastId });
+      toast.success(added, { id: toastId, description: undated(picked) });
     }
     return created > 0;
   } catch (e) {

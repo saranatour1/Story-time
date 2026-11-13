@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { stripExif, withoutExif } from "./strip-exif";
+import { pngWithoutMeta, stripExif, webpWithoutMeta, withoutExif } from "./strip-exif";
 
 const segment = (marker: number, body: number[]) => [
   0xff,
@@ -52,4 +52,69 @@ test("other types, and JPEGs that don't parse, come back as the same file", asyn
   expect(await stripExif(png)).toBe(png);
   const broken = new File([photo().slice(0, 30)], "cut.jpg", { type: "image/jpeg" });
   expect(await stripExif(broken)).toBe(broken);
+});
+
+const be = (n: number) => [n >>> 24, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
+const le = (n: number) => be(n).reverse();
+const pngChunk = (type: string, data: number[]) => [
+  ...be(data.length),
+  ...text(type),
+  ...data,
+  9,
+  9,
+  9,
+  9,
+];
+
+test("a PNG loses its EXIF and text chunks and keeps the rest byte for byte", () => {
+  const sig = [0x89, ...text("PNG"), 0x0d, 0x0a, 0x1a, 0x0a];
+  const ihdr = pngChunk(
+    "IHDR",
+    Array.from({ length: 13 }, () => 1),
+  );
+  const iccp = pngChunk("iCCP", [1, 2, 3]);
+  const idat = pngChunk("IDAT", [4, 5, 6]);
+  const iend = pngChunk("IEND", []);
+  const png = new Uint8Array([
+    ...sig,
+    ...ihdr,
+    ...iccp,
+    ...pngChunk("eXIf", [0x4d, 0x4d, 0, 42]),
+    ...pngChunk("iTXt", text("XML:com.adobe.xmp")),
+    ...pngChunk("tEXt", text("GPS")),
+    ...idat,
+    ...iend,
+  ]);
+  expect(Array.from(pngWithoutMeta(png) ?? [])).toEqual([
+    ...sig,
+    ...ihdr,
+    ...iccp,
+    ...idat,
+    ...iend,
+  ]);
+  expect(pngWithoutMeta(png.slice(0, 40))).toBeNull();
+});
+
+test("a WebP loses its EXIF and XMP chunks, their flags, and its size is fixed", async () => {
+  const chunk = (type: string, data: number[]) => [
+    ...text(type),
+    ...le(data.length),
+    ...data,
+    ...(data.length % 2 ? [0] : []),
+  ];
+  const vp8x = (flags: number) => chunk("VP8X", [flags, 0, 0, 0, 1, 0, 0, 1, 0, 0]);
+  const image = chunk("VP8 ", [7, 7, 7]);
+  const webp = (body: number[]) =>
+    new Uint8Array([...text("RIFF"), ...le(4 + body.length), ...text("WEBP"), ...body]);
+  const file = new File(
+    [webp([...vp8x(0x2c), ...image, ...chunk("EXIF", [1, 2, 3, 4]), ...chunk("XMP ", [5])])],
+    "a.webp",
+    { type: "image/webp" },
+  );
+  const out = await stripExif(file);
+  expect(out.type).toBe("image/webp");
+  expect(Array.from(new Uint8Array(await out.arrayBuffer()))).toEqual(
+    Array.from(webp([...vp8x(0x20), ...image])),
+  );
+  expect(webpWithoutMeta(new Uint8Array([...text("RIFF"), 0, 0, 0, 0]))).toBeNull();
 });
