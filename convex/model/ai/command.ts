@@ -14,6 +14,7 @@ import {
   requireEventAccess,
   type EventRole,
 } from "../../lib/access";
+import type { Actor } from "../../lib/actors";
 import { invalid } from "../../lib/blocks";
 import {
   MAX_BLOCKS_PER_MOMENT,
@@ -535,7 +536,7 @@ const propose = action({
   },
 });
 
-const human = (userId: Id<"users">) => ({ kind: "human" as const, userId });
+const human = (userId: Id<"users">): Actor => ({ kind: "human", userId });
 
 const changeableMoment = async (
   ctx: MutationCtx,
@@ -563,11 +564,12 @@ const changeableMoment = async (
 const noMore = (what: string) =>
   new ConvexError({ code: "FULL", message: `That moment can't take any more ${what}.` });
 
-const runOp = async (
+export const runOp = async (
   ctx: MutationCtx,
-  args: { eventId: Id<"events">; userId: Id<"users">; role: EventRole; op: Op },
+  args: { eventId: Id<"events">; userId: Id<"users">; role: EventRole; op: Op; actor?: Actor },
 ): Promise<{ created?: Id<"moments">; removed: Id<"media">[] }> => {
   const { eventId, userId, role, op } = args;
+  const actor = args.actor ?? human(userId);
   const event = await ctx.db.get("events", eventId);
   if (event === null) throw new ConvexError({ code: "NOT_FOUND", message: "Experience not found" });
 
@@ -576,7 +578,7 @@ const runOp = async (
     if (note === undefined) invalid("note", "A new moment needs a few words to go with it.");
     const created = await createMoment(ctx, {
       userId,
-      actor: human(userId),
+      actor,
       input: {
         eventId,
         startsAt: op.startsAt ?? Date.now(),
@@ -596,7 +598,7 @@ const runOp = async (
     return { removed: (await deleteMoment(ctx, { event, moment, userId })).removedMediaIds };
   }
   if (op.op === "archive") {
-    await archiveMoment(ctx, { event, moment, userId, archived: op.archived ?? true });
+    await archiveMoment(ctx, { event, moment, actor, archived: op.archived ?? true });
     return { removed: [] };
   }
 
@@ -659,7 +661,7 @@ const runOp = async (
     event,
     moment,
     userId,
-    actor: human(userId),
+    actor,
     patch,
   });
   return { removed: removedMediaIds };

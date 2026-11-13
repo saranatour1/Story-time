@@ -302,7 +302,9 @@ const page = query({
       .order(args.newestFirst === true ? "desc" : "asc")
       .paginate(args.paginationOpts);
     const views = await Promise.all(
-      result.page.map(async (m) => momentFor(await viewMoment(ctx, event, m), seesAllOf(reader, m))),
+      result.page.map(async (m) =>
+        momentFor(await viewMoment(ctx, event, m), seesAllOf(reader, m)),
+      ),
     );
     // A page may come back short: the moments kept from this reader are in it.
     return { ...result, page: views.filter((view) => view !== null) };
@@ -525,7 +527,12 @@ const setArchived = mutation({
       });
     }
     assertNotArchived(event);
-    await archiveMoment(ctx, { event, moment, userId, archived: args.archived });
+    await archiveMoment(ctx, {
+      event,
+      moment,
+      actor: { kind: "human", userId },
+      archived: args.archived,
+    });
     return null;
   },
 });
@@ -533,9 +540,9 @@ const setArchived = mutation({
 // The caller has checked the person may change the moment.
 export const archiveMoment = async (
   ctx: MutationCtx,
-  args: { event: Doc<"events">; moment: Doc<"moments">; userId: Id<"users">; archived: boolean },
+  args: { event: Doc<"events">; moment: Doc<"moments">; actor: Actor; archived: boolean },
 ): Promise<void> => {
-  const { event, moment, userId, archived } = args;
+  const { event, moment, actor, archived } = args;
   if ((moment.archived === true) === archived) return;
   await ctx.db.patch("moments", moment._id, { archived: archived ? true : undefined });
   await ctx.db.patch("events", event._id, {
@@ -545,7 +552,7 @@ export const archiveMoment = async (
     eventId: event._id,
     entity: "moment",
     entityId: moment._id,
-    actorId: userId,
+    ...changeFields(actor),
     action: "update",
     fields: ["archived"],
   });

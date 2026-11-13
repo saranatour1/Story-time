@@ -22,6 +22,7 @@
     "@convex-dev/aggregate": "^0.3.4",
     "@convex-dev/ai-sdk-provider": "^0.3.0",
     "@convex-dev/auth": "2.0.0-beta.0",
+    "@convex-dev/mcp": "0.1.0-alpha.0",
     "@convex-dev/rate-limiter": "^0.4.3",
     "@convex-dev/react-query": "^0.1.0",
     "@databuddy/sdk": "^3.4.7",

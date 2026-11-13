@@ -8,6 +8,7 @@ import google from "@convex-dev/auth/components/google/convex.config.js";
 import authAnonymous from "@convex-dev/auth/components/anonymous/convex.config.js";
 import rateLimiter from "@convex-dev/rate-limiter/convex.config";
 import aggregate from "@convex-dev/aggregate/convex.config";
+import mcp from "@convex-dev/mcp/convex.config.js";
 
 const app = defineApp({
   env: {
@@ -55,6 +56,7 @@ app.use(authAnonymous);
 app.use(cloudflareEmail);
 app.use(invites);
 app.use(rateLimiter);
+app.use(mcp);
 
 app.use(aggregate, { name: "uploadBytes" });
 app.use(aggregate, { name: "eventMedia" });

@@ -70,7 +70,7 @@ use `usePaginatedQuery` from `convex/react`.
 ### api/ (re-exports only)
 
 `api/changes.ts`, `api/events.ts`, `api/guestNotes.ts`, `api/invites.ts`,
-`api/media.ts`, `api/moments.ts`, `api/sessions.ts`, `api/share.ts`,
+`api/mcp.ts`, `api/media.ts`, `api/moments.ts`, `api/sessions.ts`, `api/share.ts`,
 `api/users.ts`, `api/ai/command.ts`, `api/ai/voice.ts`. Each re-exports
 the `…Api` object of the `model/` file with the same path.
 
@@ -93,6 +93,7 @@ the `…Api` object of the `model/` file with the same path.
 | `model/seed.ts`       | Dev only: `pnpm exec convex run model/seed:japan '{"userId":"..."}'`, a ten-day demo trip. Refuses production.                         |
 | `model/ai/command.ts` | The box: a sentence becomes a plan to add, change or remove moments.                                                                   |
 | `model/ai/voice.ts`   | Speech to text for the box. Nothing is stored.                                                                                         |
+| `model/mcp.ts`        | The MCP server a person's own AI agent connects to: its tools, the internal functions they call as that person, consent and API keys.  |
 
 ### lib/ (helpers, no functions)
 

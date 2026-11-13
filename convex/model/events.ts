@@ -1,7 +1,13 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { components, internal } from "../_generated/api";
-import { internalMutation, mutation, query, type QueryCtx } from "../_generated/server";
+import {
+  internalMutation,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "../_generated/server";
 import {
   getEventAccess,
   getUserId,
@@ -9,6 +15,7 @@ import {
   requireUserId,
   type EventRole,
 } from "../lib/access";
+import { changeFields, type Actor } from "../lib/actors";
 import { changeCounts, eventMedia, uploadBytes } from "../lib/aggregates";
 import { invalid } from "../lib/blocks";
 import { recordChange } from "../lib/changes";
@@ -41,7 +48,7 @@ const sketchFor = async (ctx: QueryCtx, event: Doc<"events">) => {
   return points.length >= 2 ? points : undefined;
 };
 
-const summaryOf = (event: Doc<"events">, role: EventRole) => {
+export const summaryOf = (event: Doc<"events">, role: EventRole) => {
   return {
     _id: event._id,
     _creationTime: event._creationTime,
@@ -80,42 +87,56 @@ const coverFor = async (ctx: QueryCtx, event: Doc<"events">): Promise<Id<"media"
 
 const FREE_TEXT_FIELDS: ReadonlySet<string> = new Set(["title"]);
 
+export const TITLE_RULE = "Title must be 3 to 80 characters";
+export const titleOk = (title: string) => title.length >= 3 && title.length <= 80;
+
+export const createExperience = async (
+  ctx: MutationCtx,
+  args: { userId: Id<"users">; actor: Actor; title?: string },
+): Promise<Id<"events">> => {
+  const { userId, actor } = args;
+  const title = args.title?.trim() ?? "Untitled experience";
+  if (!titleOk(title)) invalid("title", TITLE_RULE);
+  const owned = await ctx.db
+    .query("events")
+    .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+    .take(MAX_EVENTS_PER_USER);
+  if (owned.length >= MAX_EVENTS_PER_USER) {
+    throw new ConvexError({
+      code: "EVENT_LIMIT",
+      message: `You can have up to ${MAX_EVENTS_PER_USER} experiences. Delete one to make another.`,
+    });
+  }
+  const eventId = await ctx.db.insert("events", {
+    ownerId: userId,
+    title,
+    status: "draft",
+    visibility: "private",
+    momentCount: 0,
+    keyVersion: 1,
+  });
+  await recordChange(ctx, {
+    eventId,
+    entity: "event",
+    entityId: eventId,
+    ...changeFields(actor),
+    action: "create",
+    fields: ["title", "status", "visibility"],
+    // A title someone chose is their words, so it stays out of the log.
+    after: {
+      ...(args.title === undefined ? { title } : {}),
+      status: "draft",
+      visibility: "private",
+    },
+  });
+  return eventId;
+};
+
 const createDraft = mutation({
   args: {},
   handler: async (ctx) => {
     const userId = await requireUserId(ctx);
-    const owned = await ctx.db
-      .query("events")
-      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
-      .take(MAX_EVENTS_PER_USER);
-    if (owned.length >= MAX_EVENTS_PER_USER) {
-      throw new ConvexError({
-        code: "EVENT_LIMIT",
-        message: `You can have up to ${MAX_EVENTS_PER_USER} experiences. Delete one to make another.`,
-      });
-    }
-    const eventId = await ctx.db.insert("events", {
-      ownerId: userId,
-      title: "Untitled experience",
-      status: "draft",
-      visibility: "private",
-      momentCount: 0,
-      keyVersion: 1,
-    });
-    await recordChange(ctx, {
-      eventId,
-      entity: "event",
-      entityId: eventId,
-      actorId: userId,
-      action: "create",
-      fields: ["title", "status", "visibility"],
-      after: {
-        title: "Untitled experience",
-        status: "draft",
-        visibility: "private",
-      },
-    });
-    return eventId;
+    return createExperience(ctx, { userId, actor: { kind: "human", userId } });
   },
 });
 
@@ -133,9 +154,7 @@ const update = mutation({
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
 
     const title = args.title?.trim();
-    if (title !== undefined && (title.length < 3 || title.length > 80)) {
-      invalid("title", "Title must be 3 to 80 characters");
-    }
+    if (title !== undefined && !titleOk(title)) invalid("title", TITLE_RULE);
     if (args.description !== undefined && args.description.length > 2000) {
       invalid("description", "Description must be 2000 characters or fewer");
     }
