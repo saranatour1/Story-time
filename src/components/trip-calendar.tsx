@@ -1,6 +1,6 @@
 import { useMutation } from "convex/react";
 import { addDays, differenceInCalendarDays } from "date-fns";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { type Trip, TripPeek } from "@/components/trip-peek";
 import { type CalendarEvent, EventCalendar, type EventColor } from "@/components/ui/event-calendar";
@@ -42,21 +42,26 @@ export const TripCalendar = ({ trips }: { trips: Trip[] }) => {
     );
   });
 
-  const events = trips.flatMap((trip): CalendarEvent[] => {
-    const start = trip.startsAt ?? trip.endsAt;
-    if (start === undefined) return [];
-    return [
-      {
-        id: trip._id,
-        title: trip.title,
-        start: new Date(start),
-        end: new Date(trip.endsAt ?? start),
-        allDay: true,
-        color: colorOf(trip._id),
-        readOnly: trip.role !== "owner",
-      },
-    ];
-  });
+  // Kept between renders, so opening the preview doesn't lay the views out again.
+  const events = useMemo(
+    () =>
+      trips.flatMap((trip): CalendarEvent[] => {
+        const start = trip.startsAt ?? trip.endsAt;
+        if (start === undefined) return [];
+        return [
+          {
+            id: trip._id,
+            title: trip.title,
+            start: new Date(start),
+            end: new Date(trip.endsAt ?? start),
+            allDay: true,
+            color: colorOf(trip._id),
+            readOnly: trip.role !== "owner",
+          },
+        ];
+      }),
+    [trips],
+  );
 
   // Trips are whole days: move both dates by the days dragged, whatever time
   // of day the calendar reports, so they stay at local midnight.
@@ -74,8 +79,11 @@ export const TripCalendar = ({ trips }: { trips: Trip[] }) => {
       });
     try {
       await save(days);
-      // A drag is easy to make by accident, so the way back is one click.
-      toast.success(`Moved “${trip.title}”`, {
+      // A drag is easy to make by accident, so the way back is one click. One
+      // toast per trip: a later move replaces this Undo, which would otherwise
+      // put the trip back two moves and lose the later one.
+      toast.success(`Moved "${trip.title}"`, {
+        id: `moved-${trip._id}`,
         action: {
           label: "Undo",
           onClick: () => void save(0).catch((e) => toast.error(errorMessage(e))),

@@ -23,6 +23,11 @@ import { DefaultStartHour } from "@/components/ui/event-calendar/constants";
 import { weekBars } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 
+// Story-time: dates read in the browser's language, and each day says its
+// full date to a screen reader, as the calendar this replaced did.
+const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+const FULL_DAY = new Intl.DateTimeFormat(undefined, { dateStyle: "full" });
+
 interface MonthViewProps {
   currentDate: Date;
   events: CalendarEvent[];
@@ -30,30 +35,20 @@ interface MonthViewProps {
   onEventCreate: (startTime: Date) => void;
 }
 
-export function MonthView({
-  currentDate,
-  events,
-  onEventSelect,
-  onEventCreate,
-}: MonthViewProps) {
+export function MonthView({ currentDate, events, onEventSelect, onEventCreate }: MonthViewProps) {
   const weeks = useMemo(() => {
     const monthStart = startOfMonth(currentDate);
     const days = eachDayOfInterval({
       end: endOfWeek(endOfMonth(monthStart), { weekStartsOn: WeekStartsOn }),
       start: startOfWeek(monthStart, { weekStartsOn: WeekStartsOn }),
     });
-    return Array.from({ length: days.length / 7 }, (_, i) =>
-      days.slice(i * 7, i * 7 + 7),
-    );
+    return Array.from({ length: days.length / 7 }, (_, i) => days.slice(i * 7, i * 7 + 7));
   }, [currentDate]);
 
   const weekdays = useMemo(() => {
     return Array.from({ length: 7 }).map((_, i) => {
-      const date = addDays(
-        startOfWeek(new Date(), { weekStartsOn: WeekStartsOn }),
-        i,
-      );
-      return format(date, "EEE");
+      const date = addDays(startOfWeek(new Date(), { weekStartsOn: WeekStartsOn }), i);
+      return WEEKDAY.format(date);
     });
   }, []);
 
@@ -66,10 +61,7 @@ export function MonthView({
     <div className="contents" data-slot="month-view">
       <div className="grid grid-cols-7 border-border/70 border-b">
         {weekdays.map((day) => (
-          <div
-            className="py-2 text-center text-muted-foreground/70 text-sm"
-            key={day}
-          >
+          <div className="py-2 text-center text-muted-foreground/70 text-sm" key={day}>
             {day}
           </div>
         ))}
@@ -109,9 +101,13 @@ export function MonthView({
                       onEventCreate(startTime);
                     }}
                   >
-                    <div className="mt-1 inline-flex size-6 items-center justify-center rounded-full text-sm group-data-today:bg-primary group-data-today:text-primary-foreground">
-                      {format(day, "d")}
-                    </div>
+                    <time
+                      aria-label={FULL_DAY.format(day)}
+                      className="mt-1 inline-flex size-6 items-center justify-center rounded-full text-sm group-data-today:bg-primary group-data-today:text-primary-foreground"
+                      dateTime={format(day, "yyyy-MM-dd")}
+                    >
+                      {day.getDate()}
+                    </time>
                   </DroppableCell>
                 </div>
               ))}

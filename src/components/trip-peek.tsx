@@ -52,37 +52,63 @@ export const TripPeek = ({ trip, onClose }: { trip: Trip; onClose: () => void })
         ) : moments.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nothing has been added yet.</p>
         ) : (
-          <ul className="space-y-4">
-            {moments.map((moment) => {
-              const blocks = [...moment.blocks, ...moment.stops.flatMap((stop) => stop.blocks)];
-              const photos = blocks.filter((b) => b.type === "photo").slice(0, PHOTOS);
-              const words = blocks.find((b) => b.type === "note" || b.type === "feeling");
-              return (
-                <li key={moment._id} className="space-y-1.5">
-                  <p className="text-xs text-muted-foreground">
-                    {formatDateTime(moment.startsAt, moment.tzOffsetMinutes, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                    {moment.place ? ` · ${moment.place}` : ""}
-                  </p>
-                  {photos.length > 0 && (
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {photos.map((b) => (
-                        <AuthImage key={b.mediaId} mediaId={b.mediaId} alt="" className="aspect-square" />
-                      ))}
-                    </div>
-                  )}
-                  {words && <p className="line-clamp-2 text-sm whitespace-pre-line">{words.text}</p>}
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            <ul className="space-y-4">
+              {moments.map((moment) => {
+                const blocks = [...moment.blocks, ...moment.stops.flatMap((stop) => stop.blocks)];
+                const photos = blocks.filter((b) => b.type === "photo").slice(0, PHOTOS);
+                const videos = blocks.filter((b) => b.type === "video").length;
+                const words = blocks.find((b) => b.type === "note" || b.type === "feeling");
+                return (
+                  <li key={moment._id} className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground">
+                      {formatDateTime(moment.startsAt, moment.tzOffsetMinutes, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                      {moment.place ? ` · ${moment.place}` : ""}
+                    </p>
+                    {photos.length > 0 && (
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {photos.map((b) => (
+                          <AuthImage
+                            key={b.mediaId}
+                            mediaId={b.mediaId}
+                            alt=""
+                            className="aspect-square"
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {videos > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {videos} {videos === 1 ? "video" : "videos"}
+                      </p>
+                    )}
+                    {words && (
+                      <p className="line-clamp-2 text-sm whitespace-pre-line">{words.text}</p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {trip.momentCount > moments.length && (
+              <p className="text-sm text-muted-foreground">
+                and {trip.momentCount - moments.length} more
+              </p>
+            )}
+          </>
         )}
         <DialogFooter>
           {trip.momentCount > 0 && (
             <Button variant="outline" asChild>
-              <Link to="/e/$id/story" params={{ id: trip._id }} search={{ step: 0 }}>
+              <Link
+                to="/e/$id/story"
+                params={{ id: trip._id }}
+                search={{ step: 0 }}
+                data-track="story_played"
+                data-from="calendar"
+              >
                 <PlayIcon className="fill-current" /> Play story
               </Link>
             </Button>

@@ -1,4 +1,5 @@
 import {
+  type Announcements,
   type CollisionDetection,
   DndContext,
   type DragEndEvent,
@@ -6,7 +7,6 @@ import {
   DragOverlay,
   type DragStartEvent,
   MouseSensor,
-  PointerSensor,
   pointerWithin,
   rectIntersection,
   TouchSensor,
@@ -16,26 +16,36 @@ import {
 } from "@dnd-kit/core";
 import { getEventCoordinates } from "@dnd-kit/utilities";
 import { addMinutes, differenceInMinutes } from "date-fns";
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useId,
-  useRef,
-  useState,
-} from "react";
+import { createContext, type ReactNode, useContext, useId, useRef, useState } from "react";
 
-import {
-  type CalendarEvent,
-  EventItem,
-} from "@/components/ui/event-calendar";
+import { type CalendarEvent, EventItem } from "@/components/ui/event-calendar";
+import { dayGrabbed } from "@/lib/calendar";
 
 // Story-time: a month bar is as wide as its days, so it overlaps a whole row
 // of cells. The day it is dropped on is the one under the pointer.
 const collisionDetection: CollisionDetection = (args) =>
-  args.active.data.current?.view === "month"
-    ? pointerWithin(args)
-    : rectIntersection(args);
+  args.active.data.current?.view === "month" ? pointerWithin(args) : rectIntersection(args);
+
+// Story-time: dnd-kit's defaults tell screen readers to press space to pick an
+// event up (there is no keyboard sensor here) and read out raw ids. Say what
+// is true, with the event's title and the day it lands on.
+const FULL_DAY = new Intl.DateTimeFormat(undefined, { dateStyle: "full" });
+const titleOf = (data: unknown): string =>
+  (data as { event?: CalendarEvent } | undefined)?.event?.title ?? "Event";
+const announcements: Announcements = {
+  onDragStart: ({ active }) => `Picked up ${titleOf(active.data.current)}.`,
+  onDragOver: () => undefined,
+  onDragEnd: ({ active, over }) => {
+    const day = (over?.data.current as { date?: Date } | undefined)?.date;
+    return day
+      ? `${titleOf(active.data.current)} was dropped on ${FULL_DAY.format(day)}.`
+      : `${titleOf(active.data.current)} was put back.`;
+  },
+  onDragCancel: ({ active }) => `${titleOf(active.data.current)} was put back.`,
+};
+const screenReaderInstructions = {
+  draggable: "Press Enter to open. To move it to other dates, drag it with a mouse or by touch.",
+};
 
 // Define the context type
 type CalendarDndContextType = {
@@ -46,14 +56,6 @@ type CalendarDndContextType = {
   eventHeight: number | null;
   isMultiDay: boolean;
   multiDayWidth: number | null;
-  dragHandlePosition: {
-    x?: number;
-    y?: number;
-    data?: {
-      isFirstDay?: boolean;
-      isLastDay?: boolean;
-    };
-  } | null;
 };
 
 // Create the context
@@ -62,7 +64,6 @@ const CalendarDndContext = createContext<CalendarDndContextType>({
   activeId: null,
   activeView: null,
   currentTime: null,
-  dragHandlePosition: null,
   eventHeight: null,
   isMultiDay: false,
   multiDayWidth: null,
@@ -77,27 +78,14 @@ interface CalendarDndProviderProps {
   onEventUpdate: (event: CalendarEvent) => void;
 }
 
-export function CalendarDndProvider({
-  children,
-  onEventUpdate,
-}: CalendarDndProviderProps) {
+export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProviderProps) {
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [activeView, setActiveView] = useState<"month" | "week" | "day" | null>(
-    null,
-  );
+  const [activeView, setActiveView] = useState<"month" | "week" | "day" | null>(null);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [eventHeight, setEventHeight] = useState<number | null>(null);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [multiDayWidth, setMultiDayWidth] = useState<number | null>(null);
-  const [dragHandlePosition, setDragHandlePosition] = useState<{
-    x?: number;
-    y?: number;
-    data?: {
-      isFirstDay?: boolean;
-      isLastDay?: boolean;
-    };
-  } | null>(null);
 
   // Store original event dimensions
   const eventDimensions = useRef<{ height: number }>({ height: 0 });
@@ -110,17 +98,14 @@ export function CalendarDndProvider({
         distance: 5,
       },
     }),
+    // Story-time: no PointerSensor. It takes touches too and starts a drag
+    // after 5px, so a swipe that began on a bar moved the trip. On touch a
+    // drag now needs a press and hold; a swipe scrolls the page.
     useSensor(TouchSensor, {
       // Press delay of 250ms, with tolerance of 5px of movement
       activationConstraint: {
         delay: 250,
         tolerance: 5,
-      },
-    }),
-    useSensor(PointerSensor, {
-      // Require the pointer to move by 5px before activating
-      activationConstraint: {
-        distance: 5,
       },
     }),
   );
@@ -143,21 +128,12 @@ export function CalendarDndProvider({
       height,
       isMultiDay: eventIsMultiDay,
       multiDayWidth: eventMultiDayWidth,
-      dragHandlePosition: eventDragHandlePosition,
     } = active.data.current as {
       event: CalendarEvent;
       view: "month" | "week" | "day";
       height?: number;
       isMultiDay?: boolean;
       multiDayWidth?: number;
-      dragHandlePosition?: {
-        x?: number;
-        y?: number;
-        data?: {
-          isFirstDay?: boolean;
-          isLastDay?: boolean;
-        };
-      };
     };
 
     setActiveEvent(calendarEvent);
@@ -166,7 +142,6 @@ export function CalendarDndProvider({
     setCurrentTime(new Date(calendarEvent.start));
     setIsMultiDay(eventIsMultiDay || false);
     setMultiDayWidth(eventMultiDayWidth || null);
-    setDragHandlePosition(eventDragHandlePosition || null);
 
     // Store event height if provided
     if (height) {
@@ -247,7 +222,6 @@ export function CalendarDndProvider({
       setEventHeight(null);
       setIsMultiDay(false);
       setMultiDayWidth(null);
-      setDragHandlePosition(null);
       return;
     }
 
@@ -297,11 +271,9 @@ export function CalendarDndProvider({
         const bar = active.rect.current.initial;
         const grabbed = getEventCoordinates(event.activatorEvent);
         const span = activeData.span ?? 1;
-        let daysIn = activeData.offsetDays ?? 0;
-        if (bar && grabbed && span > 1) {
-          const day = Math.floor((grabbed.x - bar.left) / (bar.width / span));
-          daysIn += Math.min(span - 1, Math.max(0, day));
-        }
+        const daysIn =
+          (activeData.offsetDays ?? 0) +
+          (bar && grabbed ? dayGrabbed(grabbed.x, bar.left, bar.width, span) : 0);
         newStart.setDate(newStart.getDate() - daysIn);
 
         // For month view, preserve the original time from currentTime
@@ -346,12 +318,12 @@ export function CalendarDndProvider({
       setEventHeight(null);
       setIsMultiDay(false);
       setMultiDayWidth(null);
-      setDragHandlePosition(null);
     }
   };
 
   return (
     <DndContext
+      accessibility={{ announcements, screenReaderInstructions }}
       collisionDetection={collisionDetection}
       id={dndContextId}
       onDragEnd={handleDragEnd}
@@ -365,7 +337,6 @@ export function CalendarDndProvider({
           activeId,
           activeView,
           currentTime,
-          dragHandlePosition,
           eventHeight,
           isMultiDay,
           multiDayWidth,
@@ -378,8 +349,7 @@ export function CalendarDndProvider({
             <div
               style={{
                 height: eventHeight ? `${eventHeight}px` : "auto",
-                width:
-                  isMultiDay && multiDayWidth ? `${multiDayWidth}%` : "100%",
+                width: isMultiDay && multiDayWidth ? `${multiDayWidth}%` : "100%",
                 // Remove the transform that was causing the shift
               }}
             >
@@ -387,8 +357,6 @@ export function CalendarDndProvider({
                 currentTime={currentTime || undefined}
                 event={activeEvent}
                 isDragging={true}
-                isFirstDay={dragHandlePosition?.data?.isFirstDay !== false}
-                isLastDay={dragHandlePosition?.data?.isLastDay !== false}
                 showTime={activeView !== "month"}
                 view={activeView}
               />

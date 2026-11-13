@@ -1,9 +1,6 @@
 import { isSameDay } from "date-fns";
 
-import type {
-  CalendarEvent,
-  EventColor,
-} from "@/components/ui/event-calendar";
+import type { CalendarEvent, EventColor } from "@/components/ui/event-calendar";
 
 /**
  * Get CSS classes for event colors
@@ -32,10 +29,7 @@ export function getEventColorClasses(color?: EventColor | string): string {
 /**
  * Get CSS classes for border radius based on event position in multi-day events
  */
-export function getBorderRadiusClasses(
-  isFirstDay: boolean,
-  isLastDay: boolean,
-): string {
+export function getBorderRadiusClasses(isFirstDay: boolean, isLastDay: boolean): string {
   if (isFirstDay && isLastDay) {
     return "rounded"; // Both ends rounded
   }
@@ -60,10 +54,7 @@ export function isMultiDayEvent(event: CalendarEvent): boolean {
 /**
  * Get all events for a day (for agenda view)
  */
-export function getAgendaEventsForDay(
-  events: CalendarEvent[],
-  day: Date,
-): CalendarEvent[] {
+export function getAgendaEventsForDay(events: CalendarEvent[], day: Date): CalendarEvent[] {
   return events
     .filter((event) => {
       const eventStart = new Date(event.start);

@@ -21,10 +21,7 @@ import {
   useCurrentTimeIndicator,
   WeekCellsHeight,
 } from "@/components/ui/event-calendar";
-import {
-  EndHour,
-  StartHour,
-} from "@/components/ui/event-calendar/constants";
+import { EndHour, StartHour } from "@/components/ui/event-calendar/constants";
 import { cn } from "@/lib/utils";
 
 interface DayViewProps {
@@ -43,12 +40,7 @@ interface PositionedEvent {
   zIndex: number;
 }
 
-export function DayView({
-  currentDate,
-  events,
-  onEventSelect,
-  onEventCreate,
-}: DayViewProps) {
+export function DayView({ currentDate, events, onEventSelect, onEventCreate }: DayViewProps) {
   const hours = useMemo(() => {
     const dayStart = startOfDay(currentDate);
     return eachHourOfInterval({
@@ -68,9 +60,7 @@ export function DayView({
           (currentDate > eventStart && currentDate < eventEnd)
         );
       })
-      .sort(
-        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
-      );
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
   }, [currentDate, events]);
 
   // Filter all-day events
@@ -119,16 +109,11 @@ export function DayView({
       const eventEnd = new Date(event.end);
 
       // Adjust start and end times if they're outside this day
-      const adjustedStart = isSameDay(currentDate, eventStart)
-        ? eventStart
-        : dayStart;
-      const adjustedEnd = isSameDay(currentDate, eventEnd)
-        ? eventEnd
-        : addHours(dayStart, 24);
+      const adjustedStart = isSameDay(currentDate, eventStart) ? eventStart : dayStart;
+      const adjustedEnd = isSameDay(currentDate, eventEnd) ? eventEnd : addHours(dayStart, 24);
 
       // Calculate top position and height
-      const startHour =
-        getHours(adjustedStart) + getMinutes(adjustedStart) / 60;
+      const startHour = getHours(adjustedStart) + getMinutes(adjustedStart) / 60;
       const endHour = getHours(adjustedEnd) + getMinutes(adjustedEnd) / 60;
 
       const top = (startHour - StartHour) * WeekCellsHeight;
@@ -187,10 +172,7 @@ export function DayView({
   };
 
   const showAllDaySection = allDayEvents.length > 0;
-  const { currentTimePosition, currentTimeVisible } = useCurrentTimeIndicator(
-    currentDate,
-    "day",
-  );
+  const { currentTimePosition, currentTimeVisible } = useCurrentTimeIndicator(currentDate, "day");
 
   return (
     <div className="contents" data-slot="day-view">
@@ -299,12 +281,9 @@ export function DayView({
                       className={cn(
                         "absolute h-[calc(var(--week-cells-height)/4)] w-full",
                         quarter === 0 && "top-0",
-                        quarter === 1 &&
-                          "top-[calc(var(--week-cells-height)/4)]",
-                        quarter === 2 &&
-                          "top-[calc(var(--week-cells-height)/4*2)]",
-                        quarter === 3 &&
-                          "top-[calc(var(--week-cells-height)/4*3)]",
+                        quarter === 1 && "top-[calc(var(--week-cells-height)/4)]",
+                        quarter === 2 && "top-[calc(var(--week-cells-height)/4*2)]",
+                        quarter === 3 && "top-[calc(var(--week-cells-height)/4*3)]",
                       )}
                       date={currentDate}
                       id={`day-cell-${currentDate.toISOString()}-${quarterHourTime}`}

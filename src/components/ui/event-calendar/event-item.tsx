@@ -1,12 +1,6 @@
 import type { DraggableAttributes } from "@dnd-kit/core";
 import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
-import {
-  differenceInMinutes,
-  format,
-  getMinutes,
-  isPast,
-  isSameDay,
-} from "date-fns";
+import { differenceInMinutes, format, getMinutes, isPast, isSameDay } from "date-fns";
 import { useMemo } from "react";
 
 import {
@@ -15,6 +9,9 @@ import {
   getEventColorClasses,
 } from "@/components/ui/event-calendar";
 import { cn } from "@/lib/utils";
+
+// Story-time: dates read in the browser's language.
+const DAYS = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 // Using date-fns format with custom formatting:
 // 'h' - hours (1-12)
@@ -35,8 +32,6 @@ interface EventWrapperProps {
   currentTime?: Date;
   dndListeners?: SyntheticListenerMap;
   dndAttributes?: DraggableAttributes;
-  onMouseDown?: (e: React.MouseEvent) => void;
-  onTouchStart?: (e: React.TouchEvent) => void;
 }
 
 // Shared wrapper component for event styling
@@ -51,8 +46,6 @@ function EventWrapper({
   currentTime,
   dndListeners,
   dndAttributes,
-  onMouseDown,
-  onTouchStart,
 }: EventWrapperProps) {
   // Always use the currentTime (if provided) to determine if the event is in the past
   const displayEnd = currentTime
@@ -75,8 +68,6 @@ function EventWrapper({
       data-dragging={isDragging || undefined}
       data-past-event={isEventInPast || undefined}
       onClick={onClick}
-      onMouseDown={onMouseDown}
-      onTouchStart={onTouchStart}
       type="button"
       {...dndListeners}
       {...dndAttributes}
@@ -99,8 +90,6 @@ interface EventItemProps {
   className?: string;
   dndListeners?: SyntheticListenerMap;
   dndAttributes?: DraggableAttributes;
-  onMouseDown?: (e: React.MouseEvent) => void;
-  onTouchStart?: (e: React.TouchEvent) => void;
 }
 
 export function EventItem({
@@ -116,8 +105,6 @@ export function EventItem({
   className,
   dndListeners,
   dndAttributes,
-  onMouseDown,
-  onTouchStart,
 }: EventItemProps) {
   const eventColor = event.color;
 
@@ -167,8 +154,6 @@ export function EventItem({
         isFirstDay={isFirstDay}
         isLastDay={isLastDay}
         onClick={onClick}
-        onMouseDown={onMouseDown}
-        onTouchStart={onTouchStart}
       >
         {children || (
           <span className="truncate">
@@ -201,25 +186,19 @@ export function EventItem({
         isFirstDay={isFirstDay}
         isLastDay={isLastDay}
         onClick={onClick}
-        onMouseDown={onMouseDown}
-        onTouchStart={onTouchStart}
       >
         {durationMinutes < 45 ? (
           <div className="truncate">
             {event.title}{" "}
             {showTime && (
-              <span className="opacity-70">
-                {formatTimeWithOptionalMinutes(displayStart)}
-              </span>
+              <span className="opacity-70">{formatTimeWithOptionalMinutes(displayStart)}</span>
             )}
           </div>
         ) : (
           <>
             <div className="truncate font-medium">{event.title}</div>
             {showTime && (
-              <div className="truncate font-normal opacity-70 sm:text-[11px]">
-                {getEventTime()}
-              </div>
+              <div className="truncate font-normal opacity-70 sm:text-[11px]">{getEventTime()}</div>
             )}
           </>
         )}
@@ -237,8 +216,6 @@ export function EventItem({
       )}
       data-past-event={isPast(new Date(event.end)) || undefined}
       onClick={onClick}
-      onMouseDown={onMouseDown}
-      onTouchStart={onTouchStart}
       type="button"
       {...dndListeners}
       {...dndAttributes}
@@ -250,7 +227,7 @@ export function EventItem({
           <span>
             {isSameDay(displayStart, displayEnd)
               ? "All day"
-              : `${format(displayStart, "MMM d")} – ${format(displayEnd, "MMM d")}`}
+              : DAYS.formatRange(displayStart, displayEnd)}
           </span>
         ) : (
           <span className="uppercase">
@@ -265,9 +242,7 @@ export function EventItem({
           </>
         )}
       </div>
-      {event.description && (
-        <div className="my-1 text-xs opacity-90">{event.description}</div>
-      )}
+      {event.description && <div className="my-1 text-xs opacity-90">{event.description}</div>}
     </button>
   );
 }

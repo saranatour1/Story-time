@@ -3,7 +3,6 @@ import {
   addMonths,
   addWeeks,
   endOfWeek,
-  format,
   isSameMonth,
   startOfWeek,
   subMonths,
@@ -54,6 +53,13 @@ export interface EventCalendarProps {
 
 const noop = () => {};
 
+// Story-time: the title reads in the browser's language, like dates elsewhere
+// in the app.
+const MONTH = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
+const MONTHS = new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
+const dayTitle = (dateStyle: "medium" | "long" | "full", date: Date) =>
+  new Intl.DateTimeFormat(undefined, { dateStyle }).format(date);
+
 export function EventCalendar({
   events = [],
   onEventSelect = noop,
@@ -69,16 +75,18 @@ export function EventCalendar({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Skip if user is typing in an input, textarea or contentEditable element,
-      // or holding a modifier (Cmd+A is select all, not the agenda view)
+      // holding a modifier (Cmd+A is select all, not the agenda view), or in a
+      // select, dialog, menu or listbox, where letters are type-ahead
       if (
         e.metaKey ||
         e.ctrlKey ||
         e.altKey ||
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement ||
         (e.target instanceof HTMLElement &&
           (e.target.isContentEditable ||
-            e.target.closest('[role="dialog"], [role="menu"]') !== null))
+            e.target.closest('[role="dialog"], [role="menu"], [role="listbox"]') !== null))
       ) {
         return;
       }
@@ -137,43 +145,31 @@ export function EventCalendar({
   };
 
   const viewTitle = useMemo(() => {
-    if (view === "month") {
-      return format(currentDate, "MMMM yyyy");
-    }
+    const range = (start: Date, end: Date) =>
+      isSameMonth(start, end) ? MONTH.format(start) : MONTHS.formatRange(start, end);
     if (view === "week") {
-      const start = startOfWeek(currentDate, { weekStartsOn: WeekStartsOn });
-      const end = endOfWeek(currentDate, { weekStartsOn: WeekStartsOn });
-      if (isSameMonth(start, end)) {
-        return format(start, "MMMM yyyy");
-      }
-      return `${format(start, "MMM")} - ${format(end, "MMM yyyy")}`;
+      return range(
+        startOfWeek(currentDate, { weekStartsOn: WeekStartsOn }),
+        endOfWeek(currentDate, { weekStartsOn: WeekStartsOn }),
+      );
     }
     if (view === "day") {
       return (
         <>
           <span aria-hidden="true" className="min-[480px]:hidden">
-            {format(currentDate, "MMM d, yyyy")}
+            {dayTitle("medium", currentDate)}
           </span>
           <span aria-hidden="true" className="max-[479px]:hidden min-md:hidden">
-            {format(currentDate, "MMMM d, yyyy")}
+            {dayTitle("long", currentDate)}
           </span>
-          <span className="max-md:hidden">
-            {format(currentDate, "EEE MMMM d, yyyy")}
-          </span>
+          <span className="max-md:hidden">{dayTitle("full", currentDate)}</span>
         </>
       );
     }
     if (view === "agenda") {
-      // Show the month range for agenda view
-      const start = currentDate;
-      const end = addDays(currentDate, AgendaDaysToShow - 1);
-
-      if (isSameMonth(start, end)) {
-        return format(start, "MMMM yyyy");
-      }
-      return `${format(start, "MMM")} - ${format(end, "MMM yyyy")}`;
+      return range(currentDate, addDays(currentDate, AgendaDaysToShow - 1));
     }
-    return format(currentDate, "MMMM yyyy");
+    return MONTH.format(currentDate);
   }, [currentDate, view]);
 
   return (
@@ -188,46 +184,25 @@ export function EventCalendar({
       }
     >
       <CalendarDndProvider onEventUpdate={onEventUpdate}>
-        <div
-          className={cn(
-            "flex items-center justify-between p-2 sm:p-4",
-            className,
-          )}
-        >
+        <div className={cn("flex items-center justify-between p-2 sm:p-4", className)}>
           <div className="flex items-center gap-1 sm:gap-4">
             <Button
               className="max-[479px]:aspect-square max-[479px]:p-0!"
               onClick={handleToday}
               variant="outline"
             >
-              <CalendarCheckIcon
-                aria-hidden="true"
-                className="min-[480px]:hidden"
-                size={16}
-              />
+              <CalendarCheckIcon aria-hidden="true" className="min-[480px]:hidden" size={16} />
               <span className="max-[479px]:sr-only">Today</span>
             </Button>
             <div className="flex items-center sm:gap-2">
-              <Button
-                aria-label="Previous"
-                onClick={handlePrevious}
-                size="icon"
-                variant="ghost"
-              >
+              <Button aria-label="Previous" onClick={handlePrevious} size="icon" variant="ghost">
                 <ChevronLeftIcon aria-hidden="true" size={16} />
               </Button>
-              <Button
-                aria-label="Next"
-                onClick={handleNext}
-                size="icon"
-                variant="ghost"
-              >
+              <Button aria-label="Next" onClick={handleNext} size="icon" variant="ghost">
                 <ChevronRightIcon aria-hidden="true" size={16} />
               </Button>
             </div>
-            <h2 className="font-serif font-semibold text-sm sm:text-lg md:text-xl">
-              {viewTitle}
-            </h2>
+            <h2 className="font-serif font-semibold text-sm sm:text-lg md:text-xl">{viewTitle}</h2>
           </div>
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -241,11 +216,7 @@ export function EventCalendar({
                       {view.charAt(0).toUpperCase() + view.slice(1)}
                     </span>
                   </span>
-                  <ChevronDownIcon
-                    aria-hidden="true"
-                    className="-me-1 opacity-60"
-                    size={16}
-                  />
+                  <ChevronDownIcon aria-hidden="true" className="-me-1 opacity-60" size={16} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-32">
@@ -292,11 +263,7 @@ export function EventCalendar({
             />
           )}
           {view === "agenda" && (
-            <AgendaView
-              currentDate={currentDate}
-              events={events}
-              onEventSelect={onEventSelect}
-            />
+            <AgendaView currentDate={currentDate} events={events} onEventSelect={onEventSelect} />
           )}
         </div>
       </CalendarDndProvider>

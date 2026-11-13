@@ -13,10 +13,4 @@ export interface CalendarEvent {
   readOnly?: boolean;
 }
 
-export type EventColor =
-  | "sky"
-  | "amber"
-  | "violet"
-  | "rose"
-  | "emerald"
-  | "orange";
+export type EventColor = "sky" | "amber" | "violet" | "rose" | "emerald" | "orange";

@@ -12,7 +12,7 @@ On the sign-in screen, use **Continue with Google** or **Continue with GitHub**.
 
 ## Start an experience
 
-On the home page, choose **Start an experience** or **New experience**. You can own up to 20. **Grid** shows each experience as a card; **Calendar** puts them on a month calendar across their dates. An experience with no dates is only in Grid.
+On the home page, choose **Start an experience** or **New experience**. You can own up to 20. **Grid** shows each experience as a card; **Calendar** puts them on a calendar across their dates, one bar per experience, with month, week, day and agenda views. Click an experience there for a preview of its latest moments. If you own it, drag it to other dates in the month view; the message that confirms the move has an Undo. An experience with no dates is only in Grid.
 
 Give it a name. **Starts** is optional. The name is the title people see. It is not locked away the way a note is. See the encryption section below.
 

@@ -1,10 +1,14 @@
 import { describe, expect, test } from "vite-plus/test";
-import { weekBars } from "./calendar";
+import { dayGrabbed, weekBars } from "./calendar";
 
 const day = (date: number) => new Date(2026, 10, date);
 // Monday 9 to Sunday 15 November 2026.
 const week = [9, 10, 11, 12, 13, 14, 15].map(day);
-const trip = (title: string, from: number, to = from) => ({ title, start: day(from), end: day(to) });
+const trip = (title: string, from: number, to = from) => ({
+  title,
+  start: day(from),
+  end: day(to),
+});
 const bars = (trips: ReturnType<typeof trip>[]) =>
   weekBars(week, trips).map(({ event, ...bar }) => ({ title: event.title, ...bar }));
 
@@ -33,5 +37,20 @@ describe("weekBars", () => {
       ["Second", 1],
       ["Later", 0],
     ]);
+  });
+});
+
+describe("dayGrabbed", () => {
+  // A three-day bar starting at x=100 and 90 wide: 30 to a day.
+  test("the day under the pointer, counted from the bar's first", () => {
+    expect(dayGrabbed(100, 100, 90, 3)).toBe(0);
+    expect(dayGrabbed(131, 100, 90, 3)).toBe(1);
+    expect(dayGrabbed(189, 100, 90, 3)).toBe(2);
+  });
+
+  test("a press on the very edge, or on a bar with no width, stays on the bar", () => {
+    expect(dayGrabbed(99, 100, 90, 3)).toBe(0);
+    expect(dayGrabbed(190, 100, 90, 3)).toBe(2);
+    expect(dayGrabbed(120, 100, 0, 3)).toBe(0);
   });
 });

@@ -1,16 +1,9 @@
 import { endOfWeek, isSameDay, isWithinInterval, startOfWeek } from "date-fns";
 import { useEffect, useState } from "react";
 
-import {
-  EndHour,
-  StartHour,
-  WeekStartsOn,
-} from "@/components/ui/event-calendar/constants";
+import { EndHour, StartHour, WeekStartsOn } from "@/components/ui/event-calendar/constants";
 
-export function useCurrentTimeIndicator(
-  currentDate: Date,
-  view: "day" | "week",
-) {
+export function useCurrentTimeIndicator(currentDate: Date, view: "day" | "week") {
   const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
   const [currentTimeVisible, setCurrentTimeVisible] = useState<boolean>(false);
 
@@ -24,9 +17,7 @@ export function useCurrentTimeIndicator(
       const dayEndMinutes = (EndHour - StartHour) * 60; // 12am next day
 
       // Calculate position as percentage of day
-      const position =
-        ((totalMinutes - dayStartMinutes) / (dayEndMinutes - dayStartMinutes)) *
-        100;
+      const position = ((totalMinutes - dayStartMinutes) / (dayEndMinutes - dayStartMinutes)) * 100;
 
       // Check if current day is in view based on the calendar view
       let isCurrentTimeVisible = false;

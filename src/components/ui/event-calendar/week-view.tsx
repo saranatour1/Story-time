@@ -25,13 +25,13 @@ import {
   useCurrentTimeIndicator,
   WeekCellsHeight,
 } from "@/components/ui/event-calendar";
-import {
-  EndHour,
-  StartHour,
-  WeekStartsOn,
-} from "@/components/ui/event-calendar/constants";
+import { EndHour, StartHour, WeekStartsOn } from "@/components/ui/event-calendar/constants";
 import { weekBars } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
+
+// Story-time: weekday names in the browser's language.
+const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+const NARROW_WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
 
 interface WeekViewProps {
   currentDate: Date;
@@ -49,12 +49,7 @@ interface PositionedEvent {
   zIndex: number;
 }
 
-export function WeekView({
-  currentDate,
-  events,
-  onEventSelect,
-  onEventCreate,
-}: WeekViewProps) {
+export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: WeekViewProps) {
   const days = useMemo(() => {
     const weekStart = startOfWeek(currentDate, { weekStartsOn: WeekStartsOn });
     const weekEnd = endOfWeek(currentDate, { weekStartsOn: WeekStartsOn });
@@ -136,16 +131,11 @@ export function WeekView({
         const eventEnd = new Date(event.end);
 
         // Adjust start and end times if they're outside this day
-        const adjustedStart = isSameDay(day, eventStart)
-          ? eventStart
-          : dayStart;
-        const adjustedEnd = isSameDay(day, eventEnd)
-          ? eventEnd
-          : addHours(dayStart, 24);
+        const adjustedStart = isSameDay(day, eventStart) ? eventStart : dayStart;
+        const adjustedEnd = isSameDay(day, eventEnd) ? eventEnd : addHours(dayStart, 24);
 
         // Calculate top position and height
-        const startHour =
-          getHours(adjustedStart) + getMinutes(adjustedStart) / 60;
+        const startHour = getHours(adjustedStart) + getMinutes(adjustedStart) / 60;
         const endHour = getHours(adjustedEnd) + getMinutes(adjustedEnd) / 60;
 
         // Adjust the top calculation to account for the new start time
@@ -213,10 +203,7 @@ export function WeekView({
   const showAllDaySection = allDayEvents.length > 0;
   const allDayBars = weekBars(days, allDayEvents);
   const allDayLanes = Math.max(1, ...allDayBars.map((bar) => bar.lane + 1));
-  const { currentTimePosition, currentTimeVisible } = useCurrentTimeIndicator(
-    currentDate,
-    "week",
-  );
+  const { currentTimePosition, currentTimeVisible } = useCurrentTimeIndicator(currentDate, "week");
 
   return (
     <div className="flex h-full flex-col" data-slot="week-view">
@@ -231,9 +218,11 @@ export function WeekView({
             key={day.toString()}
           >
             <span aria-hidden="true" className="sm:hidden">
-              {format(day, "E")[0]} {format(day, "d")}
+              {NARROW_WEEKDAY.format(day)} {day.getDate()}
             </span>
-            <span className="max-sm:hidden">{format(day, "EEE dd")}</span>
+            <span className="max-sm:hidden">
+              {WEEKDAY.format(day)} {format(day, "dd")}
+            </span>
           </div>
         ))}
       </div>
@@ -361,12 +350,9 @@ export function WeekView({
                         className={cn(
                           "absolute h-[calc(var(--week-cells-height)/4)] w-full",
                           quarter === 0 && "top-0",
-                          quarter === 1 &&
-                            "top-[calc(var(--week-cells-height)/4)]",
-                          quarter === 2 &&
-                            "top-[calc(var(--week-cells-height)/4*2)]",
-                          quarter === 3 &&
-                            "top-[calc(var(--week-cells-height)/4*3)]",
+                          quarter === 1 && "top-[calc(var(--week-cells-height)/4)]",
+                          quarter === 2 && "top-[calc(var(--week-cells-height)/4*2)]",
+                          quarter === 3 && "top-[calc(var(--week-cells-height)/4*3)]",
                         )}
                         date={day}
                         id={`week-cell-${day.toISOString()}-${quarterHourTime}`}
