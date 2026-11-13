@@ -126,7 +126,7 @@ export const read = internalQuery({
   handler: async (ctx, args): Promise<Context> => {
     const { userId, event, role } = await requireEventAccess(ctx, args.eventId, "contributor");
     assertNotArchived(event);
-    const all = await listForEvent(ctx, event);
+    const all = await listForEvent(ctx, event, { userId, role });
     const openId =
       args.openMomentId === undefined ? null : ctx.db.normalizeId("moments", args.openMomentId);
     const anchor = all.find((m) => m._id === openId)?.startsAt ?? Date.now();

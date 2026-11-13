@@ -1,34 +1,37 @@
-import {
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  startOfDay,
-  startOfMonth,
-  startOfWeek,
-} from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 
-// The weeks a month view shows, Monday first, padded with days from the
-// months either side so every week is whole.
-export const monthGrid = (month: Date): Date[][] => {
-  const days = eachDayOfInterval({
-    start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
-    end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
-  });
-  const weeks: Date[][] = [];
-  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
-  return weeks;
+export type Bar<T> = {
+  event: T;
+  col: number;
+  span: number;
+  lane: number;
+  startsThisWeek: boolean;
+  endsThisWeek: boolean;
 };
 
-// The trips on a day. A trip covers every local day from its start to its
-// end, or only the one day it has; a trip with no dates is on no day.
-export const tripsOn = <T extends { startsAt?: number; endsAt?: number }>(
-  day: Date,
-  trips: T[],
-): T[] => {
-  const at = startOfDay(day).getTime();
-  return trips.filter((trip) => {
-    const start = trip.startsAt ?? trip.endsAt;
-    if (start === undefined) return false;
-    return at >= startOfDay(start).getTime() && at <= startOfDay(trip.endsAt ?? start).getTime();
-  });
+export const weekBars = <T extends { start: Date; end: Date }>(
+  week: Date[],
+  events: T[],
+): Bar<T>[] => {
+  const first = week[0];
+  if (first === undefined) return [];
+  const lastColumnByLane: number[] = [];
+  return events
+    .map((event) => {
+      const from = differenceInCalendarDays(event.start, first);
+      return { event, from, to: Math.max(from, differenceInCalendarDays(event.end, first)) };
+    })
+    .filter(({ from, to }) => to >= 0 && from < week.length)
+    .sort((a, b) => a.from - b.from || b.to - a.to)
+    .map(({ event, from, to }) => {
+      const col = Math.max(from, 0);
+      const end = Math.min(to, week.length - 1);
+      const free = lastColumnByLane.findIndex((last) => last < col);
+      const lane = free === -1 ? lastColumnByLane.length : free;
+      lastColumnByLane[lane] = end;
+      return { event, col, span: end - col + 1, lane, startsThisWeek: from >= 0, endsThisWeek: to < week.length };
+    });
 };
+
+export const dayGrabbed = (x: number, left: number, width: number, span: number): number =>
+  width > 0 ? Math.min(span - 1, Math.max(0, Math.floor((x - left) / (width / span)))) : 0;

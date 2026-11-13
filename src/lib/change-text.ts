@@ -18,6 +18,7 @@ const FIELD_WORDS: Partial<Record<string, string>> = {
   stops: "stops",
   labels: "labels",
   people: "who was there",
+  archived: "archived or restored",
 };
 
 // An experience's own dates read as "dates"; a moment's start is its "time".

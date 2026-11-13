@@ -2,8 +2,12 @@ import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { useForm } from "@tanstack/react-form";
 import {
+  ArchiveIcon,
+  ArchiveRestoreIcon,
   ArrowDownIcon,
   ArrowUpIcon,
+  EyeIcon,
+  EyeOffIcon,
   ImageIcon,
   PlusIcon,
   Trash2Icon,
@@ -46,7 +50,8 @@ import { cn } from "@/lib/utils";
 const MOODS = ["😊", "😍", "😌", "😂", "🥹", "😴"];
 const MAX_STOPS = 10;
 
-type Media = { mediaId: string; kind: "photo" | "video"; name: string };
+// `hidden`: kept from everyone but the experience's owners and whoever wrote the moment.
+type Media = { mediaId: string; kind: "photo" | "video"; name: string; hidden?: boolean };
 
 type StopValue = {
   transport: Transport | "";
@@ -74,7 +79,12 @@ const schema = z.object({
       geo: z.object({ lat: z.number(), lng: z.number() }).optional(),
       geoFromPhoto: z.boolean().optional(),
       media: z.array(
-        z.object({ mediaId: z.string(), kind: z.enum(["photo", "video"]), name: z.string() }),
+        z.object({
+          mediaId: z.string(),
+          kind: z.enum(["photo", "video"]),
+          name: z.string(),
+          hidden: z.boolean().optional(),
+        }),
       ),
       notes: z.array(z.string().max(5000, "At most 5000 characters")),
       links: z.array(
@@ -120,6 +130,7 @@ const stopValuesOf = (moment: MomentView): StopValue[] => {
                 mediaId: b.mediaId,
                 kind: b.type,
                 name: b.type === "photo" ? "Saved photo" : "Saved video",
+                hidden: b.hidden,
               },
             ]
           : [],
@@ -159,6 +170,20 @@ export const MomentForm = ({
   const onTrip = (id: string) =>
     people.status !== "Exhausted" || people.results.some((m) => m.userId === id);
   const remove = useMutation(api.moments.remove);
+  const setArchived = useMutation(api.moments.setArchived);
+  const archive = async () => {
+    try {
+      await setArchived({ momentId: moment._id, archived: !moment.archived });
+      toast.success(
+        moment.archived
+          ? "Moment restored"
+          : "Moment archived. Only you and the experience's owners see it now.",
+      );
+      onDone?.();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
   const [confirming, setConfirming] = useState(false);
   const token = useAuthToken();
   // The stop whose photos are uploading, if any.
@@ -216,7 +241,11 @@ export const MomentForm = ({
   );
 
   const toBlocks = (s: StopValue) => [
-    ...s.media.map((m) => ({ type: m.kind, mediaId: m.mediaId as Id<"media"> })),
+    ...s.media.map((m) => ({
+      type: m.kind,
+      mediaId: m.mediaId as Id<"media">,
+      ...(m.hidden && { hidden: true }),
+    })),
     ...s.links
       .filter(Boolean)
       .map((url) => ({ type: "link" as const, url, title: linkTitles.get(url) })),
@@ -489,7 +518,10 @@ export const MomentForm = ({
                       {m.kind === "video" ? (
                         <div
                           title={m.name}
-                          className="grid aspect-square place-items-center rounded-md bg-muted text-muted-foreground"
+                          className={cn(
+                            "grid aspect-square place-items-center rounded-md bg-muted text-muted-foreground",
+                            m.hidden && "opacity-40",
+                          )}
                         >
                           <VideoIcon aria-hidden className="size-5" />
                           <span className="sr-only">{m.name}</span>
@@ -501,9 +533,23 @@ export const MomentForm = ({
                           width={160}
                           height={160}
                           sizes="160px"
-                          className="aspect-square rounded-md"
+                          className={cn("aspect-square rounded-md", m.hidden && "opacity-40")}
                         />
                       )}
+                      <button
+                        type="button"
+                        aria-pressed={m.hidden === true}
+                        aria-label={`Hide ${m.name} from other people`}
+                        title={m.hidden ? "Hidden from other people" : "Hide from other people"}
+                        onClick={() => f.replaceValue(j, { ...m, hidden: !m.hidden })}
+                        className="absolute top-1 left-1 flex size-6 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border outline-none hover:bg-background focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {m.hidden ? (
+                          <EyeOffIcon className="size-3.5" />
+                        ) : (
+                          <EyeIcon className="size-3.5" />
+                        )}
+                      </button>
                       <button
                         type="button"
                         aria-label={`Remove ${m.name}`}
@@ -521,6 +567,11 @@ export const MomentForm = ({
                     <li aria-hidden className="aspect-square animate-pulse rounded-md bg-muted" />
                   )}
                 </ul>
+              )}
+              {f.state.value.some((m) => m.hidden) && (
+                <FieldDescription>
+                  Hidden ones are only seen by you and the experience's owners.
+                </FieldDescription>
               )}
             </Field>
           )}
@@ -774,7 +825,17 @@ export const MomentForm = ({
               <Button
                 type="button"
                 variant="ghost"
-                className="ml-auto text-destructive"
+                className="ml-auto"
+                disabled={submitting || uploading}
+                onClick={() => void archive()}
+              >
+                {moment.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
+                {moment.archived ? "Restore" : "Archive"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-destructive"
                 disabled={submitting || uploading}
                 onClick={() => setConfirming(true)}
               >

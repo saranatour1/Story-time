@@ -76,42 +76,42 @@ the `…Api` object of the `model/` file with the same path.
 
 ### model/
 
-| File                  | What it owns                                                                                                   |
-| --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `model/events.ts`     | Experiences: create, rename, dates, the home list, delete (and the purge of everything in one).                |
-| `model/moments.ts`    | Moments: create, list, edit, delete. `createMoment` is the one insert every path uses.                         |
-| `model/media.ts`      | Uploads (reserved by the Worker, then confirmed), avatars, who may download or delete, the upload sweep.       |
-| `model/share.ts`      | The share link: switching it on, its name, what it shows, the story it opens, its media, emailing it.          |
-| `model/invites.ts`    | Invites: making, accepting, dismissing, invite emails.                                                         |
-| `model/sessions.ts`   | Who has access to an experience, when they were last looking, and revoking it.                                 |
-| `model/users.ts`      | Profile, settings, email confirmation, the memory reminder, the users sign-in creates, blocking an account.    |
-| `model/mail.ts`       | Sends each queued email through the Cloudflare email component, then clears its address and words.             |
-| `model/aiBudget.ts`   | AI Budget's one-time setup (no prompts or responses kept) and a spend summary for the CLI.                     |
-| `model/changes.ts`    | The Activity log, and its unread count.                                                                        |
-| `model/guestNotes.ts` | The guestbook invited people sign.                                                                             |
-| `model/onThisDay.ts`  | The daily "a memory is waiting" email (opt-in).                                                                |
-| `model/migrations.ts` | One-off data migrations, run from the CLI.                                                                     |
-| `model/seed.ts`       | Dev only: `pnpm exec convex run model/seed:japan '{"userId":"..."}'`, a ten-day demo trip. Refuses production. |
-| `model/ai/command.ts` | The box: a sentence becomes a plan to add, change or remove moments.                                           |
-| `model/ai/voice.ts`   | Speech to text for the box. Nothing is stored.                                                                 |
+| File                  | What it owns                                                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `model/events.ts`     | Experiences: create, rename, dates, the home list, delete (and the purge of everything in one).                                        |
+| `model/moments.ts`    | Moments: create, list, edit, archive, delete. `createMoment` is the one insert every path uses; `momentFor` is what a reader is shown. |
+| `model/media.ts`      | Uploads (reserved by the Worker, then confirmed), avatars, who may download or delete, the upload sweep.                               |
+| `model/share.ts`      | The share link: switching it on, its name, what it shows, the story it opens, its media, emailing it.                                  |
+| `model/invites.ts`    | Invites: making, accepting, dismissing, invite emails.                                                                                 |
+| `model/sessions.ts`   | Who has access to an experience, when they were last looking, and revoking it.                                                         |
+| `model/users.ts`      | Profile, settings, email confirmation, the memory reminder, the users sign-in creates, blocking an account.                            |
+| `model/mail.ts`       | Sends each queued email through the Cloudflare email component, then clears its address and words.                                     |
+| `model/aiBudget.ts`   | AI Budget's one-time setup (no prompts or responses kept) and a spend summary for the CLI.                                             |
+| `model/changes.ts`    | The Activity log, and its unread count.                                                                                                |
+| `model/guestNotes.ts` | The guestbook invited people sign.                                                                                                     |
+| `model/onThisDay.ts`  | The daily "a memory is waiting" email (opt-in).                                                                                        |
+| `model/migrations.ts` | One-off data migrations, run from the CLI.                                                                                             |
+| `model/seed.ts`       | Dev only: `pnpm exec convex run model/seed:japan '{"userId":"..."}'`, a ten-day demo trip. Refuses production.                         |
+| `model/ai/command.ts` | The box: a sentence becomes a plan to add, change or remove moments.                                                                   |
+| `model/ai/voice.ts`   | Speech to text for the box. Nothing is stored.                                                                                         |
 
 ### lib/ (helpers, no functions)
 
-| File                  | What it is                                                                                                       |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `lib/access.ts`       | Who may do what on an experience (`requireEventAccess`).                                                         |
-| `lib/actors.ts`       | Who is acting: a person, an AI working for one, or the system.                                                   |
-| `lib/appUrl.ts`       | The web app's origins, from `APP_URL`.                                                                           |
-| `lib/aggregates.ts`   | Running counts and sums (upload bytes, photos and videos, changes), and the helpers that write uploads.          |
-| `lib/blocks.ts`       | Checking and encrypting a moment's blocks, stops, places and labels.                                             |
-| `lib/changes.ts`      | `recordChange`, for the Activity log.                                                                            |
-| `lib/crypto.ts`       | Encryption under each experience's key.                                                                          |
-| `lib/emailAddress.ts` | Whether email can be sent, and to which confirmed address.                                                       |
-| `lib/geo.ts`          | Distances between places.                                                                                        |
-| `lib/limits.ts`       | Every cap in one place.                                                                                          |
-| `lib/monthDay.ts`     | A moment's month and day, where it happened.                                                                     |
-| `lib/profile.ts`      | Cleaning profile fields.                                                                                         |
-| `lib/rateLimit.ts`    | Per-person rate limits.                                                                                          |
-| `lib/ai/budget.ts`    | AI Budget: `metered()` records each AI call's model, person, feature, tokens and cost. Dashboard at `/aibudget`. |
-| `lib/ai/generate.ts`  | Structured output from Haiku, with a JSON fallback.                                                              |
-| `lib/ai/models.ts`    | Which models the box and voice use.                                                                              |
+| File                  | What it is                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lib/access.ts`       | Who may do what on an experience (`requireEventAccess`), and who a hidden photo or archived moment is kept from (`seesAllOf`, `withheld`). |
+| `lib/actors.ts`       | Who is acting: a person, an AI working for one, or the system.                                                                             |
+| `lib/appUrl.ts`       | The web app's origins, from `APP_URL`.                                                                                                     |
+| `lib/aggregates.ts`   | Running counts and sums (upload bytes, photos and videos, changes), and the helpers that write uploads.                                    |
+| `lib/blocks.ts`       | Checking and encrypting a moment's blocks, stops, places and labels.                                                                       |
+| `lib/changes.ts`      | `recordChange`, for the Activity log.                                                                                                      |
+| `lib/crypto.ts`       | Encryption under each experience's key.                                                                                                    |
+| `lib/emailAddress.ts` | Whether email can be sent, and to which confirmed address.                                                                                 |
+| `lib/geo.ts`          | Distances between places.                                                                                                                  |
+| `lib/limits.ts`       | Every cap in one place.                                                                                                                    |
+| `lib/monthDay.ts`     | A moment's month and day, where it happened.                                                                                               |
+| `lib/profile.ts`      | Cleaning profile fields.                                                                                                                   |
+| `lib/rateLimit.ts`    | Per-person rate limits.                                                                                                                    |
+| `lib/ai/budget.ts`    | AI Budget: `metered()` records each AI call's model, person, feature, tokens and cost. Dashboard at `/aibudget`.                           |
+| `lib/ai/generate.ts`  | Structured output from Haiku, with a JSON fallback.                                                                                        |
+| `lib/ai/models.ts`    | Which models the box and voice use.                                                                                                        |

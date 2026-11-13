@@ -78,6 +78,35 @@ export const requireEventAccess = async (ctx: Ctx, eventId: Id<"events">, min: E
   return allow(await getEventAccess(ctx, eventId), min);
 };
 
+// Who is reading: someone on the experience, or null for a share link.
+export type Reader = { userId: Id<"users">; role: EventRole } | null;
+
+// Whether a moment holds nothing back from this reader. Its hidden photos, and
+// the whole moment once archived, are for the experience's owners and the
+// moment's author only: the same people who may edit it, so nobody saves a
+// moment they were shown only part of.
+export const seesAllOf = (reader: Reader, moment: Pick<Doc<"moments">, "authorId">): boolean => {
+  return reader !== null && (reader.role === "owner" || reader.userId === moment.authorId);
+};
+
+// Whether a picture's bytes are kept from this reader: it sits on an archived
+// moment, or its block is hidden. Both download paths ask this, so a picture
+// left out of a list can't be fetched by its id either.
+export const withheld = async (ctx: Ctx, media: Doc<"media">, reader: Reader): Promise<boolean> => {
+  if (media.momentId === undefined) return false;
+  const moment = await ctx.db.get("moments", media.momentId);
+  if (moment === null || seesAllOf(reader, moment)) return false;
+  if (moment.archived === true) return true;
+  return [moment.blocks, ...(moment.stops ?? []).map((stop) => stop.blocks)]
+    .flat()
+    .some(
+      (block) =>
+        (block.type === "photo" || block.type === "video") &&
+        block.mediaId === media._id &&
+        block.hidden === true,
+    );
+};
+
 // Archived experiences are read-only: call on every write that adds content.
 export const assertNotArchived = (event: Doc<"events">) => {
   if (event.status === "archived") {

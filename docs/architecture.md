@@ -38,7 +38,7 @@ flowchart LR
 
 ## Auth and who may touch a trip
 
-Sign-in is OAuth only. `convex/auth.ts` wires GitHub and Google and, for a dev build, anonymous sign-in. `createGithubUser` and `createGoogleUser` in `convex/model/users.ts` insert an empty `users` row. The OAuth profile is not copied. A typed email in Settings is stored and is not a login.
+Sign-in is OAuth only. `convex/auth.ts` wires GitHub and Google and, for a dev build, anonymous sign-in. `createGithubUser` and `createGoogleUser` in `convex/model/users.ts` insert a `users` row with the provider's verified email, and `saveOauthProfile` then runs on every sign-in: it fills an empty display name from the provider's name and saves the address of the provider's photo (`imageUrl`). An uploaded image (`imageMediaId`) is shown instead of it. A typed email in Settings is stored and is not a login.
 
 The Convex auth config (`convex/auth.config.ts`) trusts JWTs from that deployment's site URL. `requireUserId` and `requireEventAccess` in `convex/lib/access.ts` are the gate. The signed-in user id is the JWT subject. A missing trip and a trip you cannot see both throw `Event not found`, so an id cannot be probed.
 

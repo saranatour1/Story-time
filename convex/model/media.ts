@@ -15,6 +15,7 @@ import {
   requireEventAccess,
   requireUserId,
   sharesExperience,
+  withheld,
 } from "../lib/access";
 import { eventMedia, insertMedia, patchMedia, uploadBytes } from "../lib/aggregates";
 import { recordChange } from "../lib/changes";
@@ -270,6 +271,7 @@ const getForDownload = query({
     if (access === null) return null;
     // Photos not yet attached to a moment are visible to their uploader only.
     if (media.momentId === undefined && media.uploaderId !== access.userId) return null;
+    if (await withheld(ctx, media, access)) return null;
     return delivered(media, args.variant, media.eventId);
   },
 });

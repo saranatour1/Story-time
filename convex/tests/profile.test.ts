@@ -236,7 +236,7 @@ describe("profile images", () => {
 });
 
 describe("oauth contact email", () => {
-  test("a verified GitHub or Google email is copied, and the name and picture are not", async () => {
+  test("a verified GitHub or Google email is copied", async () => {
     const t = convexTest(schema, modules);
     rateLimiterTest.register(t);
     for (const name of AGGREGATES) aggregateTest.register(t, name);
@@ -256,8 +256,6 @@ describe("oauth contact email", () => {
     });
     const github = await t.run((ctx) => ctx.db.get("users", githubId));
     expect(github).toMatchObject({ email: "sara@example.com", emailVerified: true });
-    expect(github?.displayName).toBeUndefined();
-    expect(github?.imageMediaId).toBeUndefined();
 
     const googleId = await t.mutation(internal.model.users.createGoogleUser, {
       provider: {
@@ -274,7 +272,6 @@ describe("oauth contact email", () => {
     });
     const google = await t.run((ctx) => ctx.db.get("users", googleId));
     expect(google).toMatchObject({ email: "ada@example.com", emailVerified: true });
-    expect(google?.displayName).toBeUndefined();
   });
 
   test("an unverified or unusable address is not copied", async () => {
@@ -334,5 +331,102 @@ describe("oauth contact email", () => {
     ];
     const signedIn = await github("sam@example.com", true);
     expect([sam, samToo]).not.toContain(signedIn);
+  });
+});
+
+// Convex Auth calls createUser once for a new login, then saveOauthProfile on
+// every sign-in. These call them the same way.
+describe("name and photo from sign-in", () => {
+  const github = (name: string | undefined, avatarUrl: string | undefined) => ({
+    name: "github" as const,
+    accountId: "gh-1",
+    profile: { id: "gh-1", login: "sara", name, emailVerified: false, avatarUrl },
+  });
+  const google = (name: string | undefined, picture: string | undefined) => ({
+    name: "google" as const,
+    accountId: "g-1",
+    profile: { id: "g-1", name, emailVerified: false, picture },
+  });
+
+  test("a new GitHub or Google sign-up ends up with the provider's name and photo", async () => {
+    const { t } = await setup();
+    const sara = github("Sara Natour", "https://avatars.githubusercontent.com/u/1?v=4");
+    const saraId = await t.mutation(internal.model.users.createGithubUser, { provider: sara });
+    await t.mutation(internal.model.users.saveOauthProfile, { provider: sara, userId: saraId });
+    expect(
+      await t.withIdentity({ subject: saraId }).query(api.api.users.getCurrentUser, {}),
+    ).toMatchObject({
+      displayName: "Sara Natour",
+      imageUrl: "https://avatars.githubusercontent.com/u/1?v=4",
+    });
+
+    const ada = google(" Ada ", "https://lh3.googleusercontent.com/a/ada");
+    const adaId = await t.mutation(internal.model.users.createGoogleUser, { provider: ada });
+    await t.mutation(internal.model.users.saveOauthProfile, { provider: ada, userId: adaId });
+    expect(
+      await t.withIdentity({ subject: adaId }).query(api.api.users.getCurrentUser, {}),
+    ).toMatchObject({ displayName: "Ada", imageUrl: "https://lh3.googleusercontent.com/a/ada" });
+  });
+
+  test("an account from before fills in on its next sign-in, and a typed name is kept", async () => {
+    const { t, a, aId } = await setup();
+    const signIn = (provider: ReturnType<typeof github> | ReturnType<typeof google>) =>
+      t.mutation(internal.model.users.saveOauthProfile, { provider, userId: aId });
+
+    await signIn(github("Sara", "https://example.com/1.png"));
+    expect(await a.query(api.api.users.getCurrentUser, {})).toMatchObject({
+      displayName: "Sara",
+      imageUrl: "https://example.com/1.png",
+    });
+
+    // Their own name stays; the photo follows the provider.
+    await a.mutation(api.api.users.updateSettings, { displayName: "S." });
+    await signIn(google("Sara Natour", "https://example.com/2.png"));
+    expect(await a.query(api.api.users.getCurrentUser, {})).toMatchObject({
+      displayName: "S.",
+      imageUrl: "https://example.com/2.png",
+    });
+
+    // A provider with no photo doesn't take the last one away.
+    await signIn(google("Sara Natour", undefined));
+    expect((await a.query(api.api.users.getCurrentUser, {}))?.imageUrl).toBe(
+      "https://example.com/2.png",
+    );
+  });
+
+  test("a name that doesn't fit and a photo that isn't https are left off", async () => {
+    const { t, a, aId } = await setup();
+    for (const name of ["x".repeat(61), "   ", undefined]) {
+      await t.mutation(internal.model.users.saveOauthProfile, {
+        provider: google(name, "http://example.com/p.png"),
+        userId: aId,
+      });
+    }
+    const me = await a.query(api.api.users.getCurrentUser, {});
+    expect(me?.displayName).toBeUndefined();
+    expect(me?.imageUrl).toBeUndefined();
+  });
+
+  test("an uploaded image is kept next to the provider photo, so the app can prefer it", async () => {
+    const { t, a, aId } = await setup();
+    const { mediaId } = await a.mutation(api.api.media.reserveAvatarUpload, {
+      size: 1000,
+      mime: "image/png",
+    });
+    await a.mutation(api.api.media.confirmUpload, { mediaId });
+    await a.mutation(api.api.media.setAvatar, { mediaId });
+    await t.mutation(internal.model.users.saveOauthProfile, {
+      provider: github("Sara", "https://example.com/1.png"),
+      userId: aId,
+    });
+    expect(await a.query(api.api.users.getCurrentUser, {})).toMatchObject({
+      imageMediaId: mediaId,
+      imageUrl: "https://example.com/1.png",
+    });
+    // Taking the upload off leaves the provider photo.
+    await a.mutation(api.api.media.clearAvatar, {});
+    const me = await a.query(api.api.users.getCurrentUser, {});
+    expect(me?.imageMediaId).toBeUndefined();
+    expect(me?.imageUrl).toBe("https://example.com/1.png");
   });
 });

@@ -21,7 +21,7 @@ import {
 } from "../lib/profile";
 
 // A verified provider email, normalised, or nothing. An unverified or
-// malformed address is left off. Name and avatar are never copied.
+// malformed address is left off.
 const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string | undefined => {
   if (!profile.emailVerified || profile.email === undefined) return undefined;
   const email = cleanEmail(profile.email);
@@ -34,8 +34,8 @@ const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string
 // here: Convex Auth finds it in its accounts table. A new one (say Google, for
 // someone who signed up with GitHub) whose verified email exactly one person
 // here has confirmed is that person; two or more is ambiguous, so it makes a
-// new user instead. Privacy by default: a new row starts empty apart
-// from the verified contact email; nothing else from the profile is copied.
+// new user instead. A new row holds only the verified contact email; the
+// name and photo arrive right after, in saveOauthProfile.
 const userFor = async (ctx: MutationCtx, email: string | undefined): Promise<Id<"users">> => {
   if (email !== undefined) {
     const known = (
@@ -53,14 +53,19 @@ const userFor = async (ctx: MutationCtx, email: string | undefined): Promise<Id<
   return await ctx.db.insert("users", email === undefined ? {} : { email, emailVerified: true });
 };
 
+const vGithub = v.object({
+  name: v.literal("github"),
+  accountId: v.string(),
+  profile: vGithubProfile,
+});
+const vGoogle = v.object({
+  name: v.literal("google"),
+  accountId: v.string(),
+  profile: vGoogleProfile,
+});
+
 export const createGithubUser = internalMutation({
-  args: {
-    provider: v.object({
-      name: v.literal("github"),
-      accountId: v.string(),
-      profile: vGithubProfile,
-    }),
-  },
+  args: { provider: vGithub },
   returns: v.id("users"),
   handler: async (ctx, args) => {
     return await userFor(ctx, oauthEmail(args.provider.profile));
@@ -68,16 +73,33 @@ export const createGithubUser = internalMutation({
 });
 
 export const createGoogleUser = internalMutation({
-  args: {
-    provider: v.object({
-      name: v.literal("google"),
-      accountId: v.string(),
-      profile: vGoogleProfile,
-    }),
-  },
+  args: { provider: vGoogle },
   returns: v.id("users"),
   handler: async (ctx, args) => {
     return await userFor(ctx, oauthEmail(args.provider.profile));
+  },
+});
+
+// Convex Auth runs this on every GitHub or Google sign-in, the first one
+// included, and it is the only time the profile is seen (none is kept). The
+// provider's name fills an empty display name and never replaces one. Its
+// photo is kept as of the latest sign-in.
+export const saveOauthProfile = internalMutation({
+  args: { provider: v.union(vGithub, vGoogle), userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { provider, userId }) => {
+    const user = await ctx.db.get("users", userId);
+    if (user === null) return null;
+    const name = provider.profile.name?.trim();
+    const photo =
+      provider.name === "github" ? provider.profile.avatarUrl : provider.profile.picture;
+    await ctx.db.patch("users", userId, {
+      displayName:
+        user.displayName ??
+        (name === undefined || name === "" || name.length > MAX_DISPLAY_NAME ? undefined : name),
+      imageUrl: photo?.startsWith("https://") === true ? photo : user.imageUrl,
+    });
+    return null;
   },
 });
 
@@ -144,6 +166,7 @@ const getCurrentUser = query({
       emailVerified: verified,
       onThisDay: user.onThisDay === true,
       imageMediaId: user.imageMediaId,
+      imageUrl: user.imageUrl,
       locale: user.locale,
     };
   },
