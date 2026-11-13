@@ -1,36 +1,37 @@
 import { describe, expect, test } from "vite-plus/test";
-import { monthGrid, tripsOn } from "./calendar";
+import { weekBars } from "./calendar";
 
-const day = (month: number, date: number) => new Date(2026, month - 1, date);
+const day = (date: number) => new Date(2026, 10, date);
+// Monday 9 to Sunday 15 November 2026.
+const week = [9, 10, 11, 12, 13, 14, 15].map(day);
+const trip = (title: string, from: number, to = from) => ({ title, start: day(from), end: day(to) });
+const bars = (trips: ReturnType<typeof trip>[]) =>
+  weekBars(week, trips).map(({ event, ...bar }) => ({ title: event.title, ...bar }));
 
-describe("monthGrid", () => {
-  test("whole weeks, Monday first, padded from the months either side", () => {
-    const weeks = monthGrid(day(10, 15));
-    expect(weeks.every((week) => week.length === 7)).toBe(true);
-    expect(weeks[0]?.[0]).toEqual(day(9, 28));
-    expect(weeks.at(-1)?.at(-1)).toEqual(day(11, 1));
-  });
-});
-
-describe("tripsOn", () => {
-  type Trip = { title: string; startsAt?: number; endsAt?: number };
-  const porto: Trip = {
-    title: "Porto",
-    startsAt: day(10, 30).getTime(),
-    endsAt: day(11, 2).getTime(),
-  };
-  const lunch: Trip = { title: "Lunch", startsAt: day(10, 12).setHours(13) };
-  const trips: Trip[] = [porto, lunch, { title: "Someday" }];
-
-  test("a trip is on every day from its start to its end, across months", () => {
-    expect(tripsOn(day(10, 29), trips)).toEqual([]);
-    expect(tripsOn(day(10, 31), trips)).toEqual([porto]);
-    expect(tripsOn(day(11, 2), trips)).toEqual([porto]);
-    expect(tripsOn(day(11, 3), trips)).toEqual([]);
+describe("weekBars", () => {
+  test("one bar for the days a trip has in the week, cut where it carries on", () => {
+    expect(bars([trip("Amman", 8, 10)])).toEqual([
+      { title: "Amman", col: 0, span: 2, lane: 0, starts: false, ends: true },
+    ]);
+    expect(bars([trip("Vietnam", 14, 20)])).toEqual([
+      { title: "Vietnam", col: 5, span: 2, lane: 0, starts: true, ends: false },
+    ]);
+    expect(bars([trip("Before", 1, 8), trip("After", 16, 18)])).toEqual([]);
   });
 
-  test("a trip with one date is on that day only; one with none is on no day", () => {
-    expect(tripsOn(day(10, 12), trips)).toEqual([lunch]);
-    expect(tripsOn(day(10, 13), trips)).toEqual([]);
+  test("a trip that ends after noon still ends on that day", () => {
+    const lunch = { title: "Lunch", start: day(12), end: new Date(2026, 10, 12, 13) };
+    expect(bars([lunch])).toEqual([
+      { title: "Lunch", col: 3, span: 1, lane: 0, starts: true, ends: true },
+    ]);
+  });
+
+  test("trips that overlap get their own lane; the rest share the top one", () => {
+    const trips = [trip("Later", 14), trip("Second", 11, 13), trip("First", 9, 12)];
+    expect(bars(trips).map(({ title, lane }) => [title, lane])).toEqual([
+      ["First", 0],
+      ["Second", 1],
+      ["Later", 0],
+    ]);
   });
 });
