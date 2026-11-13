@@ -23,7 +23,6 @@ const SIGNATURES: Partial<Record<string, (head: Uint8Array) => boolean>> = {
   // Older QuickTime files open with another box than ftyp.
   "video/quicktime": (h) => box(h, "ftyp", "moov", "mdat", "wide", "free", "skip"),
   "video/webm": (h) => bytes(h, 0x1a, 0x45, 0xdf, 0xa3),
-  "application/pdf": (h) => ascii(h, 0, "%PDF-"),
 };
 
 // False for a type with no signature here: nothing else is accepted anyway.

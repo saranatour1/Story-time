@@ -7,7 +7,7 @@ describe("pageMeta", () => {
     for (const path of [
       "/home",
       "/e/abc",
-      "/e/abc/journal",
+      "/e/abc/shared",
       "/settings/profile",
       "/s",
       "/invite/tok",
@@ -23,6 +23,6 @@ describe("pageMeta", () => {
     expect(pageMeta("/e/abc/story").image).toBe("/og-share.png");
     expect(pageMeta("/invite/tok").image).toBe("/og-invite.png");
     expect(pageMeta("/invite").image).toBe("/og-invite.png");
-    expect(pageMeta("/e/abc/journal").image).toBe("/og.png");
+    expect(pageMeta("/e/abc/shared").image).toBe("/og.png");
   });
 });

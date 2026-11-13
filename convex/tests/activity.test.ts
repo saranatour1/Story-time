@@ -35,7 +35,7 @@ const setup = async () => {
 };
 
 describe("activity badge", () => {
-  test("counts new moments, pages and guestbook notes, then clears when opened", async () => {
+  test("counts new moments and guestbook notes, then clears when opened", async () => {
     const { t, owner, viewer, stranger, eventId } = await setup();
     expect(await owner.query(api.api.changes.unreadCount, { eventId })).toBe(0);
     await expect(stranger.query(api.api.changes.unreadCount, { eventId })).rejects.toThrow(
@@ -51,10 +51,7 @@ describe("activity badge", () => {
       place: "Lisbon",
       blocks: [{ type: "note", text: "Tram 28" }],
     });
-    await t.finishAllScheduledFunctions(() => undefined);
-    const afterMoment = await owner.query(api.api.changes.unreadCount, { eventId });
-    // The moment, its page, and the cover.
-    expect(afterMoment).toBe(3);
+    expect(await owner.query(api.api.changes.unreadCount, { eventId })).toBe(1);
 
     await owner.mutation(api.api.changes.markRead, { eventId });
     expect(await owner.query(api.api.changes.unreadCount, { eventId })).toBe(0);
@@ -69,7 +66,6 @@ describe("activity badge", () => {
     const changes = await t.run((ctx) => ctx.db.query("changes").collect());
     expect(JSON.stringify(changes)).not.toContain("Wish I had been there");
     expect(changes.some((c) => c.entity === "guestNote" && c.action === "create")).toBe(true);
-    expect(changes.some((c) => c.entity === "page" && c.action === "create")).toBe(true);
 
     await expect(
       stranger.mutation(api.api.guestNotes.leave, { eventId, text: "Hello" }),

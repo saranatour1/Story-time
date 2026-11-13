@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BookHeartIcon, ChevronRightIcon, HomeIcon, ListIcon, UsersIcon } from "lucide-react";
+import { ChevronRightIcon, HomeIcon, ListIcon, UsersIcon } from "lucide-react";
 import { queries } from "@/lib/queries";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -28,7 +28,6 @@ import {
 // under the experience's More menu (event-actions-menu.tsx).
 const SECTIONS = [
   { to: "/e/$id", label: "Moments", icon: ListIcon, path: "" },
-  { to: "/e/$id/journal", label: "Journal", icon: BookHeartIcon, path: "/journal" },
   { to: "/e/$id/shared", label: "People", icon: UsersIcon, path: "/shared" },
 ] as const;
 

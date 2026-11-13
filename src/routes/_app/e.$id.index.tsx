@@ -21,10 +21,7 @@ import { initials } from "@/components/user-avatar";
 const search = z.object({
   // Sections that were tabs here are pages of their own now; links to them
   // are sent on (see beforeLoad).
-  tab: z
-    .enum(["itinerary", "shared", "activity", "canvas", "journal", "settings"])
-    .optional()
-    .catch(undefined),
+  tab: z.enum(["itinerary", "shared", "activity", "settings"]).optional().catch(undefined),
   panel: z.enum(["outline", "details", "moment"]).default("outline").catch("outline"),
   // The moment picked in the list, open to look at when `peek` is set.
   momentId: z.string().optional().catch(undefined),
@@ -228,14 +225,12 @@ export const Route = createFileRoute("/_app/e/$id/")({
   beforeLoad: ({ search: s, params }) => {
     if (s.tab === "shared") throw redirect({ to: "/e/$id/shared", params });
     if (s.tab === "activity") throw redirect({ to: "/e/$id/activity", params });
-    if (s.tab === "canvas" || s.tab === "journal") throw redirect({ to: "/e/$id/journal", params });
   },
   // Started together, rather than the moments waiting on the experience.
   loader: ({ context: { prefetch }, params }) => {
     const eventId = params.id as Id<"events">;
     prefetch(queries.events.get({ eventId }));
     prefetch(queries.moments.list({ eventId }));
-    prefetch(queries.journal.unpaged({ eventId }));
   },
   component: EventPage,
 });

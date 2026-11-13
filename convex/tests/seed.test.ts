@@ -19,7 +19,7 @@ beforeAll(() => {
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
-test("the Japan trip seeds a whole experience, and its journal follows", async () => {
+test("the Japan trip seeds a whole experience", async () => {
   const t = convexTest(schema, modules);
   rateLimiterTest.register(t);
   for (const name of AGGREGATES) aggregateTest.register(t, name);
@@ -39,9 +39,6 @@ test("the Japan trip seeds a whole experience, and its journal follows", async (
   const moments = await me.query(api.api.moments.list, { eventId });
   expect(moments.map((m) => m.place)).toContain("Fushimi Inari Taisha, Kyoto");
   expect(moments.every((m) => m.tzOffsetMinutes === 540 && m.geo !== undefined)).toBe(true);
-  // A cover and a page for every moment, cut without anyone opening the book.
-  const book = await me.query(api.api.journal.outline, { eventId });
-  expect(book.pages).toHaveLength(13);
 });
 
 test("seed:japan requires a dev deployment and the account you name", async () => {

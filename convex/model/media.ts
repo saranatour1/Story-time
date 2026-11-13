@@ -1,5 +1,4 @@
 import { ConvexError, v } from "convex/values";
-import { isSharedPdf } from "../lib/sharedPdf";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
@@ -19,7 +18,6 @@ import {
 } from "../lib/access";
 import { eventMedia, insertMedia, patchMedia, uploadBytes } from "../lib/aggregates";
 import { recordChange } from "../lib/changes";
-import { mediaOnAPage } from "./journal";
 import {
   AVATAR_MIME_TYPES,
   IMAGE_MIME_TYPES,
@@ -78,8 +76,8 @@ const reserveUpload = mutation({
         maxBytes,
       });
     }
-    // Photos and videos have their own caps. Deleted uploads, stickers and a
-    // locked PDF don't count, so removing one frees room.
+    // Photos and videos have their own caps. Deleted uploads don't count, so
+    // removing one frees room.
     const held = await eventMedia.count(ctx, {
       namespace: args.eventId,
       bounds: { eq: isVideo ? "video" : "photo" },
@@ -270,17 +268,8 @@ const getForDownload = query({
     if (media.eventId === undefined) return null;
     const access = await getEventAccess(ctx, media.eventId);
     if (access === null) return null;
-    // Photos not yet attached to a moment are visible to their uploader only;
-    // a sticker belongs to the journal, so everyone who can see it sees it,
-    // and so does the journal's locked PDF while it is the one shared.
-    if (
-      media.momentId === undefined &&
-      media.purpose !== "sticker" &&
-      !(media.purpose === "pdf" && (await isSharedPdf(ctx, media.eventId, media._id))) &&
-      media.uploaderId !== access.userId
-    ) {
-      return null;
-    }
+    // Photos not yet attached to a moment are visible to their uploader only.
+    if (media.momentId === undefined && media.uploaderId !== access.userId) return null;
     return delivered(media, args.variant, media.eventId);
   },
 });
@@ -377,12 +366,6 @@ const deletableBy = async (
     return user?.imageMediaId !== media._id;
   }
   if (media.momentId !== undefined || media.eventId === undefined) return false;
-  // A sticker still pasted on a page is part of the journal. Taking it off
-  // the shelf is refused until every page lets it go.
-  if (media.purpose === "sticker" && (await mediaOnAPage(ctx, media.eventId, media._id)))
-    return false;
-  // The PDF on the share link stays until it is replaced or taken off.
-  if (media.purpose === "pdf" && (await isSharedPdf(ctx, media.eventId, media._id))) return false;
   // Checked now, not when the photo was added: someone whose access was
   // revoked, or who is only a viewer now, can no longer delete.
   const access = await getEventAccess(ctx, media.eventId);
@@ -453,7 +436,7 @@ const showable = (mime: string) =>
   IMAGE_MIME_TYPES.some((kind) => kind === mime) || VIDEO_MIME_TYPES.some((kind) => kind === mime);
 
 // Photos and videos this person uploaded that are not on a moment yet, newest
-// first. Stickers, avatars, and anyone else's loose uploads stay off the shelf.
+// first. Anything with a purpose, and anyone else's loose uploads, stay off the shelf.
 // A contributor can put these on a new moment from the box.
 const unattached = query({
   args: { eventId: v.id("events") },
@@ -467,8 +450,7 @@ const unattached = query({
     const mine = rows.filter(
       (row) =>
         row.momentId === undefined &&
-        row.purpose !== "sticker" &&
-        row.purpose !== "avatar" &&
+        row.purpose === undefined &&
         row.uploaderId === userId &&
         showable(row.mime),
     );

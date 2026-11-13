@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test, vi } from "vite-plus/test";
-import { titleFromHtml } from "../model/ai/unfurl";
 import { limitWrites, takeAi } from "../lib/rateLimit";
 import { AI_PER_DAY } from "../lib/limits";
 import aggregateTest from "@convex-dev/aggregate/test";
@@ -90,16 +89,5 @@ describe("AI: ten uses a day per person, across every feature", () => {
       for (let i = 0; i < 300; i++) await limitWrites(ctx, "sara");
       await expect(limitWrites(ctx, "sara")).rejects.toThrow("a lot of changes");
     });
-  });
-});
-
-describe("unfurl: page titles", () => {
-  test("reads the title, decodes basic entities, and drops empty ones", () => {
-    expect(
-      titleFromHtml("<html><head><title>  Ponte &amp; Co &#8211;\n2026 </title></head></html>"),
-    ).toBe("Ponte & Co – 2026");
-    expect(titleFromHtml("<title>&lt;b&gt;bold&lt;/b&gt;</title>")).toBe("<b>bold</b>");
-    expect(titleFromHtml("<title>   </title>")).toBeUndefined();
-    expect(titleFromHtml("no title here")).toBeUndefined();
   });
 });

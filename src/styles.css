@@ -11,8 +11,6 @@
   /* One serif everywhere: the site's display type, the app's titles and
      story mode's captions. */
   --font-display: "Newsreader Variable", ui-serif, Georgia, serif;
-  /* The scrapbook's handwriting: captions on paper scraps. */
-  --font-hand: "Caveat Variable", "Bradley Hand", cursive;
   --font-serif: "Newsreader Variable", ui-serif, Georgia, serif;
 }
 
@@ -216,27 +214,5 @@
   }
   50% {
     opacity: 0.9;
-  }
-}
-
-/* A journal page turning: in from the spine, or back towards it. */
-@keyframes journal-turn-in {
-  from {
-    transform: rotateY(-28deg) translateX(24px);
-    opacity: 0.2;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
-}
-@keyframes journal-turn-back {
-  from {
-    transform: rotateY(28deg) translateX(-24px);
-    opacity: 0.2;
-  }
-  to {
-    transform: none;
-    opacity: 1;
   }
 }

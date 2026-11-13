@@ -291,7 +291,7 @@ describe("uploads", () => {
       owner.mutation(api.api.media.reserveUpload, {
         eventId,
         size: 100,
-        mime: "application/pdf",
+        mime: "application/zip",
       }),
     ).rejects.toThrow();
     const ok = await owner.mutation(api.api.media.reserveUpload, {

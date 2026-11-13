@@ -365,8 +365,7 @@ export const japan = internalMutation({
       fields: ["title", "status", "visibility"],
       after: { title, status: "draft", visibility: "private" },
     });
-    // One at a time, so each sees the count the last one left. The journal
-    // cuts their pages on its own, after.
+    // One at a time, so each sees the count the last one left.
     for (const moment of TRIP) {
       const event = await ctx.db.get("events", eventId);
       if (event === null) throw new Error("The trip went missing while it was being made.");

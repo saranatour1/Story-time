@@ -27,7 +27,7 @@ export const Cover = ({
   moments: StoryMoment[];
   days: number;
   stops: number;
-  onPlayFilm: () => void;
+  onPlayFilm?: () => void;
 }) => {
   const range = dateRange(event, moments);
   const photo = firstPhoto(moments);
@@ -62,13 +62,15 @@ export const Cover = ({
         />
       )}
       <div className="mt-6 flex flex-wrap items-center gap-4">
-        <Button
-          size="lg"
-          className="rounded-full bg-[#c2410c] px-5 text-white hover:bg-[#c2410c]/90"
-          onClick={onPlayFilm}
-        >
-          <PlayIcon /> Play as film
-        </Button>
+        {onPlayFilm && (
+          <Button
+            size="lg"
+            className="rounded-full bg-[#c2410c] px-5 text-white hover:bg-[#c2410c]/90"
+            onClick={onPlayFilm}
+          >
+            <PlayIcon /> Play as film
+          </Button>
+        )}
         <p className="text-sm text-stone-600 dark:text-muted-foreground">{counts}</p>
       </div>
     </section>

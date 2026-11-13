@@ -1,6 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { ELEMENT_KINDS } from "./lib/journal";
 
 // Sensitive fields (place, coordinates, notes, links) are stored as AES-GCM
 // ciphertext.
@@ -82,30 +81,6 @@ export const vCanvasKind = v.union(
   v.literal("tape"),
 );
 
-// One thing on a journal page (lib/journal.ts says what each field means).
-// Words are encrypted like notes; the rest is layout.
-export const vJournalKind = v.union(...ELEMENT_KINDS.map((k) => v.literal(k)));
-export const vJournalElement = v.object({
-  id: v.string(),
-  kind: vJournalKind,
-  x: v.number(),
-  y: v.number(),
-  w: v.number(),
-  h: v.number(),
-  rotation: v.number(),
-  z: v.number(),
-  style: v.optional(v.string()),
-  text: v.optional(vEncrypted),
-  tone: v.optional(v.string()),
-  color: v.optional(v.string()),
-  mediaId: v.optional(v.id("media")),
-  momentId: v.optional(v.id("moments")),
-  locked: v.optional(v.boolean()),
-  // A piece the layout made whose words the owner then changed: theirs now,
-  // so bringing the page up to its moment leaves it.
-  own: v.optional(v.boolean()),
-});
-
 export const vChangeEntity = v.union(
   v.literal("event"),
   v.literal("moment"),
@@ -115,7 +90,7 @@ export const vChangeEntity = v.union(
   v.literal("invite"),
   v.literal("quota"),
   v.literal("user"),
-  v.literal("page"),
+  v.literal("page"), // legacy: older Activity rows carry it, nothing writes it
   v.literal("guestNote"),
 );
 
@@ -190,7 +165,8 @@ export default defineSchema({
     // Opt-in: a live link shows the words and leaves out every picture. Off
     // (or unset) keeps the link as it was, photos included.
     shareRedacted: v.optional(v.boolean()),
-    // More the owner switched off on the link: the film with its map, the PDF.
+    // More the owner switched off on the link: the film with its map. `pdf`
+    // is legacy: older experiences may carry it, and nothing reads it.
     shareHide: v.optional(
       v.object({ film: v.optional(v.boolean()), pdf: v.optional(v.boolean()) }),
     ),
@@ -222,7 +198,7 @@ export default defineSchema({
     stops: v.optional(v.array(vStop)),
     labels: v.optional(v.array(vEncrypted)),
     // People on the trip who were part of it. Only the app shows them; the
-    // share link and the journal leave them out.
+    // share link leaves them out.
     people: v.optional(v.array(v.id("users"))),
     // Set when an agent created the moment for `authorId`: the agent's name.
     authorAgent: v.optional(v.string()),
@@ -252,7 +228,8 @@ export default defineSchema({
   media: defineTable({
     // Absent for profile images, which belong to a user, not an experience.
     eventId: v.optional(v.id("events")),
-    // An avatar belongs to a user; a sticker is cut from a photo for a journal.
+    // An avatar belongs to a user. "sticker" and "pdf" are legacy: older
+    // uploads carry them, and nothing writes them.
     purpose: v.optional(v.union(v.literal("avatar"), v.literal("sticker"), v.literal("pdf"))),
     momentId: v.optional(v.id("moments")),
     uploaderId: v.id("users"),
@@ -346,38 +323,6 @@ export default defineSchema({
     authorId: v.id("users"),
     text: vEncrypted,
   }).index("by_event", ["eventId"]),
-
-  // The journal of an experience: a book of A4 pages. `filledAt` is how far
-  // the moments have been given pages, so a page taken out isn't made again.
-  journals: defineTable({
-    eventId: v.id("events"),
-    filledAt: v.optional(v.number()),
-    locked: v.optional(v.boolean()),
-    // The whole book as a PDF locked with a password, for the share link. The
-    // password is kept under the event key so its owner can copy it again.
-    pdf: v.optional(
-      v.object({ mediaId: v.id("media"), password: vEncrypted, pages: v.number(), at: v.number() }),
-    ),
-  }).index("by_event", ["eventId"]),
-
-  // One page of a journal, with everything on it. `order` sorts the book; a
-  // moment's page starts at the moment's time, so new ones land in place.
-  journalPages: defineTable({
-    eventId: v.id("events"),
-    order: v.number(),
-    paper: v.string(),
-    locked: v.optional(v.boolean()),
-    momentId: v.optional(v.id("moments")),
-    // The moment time this page was laid out from: its last edit, or its
-    // creation when it has never been edited. A later edit leaves the page
-    // behind. Absent on a cover, a blank page, and a page made before this.
-    builtFrom: v.optional(v.number()),
-    // The owner has saved this page, so it is not rewritten until they ask.
-    edited: v.optional(v.boolean()),
-    elements: v.array(vJournalElement),
-  })
-    .index("by_event_and_order", ["eventId", "order"])
-    .index("by_event_and_moment", ["eventId", "momentId"]),
 
   // Legacy: nothing reads or writes it. Cleared and removed in the next step.
   canvases: defineTable({

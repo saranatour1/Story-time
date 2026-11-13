@@ -120,7 +120,6 @@ const PARTS = [
     label: "Play and map",
     hint: "Off, there's no film to play and no map pins leave.",
   },
-  { part: "pdf", label: "Locked PDF", hint: "Off, the PDF can't be downloaded from the link." },
 ] as const;
 
 export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) => {
@@ -243,32 +242,26 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
               </Button>
             </div>
             <ul aria-label="What the link shows" className="divide-y rounded-lg border">
-              {PARTS.map(({ part, label, hint }) => {
-                // The PDF is the book's pictures, so it goes when photos do.
-                const follows = part === "pdf" && shown?.photos === false;
-                return (
-                  <li key={part} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                    <div className="min-w-0">
-                      <Label htmlFor={`show-${part}`} className="text-sm">
-                        {label}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {follows ? "Off while photos are off." : hint}
-                      </p>
-                    </div>
-                    <Switch
-                      id={`show-${part}`}
-                      checked={shown?.[part] === true && !follows}
-                      disabled={shown === undefined || follows}
-                      onCheckedChange={(show) => {
-                        void setShown({ eventId, part, show }).catch((e: unknown) =>
-                          toast.error(errorMessage(e)),
-                        );
-                      }}
-                    />
-                  </li>
-                );
-              })}
+              {PARTS.map(({ part, label, hint }) => (
+                <li key={part} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <Label htmlFor={`show-${part}`} className="text-sm">
+                      {label}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{hint}</p>
+                  </div>
+                  <Switch
+                    id={`show-${part}`}
+                    checked={shown?.[part] === true}
+                    disabled={shown === undefined}
+                    onCheckedChange={(show) => {
+                      void setShown({ eventId, part, show }).catch((e: unknown) =>
+                        toast.error(errorMessage(e)),
+                      );
+                    }}
+                  />
+                </li>
+              ))}
             </ul>
             <form
               onSubmit={(e) => void sendLink(e)}

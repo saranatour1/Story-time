@@ -8,8 +8,8 @@ export const MOMENT_LIMIT = 100;
 // How many moments to read for an experience: all of them. One made before
 // the limit came down can hold more than MOMENT_LIMIT (up to 500).
 export const momentsToRead = (momentCount: number) => Math.max(MOMENT_LIMIT, momentCount);
-// Photos and videos an experience holds live (reserved or ready), not counting
-// journal stickers or a locked PDF. Deleting one frees its place.
+// Photos and videos an experience holds live (reserved or ready). Deleting
+// one frees its place.
 export const MAX_PHOTOS_PER_EVENT = 150;
 export const MAX_VIDEOS_PER_EVENT = 5;
 export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
@@ -29,8 +29,6 @@ export const IMAGE_MIME_TYPES = [
   "image/avif",
 ];
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
-// A journal printed to a locked PDF, for its share link.
-export const MAX_PDF_BYTES = 50 * 1024 * 1024;
 export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const AVATAR_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
@@ -46,8 +44,6 @@ export const MAX_COMMAND_OPS = 8;
 // inside the 1 MiB a Convex value may hold.
 export const MAX_VOICE_SECONDS = 60;
 export const MAX_VOICE_BYTES = 900_000;
-// Pages one journal holds: a page per moment, a cover, and room for more.
-export const MAX_JOURNAL_PAGES = 150;
 // Invites waiting to be opened, per experience.
 export const MAX_WAITING_INVITES = 20;
 // The furthest out an invite link may be set to expire.

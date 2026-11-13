@@ -101,7 +101,7 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
           {
             value: "system" as const,
             label: "Automatic",
-            title: "What Story-time did by itself, like adding a journal page for a new moment",
+            title: "What Story-time did by itself",
           },
         ]
       : []),

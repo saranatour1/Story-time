@@ -63,8 +63,6 @@ export const StickyMap = ({
   reduced,
   className,
   onPick,
-  light = false,
-  printable = false,
 }: {
   stops: MapStop[];
   // The step in view, when it is a stop on the map.
@@ -73,13 +71,8 @@ export const StickyMap = ({
   reduced: boolean;
   className?: string;
   onPick: (step: number) => void;
-  // Always the light map, as on a paper page.
-  light?: boolean;
-  // Drawn so it can be photographed into a PDF, with no zoom buttons.
-  printable?: boolean;
 }) => {
-  const { resolvedTheme: appTheme } = useTheme();
-  const resolvedTheme = light ? "light" : appTheme;
+  const { resolvedTheme } = useTheme();
   // MapLibre needs the browser, so nothing draws until this has mounted.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -124,7 +117,6 @@ export const StickyMap = ({
       <MapView
         theme={theme}
         interactive={false}
-        canvasContextAttributes={printable ? { preserveDrawingBuffer: true } : undefined}
         className="h-full w-full overflow-hidden rounded-xl border border-[#5b4a3a]/20"
       >
         <Camera framing={framing} framingKey={framingKey} reduced={reduced} />
@@ -180,7 +172,7 @@ export const StickyMap = ({
           );
         })}
         {/* The map takes no gestures of its own, so these are its zoom, by mouse or touch. */}
-        {!printable && <MapControls position="bottom-right" showZoom />}
+        <MapControls position="bottom-right" showZoom />
       </MapView>
     </section>
   );

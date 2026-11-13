@@ -6,9 +6,6 @@ import { appOrigin } from "../lib/appUrl";
 import { emailConfigured, queueMail, replyAddress } from "../lib/emailAddress";
 import { recordChange } from "../lib/changes";
 import { decryptText, encryptText, readText, shareKeyFor } from "../lib/crypto";
-import { contentsOf, pageInEvent } from "./journal";
-import { MAX_JOURNAL_PAGES } from "../lib/journal";
-import { isSharedPdf } from "../lib/sharedPdf";
 import { listForEvent, type PlainBlock, vMomentView } from "./moments";
 import { SHARE_EMAILS_PER_DAY } from "../lib/limits";
 import { chargeEmail } from "../lib/rateLimit";
@@ -132,11 +129,10 @@ const sharedMoment = (moment: Infer<typeof vMomentView>, redact: boolean, film: 
 // What the link shows. Everything, until the owner switches a part off,
 // including while the link itself is off, so the choice is waiting when they
 // switch it on.
-const vPart = v.union(v.literal("photos"), v.literal("film"), v.literal("pdf"));
+const vPart = v.union(v.literal("photos"), v.literal("film"));
 const shownOf = (event: Doc<"events">) => ({
   photos: event.shareRedacted !== true,
   film: event.shareHide?.film !== true,
-  pdf: event.shareHide?.pdf !== true,
 });
 
 const shown = query({
@@ -160,7 +156,7 @@ const setShown = mutation({
       event._id,
       args.part === "photos"
         ? { shareRedacted: hide }
-        : { shareHide: { ...event.shareHide, [args.part]: hide } },
+        : { shareHide: { ...event.shareHide, film: hide } },
     );
     await recordChange(ctx, {
       eventId: args.eventId,
@@ -328,48 +324,8 @@ const get = query({
   },
 });
 
-// Public: the book's contents for a share link. Words stay on `page`, so
-// opening the link does not decrypt every note. Null for anything but a live link.
-const journal = query({
-  args: { token: v.string() },
-  handler: async (ctx, args) => {
-    const event = await eventFor(ctx, args.token);
-    if (event === null) return null;
-    return { pages: await contentsOf(ctx, event) };
-  },
-});
-
-// Public: one page of the book that token opens. A page from another
-// experience is null, the same as a token that was never issued.
-const page = query({
-  args: { token: v.string(), pageId: v.id("journalPages") },
-  handler: async (ctx, args) => {
-    const event = await eventFor(ctx, args.token);
-    if (event === null) return null;
-    return await pageInEvent(ctx, event, args.pageId, event.shareRedacted === true);
-  },
-});
-
-// Public: the journal's locked PDF on this link, if its owner made one. Never
-// its password: that travels separately, from the owner. A link that hides
-// photos does not name the file either — the book is the pictures.
-const pdf = query({
-  args: { token: v.string() },
-  handler: async (ctx, args) => {
-    const event = await eventFor(ctx, args.token);
-    if (event === null || !shownOf(event).photos || !shownOf(event).pdf) return null;
-    const journal = await ctx.db
-      .query("journals")
-      .withIndex("by_event", (q) => q.eq("eventId", event._id))
-      .unique();
-    if (!journal?.pdf) return null;
-    return { mediaId: journal.pdf.mediaId, pages: journal.pdf.pages, at: journal.pdf.at };
-  },
-});
-
 // Public: a picture's bytes for a share link, the same shape the signed-in
-// route gets. A moment's picture qualifies. A sticker qualifies only when a
-// page of this experience actually shows it.
+// route gets. Only a picture on a moment qualifies; a loose upload does not.
 const mediaForShare = query({
   args: {
     token: v.string(),
@@ -382,20 +338,7 @@ const mediaForShare = query({
     const media = await ctx.db.get("media", args.mediaId);
     // Not while still being uploaded, and never another experience's.
     if (media === null || media.status !== "ready" || media.eventId !== event._id) return null;
-    // A picture on a moment qualifies. A sticker qualifies only when some page
-    // of this experience shows it, and a PDF only while it is the journal's
-    // locked one. A loose upload, or a sticker only on the shelf, does not.
-    if (media.momentId === undefined && media.purpose === "pdf") {
-      if (!shownOf(event).pdf || !(await isSharedPdf(ctx, event._id, media._id))) return null;
-    } else if (media.momentId === undefined) {
-      if (media.purpose !== "sticker") return null;
-      const pages = await ctx.db
-        .query("journalPages")
-        .withIndex("by_event_and_order", (q) => q.eq("eventId", event._id))
-        .take(MAX_JOURNAL_PAGES);
-      if (!pages.some((page) => page.elements.some((element) => element.mediaId === media._id)))
-        return null;
-    }
+    if (media.momentId === undefined) return null;
     const thumbKey = args.variant === "thumb" ? media.thumbR2Key : undefined;
     return {
       r2Key: thumbKey ?? media.r2Key,
@@ -416,8 +359,5 @@ export const shareApi = {
   rotate,
   emailLink,
   get,
-  journal,
-  page,
-  pdf,
   mediaForShare,
 };

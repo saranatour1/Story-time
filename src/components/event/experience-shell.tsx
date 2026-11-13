@@ -14,19 +14,17 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useSeen } from "@/hooks/use-seen";
 
 // An experience, loaded once for whichever of its sections is open (moments,
-// journal, sharing, activity): the not-found and loading states, and, unless
-// `bare`, the header with its name and, unless the page places them itself
-// (`actions={false}`), its Play, Add and More.
+// sharing, activity): the not-found and loading states, and the header with
+// its name and, unless the page places them itself (`actions={false}`), its
+// Play, Add and More.
 export const ExperienceShell = ({
   id,
   section,
-  bare = false,
   actions = true,
   children,
 }: {
   id: string;
   section?: string;
-  bare?: boolean;
   actions?: boolean;
   children: (event: EventView) => ReactNode;
 }) => {
@@ -62,7 +60,6 @@ export const ExperienceShell = ({
       </div>
     );
   }
-  if (bare) return <>{children(event)}</>;
 
   const dates = eventDates(event);
   const archived = event.status === "archived";

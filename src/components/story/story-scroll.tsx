@@ -65,7 +65,8 @@ export const StoryScroll = ({
   step: number;
   // Keeps ?step= on the scene in view, replacing history rather than adding.
   onStep: (step: number) => void;
-  onPlayFilm: (step: number) => void;
+  // Absent on a share link whose owner switched the film off.
+  onPlayFilm?: (step: number) => void;
 }) => {
   const reduced = useReducedMotion();
   const steps = useMemo(() => buildStorySteps(event.title, moments), [event.title, moments]);
@@ -279,15 +280,17 @@ export const StoryScroll = ({
         />
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:px-6 lg:px-8">
           <p className="min-w-0 flex-1 truncate font-serif text-sm font-semibold">{event.title}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full"
-            aria-label="Play as film"
-            onClick={() => onPlayFilm(scene)}
-          >
-            <PlayIcon /> <span className="hidden sm:inline">Play as film</span>
-          </Button>
+          {onPlayFilm && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              aria-label="Play as film"
+              onClick={() => onPlayFilm(scene)}
+            >
+              <PlayIcon /> <span className="hidden sm:inline">Play as film</span>
+            </Button>
+          )}
           <ShareButton event={event} label={shareLabel} />
           <Button variant="ghost" size="icon" asChild aria-label="Close story">
             {event.role === undefined ? (
@@ -321,7 +324,7 @@ export const StoryScroll = ({
               moments={moments}
               days={days.length}
               stops={stopCount}
-              onPlayFilm={() => onPlayFilm(0)}
+              onPlayFilm={onPlayFilm && (() => onPlayFilm(0))}
             />
           </div>
           {hasMap && (

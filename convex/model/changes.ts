@@ -5,11 +5,11 @@ import { mutation, query, type QueryCtx } from "../_generated/server";
 import { requireEventAccess } from "../lib/access";
 import { changeCounts } from "../lib/aggregates";
 
-// What the Activity badge counts: new moments, new pages, and guestbook notes.
-const NOTABLE = ["moment", "page", "guestNote"] as const;
+// What the Activity badge counts: new moments and guestbook notes.
+const NOTABLE = ["moment", "guestNote"] as const;
 
-// Per kind, not a shared window. A trip holds at most 400 pages and a few
-// hundred moments, so this covers a burst of creates of one kind. Edits of
+// Per kind, not a shared window. A trip holds at most a few hundred
+// moments, so this covers a burst of creates of one kind. Edits of
 // other kinds are not in the index range and cannot crowd a note out.
 const UNREAD_SCAN = 1000;
 
@@ -28,7 +28,7 @@ const countCreates = async (
   return rows.length;
 };
 
-// How many new moments, pages and guestbook notes the owner has not opened
+// How many new moments and guestbook notes the owner has not opened
 // Activity for. Zero until something notable is created after the last look.
 const unreadCount = query({
   args: { eventId: v.string() },
@@ -47,7 +47,7 @@ const unreadCount = query({
   },
 });
 
-// The owner has looked. Later moments, pages and notes count again.
+// The owner has looked. Later moments and notes count again.
 const markRead = mutation({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {

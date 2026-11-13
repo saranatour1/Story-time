@@ -26,7 +26,7 @@ export const StopCard = ({
   scene: StopScene;
   // The reader, so their own stop says "by you".
   meId?: string;
-  onPlayFilm: (step: number) => void;
+  onPlayFilm?: (step: number) => void;
 }) => {
   const { stop } = scene;
   // On the clock where the stop happened.
@@ -70,16 +70,18 @@ export const StopCard = ({
             </p>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="icon-lg"
-          className="shrink-0 rounded-full border-[#c2410c]/40 text-[#c2410c] hover:bg-[#c2410c]/10 hover:text-[#c2410c]"
-          aria-label="Play from here"
-          title="Play from here"
-          onClick={() => onPlayFilm(step)}
-        >
-          <PlayIcon />
-        </Button>
+        {onPlayFilm && (
+          <Button
+            variant="outline"
+            size="icon-lg"
+            className="shrink-0 rounded-full border-[#c2410c]/40 text-[#c2410c] hover:bg-[#c2410c]/10 hover:text-[#c2410c]"
+            aria-label="Play from here"
+            title="Play from here"
+            onClick={() => onPlayFilm(step)}
+          >
+            <PlayIcon />
+          </Button>
+        )}
       </div>
 
       {scene.labels.length > 0 && scene.stopIndex === 0 && (

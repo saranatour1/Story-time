@@ -11,7 +11,6 @@ import {
 } from "../lib/access";
 import { changeCounts, eventMedia, uploadBytes } from "../lib/aggregates";
 import { recordChange } from "../lib/changes";
-import { coverWords, followCover } from "../lib/cover";
 import { decryptGeo, encryptText, readText } from "../lib/crypto";
 import { MAX_EVENTS_PER_USER } from "../lib/limits";
 
@@ -195,16 +194,6 @@ const update = mutation({
 
     if (fields.length === 0) return null;
     await ctx.db.patch("events", args.eventId, patch);
-    if (fields.includes("title") || fields.includes("startsAt") || fields.includes("endsAt")) {
-      const updated = await ctx.db.get("events", args.eventId);
-      if (updated !== null)
-        await followCover(
-          ctx,
-          updated,
-          await coverWords(ctx, event),
-          await coverWords(ctx, updated),
-        );
-    }
     await recordChange(ctx, {
       eventId: args.eventId,
       entity: "event",
@@ -313,20 +302,6 @@ export const purgeEventData = internalMutation({
       .withIndex("by_event_and_user", (q) => q.eq("eventId", eventId))
       .take(PURGE_BATCH)) {
       await ctx.db.delete("sessions", row._id);
-      deleted++;
-    }
-    for (const row of await ctx.db
-      .query("journalPages")
-      .withIndex("by_event_and_order", (q) => q.eq("eventId", eventId))
-      .take(PURGE_BATCH)) {
-      await ctx.db.delete("journalPages", row._id);
-      deleted++;
-    }
-    for (const row of await ctx.db
-      .query("journals")
-      .withIndex("by_event", (q) => q.eq("eventId", eventId))
-      .take(PURGE_BATCH)) {
-      await ctx.db.delete("journals", row._id);
       deleted++;
     }
     for (const row of await ctx.db

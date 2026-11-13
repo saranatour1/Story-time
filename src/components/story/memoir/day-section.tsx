@@ -18,7 +18,7 @@ export const DaySection = ({
   // Minutes travelled into each stop, by its step.
   minutes: Map<number, number>;
   meId?: string;
-  onPlayFilm: (step: number) => void;
+  onPlayFilm?: (step: number) => void;
 }) => {
   return (
     <section aria-label={`Day ${day.index}`} className="space-y-6">

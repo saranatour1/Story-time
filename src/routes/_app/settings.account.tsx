@@ -85,7 +85,7 @@ const Account = () => {
       <div className="space-y-10">
         <SettingsBlock
           title="Usage"
-          description="Each person gets 10 AI uses a day, shared by everything that uses AI: notes written for your photos, the box, voice, and journal titles. Moments still save without them."
+          description="Each person gets 10 AI uses a day, shared by everything that uses AI: notes written for your photos, the box, and voice. Moments still save without them."
         >
           <Usage />
         </SettingsBlock>

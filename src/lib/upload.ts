@@ -64,30 +64,6 @@ const uploadThumb = async (file: File, mediaId: string, token: string, eventId?:
   await fetch("/api/upload", { method: "POST", headers, body: thumb.blob }).catch(() => undefined);
 };
 
-// The journal printed to a locked PDF, through the same route, which
-// encrypts it into R2 like a photo. Only the experience's owner may.
-export const uploadJournalPdf = async (
-  pdf: Uint8Array,
-  eventId: string,
-  token: string,
-): Promise<string> => {
-  const body = new Blob([pdf.slice().buffer], { type: "application/pdf" });
-  const res = await fetch("/api/upload", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/pdf",
-      "X-Event-Id": eventId,
-      "X-Purpose": "journal-pdf",
-      "X-File-Size": String(body.size),
-    },
-    body,
-  });
-  const reply = (await res.json().catch(() => null)) as { mediaId?: string; error?: string } | null;
-  if (!res.ok || !reply?.mediaId) throw new Error(reply?.error ?? "Upload failed");
-  return reply.mediaId;
-};
-
 export const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 export const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 

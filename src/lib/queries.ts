@@ -27,14 +27,6 @@ export const queries = {
     listForEvent: (args: Args<typeof api.invites.listForEvent>) =>
       convexQuery(api.invites.listForEvent, args),
   },
-  journal: {
-    outline: (args: Args<typeof api.journal.outline>) => convexQuery(api.journal.outline, args),
-    page: (args: Args<typeof api.journal.page>) => convexQuery(api.journal.page, args),
-    pageForMoment: (args: Args<typeof api.journal.pageForMoment>) =>
-      convexQuery(api.journal.pageForMoment, args),
-    stickers: (args: Args<typeof api.journal.stickers>) => convexQuery(api.journal.stickers, args),
-    unpaged: (args: Args<typeof api.journal.unpaged>) => convexQuery(api.journal.unpaged, args),
-  },
   media: {
     unattached: (args: Args<typeof api.media.unattached>) =>
       convexQuery(api.media.unattached, args),
@@ -42,15 +34,9 @@ export const queries = {
   moments: {
     list: (args: Args<typeof api.moments.list>) => convexQuery(api.moments.list, args),
   },
-  pdf: {
-    get: (args: Args<typeof api.pdf.get>) => convexQuery(api.pdf.get, args),
-  },
   share: {
     get: (args: Args<typeof api.share.get>) => convexQuery(api.share.get, args),
-    journal: (args: Args<typeof api.share.journal>) => convexQuery(api.share.journal, args),
     link: (args: Args<typeof api.share.link>) => convexQuery(api.share.link, args),
-    page: (args: Args<typeof api.share.page>) => convexQuery(api.share.page, args),
-    pdf: (args: Args<typeof api.share.pdf>) => convexQuery(api.share.pdf, args),
     shown: (args: Args<typeof api.share.shown>) => convexQuery(api.share.shown, args),
   },
   users: {

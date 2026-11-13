@@ -118,7 +118,7 @@ describe("profile images", () => {
     await expect(
       a.mutation(api.api.media.reserveAvatarUpload, { size: 2 * MB + 1, mime: "image/png" }),
     ).rejects.toThrow(/TOO_LARGE/);
-    for (const mime of ["image/gif", "application/pdf", "image/svg+xml"]) {
+    for (const mime of ["image/gif", "application/zip", "image/svg+xml"]) {
       await expect(
         a.mutation(api.api.media.reserveAvatarUpload, { size: 100, mime }),
       ).rejects.toThrow();

@@ -47,15 +47,16 @@ const ready = async (who: Caller, eventId: Id<"events">, mime = "image/jpeg") =>
 };
 
 describe("media.unattached", () => {
-  test("a contributor sees their own loose photos, newest first, and not a sticker or a photo already on a moment", async () => {
+  test("a contributor sees their own loose photos, newest first, and not a photo already on a moment or one with a purpose", async () => {
     const { t, owner, helper, eventId } = await setup();
     const older = await ready(owner, eventId);
     const newer = await ready(owner, eventId, "image/png");
     const clip = await ready(owner, eventId, "video/mp4");
     const used = await ready(owner, eventId);
-    const sticker = await ready(owner, eventId);
+    // Left by a removed feature: still stored, never on the shelf.
+    const leftover = await ready(owner, eventId);
     await t.run(async (ctx) => {
-      await ctx.db.patch("media", sticker, { purpose: "sticker" });
+      await ctx.db.patch("media", leftover, { purpose: "sticker" });
     });
     await owner.mutation(api.api.moments.create, {
       eventId,
