@@ -2,8 +2,7 @@
 import { convexTest } from "convex-test";
 import { beforeAll, describe, expect, test, vi } from "vite-plus/test";
 import { titleFromHtml } from "../model/ai/unfurl";
-import { limitWrites, takeAi } from "../lib/rateLimit";
-import { AI_PER_DAY } from "../lib/limits";
+import { creditAi, limitWrites, takeAi } from "../lib/rateLimit";
 import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
 import { AGGREGATES } from "../lib/aggregates";
@@ -50,7 +49,7 @@ describe("AI: ten uses a day per person, across every feature", () => {
       rateLimiterTest.register(t);
       for (const name of AGGREGATES) aggregateTest.register(t, name);
       const take = (key: string) => t.run((ctx) => takeAi(ctx, key));
-      for (let i = 0; i < AI_PER_DAY; i++) expect(await take("sara")).toBe(true);
+      for (let i = 0; i < 10; i++) expect(await take("sara")).toBe(true);
       expect(await take("sara")).toBe(false);
       expect(await take("sam")).toBe(true);
       // Still the same day at 23:59 UTC; the next day starts fresh.
@@ -70,16 +69,24 @@ describe("AI: ten uses a day per person, across every feature", () => {
       const { t, ownerId, owner } = await setup();
       for (let i = 0; i < 3; i++) await t.run((ctx) => takeAi(ctx, ownerId));
       const usage = await owner.query(api.api.users.usage, {});
-      expect(usage?.ai).toEqual({
-        left: AI_PER_DAY - 3,
-        limit: AI_PER_DAY,
-        resetsAt: Date.UTC(2026, 9, 14),
-      });
+      expect(usage?.ai).toEqual({ left: 7, limit: 10, resetsAt: Date.UTC(2026, 9, 14) });
       expect(usage?.experiences.used).toBe(1);
       expect(usage?.storage.used).toBe(0);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test("a use the AI couldn't answer comes back, and never more than ten", async () => {
+    const { t, ownerId, owner } = await setup();
+    const left = async () => (await owner.query(api.api.users.usage, {}))?.ai.left;
+    for (let i = 0; i < 10; i++) await t.run((ctx) => takeAi(ctx, ownerId));
+    expect(await left()).toBe(0);
+    await t.run((ctx) => creditAi(ctx, ownerId));
+    expect(await left()).toBe(1);
+    expect(await t.run((ctx) => takeAi(ctx, ownerId))).toBe(true);
+    for (let i = 0; i < 12; i++) await t.run((ctx) => creditAi(ctx, ownerId));
+    expect(await left()).toBe(10);
   });
 
   test("a client changing things in a loop is stopped", async () => {

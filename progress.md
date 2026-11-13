@@ -2,6 +2,10 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-11-13
+
+- **AI limits on the rate limiter alone.** The ten AI uses a day live only in `convex/lib/rateLimit.ts`, and a request the AI couldn't answer (the box's plan, a transcription) gives its use back with the rate limiter's `credit`. The AI Budget component, its `/aibudget` dashboard, `metered()` and `AI_PER_DAY` are gone, and `@convex-dev/ai-budget` left `package.json`. `convex/model/ai/command.ts` lost its comments and some nesting; it does what it did.
+
 ## 2026-11-02
 
 - **Agent discovery.** The home page sends `Link` headers, `/.well-known/api-catalog` lists the Worker's routes (RFC 9727), `/openapi.json` describes them, and `/auth.md` says agents can't register and which credentials a person can hand them. No OAuth metadata: the app has no OAuth server for agents.

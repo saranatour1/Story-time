@@ -2,18 +2,13 @@ import { DAY, HOUR, MINUTE, RateLimiter } from "@convex-dev/rate-limiter";
 import { ConvexError } from "convex/values";
 import { components } from "../_generated/api";
 import type { ActionCtx, MutationCtx } from "../_generated/server";
-import {
-  AI_PER_DAY,
-  EMAIL_CHECKS_PER_DAY,
-  INVITE_EMAILS_PER_DAY,
-  SHARE_EMAILS_PER_DAY,
-} from "./limits";
+import { EMAIL_CHECKS_PER_DAY, INVITE_EMAILS_PER_DAY, SHARE_EMAILS_PER_DAY } from "./limits";
 
 // Per-person allowances, keyed by user id.
 export const rateLimiter = new RateLimiter(components.rateLimiter, {
   // Every AI feature draws on one allowance: a note written for a moment, a
   // typed or spoken request, a journal title. The day starts at midnight UTC.
-  ai: { kind: "fixed window", rate: AI_PER_DAY, period: DAY, start: 0 },
+  ai: { kind: "fixed window", rate: 10, period: DAY, start: 0 },
   // A link preview fetches someone else's page. Not AI, so it has its own.
   linkPreview: { kind: "token bucket", rate: 60, period: HOUR },
   // Changes a person makes (moments, journal pages, invites, sharing...):
@@ -27,11 +22,16 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   emailCheck: { kind: "token bucket", rate: EMAIL_CHECKS_PER_DAY, period: DAY },
 });
 
-export const AI_LIMIT_MESSAGE = `You've used today's ${AI_PER_DAY} AI requests. They come back at midnight UTC.`;
+export const AI_LIMIT_MESSAGE = "You've used today's AI requests. They come back at midnight UTC.";
 
 // One use of the day's AI allowance, or false when it's spent.
 export const takeAi = async (ctx: MutationCtx | ActionCtx, userId: string): Promise<boolean> => {
   return (await rateLimiter.limit(ctx, "ai", { key: userId })).ok;
+};
+
+// Gives that use back, for a request the AI couldn't answer.
+export const creditAi = (ctx: MutationCtx | ActionCtx, userId: string): Promise<void> => {
+  return rateLimiter.credit(ctx, "ai", { key: userId });
 };
 
 // One email of a kind, or a RATE_LIMITED error that says what to do instead.

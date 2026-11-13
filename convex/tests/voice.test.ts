@@ -8,7 +8,6 @@ import { isFormat, readTranscript, toBase64 } from "../model/ai/voice";
 import { api } from "../_generated/api";
 import { MAX_VOICE_BYTES } from "../lib/limits";
 import { rateLimiter } from "../lib/rateLimit";
-import { AI_PER_DAY } from "../lib/limits";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
@@ -85,7 +84,7 @@ describe("transcribe is refused before anything is sent", () => {
 
   test("once the person's allowance is spent", async () => {
     const { t, userId, person } = await setup();
-    for (let i = 0; i < AI_PER_DAY; i++)
+    for (let i = 0; i < 10; i++)
       await t.run((ctx) => rateLimiter.limit(ctx, "ai", { key: userId }));
     await expect(
       person.action(api.api.ai.voice.transcribe, { audio: clip(10), format: "webm" }),

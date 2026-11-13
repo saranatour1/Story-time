@@ -89,7 +89,6 @@ the `…Api` object of the `model/` file with the same path.
 | `model/sessions.ts`       | Who has access to an experience, when they were last looking, and revoking it.                                  |
 | `model/users.ts`          | Profile, settings, email confirmation, the memory reminder, the users sign-in creates, blocking an account.     |
 | `model/mail.ts`           | Sends each queued email through the Cloudflare email component, then clears its address and words.              |
-| `model/aiBudget.ts`       | AI Budget's one-time setup (no prompts or responses kept) and a spend summary for the CLI.                      |
 | `model/changes.ts`        | The Activity log, and its unread count.                                                                         |
 | `model/guestNotes.ts`     | The guestbook invited people sign.                                                                              |
 | `model/onThisDay.ts`      | The daily "a memory is waiting" email (opt-in).                                                                 |
@@ -102,26 +101,25 @@ the `…Api` object of the `model/` file with the same path.
 
 ### lib/ (helpers, no functions)
 
-| File                  | What it is                                                                                                       |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `lib/access.ts`       | Who may do what on an experience (`requireEventAccess`).                                                         |
-| `lib/actors.ts`       | Who is acting: a person, an AI working for one, or the system.                                                   |
-| `lib/appUrl.ts`       | The web app's origins, from `APP_URL`.                                                                           |
-| `lib/aggregates.ts`   | Running counts and sums (upload bytes, photos and videos, changes), and the helpers that write uploads.          |
-| `lib/blocks.ts`       | Checking and encrypting a moment's blocks, stops, places and labels.                                             |
-| `lib/changes.ts`      | `recordChange`, for the Activity log.                                                                            |
-| `lib/cover.ts`        | Keeping the journal cover's name and dates in step with the trip.                                                |
-| `lib/crypto.ts`       | Encryption under each experience's key.                                                                          |
-| `lib/emailAddress.ts` | Whether email can be sent, and to which confirmed address.                                                       |
-| `lib/geo.ts`          | Distances between places.                                                                                        |
-| `lib/journal.ts`      | Journal page layouts and limits, shared with the app.                                                            |
-| `lib/limits.ts`       | Every cap in one place.                                                                                          |
-| `lib/monthDay.ts`     | A moment's month and day, where it happened.                                                                     |
-| `lib/profile.ts`      | Cleaning profile fields.                                                                                         |
-| `lib/publicWeb.ts`    | Which web addresses the server may open.                                                                         |
-| `lib/rateLimit.ts`    | Per-person rate limits.                                                                                          |
-| `lib/seeded.ts`       | Repeatable randomness from an id.                                                                                |
-| `lib/sharedPdf.ts`    | Whether an upload is the journal's locked PDF.                                                                   |
-| `lib/ai/budget.ts`    | AI Budget: `metered()` records each AI call's model, person, feature, tokens and cost. Dashboard at `/aibudget`. |
-| `lib/ai/generate.ts`  | Structured output from Haiku, with a JSON fallback.                                                              |
-| `lib/ai/models.ts`    | Which models the box and voice use.                                                                              |
+| File                  | What it is                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| `lib/access.ts`       | Who may do what on an experience (`requireEventAccess`).                                                |
+| `lib/actors.ts`       | Who is acting: a person, an AI working for one, or the system.                                          |
+| `lib/appUrl.ts`       | The web app's origins, from `APP_URL`.                                                                  |
+| `lib/aggregates.ts`   | Running counts and sums (upload bytes, photos and videos, changes), and the helpers that write uploads. |
+| `lib/blocks.ts`       | Checking and encrypting a moment's blocks, stops, places and labels.                                    |
+| `lib/changes.ts`      | `recordChange`, for the Activity log.                                                                   |
+| `lib/cover.ts`        | Keeping the journal cover's name and dates in step with the trip.                                       |
+| `lib/crypto.ts`       | Encryption under each experience's key.                                                                 |
+| `lib/emailAddress.ts` | Whether email can be sent, and to which confirmed address.                                              |
+| `lib/geo.ts`          | Distances between places.                                                                               |
+| `lib/journal.ts`      | Journal page layouts and limits, shared with the app.                                                   |
+| `lib/limits.ts`       | Every cap in one place.                                                                                 |
+| `lib/monthDay.ts`     | A moment's month and day, where it happened.                                                            |
+| `lib/profile.ts`      | Cleaning profile fields.                                                                                |
+| `lib/publicWeb.ts`    | Which web addresses the server may open.                                                                |
+| `lib/rateLimit.ts`    | Per-person rate limits.                                                                                 |
+| `lib/seeded.ts`       | Repeatable randomness from an id.                                                                       |
+| `lib/sharedPdf.ts`    | Whether an upload is the journal's locked PDF.                                                          |
+| `lib/ai/generate.ts`  | Structured output from Haiku, with a JSON fallback.                                                     |
+| `lib/ai/models.ts`    | Which models the box and voice use.                                                                     |

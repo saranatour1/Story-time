@@ -1,5 +1,3 @@
-// AI uses one person gets a day, across every AI feature (see lib/rateLimit.ts).
-export const AI_PER_DAY = 10;
 // What one experience and one person may hold. Every cap lives here, the same
 // for everyone; the server checks each one where the thing is made.
 

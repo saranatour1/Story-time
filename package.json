@@ -22,7 +22,6 @@
     "@cantoo/pdf-lib": "2.9.2",
     "@convex-dev/agent": "^0.7.9",
     "@convex-dev/aggregate": "^0.3.4",
-    "@convex-dev/ai-budget": "^1.1.2",
     "@convex-dev/ai-sdk-provider": "^0.3.0",
     "@convex-dev/auth": "2.0.0-beta.0",
     "@convex-dev/rate-limiter": "^0.4.3",

@@ -32,9 +32,9 @@ The box on Moments says **What happened, or what should change?**
 
 **A change or a removal.** The box shows **Proposed changes**. Read every line. Then choose **Apply**, or **Apply and delete** when something would be removed. **Cancel** or Escape drops the plan. You can also press Ctrl+Enter or ⌘Enter. Nothing is written until you do that. If you would rather keep the words as a new moment, choose **Add as a moment**.
 
-The box can change at most 8 things in one request, and the sentence can be at most 600 characters. About 60 of these requests an hour is the limit. If it cannot read the sentence, the words stay in the box and you can send them again or use **Add as a moment**.
+The box can change at most 8 things in one request, and the sentence can be at most 600 characters. Each request is one of your 10 AI uses a day; one the AI could not answer is not counted. If it cannot read the sentence, the words stay in the box and you can send them again or use **Add as a moment**.
 
-**Voice.** The microphone is **Record a message**. Speak for under a minute, then stop. The app types what you said into the box. It does not save a moment until you send the box the usual way. About 40 recordings an hour.
+**Voice.** The microphone is **Record a message**. Speak for under a minute, then stop. The app types what you said into the box. It does not save a moment until you send the box the usual way. A recording is one of the same 10 uses.
 
 **Search** on the list is **Search places, notes, people…** If the trip is empty, the page says **Add photos, or say what happened in the box above.**
 
