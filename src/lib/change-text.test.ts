@@ -4,7 +4,6 @@ import { describeChange } from "./change-text";
 const change = (entity: string, action: string, fields: string[] = []) =>
   describeChange({ entity, action, fields });
 
-// The combinations the backend records, with the fields each one names.
 describe("moments", () => {
   test("added and deleted", () => {
     expect(

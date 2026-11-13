@@ -1,10 +1,6 @@
 import { useEffect } from "react";
 import { Map, MapArc, MapMarker, MarkerContent, useMap } from "@/components/ui/map";
 
-// One story's route on a real, slowly swaying globe (mapcn on MapLibre):
-// six weeks from Porto to Tokyo, each leg an arc between its stops. Loaded
-// only when its band comes near, since MapLibre is heavy. Decorative.
-
 export const TRIP = [
   { name: "Porto", at: [-8.61, 41.15] },
   { name: "Lisbon", at: [-9.14, 38.72] },
@@ -20,22 +16,20 @@ const LEGS = TRIP.slice(1).map((stop, i) => ({
   to: [stop.at[0], stop.at[1]] as [number, number],
 }));
 
-// The globe sways between Europe and Japan, so the trip is always in view:
-// around this longitude, this far either way, once every PERIOD_S seconds.
 const MID_LNG = 65;
 const SWAY = 70;
 const PERIOD_S = 40;
-// The globe's radius as a share of its box's width.
 const FILL = 0.42;
+const WORLD_PX_AT_ZOOM_0 = 512;
 
-// Zooms so the globe fills its box at any width: at zoom z the world is
-// 512·2^z pixels round, so its radius is that over 2π.
 const Fit = () => {
   const { map, isLoaded } = useMap();
   useEffect(() => {
     if (!map || !isLoaded) return;
     const fit = () =>
-      map.setZoom(Math.log2((FILL * map.getContainer().clientWidth * 2 * Math.PI) / 512));
+      map.setZoom(
+        Math.log2((FILL * map.getContainer().clientWidth * 2 * Math.PI) / WORLD_PX_AT_ZOOM_0),
+      );
     fit();
     map.on("resize", fit);
     return () => {

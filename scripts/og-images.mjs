@@ -1,8 +1,3 @@
-// Draws the link-preview cards (public/og*.png, 1200×630) that X, Reddit,
-// Discord, Slack, iMessage and WhatsApp show for a Story-time link. Each card
-// is HTML rendered by headless Chrome. Rerun after changing the words:
-//   node scripts/og-images.mjs
-// CHROME=/path/to/chrome overrides where Chrome is looked for.
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -16,7 +11,6 @@ const font = pathToFileURL(
 );
 const logo = readFileSync(join(root, "public/favicon.svg"), "utf8");
 
-// Each card: a title, two lines under it, and a small line at the foot.
 const CARDS = [
   {
     file: "og.png",
@@ -45,7 +39,6 @@ const page = ({ title, lines, foot }) => `<!doctype html>
   * { margin: 0; box-sizing: border-box; }
   html, body { width: 1200px; height: 630px; overflow: hidden; background: #12100e; }
   body { position: relative; font-family: Manrope, system-ui, sans-serif; color: #fafaf9; }
-  /* The frame: hairlines running off every edge, as on the landing page. */
   .v, .h { position: absolute; background: rgb(255 255 255 / 0.09); }
   .v { top: 0; bottom: 0; width: 1px; }
   .h { left: 0; right: 0; height: 1px; }

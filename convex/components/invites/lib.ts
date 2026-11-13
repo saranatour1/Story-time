@@ -17,7 +17,6 @@ const newToken = (): string => {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 
-// The token is returned once, here; only its hash is stored.
 export const create = mutation({
   args: {
     eventId: v.string(),
@@ -46,8 +45,6 @@ export const create = mutation({
   },
 });
 
-// Read-only check, so the app can decide whether the link needs using up.
-// Expiry is left to the caller: queries don't read the clock.
 export const lookup = query({
   args: { token: v.string() },
   returns: v.union(
@@ -77,7 +74,6 @@ export const lookup = query({
   },
 });
 
-// Single use: a valid token is deleted as it is read.
 export const consume = mutation({
   args: { token: v.string() },
   returns: v.union(
@@ -105,8 +101,6 @@ export const consume = mutation({
   },
 });
 
-// "This isn't important anymore": hard delete, no tombstone.
-// The id arrives as a plain string from the app's client, so it's checked here.
 export const dismiss = mutation({
   args: { inviteId: v.string(), eventId: v.string() },
   returns: v.boolean(),
@@ -133,8 +127,6 @@ export const listForEvent = query({
       .query("invites")
       .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
       .take(100);
-    // No clock check here: queries must be deterministic, and each invite's
-    // purge timer deletes it at expiry.
     return rows.map((r) => ({
       inviteId: r._id,
       role: r.role,
@@ -153,7 +145,6 @@ export const purge = internalMutation({
   },
 });
 
-// Backstop for the per-invite timers; called from the app's daily cron.
 export const sweep = mutation({
   args: { limit: v.number() },
   returns: v.number(),
@@ -167,8 +158,6 @@ export const sweep = mutation({
   },
 });
 
-// Deletes up to 500 invites for an experience; returns how many. Called
-// repeatedly by the app while an experience is being deleted.
 export const removeForEvent = mutation({
   args: { eventId: v.string() },
   returns: v.number(),

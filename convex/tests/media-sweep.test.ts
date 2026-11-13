@@ -20,7 +20,6 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 let n = 0;
-// A row as reserveUpload (reserved) or confirmUpload (ready) leaves it.
 const row = (uploaderId: Id<"users">, status: "reserved" | "ready") => ({
   uploaderId,
   r2Key: `test/${n++}`,

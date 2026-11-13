@@ -5,7 +5,6 @@ import { dateRange } from "@/components/story/title-card";
 import { Button } from "@/components/ui/button";
 import { stopsOf } from "@/lib/story-steps";
 
-// The story's first photo in time order: the picture on the cover.
 const firstPhoto = (moments: StoryMoment[]): string | undefined => {
   const blocks = [...moments]
     .sort((a, b) => a.startsAt - b.startsAt)
@@ -14,8 +13,6 @@ const firstPhoto = (moments: StoryMoment[]): string | undefined => {
   return photo?.type === "photo" ? photo.mediaId : undefined;
 };
 
-// The top of the memoir: what the story is, when, and a first picture. The
-// film is one tap away from here, too.
 export const Cover = ({
   event,
   moments,

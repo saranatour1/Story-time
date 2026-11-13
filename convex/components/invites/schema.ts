@@ -1,8 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-// An invite holds no recipient and no plaintext token: just a hash, what it
-// grants, and when it dies. Consuming, dismissing or expiring deletes the row.
 export default defineSchema({
   invites: defineTable({
     eventId: v.string(),

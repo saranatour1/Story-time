@@ -33,14 +33,10 @@ import {
   VIDEO_MIME_TYPES,
 } from "../lib/limits";
 
-// One person's live bytes across every experience. Profile images count too.
-// Deleted uploads don't, so removing frees room. A running sum
-// (lib/aggregates.ts), so it is exact however many files there are.
 export const liveUploadBytes = async (ctx: QueryCtx, userId: Id<"users">) => {
   return { bytes: await uploadBytes.sum(ctx, { namespace: userId }) };
 };
 
-// So one account can't fill the bucket.
 export const assertUploadBudget = async (ctx: MutationCtx, userId: Id<"users">, size: number) => {
   const { bytes } = await liveUploadBytes(ctx, userId);
   if (bytes + size > MAX_LIVE_UPLOAD_BYTES) {
@@ -52,8 +48,6 @@ export const assertUploadBudget = async (ctx: MutationCtx, userId: Id<"users">, 
   }
 };
 
-// Step 1 of an upload: the server route calls this before it streams bytes
-// to R2, so size, type and per-event caps are enforced here.
 const reserveUpload = mutation({
   args: { eventId: v.id("events"), size: v.number(), mime: v.string() },
   handler: async (ctx, args) => {
@@ -78,8 +72,6 @@ const reserveUpload = mutation({
         maxBytes,
       });
     }
-    // Photos and videos have their own caps. Deleted uploads, stickers and a
-    // locked PDF don't count, so removing one frees room.
     const held = await eventMedia.count(ctx, {
       namespace: args.eventId,
       bounds: { eq: isVideo ? "video" : "photo" },
@@ -117,13 +109,11 @@ const reserveUpload = mutation({
   },
 });
 
-// Step 3: the route confirms once R2 holds the object.
 const confirmUpload = mutation({
   args: { mediaId: v.id("media"), sha256: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
     const media = await ctx.db.get("media", args.mediaId);
-    // A deleted upload stays deleted: only a reserved row can become ready.
     if (media === null || media.uploaderId !== userId || media.status === "deleted") {
       throw new Error("Upload not found");
     }
@@ -137,7 +127,6 @@ const confirmUpload = mutation({
       return null;
     }
     if (media.eventId === undefined) throw new Error("Upload not found");
-    // Access can be revoked between reserve and confirm.
     const { event } = await requireEventAccess(ctx, media.eventId, "contributor");
     assertNotArchived(event);
     if (media.status === "ready") return null;
@@ -161,8 +150,6 @@ const confirmUpload = mutation({
 
 const MAX_IMAGE_EDGE = 20_000;
 
-// A list-sized JPEG for a photo that is already reserved or ready. The bytes
-// are stored beside the original; lists ask for this and the open page does not.
 const reserveThumb = mutation({
   args: { mediaId: v.id("media"), size: v.number() },
   handler: async (ctx, args) => {
@@ -246,7 +233,6 @@ const delivered = (
   };
 };
 
-// Used by the download route. Null for anyone without an active grant.
 const getForDownload = query({
   args: {
     mediaId: v.id("media"),
@@ -257,8 +243,6 @@ const getForDownload = query({
     if (media === null || media.status !== "ready") return null;
 
     if (media.purpose === "avatar") {
-      // A profile image is visible to its owner and to people who share an
-      // experience with them, and to nobody else.
       const viewer = await getUserId(ctx);
       if (viewer === null) return null;
       if (viewer !== media.uploaderId && !(await sharesExperience(ctx, viewer, media.uploaderId))) {
@@ -270,9 +254,6 @@ const getForDownload = query({
     if (media.eventId === undefined) return null;
     const access = await getEventAccess(ctx, media.eventId);
     if (access === null) return null;
-    // Photos not yet attached to a moment are visible to their uploader only;
-    // a sticker belongs to the journal, so everyone who can see it sees it,
-    // and so does the journal's locked PDF while it is the one shared.
     if (
       media.momentId === undefined &&
       media.purpose !== "sticker" &&
@@ -285,7 +266,6 @@ const getForDownload = query({
   },
 });
 
-// Profile images: not tied to an experience, smaller cap, own key scope.
 const reserveAvatarUpload = mutation({
   args: { size: v.number(), mime: v.string() },
   handler: async (ctx, args) => {
@@ -322,7 +302,6 @@ const reserveAvatarUpload = mutation({
   },
 });
 
-// Returns the image it replaced so the caller can delete that object from R2.
 const setAvatar = mutation({
   args: { mediaId: v.id("media") },
   handler: async (ctx, args) => {
@@ -361,10 +340,6 @@ const clearAvatar = mutation({
   },
 });
 
-// Who may permanently delete a stored object. Profile images: the owner,
-// once it's no longer their current image. Experience photos: once no
-// moment uses them, the experience owner, or the uploader (or the detacher,
-// which is only ever the uploader; see moments.ts) while they still contribute.
 const deletableBy = async (
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -377,21 +352,15 @@ const deletableBy = async (
     return user?.imageMediaId !== media._id;
   }
   if (media.momentId !== undefined || media.eventId === undefined) return false;
-  // A sticker still pasted on a page is part of the journal. Taking it off
-  // the shelf is refused until every page lets it go.
   if (media.purpose === "sticker" && (await mediaOnAPage(ctx, media.eventId, media._id)))
     return false;
-  // The PDF on the share link stays until it is replaced or taken off.
   if (media.purpose === "pdf" && (await isSharedPdf(ctx, media.eventId, media._id))) return false;
-  // Checked now, not when the photo was added: someone whose access was
-  // revoked, or who is only a viewer now, can no longer delete.
   const access = await getEventAccess(ctx, media.eventId);
   if (access === null || access.role === "viewer") return false;
   if (access.role === "owner") return true;
   return media.uploaderId === userId || media.detachedBy === userId;
 };
 
-// For the delete route.
 const getForDelete = query({
   args: { mediaId: v.id("media") },
   handler: async (ctx, args) => {
@@ -403,7 +372,6 @@ const getForDelete = query({
   },
 });
 
-// Called by the delete route once the R2 object is gone.
 const markDeleted = mutation({
   args: { mediaId: v.id("media") },
   handler: async (ctx, args) => {
@@ -417,9 +385,6 @@ const markDeleted = mutation({
   },
 });
 
-// An upload still "reserved" an hour later was abandoned: the tab closed before
-// its bytes or its confirm arrived. It still counts toward the experience's cap,
-// so the sweep marks it deleted. Runs hourly (see crons.ts).
 const RESERVATION_TTL_MS = 60 * 60_000;
 const SWEEP_BATCH = 100;
 
@@ -436,7 +401,6 @@ export const sweepReservedUploads = internalMutation({
     for (const media of stale) {
       await patchMedia(ctx, media._id, { status: "deleted" });
     }
-    // A full batch may leave more behind: continue in a fresh transaction.
     if (stale.length === SWEEP_BATCH) {
       await ctx.scheduler.runAfter(0, internal.model.media.sweepReservedUploads, {});
     }
@@ -444,17 +408,12 @@ export const sweepReservedUploads = internalMutation({
   },
 });
 
-// How many ready rows to scan for the box's shelf, and how many to show.
-// The rest stay in the trip; the shelf is a handful to pick from, not a library.
 const UNATTACHED_SCAN = 200;
 const UNATTACHED_LIMIT = 24;
 
 const showable = (mime: string) =>
   IMAGE_MIME_TYPES.some((kind) => kind === mime) || VIDEO_MIME_TYPES.some((kind) => kind === mime);
 
-// Photos and videos this person uploaded that are not on a moment yet, newest
-// first. Stickers, avatars, and anyone else's loose uploads stay off the shelf.
-// A contributor can put these on a new moment from the box.
 const unattached = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -476,13 +435,8 @@ const unattached = query({
   },
 });
 
-// Under Convex's per-call document read limit, with room for the row reads.
 const MAX_KEYS = 12_000;
 
-// R2 keys to delete before an experience is removed. Owner only. Deleted rows
-// are included: their objects may not be gone yet, and R2 deletes are
-// idempotent. Each status is streamed, so many deleted rows can't hide live
-// ones, and the total is capped to stay inside Convex's per-call read limits.
 const listKeysForEvent = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -504,7 +458,6 @@ const listKeysForEvent = query({
   },
 });
 
-// What the app calls. Registered once, by convex/api/media.ts, which re-exports it.
 export const mediaApi = {
   reserveUpload,
   confirmUpload,

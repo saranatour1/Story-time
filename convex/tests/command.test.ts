@@ -24,12 +24,10 @@ import schema from "../schema";
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
 const CET = 60;
-// Thu 20 Feb 2025, 17:29 in Amman (UTC+3).
 const AMMAN = 3 * 60;
 const FLIGHT = Date.UTC(2025, 1, 20, 14, 29);
 
@@ -53,7 +51,6 @@ const setup = async () => {
   await t.run((ctx) =>
     ctx.db.insert("sessions", { eventId, userId: viewerId, grantedBy: ownerId, role: "viewer" }),
   );
-  // The flight has a second stop; the helper adds a moment of their own.
   const flight = await owner.mutation(api.api.moments.create, {
     eventId,
     startsAt: FLIGHT,
@@ -132,7 +129,6 @@ describe("Jev's verdict", () => {
 describe("turning a plan into operations", () => {
   const ctxOf = async () => {
     const { owner, eventId, flight, theirs, helperId } = await setup();
-    // `read` is what the models see; the test reads it as the owner would.
     const found = await owner.query(internal.model.ai.command.read, {
       eventId,
       openMomentId: flight,
@@ -146,7 +142,7 @@ describe("turning a plan into operations", () => {
     expect(found.moments.map((m) => m.place)).toEqual(["Queen Alia Airport", "Hanover"]);
     expect(found.open).toBe(0);
     expect(found.zone).toBe(AMMAN);
-    expect(found.moments.every((m) => m.editable)).toBe(true); // the owner may change anything
+    expect(found.moments.every((m) => m.editable)).toBe(true);
     expect(found.moments[0]?.id).toBe(flight);
     expect(found.moments[0]?.stops).toEqual([
       { startsAt: undefined, place: "Istanbul", transport: undefined },
@@ -349,8 +345,7 @@ describe("applying a plan", () => {
     expect(first.startsAt).toBe(FLIGHT + 3_600_000);
     expect(first.labels).toEqual(["travel", "flight"]);
     expect(first.blocks.map((b) => b.type === "note" && b.text)).toEqual(["Off we go", "Gate 24"]);
-    expect(first.tzOffsetMinutes).toBe(AMMAN); // a new time keeps the moment's zone
-    // "after stop 1" puts the new stop right behind the first one.
+    expect(first.tzOffsetMinutes).toBe(AMMAN);
     expect(first.stops.map((s) => s.place)).toEqual(["Hanover", "Istanbul"]);
     expect(first.stops[0]?.transport).toBe("plane");
   });

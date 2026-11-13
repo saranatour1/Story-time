@@ -4,21 +4,17 @@ export type SwipeDirection = "left" | "right" | "up" | "down";
 
 export type SwipeMove = { dx: number; dy: number; ms: number };
 
-// Past this much movement a pointer has taken an axis; short of it, a tap.
 const LOCK_PX = 8;
-// A drag this far commits at any speed; a flick commits when quick enough.
 export const SWIPE_PX = 56;
 const FLICK_PX = 24;
-const FLICK_SPEED = 0.45; // px per ms
+const FLICK_PX_PER_MS = 0.45;
 
-// The dominant axis picks the direction, a tie going across. A move commits when
-// it is long enough or quick enough, and is nothing otherwise.
 export const classifySwipe = (
   move: SwipeMove,
   opts: { distance?: number; velocity?: number } = {},
 ): SwipeDirection | null => {
   const distance = opts.distance ?? SWIPE_PX;
-  const velocity = opts.velocity ?? FLICK_SPEED;
+  const velocity = opts.velocity ?? FLICK_PX_PER_MS;
   const across = Math.abs(move.dx) >= Math.abs(move.dy);
   const along = across ? move.dx : move.dy;
   const size = Math.abs(along);
@@ -29,7 +25,6 @@ export const classifySwipe = (
   return along < 0 ? "up" : "down";
 };
 
-// Forward is the way the story goes: left or up. Back is right or down.
 export const isForward = (d: SwipeDirection) => d === "left" || d === "up";
 
 export type SwipeHandlers = {
@@ -39,11 +34,8 @@ export type SwipeHandlers = {
   onTap?(point: { x: number; y: number }): void;
 };
 
-// `touchOnly` leaves mouse drags alone, so selecting text is not a swipe.
 export type SwipeOptions = { axes?: "both" | "x"; enabled?: boolean; touchOnly?: boolean };
 
-// Controls keep their own pointer, a video's native controls among them, and so
-// does anything marked out of the surface.
 const OWN_POINTER = "button, a, input, textarea, select, summary, video, [data-no-swipe]";
 
 type Gesture = {
@@ -54,12 +46,9 @@ type Gesture = {
   dx: number;
   dy: number;
   axis: "x" | "y" | null;
-  // Past the lock, so the surface owns the pointer and it is captured.
   locked: boolean;
 };
 
-// The walk stops at the surface itself, so a surface that is marked (a deck
-// inside a scroller) still takes its own gestures.
 const ownsPointer = (target: EventTarget | null, surface: Element): boolean => {
   for (let n = target instanceof Element ? target : null; n && n !== surface; n = n.parentElement) {
     if (n.matches(OWN_POINTER)) return true;
@@ -67,16 +56,12 @@ const ownsPointer = (target: EventTarget | null, surface: Element): boolean => {
   return false;
 };
 
-// Listens for swipes and taps on an element. Moves and releases are listened
-// for on the window, so a drag that leaves the element still ends cleanly. With
-// `axes: "x"` a vertical drag is left to the browser, which scrolls the page.
 export const useSwipeSurface = (
   ref: RefObject<HTMLElement | null>,
   handlers: SwipeHandlers,
   options: SwipeOptions = {},
 ) => {
   const { axes = "both", enabled = true, touchOnly = false } = options;
-  // Read at each event, so the handlers can change without re-attaching.
   const latest = useRef(handlers);
   useLayoutEffect(() => {
     latest.current = handlers;
@@ -87,10 +72,8 @@ export const useSwipeSurface = (
     if (!el || !enabled) return;
     let gesture: Gesture | null = null;
     let frame = 0;
-    // A click after a drag is the drag's, not the page's.
     let swallow = false;
 
-    // Reports at most once a frame, however fast the pointer moves.
     const drag = () => {
       frame = 0;
       const g = gesture;
@@ -127,7 +110,6 @@ export const useSwipeSurface = (
       if (!g.locked) {
         if (Math.hypot(g.dx, g.dy) < LOCK_PX) return;
         g.axis = Math.abs(g.dx) >= Math.abs(g.dy) ? "x" : "y";
-        // On an across-only surface a vertical drag is the page's to scroll.
         if (axes === "x" && g.axis === "y") {
           gesture = null;
           return;

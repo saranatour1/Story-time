@@ -16,7 +16,6 @@ const SECTION_NAMES: Record<string, string> = {
   "/activity": "Activity",
 };
 
-// Navbar trail for the experiences side: Experiences › <experience> › <section>.
 export const AppBreadcrumb = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const open = /^\/e\/([^/]+)(\/[a-z]+)?\/?$/.exec(pathname);

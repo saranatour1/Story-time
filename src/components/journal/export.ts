@@ -1,12 +1,7 @@
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 import { assembleJournalPdf, PDF_QUALITY, PDF_SCALE, reuseCanvas } from "./pdf-book";
 
-// Getting a journal out as paper (an A4 PDF, a page as a picture) and as a
-// file it can come back from.
-
-// Waits for a drawn page to have its photos and maps: placeholders still
-// pulsing mean a photo is on its way. Gives up after a while and takes it as is.
-const settled = async (node: HTMLElement, hasMap: boolean) => {
+const settled = async (node: HTMLElement) => {
   const until = Date.now() + 10_000;
   while (Date.now() < until && node.querySelector(".animate-pulse"))
     await new Promise((r) => setTimeout(r, 150));
@@ -14,27 +9,20 @@ const settled = async (node: HTMLElement, hasMap: boolean) => {
     [...node.querySelectorAll("img")].map((img) => img.decode().catch(() => undefined)),
   );
   await document.fonts.ready;
-  // Map tiles come in after the map itself.
-  if (hasMap) await new Promise((r) => setTimeout(r, 1800));
 };
 
 const frame = {
   width: PAGE.w,
   height: PAGE.h,
-  // The page is drawn scaled on screen; the picture is at full size.
   style: { transform: "none" },
-  // The play buttons on maps are for the screen, not the paper.
   filter: (n: Node) => !(n instanceof HTMLElement && n.dataset.exportHide !== undefined),
 };
 
-// A drawn page and what it needs: whether it has a map (to wait for tiles),
-// and its paper's colour (the picture starts from it, under the paper's grain).
-export type Drawn = { node: HTMLElement; hasMap: boolean; paper: string };
+export type Drawn = { node: HTMLElement; paper: string };
 
-// Waits until React has committed the page being printed, then two frames so
-// the picture is of that page and not the one before it.
-// `root` is asked again each frame: the offstage sheet only exists once React
-// has rendered the page being printed.
+const afterNextPaint = (): Promise<void> =>
+  new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
 export const waitForPage = (
   root: () => HTMLElement | null,
   pageId: string,
@@ -44,7 +32,7 @@ export const waitForPage = (
     const tick = () => {
       const node = root()?.querySelector<HTMLElement>("[data-journal-page]");
       if (node?.dataset.pageId === pageId) {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve(node)));
+        resolve(afterNextPaint().then(() => node));
         return;
       }
       if (++frames > 60) reject(new Error("The page couldn't be drawn."));
@@ -54,38 +42,36 @@ export const waitForPage = (
   });
 };
 
-export const pagePng = async ({ node, hasMap, paper }: Drawn): Promise<string> => {
+export const pagePng = async ({ node, paper }: Drawn): Promise<string> => {
   const { domToPng } = await import("modern-screenshot");
-  await settled(node, hasMap);
+  await settled(node);
   return domToPng(node, { ...frame, scale: 2, backgroundColor: paper });
 };
 
-// Every page, one A4 sheet each, in order. `pages` draws them one at a time
-// at full size and hands back the drawn node.
-// One canvas for the whole book. Each page is drawn into it, encoded, and the
-// screenshot's own canvas is dropped before the next page.
-let pageCanvas: HTMLCanvasElement | null = null;
-
-const pageJpeg = async (node: HTMLElement, paper: string): Promise<Uint8Array> => {
+const pageJpeg = async (
+  node: HTMLElement,
+  paper: string,
+  previousCanvas: HTMLCanvasElement | null,
+): Promise<{ jpeg: Uint8Array; canvas: HTMLCanvasElement }> => {
   const { domToCanvas } = await import("modern-screenshot");
   const shot = await domToCanvas(node, { ...frame, scale: PDF_SCALE, backgroundColor: paper });
-  const reused = reuseCanvas(pageCanvas, shot.width, shot.height, (width, height) => {
+  const reused = reuseCanvas(previousCanvas, shot.width, shot.height, (width, height) => {
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     return canvas;
   });
-  pageCanvas = reused.current;
+  const pageCanvas = reused.current;
   const context = pageCanvas.getContext("2d");
   if (!context) throw new Error("The page couldn't be drawn.");
   context.drawImage(shot, 0, 0);
   shot.width = 0;
   shot.height = 0;
   const blob = await new Promise<Blob | null>((resolve) =>
-    pageCanvas?.toBlob(resolve, "image/jpeg", PDF_QUALITY),
+    pageCanvas.toBlob(resolve, "image/jpeg", PDF_QUALITY),
   );
   if (!blob) throw new Error("The page couldn't be drawn.");
-  return new Uint8Array(await blob.arrayBuffer());
+  return { jpeg: new Uint8Array(await blob.arrayBuffer()), canvas: pageCanvas };
 };
 
 export const journalPdf = async (
@@ -94,12 +80,15 @@ export const journalPdf = async (
   onProgress: (done: number) => void,
   signal?: AbortSignal,
 ): Promise<Blob> => {
+  let pageCanvas: HTMLCanvasElement | null = null;
   const bytes = await assembleJournalPdf(
     count,
     async (index) => {
-      const { node, hasMap, paper } = await draw(index);
-      await settled(node, hasMap);
-      return pageJpeg(node, paper);
+      const { node, paper } = await draw(index);
+      await settled(node);
+      const page = await pageJpeg(node, paper, pageCanvas);
+      pageCanvas = page.canvas;
+      return page.jpeg;
     },
     { signal, onProgress },
   );
@@ -125,16 +114,12 @@ export const fileName = (title: string) =>
     .replace(/^-|-$/g, "")
     .toLowerCase() || "journal";
 
-// The sitting (this page, this day) is the ordinary print. Past a few dozen
-// pages, the whole journal is the unusual one, and the menu says so.
 export const wholeJournalPdfLabel = (pages: number): string => {
   const count = `${pages} ${pages === 1 ? "page" : "pages"}`;
   return pages > 36
     ? `The whole journal as a PDF (${count}, a long one)`
     : `The whole journal as a PDF (${count})`;
 };
-
-// ---- The journal as a file ----------------------------------------------------------------
 
 const KIND = "story-time-journal";
 
@@ -160,8 +145,6 @@ export const journalFile = (
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
-// Reads a journal file back. Only its shape is checked here; the server
-// checks every page as it adds it.
 export const readJournalFile = async (
   file: File,
 ): Promise<Array<{ paper: string; elements: JournalElement[] }>> => {

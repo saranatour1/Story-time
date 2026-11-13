@@ -4,7 +4,6 @@ export { isPublicWebUrl, publicRedirect, readHead } from "../../lib/publicWeb";
 
 const TITLE_CHARS = 200;
 
-// The page's <title>: entities decoded, whitespace collapsed, at most 200 characters.
 export const titleFromHtml = (html: string): string | undefined => {
   const match = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
   const title = decodeEntities(match?.[1] ?? "")
@@ -42,9 +41,6 @@ export type LinkPreview = {
   site?: string;
 };
 
-// What a page says about itself for a preview: its Open Graph (or Twitter)
-// title, description, picture and site, falling back to <title> and the
-// meta description. A picture must be a public https address.
 export const previewFromHtml = (html: string, url: string): LinkPreview => {
   const meta = (names: string[]) => {
     for (const name of names) {

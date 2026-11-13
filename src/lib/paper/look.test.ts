@@ -13,7 +13,6 @@ describe("looks", () => {
     const edges = { top: true };
     expect(tornPolygon("x", edges)).toBe(tornPolygon("x", edges));
     expect(tornPolygon("x", edges)).not.toBe(tornPolygon("y", edges));
-    // the bottom edge stays at 100%
     const polygon = tornPolygon("x", edges);
     expect(polygon).toContain("0.00% 100.00%");
     expect(polygon.startsWith("polygon(")).toBe(true);

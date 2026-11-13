@@ -2,9 +2,6 @@ import { useId } from "react";
 import { SunsetPhoto } from "@/components/landing/paper";
 import { cn } from "@/lib/utils";
 
-// Made-up photos from the sample week in Portugal, drawn rather than
-// shipped: each is a few shapes in a 60×45 (4:3) box. Decorative.
-
 export type PhotoKind = "ferry" | "tram" | "tiles" | "palace" | "pastries" | "coast";
 
 export const PHOTOS: Array<{ kind: PhotoKind; place: string; time: string; note: string }> = [

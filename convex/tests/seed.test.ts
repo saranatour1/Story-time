@@ -1,5 +1,4 @@
 /// <reference types="vite/client" />
-/* eslint-disable @convex-dev/no-process-env -- this test switches the deployment variables seed:japan checks */
 import { convexTest } from "convex-test";
 import aggregateTest from "@convex-dev/aggregate/test";
 import rateLimiterTest from "@convex-dev/rate-limiter/test";
@@ -39,7 +38,6 @@ test("the Japan trip seeds a whole experience, and its journal follows", async (
   const moments = await me.query(api.api.moments.list, { eventId });
   expect(moments.map((m) => m.place)).toContain("Fushimi Inari Taisha, Kyoto");
   expect(moments.every((m) => m.tzOffsetMinutes === 540 && m.geo !== undefined)).toBe(true);
-  // A cover and a page for every moment, cut without anyone opening the book.
   const book = await me.query(api.api.journal.outline, { eventId });
   expect(book.pages).toHaveLength(13);
 });

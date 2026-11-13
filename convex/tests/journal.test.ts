@@ -29,11 +29,8 @@ const invitesModules = import.meta.glob([
 ]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
-// Pages are scheduled with a zero delay. Hold them until a test asks, so a
-// fill that runs in the same turn is still the call that cuts the pages.
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
@@ -207,25 +204,21 @@ describe("laying out pages", () => {
   });
 
   test("a cover's dates are the trip's calendar days, or the days its moments happened where they happened", () => {
-    // 07:10 on 1 April in Tokyo is still 31 March in UTC.
     const tokyo = { startsAt: Date.UTC(2025, 2, 31, 22, 10), tzOffsetMinutes: 540 };
     const osaka = { startsAt: Date.UTC(2025, 3, 10, 4, 40), tzOffsetMinutes: 540 };
     expect(tripDates({}, tokyo, osaka)).toBe("1 Apr – 10 Apr 2025");
-    // Saved at local midnight in UTC+3 and in UTC−5: the same calendar days.
     expect(
       tripDates({ startsAt: Date.UTC(2025, 2, 31, 21), endsAt: Date.UTC(2025, 3, 9, 21) }),
     ).toBe("1 Apr – 10 Apr 2025");
     expect(tripDates({ startsAt: Date.UTC(2025, 3, 1, 5), endsAt: Date.UTC(2025, 3, 10, 5) })).toBe(
       "1 Apr – 10 Apr 2025",
     );
-    // Local midnight in UTC+13 and just east of UTC+12 (Chatham, UTC+12:45).
     expect(
       tripDates({ startsAt: Date.UTC(2025, 2, 31, 11), endsAt: Date.UTC(2025, 3, 9, 11) }),
     ).toBe("1 Apr – 10 Apr 2025");
     expect(
       tripDates({ startsAt: Date.UTC(2025, 2, 31, 11, 15), endsAt: Date.UTC(2025, 3, 9, 11, 15) }),
     ).toBe("1 Apr – 10 Apr 2025");
-    // Hawaii, UTC−10, keeps the day it picked. UTC+12 still rounds onto that day.
     expect(
       tripDates({ startsAt: Date.UTC(2025, 3, 1, 10), endsAt: Date.UTC(2025, 3, 10, 10) }),
     ).toBe("1 Apr – 10 Apr 2025");
@@ -261,7 +254,6 @@ describe("filling a journal", () => {
       "Pastéis by the river",
     );
 
-    // A second window filling at the same time makes nothing twice.
     expect(await owner.mutation(api.api.journal.fill, { eventId })).toBe(0);
   });
 
@@ -424,7 +416,6 @@ describe("filling a journal", () => {
       (await owner.query(api.api.journal.get, { eventId })).pages.some((p) => p.momentId === first),
     ).toBe(false);
 
-    // Rewind the mark, as if this moment was saved and never paged.
     await t.run(async (ctx) => {
       const journal = await ctx.db
         .query("journals")
@@ -553,7 +544,6 @@ describe("filling a journal", () => {
     expect(await words()).toContain("A week in Porto");
     expect(await words()).not.toContain("A week in Lisbon");
 
-    // What a browser at UTC+3 saves for 1 and 7 June: their local midnights.
     await owner.mutation(api.api.events.update, {
       eventId,
       startsAt: Date.UTC(2026, 4, 31, 21),
@@ -605,7 +595,6 @@ describe("filling a journal", () => {
     });
     const saved = (await owner.query(api.api.journal.page, { pageId: page._id }))!;
     expect(saved.elements.find((e) => e.id === title.id)?.own).toBe(true);
-    // Moving something without changing its words doesn't make it the owner's.
     expect(saved.elements.find((e) => e.kind === "note")?.own).toBeUndefined();
 
     vi.setSystemTime(new Date("2026-06-01T12:05:00Z"));
@@ -672,7 +661,6 @@ describe("editing pages", () => {
       owner.mutation(api.api.journal.savePage, { pageId, elements: [e] });
     await expect(save(element({ style: "comic-sans" }))).rejects.toThrow(/style/);
     await expect(save(element({ x: Infinity }))).rejects.toThrow();
-    // An unattached upload is not a photo of the experience.
     await expect(
       save(element({ kind: "photo", style: "polaroid", text: undefined, mediaId: await photo() })),
     ).rejects.toThrow(/isn't in this experience/);
@@ -878,7 +866,6 @@ describe("drawings, links and new pages", () => {
       image: "https://www.lisbon.test/pic.jpg",
       site: "lisbon.test",
     });
-    // Pictures only over https, and never from a private address.
     expect(
       previewFromHtml(`<meta property="og:image" content="http://x.test/a.png">`, "https://x.test")
         .image,
@@ -922,7 +909,6 @@ describe("stickers", () => {
     const mediaId = await photo();
     await owner.mutation(api.api.journal.keepSticker, { mediaId });
     expect(await viewer.query(api.api.journal.stickers, { eventId })).toEqual([mediaId]);
-    // Seen by a viewer, though it is on no moment.
     expect(await viewer.query(api.api.media.getForDownload, { mediaId })).not.toBeNull();
     const pageId = await owner.mutation(api.api.journal.addPage, { eventId });
     await owner.mutation(api.api.journal.savePage, {

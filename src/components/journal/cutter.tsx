@@ -19,14 +19,8 @@ import { useMediaUrl, useWhenSeen } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 import { FONTS } from "./look";
 
-// Cutting a sticker out of a photo: tap the thing you want and it is cut free
-// of its background, on this device. Google's MediaPipe model does the
-// cutting; it is downloaded once, and the photo never leaves the browser until
-// the finished sticker is saved like any other photo.
-
 const MODEL =
   "https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite";
-// The longest side of a sticker, in pixels: plenty for a page, small to save.
 const MAX_SIDE = 900;
 
 type Segmenter = import("@mediapipe/tasks-vision").InteractiveSegmenterLegacy;
@@ -54,7 +48,6 @@ const segmenter = (): Promise<Segmenter> => {
   return loading;
 };
 
-// The picked thing as a transparent PNG, cropped to it, its edge softened.
 const cutOut = (
   img: HTMLImageElement,
   mask: Float32Array,
@@ -74,7 +67,6 @@ const cutOut = (
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const m = mask[Math.floor((y / h) * mh) * mw + Math.floor((x / w) * mw)] ?? 0;
-      // A soft ramp, so the edge isn't jagged.
       const a = Math.max(0, Math.min(1, (m - 0.35) / 0.3));
       pixels.data[(y * w + x) * 4 + 3] = Math.round(a * 255);
       if (a > 0.1) {
@@ -113,7 +105,6 @@ export const StickerCutter = ({
 }: {
   eventId: Id<"events">;
   photos: string[];
-  // The photo to start on, if one was picked.
   start?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -141,7 +132,6 @@ export const StickerCutter = ({
     [preview],
   );
 
-  // Starts the model download as soon as the cutter opens.
   useEffect(() => {
     if (!open) return;
     setPhase("loading");
@@ -162,7 +152,6 @@ export const StickerCutter = ({
       const blob = await new Promise<Blob>((resolve, reject) => {
         seg.segment(el, { keypoint: at }, (result) => {
           const masks = result.confidenceMasks ?? [];
-          // The mask that is sure of the tapped spot is the thing; the other is the rest.
           const pick = masks
             .map((m) => ({ m, data: m.getAsFloat32Array() }))
             .sort(

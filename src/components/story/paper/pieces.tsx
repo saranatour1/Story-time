@@ -10,15 +10,10 @@ import {
 import { useMediaUrl, useWhenSeen } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 
-// The things on a story page, drawn like a scrapbook: torn paper and taped
-// prints. Every piece fills the box it is given, and its randomness comes from
-// its id, so it looks the same everywhere.
-
 const GRAIN = `url("data:image/svg+xml;utf8,${encodeURIComponent(
   "<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' fill='transparent' filter='url(#n)'/></svg>",
 )}")`;
 
-// Paper fibre over whatever is under it.
 export const Grain = ({ strength = 0.3 }: { strength?: number }) => {
   return (
     <div
@@ -29,15 +24,11 @@ export const Grain = ({ strength = 0.3 }: { strength?: number }) => {
   );
 };
 
-// A shadow that follows a cut-out shape (box-shadow would stay a rectangle).
 export const LIFT: CSSProperties = {
   filter: "drop-shadow(1px 2px 0 rgba(40,28,10,.16)) drop-shadow(0 5px 7px rgba(40,28,10,.14))",
 };
 const LIGHT_LIFT: CSSProperties = { filter: "drop-shadow(0 1px 1px rgba(40,28,10,.22))" };
 
-// ---- Pages ---------------------------------------------------------------------
-
-// A page: its colour and one loud shape, with what is on it as children.
 export const FrameBoard = ({ look, children }: { look: FrameLook; children?: ReactNode }) => {
   return (
     <div
@@ -64,8 +55,6 @@ export const FrameBoard = ({ look, children }: { look: FrameLook; children?: Rea
     </div>
   );
 };
-
-// ---- Scraps ---------------------------------------------------------------------
 
 export const Scrap = ({
   id,
@@ -104,8 +93,6 @@ export const Scrap = ({
     </div>
   );
 };
-
-// ---- Prints ---------------------------------------------------------------------
 
 const Picture = ({
   mediaId,
@@ -203,7 +190,6 @@ export const Print = ({
       </div>
     );
   }
-  // A print with its white border, wider along the bottom.
   const edge = Math.max(4, w * 0.045);
   return (
     <div
@@ -214,8 +200,6 @@ export const Print = ({
     </div>
   );
 };
-
-// ---- Tape ------------------------------------------------------------------------
 
 export const Tape = ({ look }: { look?: string }) => {
   const tape = tapeLook(look);

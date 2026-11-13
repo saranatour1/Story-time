@@ -2,8 +2,6 @@ import type { StoryMoment } from "../components/event/types";
 import type { Transport } from "../components/event/transport";
 import { stopsOf } from "./story-steps";
 
-// A stop with coordinates. `stopIndex` is its place among the moment's stops,
-// the moment's own first stop being 0.
 export type MapPoint = {
   momentId: string;
   stopIndex: number;
@@ -11,12 +9,10 @@ export type MapPoint = {
   lng: number;
   place?: string;
   startsAt?: number;
-  // The zone the stop's time reads in: its moment's.
   tzOffsetMinutes?: number;
   transport?: Transport;
 };
 
-// Every stop with coordinates, in time order: by moment, then by stop.
 export const mapPoints = (moments: StoryMoment[]): MapPoint[] => {
   return [...moments]
     .sort((a, b) => a.startsAt - b.startsAt)
@@ -39,9 +35,9 @@ export const mapPoints = (moments: StoryMoment[]): MapPoint[] => {
     );
 };
 
-// The box around the points as MapLibre takes it, southwest then northeast.
-// One point gives a box with no size; no points gives null.
-export const bounds = (points: MapPoint[]): [[number, number], [number, number]] | null => {
+export const bounds = (
+  points: MapPoint[],
+): [southwest: [lng: number, lat: number], northeast: [lng: number, lat: number]] | null => {
   if (points.length === 0) return null;
   const lngs = points.map((p) => p.lng);
   const lats = points.map((p) => p.lat);

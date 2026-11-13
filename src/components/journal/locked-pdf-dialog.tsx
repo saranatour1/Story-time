@@ -23,9 +23,6 @@ import { deleteMedia, uploadJournalPdf } from "@/lib/upload";
 import { lockPdf, newPassword } from "./locked-pdf";
 import { FONTS } from "./look";
 
-// The whole journal as a PDF that opens only with a password, put on the
-// share link. The browser prints and locks it; the server keeps the file
-// encrypted and the password under the experience's key, for its owner.
 export const LockedPdfDialog = ({
   event,
   pages,
@@ -37,7 +34,6 @@ export const LockedPdfDialog = ({
   pages: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // The whole book as an unlocked PDF, printed by the journal.
   print: () => Promise<Blob>;
 }) => {
   const { data: current } = useQuery(queries.pdf.get(open ? { eventId: event._id } : "skip"));

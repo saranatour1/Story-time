@@ -7,7 +7,6 @@ import { countStops } from "@/components/story/title-card";
 import { Button } from "@/components/ui/button";
 import { stopsOf } from "@/lib/story-steps";
 
-// Up to nine of the trip's photos, spread evenly through it in time order.
 export const contactSheet = (moments: StoryMoment[]): string[] => {
   const all = [...moments]
     .sort((a, b) => a.startsAt - b.startsAt)
@@ -18,8 +17,6 @@ export const contactSheet = (moments: StoryMoment[]): string[] => {
   return Array.from({ length: n }, (_, i) => all[Math.floor((i * all.length) / n)]!);
 };
 
-// The closing card: the trip's prints scattered on the table, a few
-// numbers, then replay, share or go back.
 export const EndCard = ({
   event,
   moments,

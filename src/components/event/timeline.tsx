@@ -27,22 +27,14 @@ import { formatTime } from "@/lib/local-time";
 import { matchesSearch } from "@/lib/moment-filters";
 import { viewerDay } from "@/lib/photo-groups";
 import { type Day, groupByDay, mediaOf, rowLabel } from "@/lib/timeline";
+import { readStored, writeStored } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 const PAGE = 30;
 
 const ORDER_KEY = "moments-order";
-const readNewestFirst = (): boolean => {
-  try {
-    return localStorage.getItem(ORDER_KEY) === "newest";
-  } catch {
-    return false;
-  }
-};
+const readNewestFirst = (): boolean => readStored("local", ORDER_KEY) === "newest";
 
-// The moments of an experience as a grid of cards, oldest first, with a search
-// box. Picking one hands it to the page, which edits it or opens it in the
-// story. Each card you may change has its own Edit and Delete buttons.
 export const Timeline = ({
   event,
   meId,
@@ -60,19 +52,11 @@ export const Timeline = ({
 }) => {
   const [query, setQuery] = useState("");
   const searching = query.trim() !== "";
-  // Which end of the trip leads. Remembered on this device.
   const [newestFirst, setNewestFirst] = useState(readNewestFirst);
   const flip = () => {
     setNewestFirst(!newestFirst);
-    try {
-      localStorage.setItem(ORDER_KEY, newestFirst ? "oldest" : "newest");
-    } catch {
-      // Private mode: the choice lasts until the page is left.
-    }
+    writeStored("local", ORDER_KEY, newestFirst ? "oldest" : "newest");
   };
-  // Thirty at a time, in that order. Searching needs every moment (places and
-  // notes are encrypted, so only the browser can match them), so it reads them
-  // all, and only while something is typed.
   const paged = usePaginatedQuery(
     api.moments.page,
     { eventId: event._id, newestFirst },
@@ -87,7 +71,6 @@ export const Timeline = ({
   const [deleting, setDeleting] = useState<MomentView | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
 
-  // "/" jumps to the search from anywhere outside a text field, as on most sites.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
@@ -98,7 +81,6 @@ export const Timeline = ({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // The moment named in the address comes into view, loading more until it is there.
   useEffect(() => {
     if (!selectedMomentId || moments === undefined) return;
     if (
@@ -180,7 +162,6 @@ export const Timeline = ({
   if (moments.length === 0) return <Empty event={event} />;
 
   const shown = moments.filter((m) => matchesSearch(m, query));
-  // Grouped oldest first, then turned round whole: days, and moments in a day.
   const ordered = groupByDay(shown, viewerDay());
   const days = newestFirst
     ? ordered.reverse().map((day) => ({ ...day, moments: [...day.moments].reverse() }))
@@ -198,8 +179,6 @@ export const Timeline = ({
           No moments match.
         </p>
       )}
-      {/* One bento grid of moments, oldest first: a tile's size follows what
-          it holds, and small tiles fill the gaps between big ones. */}
       <ul className="grid auto-rows-[9rem] grid-flow-dense grid-cols-2 gap-3 @2xl:grid-cols-4">
         {days.flatMap((day) =>
           day.moments.map((m) => {
@@ -221,7 +200,6 @@ export const Timeline = ({
                 key={m._id}
                 className={cn(
                   "relative overflow-hidden rounded-xl border bg-card transition-shadow hover:shadow-md",
-                  // Words get width, one photo height, several photos both.
                   media.length === 0 && "col-span-2",
                   media.length === 1 && "row-span-2",
                   media.length > 1 && "col-span-2 row-span-2",
@@ -324,9 +302,6 @@ const Empty = ({ event }: { event: EventView }) => {
   );
 };
 
-// When, what and who else, as a tile says it: over a photo in white on a dark
-// fade, else in the card's own colours. The author shows only when it isn't
-// the person looking.
 const Caption = ({
   moment: m,
   day,
@@ -355,7 +330,6 @@ const Caption = ({
         className={cn(
           "block font-mono text-[11px] tracking-[0.08em] uppercase",
           overPhoto ? "text-white/75" : "text-muted-foreground",
-          // Room for Edit and Delete, which sit over a tile with no photo.
           roomForActions && "pr-16",
         )}
       >
@@ -415,8 +389,6 @@ const isTyping = (target: EventTarget | null) => {
   );
 };
 
-// A moment's photos filling its tile: one, two side by side, or one large with
-// two beside it. Videos have no stored thumbnail, so they show as a play tile.
 const Mosaic = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }) => {
   const shown = media.slice(0, 3);
   return (

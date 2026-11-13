@@ -12,7 +12,6 @@ import { MOMENT_LIMIT } from "../lib/limits";
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
@@ -64,7 +63,6 @@ const readyPhoto = async (who: Caller, eventId: Id<"events">) => {
   return mediaId;
 };
 
-// The day a moment happened, in the zone it happened in.
 const dayOf = (m: { startsAt: number; tzOffsetMinutes?: number }) =>
   new Date(m.startsAt + (m.tzOffsetMinutes ?? 0) * 60_000).toISOString().slice(0, 10);
 
@@ -175,8 +173,6 @@ describe("moments.update", () => {
 describe("moments.remove", () => {
   test("removes the moment and frees a slot", async () => {
     const { t, owner, eventId } = await setup();
-    // Counted up to ten short of the limit, then ten added: adding one by one
-    // up to the limit would make the test slow.
     await t.run((ctx) => ctx.db.patch("events", eventId, { momentCount: MOMENT_LIMIT - 10 }));
     for (let i = 0; i < 10; i++) await addMoment(owner, eventId, `m${i}`);
     await expect(addMoment(owner, eventId)).rejects.toThrow(/MOMENT_LIMIT/);
@@ -281,7 +277,6 @@ describe("deleting experience photos", () => {
       blocks: [{ type: "note", text: "first" }],
     });
     expect(removedMediaIds).toEqual([photo]);
-    // Only the uploader, or the experience owner, may delete it.
     expect(await helper.query(api.api.media.getForDelete, { mediaId: photo })).toBeNull();
     expect(await owner.query(api.api.media.getForDelete, { mediaId: photo })).not.toBeNull();
   });
@@ -455,7 +450,6 @@ describe("map coordinates", () => {
     const { owner, eventId } = await setup();
     const momentId = await addPinned(owner, eventId);
 
-    // `geo` without `place` is ignored.
     await owner.mutation(api.api.moments.update, { momentId, startsAt: JUNE_3, geo: SINTRA });
     let [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.geo).toEqual(LISBON);
@@ -470,7 +464,6 @@ describe("map coordinates", () => {
     expect(m?.geo).toBeUndefined();
     expect(m?.stops[0]?.geo).toEqual(SINTRA);
 
-    // Stops are replaced wholesale, coordinates and all.
     await owner.mutation(api.api.moments.update, {
       momentId,
       stops: [{ place: "Sintra", blocks: [] }],
@@ -518,7 +511,6 @@ describe("map coordinates", () => {
 });
 
 describe("the zone a moment happened in", () => {
-  // 22:15 UTC on 8 November is 07:15 on 9 November in Japan (UTC+9).
   const KYOTO_MORNING = Date.UTC(2025, 10, 8, 22, 15);
 
   test("is kept with the moment, and its day follows it", async () => {
@@ -556,7 +548,6 @@ describe("the zone a moment happened in", () => {
       tzOffsetMinutes: 540,
       blocks: [{ type: "note", text: "Fushimi Inari" }],
     });
-    // An hour earlier is 21:15 UTC on the 8th, still the 9th in Japan.
     await owner.mutation(api.api.moments.update, { momentId, startsAt: KYOTO_MORNING - 3_600_000 });
     const [moment] = await owner.query(api.api.moments.list, { eventId });
     expect(moment?.tzOffsetMinutes).toBe(540);
@@ -571,7 +562,6 @@ describe("the zone a moment happened in", () => {
       tzOffsetMinutes: 0,
       blocks: [{ type: "note", text: "Fushimi Inari" }],
     });
-    // Pages are cut after the moment, and each one is its own activity row.
     await t.finishAllScheduledFunctions(() => undefined);
     const logBefore = (await t.run((ctx) => ctx.db.query("changes").take(500))).length;
     expect(dayOf((await owner.query(api.api.moments.list, { eventId }))[0]!)).toBe("2025-11-08");
@@ -605,7 +595,6 @@ describe("the zone a moment happened in", () => {
         owner.mutation(api.api.moments.update, { momentId, tzOffsetMinutes }),
       ).rejects.toThrow(/"field":"tzOffsetMinutes"/);
     }
-    // Both ends of the range are real clocks.
     for (const tzOffsetMinutes of [840, -720]) {
       await owner.mutation(api.api.moments.create, {
         eventId,

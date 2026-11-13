@@ -18,8 +18,6 @@ const headerValue = (value: string | string[] | undefined): string | null => {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 };
 
-// Opens `url` with a lookup that can return only the addresses already checked.
-// A pin that cannot be built refuses the connection.
 const fetchPinned: WebFetch = (url, init) => {
   const lookup = connectLookup(init.addresses);
   if (lookup === undefined)
@@ -54,10 +52,6 @@ const fetchPinned: WebFetch = (url, init) => {
   });
 };
 
-// Opens a public page after looking the hostname up. Queries cannot do that
-// lookup, so the preview and the link titles both come through here. A name
-// that points anywhere private, or that cannot be looked up, returns nothing.
-// The socket uses the addresses from that lookup, not a second DNS answer.
 export const fetchPage = internalAction({
   args: { url: v.string(), limit: v.number() },
   returns: v.union(v.null(), v.object({ html: v.string(), url: v.string() })),

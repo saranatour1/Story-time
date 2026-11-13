@@ -9,13 +9,8 @@ import { chargeEmail } from "./rateLimit";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const VERIFY_TTL_MS = 2 * DAY_MS;
 
-// Cloudflare Email is off until all three are set. Callers skip the send
-// rather than queueing a message that can only fail.
-// Every message this app sends is filed under one owner in the email component.
 export const MAIL_OWNER = "story-time";
 
-// Queues a message from a mutation; model/mail.ts sends it a moment later.
-// The component holds the address and words only until then.
 export const queueMail = async (
   ctx: MutationCtx,
   mail: { to: string; replyTo?: string; subject: string; html: string; text?: string },
@@ -31,7 +26,6 @@ export const emailConfigured = (): boolean => {
   return Boolean(env.CF_ACCOUNT_ID && env.CF_EMAIL_TOKEN && env.EMAIL_FROM);
 };
 
-// The address we may put on a message: confirmed, and never an unverified one.
 export const replyAddress = async (
   ctx: MutationCtx,
   userId: Id<"users">,
@@ -48,8 +42,6 @@ const newToken = (): string => {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 
-// Stores the address as waiting, and mails a link when email is configured.
-// The token stays in the link fragment. Only its hash is kept.
 export const issueEmailCheck = async (
   ctx: MutationCtx,
   userId: Id<"users">,

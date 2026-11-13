@@ -17,11 +17,8 @@ import {
 import { errorMessage } from "@/lib/errors";
 import { groupPhotos, type PhotoDay, type PhotoStop } from "@/lib/photo-groups";
 
-// The geocoder asks for one lookup at a time, spaced out.
 const LOOKUP_GAP_MS = 1100;
 
-// Names each located stop from its coordinates, so the moments get a place
-// and a map pin. Runs while the uploads do; a stop it can't name stays unnamed.
 const namePlaces = async (days: PhotoDay[]): Promise<PlannedDay[]> => {
   const located = days
     .flatMap((d) => d.moments.flat())
@@ -38,26 +35,20 @@ const namePlaces = async (days: PhotoDay[]): Promise<PlannedDay[]> => {
   }));
 };
 
-// The first few problems, for a toast's description.
 const details = (problems: string[]): string => {
   const shown = problems.slice(0, 3).join(" · ");
   return problems.length > 3 ? `${shown} · and ${problems.length - 3} more` : shown;
 };
 
-// Reads, uploads and plans the picked photos and videos, then makes their
-// moments, grouped as the review sheet groups them. `note`, when given, is
-// the person's own words: it becomes the first moment's note as written. Returns
-// whether any moment was made. Progress and problems are shown as toasts.
 export const addPhotos = async (args: {
   event: Pick<EventView, "_id" | "momentCount">;
   files: File[];
   note?: string;
-  // Read at each call: tokens are short-lived and a batch can run for minutes.
-  token: () => string | undefined;
+  currentToken: () => string | undefined;
   createMoment: (args: FunctionArgs<typeof api.moments.create>) => Promise<Id<"moments">>;
 }): Promise<boolean> => {
   const { event, files, note, createMoment } = args;
-  const token = args.token();
+  const token = args.currentToken();
   if (files.length === 0 || !token) return false;
   const toastId = toast.loading("Reading photos…");
   try {
@@ -71,7 +62,6 @@ export const addPhotos = async (args: {
       return false;
     }
     const days = groupPhotos(picked.map((p) => p.point));
-    // Checked before anything uploads, so no photo goes up that can't be added.
     const planned = days.reduce((count, d) => count + d.moments.length, 0);
     const left = Math.max(0, MOMENT_LIMIT - event.momentCount);
     if (planned > left) {
@@ -83,20 +73,18 @@ export const addPhotos = async (args: {
     }
 
     const pickedOf = new Map<string, Picked>(picked.map((p) => [p.point.id, p]));
-    // The place names are found while the uploads run.
     const naming = namePlaces(days);
 
     const { uploaded, failures } = await uploadAll(
       picked.map((p) => ({ id: p.point.id, file: p.file })),
       event._id,
-      () => args.token() ?? token,
+      () => args.currentToken() ?? token,
       (done, total) =>
         toast.loading(`Uploading ${Math.min(done + 1, total)} of ${total}…`, { id: toastId }),
     );
 
     const problems = [...skipped, ...failures];
     const moments = momentsFromPlan(await naming, uploaded, (id) => pickedOf.get(id)?.kind);
-    // Media ids now on a saved moment; any other upload gets deleted.
     const used = new Set<string>();
     let created = 0;
     const words = note?.trim() || undefined;
@@ -107,7 +95,6 @@ export const addPhotos = async (args: {
         continue;
       }
       try {
-        // The person's words go on the first moment made, after its photos.
         const first = created === 0 && words !== undefined;
         const create = first
           ? { ...m.create, blocks: [...m.create.blocks, { type: "note" as const, text: words }] }
@@ -121,7 +108,7 @@ export const addPhotos = async (args: {
     }
 
     const unused = [...uploaded.values()].filter((id) => !used.has(id));
-    if (unused.length > 0) await deletePhotos(unused, args.token() ?? token);
+    if (unused.length > 0) await deletePhotos(unused, args.currentToken() ?? token);
     const added = `Added ${plural(created, "moment")}`;
     if (created === 0) {
       toast.error(`No moments were added · ${plural(problems.length, "problem")}`, {

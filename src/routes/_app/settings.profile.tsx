@@ -63,5 +63,4 @@ const OnThisDay = ({ emailVerified, on }: { emailVerified: boolean; on: boolean 
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/settings/profile")({ component: Profile });

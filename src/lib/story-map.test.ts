@@ -62,7 +62,6 @@ test("leg paths start and end at the given points", () => {
     expect(d.startsWith("M 10 20")).toBe(true);
     expect(d.endsWith("90 40")).toBe(true);
   }
-  // Boats roll with two curves; everything else bends once.
   expect(legPath(from, to, "boat").match(/Q/g)?.length).toBe(2);
   expect(legPath(from, to, "plane").match(/Q/g)?.length).toBe(1);
 });
@@ -71,7 +70,6 @@ test("walking takes longer than flying", () => {
   expect(legDuration("walk")).toBeGreaterThan(legDuration("plane"));
 });
 
-// A busy trip: twenty places close together on the sheet, some revisited.
 const busy = [
   "Kyoto in November",
   "Kyoto Station",

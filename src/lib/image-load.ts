@@ -1,13 +1,6 @@
-// How many pictures a page fetches. Lists use a stored thumbnail and skip
-// anything that has not scrolled into view. The open page fetches the original
-// for the pictures that are on screen.
-
 export const SHELF_LIMIT = 24;
-// The shelf tile is size-14 (3.5rem) with gap-1.5.
 export const SHELF_TILE_PX = 56;
 export const SHELF_GAP_PX = 6;
-// Stand-in sizes from a noisy JPEG: a photo the upload cap allows, and the
-// 480px list thumbnail of the same picture. Used to turn fetch counts into bytes.
 export const ORIGINAL_BYTES = 1_725_503;
 export const THUMB_BYTES = 28_172;
 
@@ -41,13 +34,10 @@ const work = (images: MountedImage[], thumbs: boolean): ImageWork => {
   };
 };
 
-// Before: every mounted picture fetches and decodes the original.
 export const imageWorkBefore = (images: MountedImage[]): ImageWork => {
   return work(images, false);
 };
 
-// After: only a picture that intersects the viewport is fetched, and a list
-// uses the thumbnail.
 export const imageWorkAfter = (images: MountedImage[]): ImageWork => {
   return work(
     images.filter((image) => image.visible),
@@ -55,8 +45,6 @@ export const imageWorkAfter = (images: MountedImage[]): ImageWork => {
   );
 };
 
-// Drops the oldest idle entries until the cache is within `max`. `drop` revokes
-// the blob URL. Entries still on screen stay.
 export const evictUnused = <T>(
   cache: Map<string, T>,
   max: number,

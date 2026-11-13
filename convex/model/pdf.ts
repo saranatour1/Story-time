@@ -10,13 +10,6 @@ import { MAX_JOURNAL_PAGES } from "../lib/journal";
 import { MAX_PDF_BYTES } from "../lib/limits";
 import { assertUploadBudget } from "./media";
 
-// The journal as one PDF, locked with a password, for its share link. The
-// browser prints and encrypts it (AES-256, the PDF standard's own
-// encryption), the upload route stores it encrypted at rest like any photo,
-// and the password is kept here under the event key so its owner can copy it
-// again. The share link can fetch the file but never the password: that goes
-// to people separately.
-
 const PDF_MIME = "application/pdf";
 
 const journalOf = async (ctx: MutationCtx, eventId: Id<"events">) => {
@@ -26,7 +19,6 @@ const journalOf = async (ctx: MutationCtx, eventId: Id<"events">) => {
     .unique();
 };
 
-// Step 1 of the upload, called by the server route before it streams bytes.
 const reserve = mutation({
   args: { eventId: v.id("events"), size: v.number() },
   handler: async (ctx, args) => {
@@ -65,8 +57,6 @@ const reserve = mutation({
   },
 });
 
-// Puts an uploaded PDF on the share link, with its password. Returns the one
-// it replaces, so the caller can delete that file from storage.
 const set = mutation({
   args: {
     eventId: v.id("events"),
@@ -123,7 +113,6 @@ const set = mutation({
   },
 });
 
-// Takes the PDF off the share link. Returns it, so the caller can delete it.
 const drop = mutation({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -143,7 +132,6 @@ const drop = mutation({
   },
 });
 
-// The locked PDF, if there is one. Its owner also gets the password back.
 const get = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -163,5 +151,4 @@ const get = query({
   },
 });
 
-// What the app calls. Registered once, by convex/api/pdf.ts, which re-exports it.
 export const pdfApi = { reserve, set, drop, get };

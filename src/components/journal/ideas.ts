@@ -10,25 +10,18 @@ import { allBlocks } from "@/lib/moment-filters";
 import { type Day, firstLine } from "@/lib/timeline";
 import { newId } from "./add";
 
-// Pages to start from, after the references: an old type specimen, a Dada
-// letterhead, a magazine spread, a wall of photos, a pile of ephemera, a
-// postcard. Each uses the trip's own photos (when it has them) and its title,
-// and words to write over.
-
 export type Idea = {
   id: string;
   name: string;
   hint: string;
   paper: Paper;
   make: (trip: Trip) => JournalElement[];
-  // Further pages when one page cannot hold it (a long tier list).
   more?: (trip: Trip) => JournalElement[][];
 };
 type Trip = { title: string; photos: string[]; dates?: string };
 
 type Part = Omit<JournalElement, "id" | "z" | "rotation"> & { rotation?: number };
 
-// Ids and stacking for a list of parts, back to front.
 const page = (parts: Array<Part | false | undefined>): JournalElement[] =>
   parts
     .filter((p): p is Part => Boolean(p))
@@ -358,8 +351,6 @@ export const IDEAS: Idea[] = [
   },
 ];
 
-// "What we did that day": the day's moments in order as a list on lined
-// paper, a few of its photos down the side, and the day's postmark.
 export const dayIdea = (day: Day): Idea => {
   const first = day.moments[0]!;
   const list = day.moments
@@ -438,9 +429,6 @@ export const dayIdea = (day: Day): Idea => {
   };
 };
 
-// A tier list: rows S to F, and below them what's still to rank (places as
-// label-maker strips, moments as their first photo) to drag up into a row.
-// What does not fit under the rows continues on the next page.
 export type TierItem = { text: string; mediaId?: string };
 
 const TIER_BOTTOM = PAGE.h - 12;

@@ -18,15 +18,11 @@ const StoryPlayer = lazy(() =>
 );
 
 const search = z.object({
-  // Where the film is, when Play is open.
   step: z.number().int().min(0).default(0).catch(0),
-  // Which page of the book is open.
   page: z.number().int().min(0).default(0).catch(0),
-  // "read" is an older link to the memoir. The link now opens the book.
-  mode: z.enum(["book", "read", "film"]).default("book").catch("book"),
+  mode: z.enum(["book", "film"]).default("book").catch("book"),
 });
 
-// Client only (the page isn't server-rendered), but nothing here assumes it.
 const readToken = (): string => {
   return typeof window === "undefined" ? "" : window.location.hash.slice(1);
 };
@@ -45,7 +41,6 @@ const SharedStoryPage = () => {
     () => new Map((shared?.moments ?? []).map((m) => [m._id, m])),
     [shared?.moments],
   );
-  // An address without the link's name, or with an old one, moves to it.
   const slug = shared?.slug;
   useEffect(() => {
     if (slug === undefined || slug === name) return;
@@ -163,7 +158,7 @@ const SharedStoryPage = () => {
                 size={size}
                 start={page}
                 onPage={onPage}
-                token={token}
+                shareToken={token}
               />
             )}
           </div>
@@ -173,7 +168,6 @@ const SharedStoryPage = () => {
   );
 };
 
-// Off, switched off, replaced, or never real: the same page for all of them.
 const NotShared = () => {
   return (
     <SignedOutPage className="items-center justify-center px-4 py-16">
@@ -190,8 +184,6 @@ const NotShared = () => {
   );
 };
 
-// The locked PDF, fetched with the link's token the way its pictures are, and
-// saved. It opens with the password its owner sends separately.
 const downloadPdf = async (
   token: string,
   mediaId: string,
@@ -213,12 +205,8 @@ const downloadPdf = async (
   }
 };
 
-// A book anyone can turn with its link, so there's no sign-in gate. The path
-// carries the link's name, which is only a name; the token is the URL's fragment, which browsers never send to a server, and search
-// engines are kept out. Play opens the film; the book is the page.
 export const Route = createFileRoute("/s/{-$name}")({
   validateSearch: search,
-  // The link is the key, so these don't wait for sign-in.
   loader: ({ context: { queryClient } }) => {
     const token = readToken();
     if (!token) return;

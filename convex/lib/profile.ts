@@ -3,7 +3,6 @@ export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const MAX_DISPLAY_NAME = 60;
 export const MAX_EMAIL = 254;
 
-// "" clears a field, so users can remove what they added.
 export const cleanUsername = (raw: string): string | undefined => {
   const value = raw.trim().toLowerCase();
   return value === "" ? undefined : value;

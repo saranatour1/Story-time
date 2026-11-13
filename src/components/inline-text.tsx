@@ -5,9 +5,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { errorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
-// Edit in place. Click the text to edit; Enter or blur saves, Escape
-// cancels (multiline saves on Cmd/Ctrl+Enter or blur). If the server rejects
-// the value, a toast explains why and the saved text stays.
 export const InlineText = ({
   value,
   onSave,
@@ -27,9 +24,7 @@ export const InlineText = ({
 }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
-  // Set once a save or cancel has happened, so the blur that follows
-  // unmounting doesn't save a second time.
-  const done = useRef(false);
+  const savedOrCancelled = useRef(false);
 
   if (!editing) {
     if (disabled) {
@@ -40,7 +35,7 @@ export const InlineText = ({
         type="button"
         aria-label={`Edit ${label}`}
         onClick={() => {
-          done.current = false;
+          savedOrCancelled.current = false;
           setDraft(value);
           setEditing(true);
         }}
@@ -55,8 +50,8 @@ export const InlineText = ({
   }
 
   const commit = async () => {
-    if (done.current) return;
-    done.current = true;
+    if (savedOrCancelled.current) return;
+    savedOrCancelled.current = true;
     setEditing(false);
     const next = draft.trim();
     if (next === value.trim()) return;
@@ -75,7 +70,7 @@ export const InlineText = ({
     onBlur: () => void commit(),
     onKeyDown: (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        done.current = true;
+        savedOrCancelled.current = true;
         setEditing(false);
       } else if (e.key === "Enter" && (!multiline || e.metaKey || e.ctrlKey)) {
         e.preventDefault();

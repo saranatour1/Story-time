@@ -9,8 +9,6 @@ const R2_DELETE_BATCH = 1000;
 export const Route = createFileRoute("/api/events/$id")({
   server: {
     handlers: {
-      // Deletes an experience: its R2 objects first, then the data. Safe to
-      // retry, because deleting an object that's already gone is a no-op.
       DELETE: async ({ request, params }) => {
         const token = bearerToken(request);
         if (!token) return json({ error: "Sign in" }, 401);

@@ -12,8 +12,6 @@ const MONTH = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const FULL_DAY = new Intl.DateTimeFormat(undefined, { dateStyle: "full" });
 
-// The experiences on a month calendar, each on every day it covers. Opens on
-// this month; trips with no dates are only in the grid.
 export const TripCalendar = ({ trips }: { trips: Trip[] }) => {
   const [month, setMonth] = useState(() => new Date());
   const weeks = monthGrid(month);

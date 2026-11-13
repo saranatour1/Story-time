@@ -11,9 +11,6 @@ type StopScene = Extract<StoryStep, { kind: "stop" }>;
 
 const count = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-// One stop as a card: where and when, how they got there, what they wrote and
-// the pictures they took. Its step is its id, for the map and the keys; the
-// round button starts the film from here.
 export const StopCard = ({
   step,
   number,
@@ -24,15 +21,12 @@ export const StopCard = ({
   step: number;
   number: number;
   scene: StopScene;
-  // The reader, so their own stop says "by you".
   meId?: string;
   onPlayFilm: (step: number) => void;
 }) => {
   const { stop } = scene;
-  // On the clock where the stop happened.
   const at =
     stop.startsAt === undefined ? undefined : formatTime(stop.startsAt, scene.tzOffsetMinutes);
-  // Headed by the place; without one, by its time, else its number in the story.
   const heading = stop.place || at || scene.place;
   const transport = transportOf(stop.transport);
   const diary = stop.blocks.flatMap((b) => (b.type === "note" || b.type === "feeling" ? [b] : []));
@@ -40,7 +34,6 @@ export const StopCard = ({
   const links = stop.blocks.flatMap((b) => (b.type === "link" ? [b] : []));
   const photos = media.filter((b) => b.type === "photo").length;
   const videos = media.length - photos;
-  // A shared story leaves its authors out, so there is no "by" line on one.
   const author = authorByline(scene, meId);
   const meta = [
     at !== heading ? at : undefined,

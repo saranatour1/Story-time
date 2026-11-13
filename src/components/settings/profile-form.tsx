@@ -54,7 +54,6 @@ export const ProfileForm = ({
 }) => {
   const update = useMutation(api.users.updateSettings);
   const resend = useMutation(api.users.resendEmailVerification);
-  // Unique ids, so labels stay tied to their inputs wherever this renders.
   const id = useId();
   const form = useForm({
     defaultValues: {
@@ -65,9 +64,7 @@ export const ProfileForm = ({
     validators: { onChange: schema },
     onSubmit: async ({ value, formApi }) => {
       try {
-        // Empty strings are sent as-is: the server treats "" as "clear".
         const saved = await update(value);
-        // The saved values become the new baseline, so Save disables again.
         formApi.reset(value);
         toast.success(
           saved.emailStatus === "sent"

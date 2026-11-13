@@ -11,7 +11,6 @@ import { clearMediaCache } from "@/lib/use-media-url";
 const bytes = (n: number) =>
   n >= 1024 ** 3 ? `${(n / 1024 ** 3).toFixed(1)} GB` : `${Math.round(n / 1024 ** 2)} MB`;
 
-// One allowance: what it is, how much is used, and a bar.
 const Meter = ({
   label,
   used,
@@ -39,11 +38,9 @@ const Meter = ({
   );
 };
 
-// What's left of the day's AI uses and the account's room, from users.usage.
 const Usage = () => {
   const { data: usage } = useQuery(queries.users.usage());
   if (!usage) return <Skeleton className="h-36 w-full max-w-md" />;
-  // Past midnight UTC the day's uses are back, even before anything refreshes this.
   const fresh = Date.now() >= usage.ai.resetsAt;
   const aiLeft = fresh ? usage.ai.limit : usage.ai.left;
   const backAt = new Date(usage.ai.resetsAt).toLocaleTimeString(undefined, {
@@ -108,5 +105,4 @@ const Account = () => {
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/settings/account")({ component: Account });

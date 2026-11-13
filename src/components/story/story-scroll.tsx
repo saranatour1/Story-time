@@ -16,19 +16,13 @@ import { usePrefetchMedia } from "@/lib/use-media-url";
 import { isForward, useSwipeSurface } from "@/lib/use-swipe";
 import { cn } from "@/lib/utils";
 
-// Where the story is read: a third of the way down the window. On a phone the
-// map strip is pinned under the header, so the line sits just below the strip
-// (the header, the strip and a gap: the h-14, top-14 and h-56 classes below).
 const STRIP_BOTTOM = 56 + 224 + 16;
-// How long a glide to a scene may take before the observer is listening again.
 const GLIDE_MS = 1200;
 const readingLine = (): number => {
   const third = window.innerHeight / 3;
   return window.matchMedia("(min-width: 1024px)").matches ? third : Math.max(third, STRIP_BOTTOM);
 };
 
-// Brings a scene to the reading line, where the observer below looks for it.
-// The cover is the top of the page.
 const revealStep = (step: number, behavior: ScrollBehavior) => {
   if (step === 0) {
     window.scrollTo({ top: 0, behavior });
@@ -40,15 +34,11 @@ const revealStep = (step: number, behavior: ScrollBehavior) => {
   window.scrollTo({ top, behavior });
 };
 
-// The card a step from the aimed one lands on: the next card down, or the one
-// above, the cover standing above the first.
 const stepFrom = (cards: number[], aimed: number, delta: 1 | -1): number | undefined => {
   if (delta > 0) return cards.find((i) => i > aimed);
   return [...cards].reverse().find((i) => i < aimed) ?? 0;
 };
 
-// The story as a memoir: a long page of stops in time order, day by day, with
-// the route on a map that follows the reading. The film is one tap away.
 export const StoryScroll = ({
   event,
   moments,
@@ -59,11 +49,8 @@ export const StoryScroll = ({
 }: {
   event: StoryEvent;
   moments: StoryMoment[];
-  // Who is reading, so their own stops say "by you". A shared story has no one.
   meId?: string;
-  // Where the link pointed; read once, then the scroll leads.
   step: number;
-  // Keeps ?step= on the scene in view, replacing history rather than adding.
   onStep: (step: number) => void;
   onPlayFilm: (step: number) => void;
 }) => {
@@ -71,7 +58,6 @@ export const StoryScroll = ({
   const steps = useMemo(() => buildStorySteps(event.title, moments), [event.title, moments]);
   const days = useMemo(() => storyDays(steps), [steps]);
   const minutes = useMemo(() => travelMinutes(steps), [steps]);
-  // Stops are numbered through the story, so a card and its marker agree.
   const numbers = useMemo(() => {
     const n = new Map<number, number>();
     steps.forEach((s, i) => {
@@ -79,12 +65,10 @@ export const StoryScroll = ({
     });
     return n;
   }, [steps]);
-  // The cards a glide lands on: the stops, and the end.
   const cards = useMemo(
     () => steps.flatMap((s, i) => (s.kind === "stop" || s.kind === "end" ? [i] : [])),
     [steps],
   );
-  // The stops with a place on the map, in story order.
   const located = useMemo<MapStop[]>(() => {
     const at = new Map(
       steps.flatMap((s, i) =>
@@ -108,29 +92,23 @@ export const StoryScroll = ({
     });
   }, [moments, steps, numbers]);
 
-  // The scene in view. The link's step sets it first; the scroll then leads.
   const [scene, setScene] = useState(() => clampStep(step, steps));
-  // The scene on screen, and the one the keys last aimed at: a quick second
-  // press builds on the first, before the scroll has got there.
   const shown = useRef(scene);
   const aim = useRef(scene);
   const page = useRef<HTMLElement>(null);
   const bar = useRef<HTMLDivElement>(null);
 
-  // The stop the map is on: the scene's own, or the one a leg is heading for.
   const focus = useMemo(() => {
     const s = steps[scene];
     if (s?.kind === "stop") return scene;
     return s?.kind === "travel" ? scene + 1 : null;
   }, [steps, scene]);
-  // The leg into that stop, when both of its ends are on the map.
   const leg = useMemo<MapLeg | undefined>(() => {
     const before = focus === null ? undefined : steps[focus - 1];
     if (before?.kind !== "travel" || !before.fromGeo || !before.toGeo) return undefined;
     return { from: before.fromGeo, to: before.toGeo, transport: before.transport };
   }, [steps, focus]);
 
-  // The next stop's pictures load while this one is read.
   const next = steps.find((s, i) => i > scene && s.kind === "stop");
   usePrefetchMedia(
     next?.kind === "stop"
@@ -138,15 +116,10 @@ export const StoryScroll = ({
       : [],
   );
 
-  // A link to a scene opens on it, with no scrolling to watch.
   useLayoutEffect(() => {
     if (scene > 0) revealStep(scene, "auto");
-    // Once: later steps come from the scroll, not the URL.
   }, []);
 
-  // A glide the viewer asked for (a key, a marker, Replay) takes the page to one
-  // scene. The scenes it passes on the way don't move the URL or the map: only
-  // the one it lands on does. Gives up after GLIDE_MS, in case it can't land.
   const landing = useRef<number | null>(null);
   const glide = useCallback(
     (target: number) => {
@@ -160,12 +133,9 @@ export const StoryScroll = ({
     [reduced],
   );
 
-  // The scene across the reading line is the one in view; the URL and the map
-  // follow it. The band is a 2px strip on that line, rebuilt when the window
-  // changes size, since its margins are measured from the window's edges.
-  const [layout, setLayout] = useState(0);
+  const [windowResizes, setWindowResizes] = useState(0);
   useEffect(() => {
-    const onResize = () => setLayout((n) => n + 1);
+    const onResize = () => setWindowResizes((n) => n + 1);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
@@ -178,7 +148,6 @@ export const StoryScroll = ({
     );
     const line = Math.round(readingLine());
     const below = Math.max(0, Math.round(window.innerHeight - line - 2));
-    // The anchors crossing the line now.
     const crossing = new Set<number>();
     const io = new IntersectionObserver(
       (entries) => {
@@ -189,7 +158,6 @@ export const StoryScroll = ({
           else crossing.delete(s);
         }
         if (crossing.size === 0) return;
-        // Two only cross at a seam; the later one is the one being read.
         const here = Math.max(...crossing);
         if (landing.current !== null) {
           if (here !== landing.current) return;
@@ -205,9 +173,8 @@ export const StoryScroll = ({
     );
     for (const el of anchors) io.observe(el);
     return () => io.disconnect();
-  }, [steps, onStep, layout]);
+  }, [steps, onStep, windowResizes]);
 
-  // ↑ and ↓ move from stop to stop, the cover above the first. Typing is left alone.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -234,8 +201,6 @@ export const StoryScroll = ({
     return () => window.removeEventListener("keydown", onKey);
   }, [cards, glide]);
 
-  // A horizontal swipe goes the way the arrows do: left on, right back. Touch
-  // only, so a mouse selecting text across the page doesn't turn it.
   useSwipeSurface(
     page,
     {
@@ -248,7 +213,6 @@ export const StoryScroll = ({
     { axes: "x", touchOnly: true },
   );
 
-  // The thin line under the header: how far down the story the page is.
   useEffect(() => {
     const update = () => {
       const room = document.documentElement.scrollHeight - window.innerHeight;
@@ -344,8 +308,8 @@ export const StoryScroll = ({
               <DaySection
                 key={day.index}
                 day={day}
-                numbers={numbers}
-                minutes={minutes}
+                numberByStep={numbers}
+                minutesByStep={minutes}
                 meId={meId}
                 onPlayFilm={onPlayFilm}
               />

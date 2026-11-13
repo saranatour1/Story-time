@@ -13,7 +13,6 @@ import schema from "../schema";
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
@@ -59,7 +58,6 @@ describe("people are people", () => {
     let [m] = await owner.query(api.api.moments.list, { eventId });
     expect(m?.authorName).toBe("Noor");
     expect(m?.authorAgent).toBeUndefined();
-    // Never edited, so nothing says who edited it.
     expect(m?.editedAt).toBeUndefined();
 
     await owner.mutation(api.api.moments.update, { momentId, place: "Lisbon, Alfama" });
@@ -80,9 +78,8 @@ describe("agents are labelled", () => {
   test("a moment an agent adds names the agent and the person it acts for", async () => {
     const { t, owner, eventId, ownerId } = await setup();
     const momentId = await t.run(async (ctx) => {
-      const access = await requireEventAccessFor(ctx, ownerId, eventId, "contributor");
+      await requireEventAccessFor(ctx, ownerId, eventId, "contributor");
       return createMoment(ctx, {
-        event: access.event,
         userId: ownerId,
         actor: { kind: "agent", name: "Claude", onBehalfOf: ownerId },
         input: {
@@ -109,9 +106,8 @@ describe("agents are labelled", () => {
   test("a shared story says nothing of who or what added or edited", async () => {
     const { t, owner, eventId, ownerId } = await setup();
     await t.run(async (ctx) => {
-      const access = await requireEventAccessFor(ctx, ownerId, eventId, "owner");
+      await requireEventAccessFor(ctx, ownerId, eventId, "owner");
       const momentId = await createMoment(ctx, {
-        event: access.event,
         userId: ownerId,
         actor: { kind: "agent", name: "Claude", onBehalfOf: ownerId },
         input: { eventId, startsAt: T0, place: "Sintra", blocks: [{ type: "note", text: "Fog" }] },

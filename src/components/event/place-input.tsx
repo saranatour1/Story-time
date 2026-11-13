@@ -8,8 +8,6 @@ export type Geo = { lat: number; lng: number };
 
 type Suggestion = { key: string; label: string; name: string; context: string; geo: Geo };
 
-// Photon (OpenStreetMap search, no key). Only an author typing a place calls
-// it; people watching a story never do.
 const PHOTON = "https://photon.komoot.io/";
 const PHOTON_LANGS = ["en", "de", "fr", "it"];
 const MIN_CHARS = 3;
@@ -34,7 +32,6 @@ const photonResponse = z.object({
   ),
 });
 
-// `near` biases a search, or is the point a reverse lookup names.
 const photonUrl = (path: "api" | "reverse", params: { q?: string; near?: Geo; limit: number }) => {
   const url = new URL(path, PHOTON);
   if (params.q) url.searchParams.set("q", params.q);
@@ -48,10 +45,8 @@ const photonUrl = (path: "api" | "reverse", params: { q?: string; near?: Geo; li
   return url;
 };
 
-// A short name for a point (say, where a photo was taken), or undefined.
 export const reversePlace = async (geo: Geo): Promise<string | undefined> => {
   try {
-    // A few candidates, since the nearest is often just a postcode.
     const res = await fetch(photonUrl("reverse", { near: geo, limit: 5 }));
     return res.ok ? toSuggestions(await res.json())[0]?.label : undefined;
   } catch {
@@ -59,8 +54,6 @@ export const reversePlace = async (geo: Geo): Promise<string | undefined> => {
   }
 };
 
-// The best match for a place someone named in words, with where it is, or
-// undefined. `near` biases the search toward the trip.
 export const findPlace = async (
   q: string,
   near?: Geo,
@@ -74,20 +67,16 @@ export const findPlace = async (
   }
 };
 
-// A concise label ("Belém, Lisboa"), never the full address: the name, plus
-// the city when it adds something. The context line is city and country.
 const toSuggestions = (json: unknown): Suggestion[] => {
   const parsed = photonResponse.safeParse(json);
   if (!parsed.success) return [];
   const seen = new Set<string>();
   return parsed.data.features.flatMap((f, i) => {
     const p = f.properties;
-    // A postcode isn't a place anyone would name a stop after.
     if (p.osm_value === "postcode") return [];
-    // The list may show a house number; the field never gets one.
     const name = p.name ?? [p.street, p.housenumber].filter(Boolean).join(" ");
     const short = p.name ?? p.street ?? "";
-    const [lng = 0, lat = 0] = f.geometry.coordinates; // GeoJSON order
+    const [lng = 0, lat = 0] = f.geometry.coordinates;
     if (!short) return [];
     const city = p.city && p.city !== short ? p.city : undefined;
     const label = city && !short.includes(city) ? `${short}, ${city}` : short;
@@ -102,10 +91,6 @@ const toSuggestions = (json: unknown): Suggestion[] => {
   });
 };
 
-// The "Where" field: a combobox that suggests places as you type. Picking
-// one sets the place and puts the stop on the map; typing afterwards takes
-// it off again, unless the location came from a photo (that's where it was
-// taken, whatever it's called). Nothing is looked up on save.
 export const PlaceInput = ({
   id,
   value,
@@ -120,7 +105,6 @@ export const PlaceInput = ({
   geo?: Geo;
   fromPhoto?: boolean;
   placeholder?: string;
-  // Where to centre the search, read when it runs.
   getBias: () => Geo | undefined;
   onChange: (place: string, geo: Geo | undefined, fromPhoto: boolean) => void;
 }) => {
@@ -142,8 +126,6 @@ export const PlaceInput = ({
     [],
   );
 
-  // Debounced, and only the latest request counts. Failures (offline, rate
-  // limits) just mean no suggestions.
   const search = (text: string) => {
     window.clearTimeout(timer.current);
     request.current?.abort();
@@ -186,7 +168,6 @@ export const PlaceInput = ({
         open ? (a + step + options.length) % options.length : step === 1 ? 0 : options.length - 1,
       );
     } else if (e.key === "Enter" && open && active >= 0) {
-      // Picks the suggestion instead of submitting the form.
       e.preventDefault();
       const option = options[active];
       if (option) pick(option);
@@ -196,7 +177,6 @@ export const PlaceInput = ({
     }
   };
 
-  // A pin needs a name too: the server only keeps coordinates with a place.
   const named = value.trim() !== "";
   const status = geo && named ? "on" : geo ? "unnamed" : named ? "off" : null;
 
@@ -223,7 +203,6 @@ export const PlaceInput = ({
           onKeyDown={onKeyDown}
           onBlur={() => setOpen(false)}
         />
-        {/* Always in the DOM (hidden when closed), so aria-controls resolves. */}
         <div
           hidden={!open}
           className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"

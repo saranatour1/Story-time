@@ -2,9 +2,6 @@
 import { describe, expect, test } from "vite-plus/test";
 import readme from "../README.md?raw";
 
-// The rules in convex/README.md, checked, so the folder stays the way the map
-// says and the map stays complete.
-
 const sources = import.meta.glob(
   ["../**/*.ts", "!../_generated/**", "!../components/**", "!../tests/**"],
   {
@@ -46,7 +43,6 @@ describe("convex/ layout", () => {
 
   test("api/ only re-exports: one `export const { … } = …Api` statement per file", () => {
     for (const { path, text } of under("api")) {
-      // A formatter may wrap the statement; join it back into one line.
       const code = text
         .split("\n")
         .filter(

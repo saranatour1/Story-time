@@ -24,7 +24,7 @@ import {
   MAX_PAGE_ELEMENTS,
   momentPage,
   NOTE_STYLES,
-  onPage,
+  withinPageReach,
   PAPERS,
   PRINT_STYLES,
   tripDates,
@@ -37,11 +37,6 @@ import { limitWrites, rateLimiter } from "../lib/rateLimit";
 import { type LinkPreview, previewFromHtml } from "./ai/unfurl";
 import { viewMoment } from "./moments";
 import { vJournalKind } from "../schema";
-
-// The journal of an experience: a book of A4 pages made from its moments and
-// then cut, taped and written on by its owner. Anyone who can see the
-// experience can read it; only the owner changes it, and not once it, or the
-// page, is locked.
 
 const vElement = v.object({
   id: v.string(),
@@ -63,7 +58,6 @@ const vElement = v.object({
 });
 type ElementIn = Infer<typeof vElement>;
 
-// A laid-out element with the ids it was made from, typed as the table's.
 const fromLayout = (elements: JournalElement[]): ElementIn[] =>
   elements.map((e) => ({
     ...e,
@@ -77,8 +71,6 @@ export const vPageView = v.object({
   paper: v.string(),
   locked: v.boolean(),
   momentId: v.optional(v.id("moments")),
-  // The owner has saved this page. A moment that changed since the layout
-  // was made is `stale`. `gone` means the moment itself was deleted.
   edited: v.boolean(),
   stale: v.boolean(),
   gone: v.boolean(),
@@ -115,15 +107,11 @@ const pagesOf = async (ctx: QueryCtx, eventId: Id<"events">) => {
     .take(MAX_JOURNAL_PAGES + 1);
 };
 
-// A sticker (or any picture) is still on a page of this experience.
 export const mediaOnAPage = async (ctx: QueryCtx, eventId: Id<"events">, mediaId: Id<"media">) => {
   const pages = await pagesOf(ctx, eventId);
   return pages.some((page) => page.elements.some((element) => element.mediaId === mediaId));
 };
 
-// A page to change, with the experience it is in. Only the owner, never on an
-// archived experience, and never while the page or the journal is locked
-// (`unlocking` lets the lock itself be taken off).
 const editablePage = async (ctx: MutationCtx, pageId: Id<"journalPages">, unlocking = false) => {
   const page = await ctx.db.get("journalPages", pageId);
   if (page === null) throw notFound();
@@ -144,9 +132,6 @@ const editablePage = async (ctx: MutationCtx, pageId: Id<"journalPages">, unlock
   return { page, event };
 };
 
-// Checks what a page holds and encrypts its words. With `drop`, anything that
-// doesn't belong (a photo from another experience, an unknown style) is left
-// out instead of refused: that is how an imported journal comes in.
 const encodeElements = async (
   ctx: QueryCtx,
   event: Doc<"events">,
@@ -170,7 +155,7 @@ const encodeElements = async (
   const problemWith = async (e: ElementIn): Promise<string | undefined> => {
     if (e.id.length === 0 || e.id.length > 40 || seen.has(e.id))
       return "Each thing on a page needs its own id.";
-    if (![e.x, e.y, e.w, e.h, e.z].every(onPage) || !Number.isFinite(e.rotation))
+    if (![e.x, e.y, e.w, e.h, e.z].every(withinPageReach) || !Number.isFinite(e.rotation))
       return "That doesn't fit on a page.";
     if (e.w < 4 || e.h < 4) return "That is too small to see.";
     const styles = STYLES[e.kind];
@@ -230,8 +215,6 @@ const encodeElements = async (
   return out;
 };
 
-// Whether this page still matches the moment it was laid out from. Comparing
-// stored times, never the clock, so a query can say so.
 const catchUpState = async (ctx: QueryCtx, page: Doc<"journalPages">) => {
   const edited = page.edited ?? false;
   if (page.momentId === undefined) return { edited, stale: false, gone: false };
@@ -241,8 +224,6 @@ const catchUpState = async (ctx: QueryCtx, page: Doc<"journalPages">) => {
   return { edited, stale: page.builtFrom !== undefined && page.builtFrom !== stamp, gone: false };
 };
 
-// A link card's picture, whatever scheme it uses. `readLink` only reports
-// https pictures, so an http URL would otherwise stay in the JSON.
 const withoutLinkImage = (text: string): string => {
   try {
     const parsed: unknown = JSON.parse(text);
@@ -263,9 +244,6 @@ const withoutLinkImage = (text: string): string => {
   }
 };
 
-// A share link that hides photos drops every picture and sticker, and the
-// preview image on a link card, before anything is returned. The address of
-// the link stays; the picture URL does not.
 const withoutPictures = (elements: Infer<typeof vElement>[]): Infer<typeof vElement>[] => {
   const kept: Infer<typeof vElement>[] = [];
   for (const element of elements) {
@@ -303,8 +281,6 @@ const viewPage = async (
   };
 };
 
-// How many moments still need a page. A journal that does not exist yet still
-// owes its cover, so the count is at least 1.
 const pendingOf = async (ctx: QueryCtx, event: Doc<"events">, journal: Doc<"journals"> | null) => {
   const moments = await ctx.db
     .query("moments")
@@ -317,7 +293,6 @@ const pendingOf = async (ctx: QueryCtx, event: Doc<"events">, journal: Doc<"jour
   return pending;
 };
 
-// A short line for the page strip: the first title or note, not the drawing.
 const labelOf = async (event: Doc<"events">, page: Doc<"journalPages">) => {
   const text = page.elements.find(
     (e) => (e.kind === "title" || e.kind === "note") && e.text !== undefined,
@@ -338,9 +313,6 @@ export const vOutlinePage = v.object({
   gone: v.boolean(),
 });
 
-// The book the screen keeps open: who may edit, how many pages are still owed,
-// and a contents list. Words stay on `page`, so one subscription does not
-// decrypt every page.
 const outline = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -357,8 +329,6 @@ const outline = query({
   },
 });
 
-// The contents of a book: one short label per page, not every word. The share
-// link uses this too, after the token has already picked the experience.
 export const contentsOf = async (ctx: QueryCtx, event: Doc<"events">) => {
   return Promise.all(
     (await pagesOf(ctx, event._id)).slice(0, MAX_JOURNAL_PAGES).map(async (page) => ({
@@ -373,8 +343,6 @@ export const contentsOf = async (ctx: QueryCtx, event: Doc<"events">) => {
   );
 };
 
-// One page of this experience, decrypted. Null when the page is missing or
-// belongs to another experience, so a share token cannot name its way in.
 export const pageInEvent = async (
   ctx: QueryCtx,
   event: Doc<"events">,
@@ -386,7 +354,6 @@ export const pageInEvent = async (
   return await viewPage(ctx, event, row, redact);
 };
 
-// One page, decrypted. The open page, a neighbour, or a page being printed.
 const page = query({
   args: { pageId: v.id("journalPages") },
   handler: async (ctx, args) => {
@@ -397,8 +364,6 @@ const page = query({
   },
 });
 
-// The saved page for a moment, or the cover when no moment is named. Null when
-// that page was never made or was taken out: the caller does not invent one.
 const pageForMoment = query({
   args: { eventId: v.id("events"), momentId: v.optional(v.id("moments")) },
   handler: async (ctx, args) => {
@@ -416,8 +381,6 @@ const pageForMoment = query({
   },
 });
 
-// The whole book, decrypted. Tests and the one-shot journal file use this.
-// The open book does not: it subscribes to `outline` and `page`.
 const get = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -434,10 +397,6 @@ const get = query({
   },
 });
 
-// How many pages one transaction will cut and paste. Each page decrypts a
-// moment and encrypts what it prints, so a purge-sized batch would blow the
-// write limit on a long import. Twenty finishes a normal visit in one go
-// (the cover and a handful of moments); the rest is scheduled.
 const PAGE_BATCH = 20;
 
 const insertPage = async (
@@ -464,10 +423,6 @@ const insertPage = async (
   return pageId;
 };
 
-// Pages for moments made since `filledAt`, and the cover when the journal is
-// new. One batch per call. `more` means another batch should run: the book
-// still has room and a moment is still waiting. A locked journal changes
-// nothing, so `filledAt` does not step over a page that was never made.
 const makePageBatch = async (
   ctx: MutationCtx,
   event: Doc<"events">,
@@ -478,7 +433,6 @@ const makePageBatch = async (
     .query("moments")
     .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
     .take(momentsToRead(event.momentCount));
-  // The cover arrives with the first moment, not for an empty trip.
   if (existing === null && rows.length === 0) return { made: 0, more: false };
 
   const created =
@@ -513,8 +467,6 @@ const makePageBatch = async (
     made++;
   }
 
-  // Creation order, not the order they happened: `filledAt` is a high-water
-  // mark, so a moment that did not fit must stay above it.
   const waiting = [...fresh].sort((a, b) => a._creationTime - b._creationTime);
   let watermark = journal.filledAt;
   for (const row of waiting) {
@@ -548,9 +500,6 @@ const makePageBatch = async (
   return { made, more };
 };
 
-// The next batch of pages for an experience. Scheduled from the moment write,
-// and again from here until the fresh moments are paged or the book is full.
-// Missing and archived experiences are skipped: the job may outlive them.
 export const makePages = internalMutation({
   args: { eventId: v.id("events") },
   returns: v.null(),
@@ -564,9 +513,6 @@ export const makePages = internalMutation({
   },
 });
 
-// Moments that were saved before paging ran, or while the book was locked,
-// still owe a page. This walks experiences and cuts the next batch for each.
-// A page taken out on purpose stays out: it is already behind `filledAt`.
 export const backfillWaiting = internalMutation({
   args: { cursor: v.optional(v.string()) },
   returns: v.null(),
@@ -587,8 +533,6 @@ export const backfillWaiting = internalMutation({
   },
 });
 
-// The same batch, run now, for the owner. A long trip continues in `makePages`.
-// Safe to call twice: the second finds nothing new.
 const fill = mutation({
   args: { eventId: v.id("events") },
   handler: async (ctx, args): Promise<number> => {
@@ -601,9 +545,6 @@ const fill = mutation({
   },
 });
 
-// Moments that will never get a page because the book already holds
-// `MAX_JOURNAL_PAGES`. A page taken out on purpose is not listed: that moment
-// is already behind `filledAt`.
 const unpaged = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -616,8 +557,6 @@ const unpaged = query({
     const waiting = moments.filter(
       (m) => journal?.filledAt === undefined || m._creationTime > journal.filledAt,
     );
-    // Nothing waiting is the usual case: then the pages, which change on every
-    // save in the journal, are never read and this list doesn't re-run with them.
     if (waiting.length === 0 || (await pagesOf(ctx, event._id)).length < MAX_JOURNAL_PAGES)
       return { full: false, momentIds: [] };
     return { full: true, momentIds: waiting.map((m) => m._id) };
@@ -629,8 +568,6 @@ const wordsOf = (text: string | undefined): string | undefined => {
   return text;
 };
 
-// A thing locked in place may be unlocked, and nothing else about it may change.
-// Taking it off the page, or moving it in the same save as the unlock, is refused.
 const lockedStay = async (
   event: Doc<"events">,
   stored: Doc<"journalPages">["elements"],
@@ -663,9 +600,6 @@ const lockedStay = async (
   }
 };
 
-// A layout piece whose words this save changes becomes the owner's (`own`),
-// so a later "Update this page" keeps it. Only the layout's pieces are
-// checked, and each only until it is theirs.
 const markRetyped = async (
   event: Doc<"events">,
   page: Doc<"journalPages">,
@@ -685,7 +619,6 @@ const markRetyped = async (
   );
 };
 
-// Saves what is on a page (all of it: a page is small), and its paper.
 const savePage = mutation({
   args: {
     pageId: v.id("journalPages"),
@@ -706,10 +639,6 @@ const savePage = mutation({
   },
 });
 
-// Lays a moment's page out again from the moment as it is now. An untouched
-// page is replaced. A page the owner has saved keeps what they added and
-// replaces the layout's own pieces, and only when `force` (they asked).
-// A deleted moment is left on the page. Returns whether the page changed.
 const refreshOne = async (
   ctx: MutationCtx,
   event: Doc<"events">,
@@ -721,8 +650,6 @@ const refreshOne = async (
   const moment = await ctx.db.get("moments", page.momentId);
   if (moment === null || moment.eventId !== event._id) return false;
   const stamp = moment.lastEdit?.at ?? moment._creationTime;
-  // A page made before this field existed is left alone: we cannot tell a
-  // handmade page from one that simply predates the stamp.
   if (page.builtFrom === undefined || page.builtFrom === stamp) return false;
   const rows = await ctx.db
     .query("moments")
@@ -747,7 +674,6 @@ const refreshOne = async (
   return true;
 };
 
-// Untouched stale pages, one batch. `more` means another batch should run.
 const refreshBatch = async (
   ctx: MutationCtx,
   event: Doc<"events">,
@@ -767,8 +693,6 @@ const refreshBatch = async (
   return { made, more };
 };
 
-// Brings pages up to their moments. With a page, that page, even if the owner
-// has saved it. Without one, every untouched stale page, and the rest follows.
 const refresh = mutation({
   args: { eventId: v.id("events"), pageId: v.optional(v.id("journalPages")) },
   handler: async (ctx, args): Promise<number> => {
@@ -792,8 +716,6 @@ const refresh = mutation({
   },
 });
 
-// The next batch of untouched pages. Scheduled from `refresh` until the book
-// has caught up or nothing untouched is still stale.
 export const refreshPages = internalMutation({
   args: { eventId: v.id("events") },
   returns: v.null(),
@@ -807,7 +729,6 @@ export const refreshPages = internalMutation({
   },
 });
 
-// Where a page goes between two others (or after the last).
 const between = (before: number | undefined, after: number | undefined) =>
   before === undefined
     ? after === undefined
@@ -817,8 +738,6 @@ const between = (before: number | undefined, after: number | undefined) =>
       ? before + 60_000
       : (before + after) / 2;
 
-// A page after `after` (or at the end): blank, or with `elements` on it (a
-// ready-made page idea).
 const addPage = mutation({
   args: {
     eventId: v.id("events"),
@@ -865,7 +784,6 @@ const removePage = mutation({
   },
 });
 
-// Moves a page to just before `before`, or to the end.
 const movePage = mutation({
   args: { pageId: v.id("journalPages"), before: v.union(v.id("journalPages"), v.null()) },
   handler: async (ctx, args) => {
@@ -881,7 +799,6 @@ const movePage = mutation({
   },
 });
 
-// Locks or unlocks one page, or with no page, the whole journal.
 const setLock = mutation({
   args: { eventId: v.id("events"), pageId: v.optional(v.id("journalPages")), locked: v.boolean() },
   handler: async (ctx, args) => {
@@ -897,16 +814,12 @@ const setLock = mutation({
     if (journal === null)
       await ctx.db.insert("journals", { eventId: event._id, locked: args.locked || undefined });
     else await ctx.db.patch("journals", journal._id, { locked: args.locked || undefined });
-    // Pages refused while the book was locked are still owed. Unlocking cuts them.
     if (journal?.locked && !args.locked)
       await ctx.scheduler.runAfter(0, internal.model.journal.makePages, { eventId: event._id });
     return null;
   },
 });
 
-// Pages from a journal file, added at the end. What doesn't belong to this
-// experience (a photo from another one, a style that no longer exists) is
-// left off rather than refused, so an old file still comes in.
 const importPages = mutation({
   args: {
     eventId: v.id("events"),
@@ -945,8 +858,6 @@ const importPages = mutation({
   },
 });
 
-// Keeps an uploaded picture (a cut-out, or any picture put on a page) as the
-// journal's: on its shelf, and visible to everyone who can see the journal.
 const keepSticker = mutation({
   args: { mediaId: v.id("media") },
   handler: async (ctx, args) => {
@@ -967,9 +878,6 @@ const keepSticker = mutation({
   },
 });
 
-// Takes a sticker off the shelf. Refused while any page still shows it, so a
-// sticker on two pages survives being taken off one. The caller then deletes
-// the stored object the same way a moment drops a photo.
 const dropSticker = mutation({
   args: { mediaId: v.id("media") },
   handler: async (ctx, args) => {
@@ -990,7 +898,6 @@ const dropSticker = mutation({
   },
 });
 
-// The stickers on an experience's shelf, newest first.
 const stickers = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -1007,7 +914,6 @@ const stickers = query({
   },
 });
 
-// Who may ask for a preview: the journal's owner.
 export const previewer = internalQuery({
   args: { eventId: v.id("events") },
   returns: v.id("users"),
@@ -1018,9 +924,6 @@ export const previewer = internalQuery({
   },
 });
 
-// What a link looks like as a card: its title, description, picture and site,
-// read from the page's first 256 KB. A page that can't be read gives just the
-// address, so the card still has something on it.
 const linkPreview = action({
   args: { eventId: v.id("events"), url: v.string() },
   handler: async (ctx, args): Promise<LinkPreview> => {
@@ -1051,7 +954,6 @@ const linkPreview = action({
   },
 });
 
-// What the app calls. Registered once, by convex/api/journal.ts, which re-exports it.
 export const journalApi = {
   outline,
   page,

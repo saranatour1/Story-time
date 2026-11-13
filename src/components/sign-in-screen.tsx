@@ -1,13 +1,9 @@
 import { Link } from "@tanstack/react-router";
+import { CONTAINER } from "@/components/container";
 import { LoginForm } from "@/components/login-form";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
-// The signed-out pages' column: 1120px of content on a 12-column grid.
-export const CONTAINER = "mx-auto w-full max-w-[1168px] px-4 sm:px-6";
-
-// The page every signed-out screen sits on (landing, deep links, invites):
-// flat paper by day, story mode's dark room by night.
 export const SignedOutPage = ({
   children,
   className,
@@ -36,8 +32,6 @@ export const SignedOutPage = ({
   );
 };
 
-// Signed-out visitors to a deep link (an experience, a story) sign in where
-// they are: OAuth returns to the current URL, so they land where they meant to.
 export const SignInScreen = () => {
   return (
     <SignedOutPage className="items-center justify-center px-4 py-16">

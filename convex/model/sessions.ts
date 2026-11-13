@@ -2,14 +2,10 @@ import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import type { Id } from "../_generated/dataModel";
 import { mutation, query } from "../_generated/server";
-import { getUserId, requireEventAccess } from "../lib/access";
+import { denyAsNotFound, getUserId, requireEventAccess } from "../lib/access";
 import { recordChange } from "../lib/changes";
 import { vGrantRole } from "../schema";
 
-// Everyone on the trip, a page at a time, the owner first on the first page:
-// names and roles, for anyone with access. Nothing about when they joined or
-// were last seen; that stays the owner's. People whose access was removed are
-// left out, so a page can come back short.
 const members = query({
   args: { eventId: v.id("events"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
@@ -44,7 +40,6 @@ const members = query({
   },
 });
 
-// The people with access, one page at a time, in index order (by person).
 const listForEvent = query({
   args: { eventId: v.id("events"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
@@ -73,14 +68,11 @@ const listForEvent = query({
   },
 });
 
-// Revoke access: every read and write checks for an active grant.
 const revoke = mutation({
   args: { sessionId: v.id("sessions") },
   handler: async (ctx, args) => {
     const session = await ctx.db.get("sessions", args.sessionId);
-    // A missing grant fails exactly like one on an experience the caller doesn't
-    // own, so session ids can't be probed.
-    if (session === null) throw new Error("Event not found");
+    if (session === null) denyAsNotFound();
     const { userId } = await requireEventAccess(ctx, session.eventId, "owner");
     if (session.revokedAt !== undefined) return null;
     await ctx.db.patch("sessions", args.sessionId, { revokedAt: Date.now() });
@@ -97,14 +89,8 @@ const revoke = mutation({
   },
 });
 
-// How often a visit is written down. The app pings every five minutes while
-// the experience is open; a little under that, so each ping lands.
 const SEEN_EVERY_MS = 4 * 60 * 1000;
 
-// "I'm looking at this": stamps the caller's grant, for the owner's list.
-// The owner has no grant, and a revoked one stays as it was.
-// shortcut: the stamp is on the grant every access check reads, so the
-// viewer's queries rerun once per stamp; move it to its own table if that shows up.
 const seen = mutation({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -122,13 +108,11 @@ const seen = mutation({
   },
 });
 
-// Change what someone may do: watch, add moments, or co-own. Owners only.
 const setRole = mutation({
   args: { sessionId: v.id("sessions"), role: vGrantRole },
   handler: async (ctx, args) => {
     const session = await ctx.db.get("sessions", args.sessionId);
-    // Missing fails like forbidden, so session ids can't be probed.
-    if (session === null) throw new Error("Event not found");
+    if (session === null) denyAsNotFound();
     const { userId } = await requireEventAccess(ctx, session.eventId, "owner");
     if (session.revokedAt !== undefined) {
       throw new ConvexError({
@@ -152,5 +136,4 @@ const setRole = mutation({
   },
 });
 
-// What the app calls. Registered once, by convex/api/sessions.ts, which re-exports it.
 export const sessionsApi = { listForEvent, members, revoke, seen, setRole };

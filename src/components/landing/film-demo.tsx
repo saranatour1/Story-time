@@ -4,10 +4,6 @@ import { SAMPLE, TitlePage, useInView, useReducedMotion } from "@/components/lan
 import { DrawnPhoto, PHOTOS } from "@/components/landing/photos";
 import { cn } from "@/lib/utils";
 
-// The sample story playing on its own, as story mode does: the title page
-// types out, a leg draws itself on the map, a stop deals out its prints, and
-// it ends on the contact sheet. Tap either side to step; it can be paused.
-
 const SCENES = ["Title page", "The route", "A stop", "The end"] as const;
 const SCENE_MS = [5600, 4600, 5200, 4200];
 
@@ -15,7 +11,6 @@ export const FilmDemo = () => {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
   const [scene, setScene] = useState(0);
-  // Bumped on every scene change, so a scene's own motion starts over.
   const [take, setTake] = useState(0);
   const [playing, setPlaying] = useState(!reduced);
   const running = playing && inView;
@@ -99,7 +94,6 @@ export const FilmDemo = () => {
           <Scene active={scene === 3}>
             <ContactSheet onReplay={() => go(0)} />
           </Scene>
-          {/* Like the real player: the left side goes back, the right goes on. */}
           <button
             type="button"
             aria-label="Previous scene"
@@ -133,8 +127,6 @@ const Scene = ({ active, children }: { active: boolean; children: React.ReactNod
   );
 };
 
-// Porto to Lisbon by train on a dark street map, the way story mode draws a
-// leg: the line fills in and the train rides it.
 const RAIL = "M74 16 C80 30 79 44 70 57 S59 70 58 74";
 const LAND = "#1b1b1b";
 
@@ -278,8 +270,6 @@ const Leg = ({ play }: { play: boolean }) => {
   );
 };
 
-// A stop's photos dealt out as prints, the last one face up, with the caption
-// story mode puts under them.
 const DEALT = [
   { kind: "tram" as const, rest: "-rotate-[7deg] -translate-x-[18%]" },
   { kind: "tiles" as const, rest: "rotate-[6deg] translate-x-[16%]" },

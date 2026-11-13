@@ -1,6 +1,5 @@
 import { journalApi } from "../model/journal";
 
-// Written in convex/model/journal.ts.
 export const {
   outline,
   page,

@@ -1,11 +1,6 @@
 import { useMediaUrl, useWhenSeen, type MediaVariant } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 
-// Photos are private, so they load with the viewer's token and are shown
-// from a blob URL instead of a public link. `className` reshapes all three
-// states (e.g. a square thumbnail). Lists ask for the stored thumbnail and
-// wait until the tile is near the viewport; the fetch itself cannot be deferred
-// by loading=lazy, because the bytes are not a public URL.
 export const AuthImage = ({
   mediaId,
   alt,
@@ -58,9 +53,6 @@ export const AuthImage = ({
   );
 };
 
-// Videos load the same way. ponytail: the whole file is fetched before it
-// plays (no range requests); fine at the 50 MB cap, stream via signed URLs
-// if longer videos are ever allowed.
 export const AuthVideo = ({ mediaId, label }: { mediaId: string; label: string }) => {
   const { url, failed } = useMediaUrl(mediaId);
 

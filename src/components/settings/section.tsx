@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-// A settings page body: heading, description, then content.
 export const SettingsPage = ({
   title,
   description,
@@ -21,7 +20,6 @@ export const SettingsPage = ({
   );
 };
 
-// A titled group on a page. Smaller than the page heading so the two don't echo.
 export const SettingsBlock = ({
   title,
   description,

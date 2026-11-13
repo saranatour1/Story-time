@@ -15,10 +15,6 @@ type Step = {
   after: { paper: string; elements: JournalElement[] };
 };
 
-// The journal of an experience and every change to it. A change shows at once
-// (an optimistic update) and is saved in the background; undo and redo replay
-// a page as it was. Pages for new moments are cut on the server; `pending`
-// stays above zero until they arrive, or until the book is full.
 export const useJournal = (eventId: Id<"events">, index: number) => {
   const { data } = useQuery(queries.journal.outline({ eventId }));
   const openId =
@@ -57,8 +53,6 @@ export const useJournal = (eventId: Id<"events">, index: number) => {
 
   const fail = useCallback((e: unknown) => toast.error(errorMessage(e)), []);
 
-  // An untouched page follows its moment the next time the book is open.
-  // A page the owner has saved waits for "Update this page".
   const asked = useRef("");
   useEffect(() => {
     if (!data?.canEdit || data.locked) return;
@@ -71,8 +65,6 @@ export const useJournal = (eventId: Id<"events">, index: number) => {
     void refresh({ eventId }).catch(fail);
   }, [data, eventId, refresh, fail]);
 
-  // Moments saved before paging ran still owe a page. Opening the book cuts
-  // them; a full book is asked once, so it doesn't keep trying.
   const owed = useRef("");
   useEffect(() => {
     if (!data?.canEdit || data.locked || data.pending === 0) return;
@@ -89,7 +81,6 @@ export const useJournal = (eventId: Id<"events">, index: number) => {
   const future = useRef<Step[]>([]);
   const [, bump] = useState(0);
 
-  // Writes a page, remembering how it was so it can be undone.
   const write = useCallback(
     (pageId: PageId, next: { paper?: string; elements: JournalElement[] }, record = true) => {
       const page = openRef.current;
@@ -163,7 +154,6 @@ export const useJournal = (eventId: Id<"events">, index: number) => {
   };
 };
 
-// An element as the server takes it: ids typed as the tables'.
 export const asArg = (e: JournalElement) => {
   return {
     ...e,

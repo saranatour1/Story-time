@@ -4,16 +4,11 @@ import { transportOf } from "../components/event/transport";
 import type { MomentView } from "@/components/event/types";
 import { formatDateTime, formatDay } from "./local-time";
 
-// What the models propose for one typed sentence, and how the app shows it
-// before anything is saved.
-
 export type PlanOp = Extract<
   FunctionReturnType<typeof api.ai.command.propose>,
   { kind: "plan" }
 >["ops"][number];
 
-// One thing the plan does, in words: a heading naming what it touches, and the
-// changes to it. Removals are marked so they can look like what they are.
 export type PlanLine = { heading: string; changes: string[]; destructive: boolean };
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -42,6 +37,28 @@ const transportChange = (transport: PlanOp["transport"]): string[] => {
       ? "no transport"
       : (transportOf(transport)?.phrase.toLowerCase() ?? transport),
   ];
+};
+
+const describeRemoval = (m: MomentView, stop: number | undefined): PlanLine => {
+  if (stop === undefined) {
+    const photos = photosIn(m.blocks) + m.stops.reduce((n, s) => n + photosIn(s.blocks), 0);
+    return {
+      heading: nameOf(m),
+      changes: [
+        `delete the whole moment${photos > 0 ? `, with its ${plural(photos, "photo")}` : ""}`,
+      ],
+      destructive: true,
+    };
+  }
+  const gone = m.stops[stop - 2];
+  const photos = gone === undefined ? 0 : photosIn(gone.blocks);
+  return {
+    heading: nameOf(m),
+    changes: [
+      `remove stop ${stop}${gone?.place ? ` (${gone.place})` : ""}${photos > 0 ? `, with its ${plural(photos, "photo")}` : ""}`,
+    ],
+    destructive: true,
+  };
 };
 
 export const describeOp = (op: PlanOp, moments: MomentView[]): PlanLine => {
@@ -94,35 +111,13 @@ export const describeOp = (op: PlanOp, moments: MomentView[]): PlanLine => {
     };
   }
 
-  // remove
-  if (op.stop === undefined) {
-    const photos = photosIn(m.blocks) + m.stops.reduce((n, s) => n + photosIn(s.blocks), 0);
-    return {
-      heading: nameOf(m),
-      changes: [
-        `delete the whole moment${photos > 0 ? `, with its ${plural(photos, "photo")}` : ""}`,
-      ],
-      destructive: true,
-    };
-  }
-  const gone = m.stops[op.stop - 2];
-  const photos = gone === undefined ? 0 : photosIn(gone.blocks);
-  return {
-    heading: nameOf(m),
-    changes: [
-      `remove stop ${op.stop}${gone?.place ? ` (${gone.place})` : ""}${photos > 0 ? `, with its ${plural(photos, "photo")}` : ""}`,
-    ],
-    destructive: true,
-  };
+  return describeRemoval(m, op.stop);
 };
 
-// The place names in a plan that still need a spot on the map.
 export const placesToFind = (ops: PlanOp[]): string[] => {
   return [...new Set(ops.flatMap((op) => (op.place && op.geo === undefined ? [op.place] : [])))];
 };
 
-// Pins every named place that was found. The name stays as it was said; only
-// the pin comes from the lookup.
 export const withPins = (
   ops: PlanOp[],
   found: ReadonlyMap<string, { lat: number; lng: number }>,

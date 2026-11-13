@@ -18,7 +18,6 @@ import schema from "../schema";
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
@@ -57,7 +56,6 @@ const changeCount = async (t: Awaited<ReturnType<typeof setup>>["t"], eventId: I
   ).length;
 };
 
-// Rows a test writes straight into the table are counted the way old rows are.
 const backfill = async (t: ReturnType<typeof convexTest>) => {
   await t.mutation(internal.model.migrations.backfillAggregates, {});
   await t.finishAllScheduledFunctions(() => undefined);
@@ -68,7 +66,6 @@ describe("the moment limit", () => {
     expect(MOMENT_LIMIT).toBe(100);
     const { t, owner } = await setup();
     const eventId = await owner.mutation(api.api.events.createDraft, {});
-    // Counted up to the limit, not added one by one: that would make the test slow.
     await t.run((ctx) => ctx.db.patch("events", eventId, { momentCount: MOMENT_LIMIT - 1 }));
     await addMoment(owner, eventId);
     await expect(addMoment(owner, eventId)).rejects.toThrow(/MOMENT_LIMIT/);
@@ -138,7 +135,6 @@ describe("change tracking", () => {
     const moments = await t.run((ctx) => ctx.db.query("moments").collect());
     expect(JSON.stringify(moments)).not.toContain("secret-note");
 
-    // The description itself is stored encrypted, and reads back as written.
     const event = await t.run((ctx) => ctx.db.get("events", eventId));
     expect(JSON.stringify(event)).not.toContain("secret-description");
     expect((await owner.query(api.api.events.get, { eventId }))?.description).toBe(
@@ -152,7 +148,6 @@ describe("change tracking", () => {
     await t.run((ctx) => ctx.db.patch("events", eventId, { description: "from before" }));
     expect((await owner.query(api.api.events.get, { eventId }))?.description).toBe("from before");
 
-    // One page is enough here; a second run finds nothing left.
     expect(await t.mutation(internal.model.migrations.encryptPlainText, {})).toBe(1);
     const event = await t.run((ctx) => ctx.db.get("events", eventId));
     expect(typeof event?.description).toBe("object");
@@ -343,13 +338,11 @@ describe("uploads", () => {
       });
     const reserve = (mime = "image/png") =>
       owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime });
-    // Deleted uploads don't count towards the cap.
     await fill("deleted", 60);
     await fill("ready", MAX_PHOTOS_PER_EVENT - 1);
     await backfill(t);
     await reserve();
     await expect(reserve()).rejects.toThrow(`up to ${MAX_PHOTOS_PER_EVENT} photos`);
-    // Videos have their own cap, so a full photo count doesn't stop one.
     await fill("ready", MAX_VIDEOS_PER_EVENT - 1, "video/mp4");
     await backfill(t);
     await reserve("video/mp4");
@@ -416,7 +409,6 @@ describe("uploads", () => {
       }),
     );
     await backfill(t);
-    // Room for exactly 100 bytes, whichever experience they are for.
     await owner.mutation(api.api.media.reserveUpload, {
       eventId: second,
       size: 100,
@@ -425,11 +417,9 @@ describe("uploads", () => {
     await expect(
       owner.mutation(api.api.media.reserveUpload, { eventId: first, size: 1, mime: "image/png" }),
     ).rejects.toThrow(/UPLOAD_BUDGET/);
-    // Profile images draw on the same budget, so they can't be used to get around it.
     await expect(
       owner.mutation(api.api.media.reserveAvatarUpload, { size: 1, mime: "image/png" }),
     ).rejects.toThrow(/UPLOAD_BUDGET/);
-    // Deleting an upload frees its room.
     await owner.mutation(api.api.media.markDeleted, { mediaId: big });
     await owner.mutation(api.api.media.reserveUpload, {
       eventId: first,

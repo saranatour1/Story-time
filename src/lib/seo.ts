@@ -1,14 +1,8 @@
-// What a page tells search engines and link previews (X, Reddit, Discord,
-// Slack, iMessage, WhatsApp...). Server rendering is off, so only the root
-// route's head() reaches them; it calls this with the path. Nothing private
-// ever goes in: a shared trip's preview never names the trip.
 export type PageMeta = {
   title: string;
   description: string;
-  // 1200×630 PNG in public/, made by scripts/og-images.mjs.
   image: string;
   imageAlt: string;
-  // Only the landing page is meant for search results.
   index: boolean;
 };
 
@@ -44,6 +38,5 @@ export const pageMeta = (pathname: string): PageMeta => {
   if (pathname === "/s" || pathname.startsWith("/s/") || /^\/e\/[^/]+\/story\/?$/.test(pathname))
     return SHARED;
   if (pathname === "/invite" || pathname.startsWith("/invite/")) return INVITE;
-  // Signed-in pages: the site's own preview, kept out of search.
   return { ...HOME, index: false };
 };

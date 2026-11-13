@@ -6,36 +6,22 @@ import { LoginForm } from "@/components/login-form";
 import { SignedOutPage } from "@/components/sign-in-screen";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
+import { forgetStored, readStored, writeStored } from "@/lib/storage";
 
-// The token waits in this tab while its opener signs in, the same way an invite does.
 const STASH = "storytime:email-verify";
 
 const readToken = (): string => {
   if (typeof window === "undefined") return "";
   const fromLink = window.location.hash.slice(1);
-  try {
-    if (!fromLink) return sessionStorage.getItem(STASH) ?? "";
-    sessionStorage.setItem(STASH, fromLink);
-  } catch {
-    // No storage: the return address has to carry the token.
-  }
+  if (!fromLink) return readStored("session", STASH) ?? "";
+  writeStored("session", STASH, fromLink);
   return fromLink;
 };
 
-const kept = (token: string): boolean => {
-  try {
-    return token !== "" && sessionStorage.getItem(STASH) === token;
-  } catch {
-    return false;
-  }
-};
+const kept = (token: string): boolean => token !== "" && readStored("session", STASH) === token;
 
 const forget = () => {
-  try {
-    sessionStorage.removeItem(STASH);
-  } catch {
-    // Nothing kept.
-  }
+  forgetStored("session", STASH);
 };
 
 const VerifyEmail = () => {
@@ -113,5 +99,4 @@ const VerifyBody = ({ token, returnTo }: { token: string; returnTo?: string }) =
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/verify-email")({ component: VerifyEmail });

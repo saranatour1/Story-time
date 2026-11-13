@@ -99,5 +99,4 @@ const DataSettings = () => {
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/settings/data")({ component: DataSettings });

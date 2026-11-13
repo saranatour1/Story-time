@@ -1,7 +1,3 @@
-// One A4 page at a time. The finished file holds every JPEG, because that is the
-// download. What it does not do is keep a second copy of each page, or a canvas
-// per page, while the rest are still being drawn.
-
 export const PDF_SCALE = 1.5;
 export const PDF_QUALITY = 0.75;
 
@@ -47,7 +43,6 @@ export const jpegSize = (bytes: Uint8Array): { width: number; height: number } =
   throw new Error("The page wasn't a JPEG.");
 };
 
-// Same canvas while every page is the same size. A different size allocates once.
 export const reuseCanvas = <T extends { width: number; height: number }>(
   current: T | null,
   width: number,

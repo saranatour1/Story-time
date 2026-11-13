@@ -5,12 +5,7 @@ import { DrawnPhoto, PHOTOS } from "@/components/landing/photos";
 import { isForward, useSwipeSurface } from "@/lib/use-swipe";
 import { cn } from "@/lib/utils";
 
-// Story mode's deck of prints, to try on the page: drag or swipe the top print
-// away for the next one, the other way to bring the last one back, or use the
-// buttons. Only sideways, so the page still scrolls under a finger.
-
 const LEAVE_MS = 260;
-// The prints under the top one, as they lie in the pile.
 const PILE = [
   "rotate-[5deg] translate-y-3 scale-[0.94]",
   "-rotate-[4deg] translate-y-1.5 scale-[0.97]",
@@ -22,7 +17,6 @@ export const SwipeDeck = () => {
   const [top, setTop] = useState(0);
   const [drag, setDrag] = useState(0);
   const [leaving, setLeaving] = useState<"left" | "right" | null>(null);
-  // How the top print arrived, so one coming back slides in from the side.
   const [arrived, setArrived] = useState<"back" | null>(null);
   const count = PHOTOS.length;
 

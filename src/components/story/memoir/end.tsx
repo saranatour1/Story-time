@@ -8,8 +8,6 @@ import { countStops } from "@/components/story/title-card";
 import { Button } from "@/components/ui/button";
 import { stopsOf } from "@/lib/story-steps";
 
-// The end of the memoir: the trip's pictures laid out like prints, a few
-// numbers, then replay or share.
 export const MemoirEnd = ({
   event,
   moments,
@@ -18,7 +16,6 @@ export const MemoirEnd = ({
 }: {
   event: StoryEvent;
   moments: StoryMoment[];
-  // Its step, so the keys and a link to the end can reach it.
   step: number;
   onReplay: () => void;
 }) => {

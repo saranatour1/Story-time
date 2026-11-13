@@ -9,6 +9,7 @@ import { AI_PER_DAY, MAX_EVENTS_PER_USER, MAX_LIVE_UPLOAD_BYTES } from "../lib/l
 import { rateLimiter } from "../lib/rateLimit";
 import { liveUploadBytes } from "./media";
 import { appOrigins } from "../lib/appUrl";
+import { invalid } from "../lib/blocks";
 import { emailKeyFor } from "../lib/crypto";
 import { emailConfigured, issueEmailCheck } from "../lib/emailAddress";
 import {
@@ -20,8 +21,6 @@ import {
   cleanUsername,
 } from "../lib/profile";
 
-// A verified provider email, normalised, or nothing. An unverified or
-// malformed address is left off. Name and avatar are never copied.
 const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string | undefined => {
   if (!profile.emailVerified || profile.email === undefined) return undefined;
   const email = cleanEmail(profile.email);
@@ -30,12 +29,6 @@ const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string
   return email;
 };
 
-// The person a new provider login belongs to. A login seen before never gets
-// here: Convex Auth finds it in its accounts table. A new one (say Google, for
-// someone who signed up with GitHub) whose verified email exactly one person
-// here has confirmed is that person; two or more is ambiguous, so it makes a
-// new user instead. Privacy by default: a new row starts empty apart
-// from the verified contact email; nothing else from the profile is copied.
 const userFor = async (ctx: MutationCtx, email: string | undefined): Promise<Id<"users">> => {
   if (email !== undefined) {
     const known = (
@@ -44,7 +37,6 @@ const userFor = async (ctx: MutationCtx, email: string | undefined): Promise<Id<
         .withIndex("by_email", (q) => q.eq("email", email))
         .take(10)
     ).filter((user) => user.emailVerified === true);
-    // A new login on a blocked account's email doesn't get a fresh account.
     if (known.some((user) => user.blockedAt !== undefined)) {
       throw new ConvexError("This account has been closed.");
     }
@@ -81,10 +73,6 @@ export const createGoogleUser = internalMutation({
   },
 });
 
-// Operator only, from the CLI:
-//   pnpm exec convex run model/users:block '{"userId":"...","reason":"malware"}'
-// Takes effect at once and deletes nothing, so there is evidence to report.
-// `lift: true` undoes it.
 export const block = internalMutation({
   args: { userId: v.id("users"), reason: v.optional(v.string()), lift: v.optional(v.boolean()) },
   returns: v.null(),
@@ -110,8 +98,6 @@ export const createAnonymousUser = internalMutation({
   },
   returns: v.id("users"),
   handler: async (ctx) => {
-    // The flag alone isn't enough: every app origin must be local too, so a
-    // flag left on a production deployment does nothing.
     const localOnly = appOrigins().every((origin) => {
       const host = new URL(origin).hostname;
       return host === "localhost" || host === "127.0.0.1";
@@ -137,9 +123,7 @@ const getCurrentUser = query({
       id: user._id,
       displayName: user.displayName,
       username: user.username,
-      // Only a confirmed address is the one we send to.
       email: verified ? user.email : undefined,
-      // A typed address, or an older one that was saved before confirmation existed.
       pendingEmail: user.pendingEmail ?? (verified ? undefined : user.email),
       emailVerified: verified,
       onThisDay: user.onThisDay === true,
@@ -149,15 +133,8 @@ const getCurrentUser = query({
   },
 });
 
-// Typed as a whole: TypeScript only follows a `never` call through a declared type.
-const invalid: (field: string, message: string) => never = (field, message) => {
-  throw new ConvexError({ code: "INVALID", field, message });
-};
-
 type EmailStatus = "unchanged" | "cleared" | "sent" | "waiting";
 
-// Only fields that are passed change. An empty string clears a text field.
-// A typed email is not trusted until its confirmation link is opened.
 const updateSettings = mutation({
   args: {
     displayName: v.optional(v.string()),
@@ -223,12 +200,7 @@ const updateSettings = mutation({
         patch.pendingEmail = undefined;
         patch.emailVerifyKey = undefined;
         patch.emailVerifyExpires = undefined;
-      } else if (
-        email === user.pendingEmail ||
-        (user.emailVerified !== true && email === user.email)
-      ) {
-        // Already waiting, or an older unconfirmed address. Resend is separate.
-      } else {
+      } else if (email !== user.pendingEmail && email !== user.email) {
         confirm = email;
       }
     }
@@ -243,7 +215,6 @@ const updateSettings = mutation({
 
 const TOKEN_SHAPE = /^[A-Za-z0-9_-]{20,64}$/;
 
-// Opens the confirmation link. The signed-in person must be the one it was sent to.
 const verifyEmail = mutation({
   args: { token: v.string() },
   handler: async (ctx, args) => {
@@ -276,7 +247,6 @@ const verifyEmail = mutation({
   },
 });
 
-// Sends the confirmation again for an address that is still waiting.
 const resendEmailVerification = mutation({
   args: {},
   handler: async (ctx) => {
@@ -291,8 +261,6 @@ const resendEmailVerification = mutation({
   },
 });
 
-// The daily memory note. It needs a confirmed address, and the mail says only
-// that a memory is waiting.
 const setOnThisDay = mutation({
   args: { on: v.boolean() },
   handler: async (ctx, args) => {
@@ -307,8 +275,6 @@ const setOnThisDay = mutation({
   },
 });
 
-// How much of each allowance the signed-in person has used, for Settings.
-// `ai.resetsAt` is when the day's AI uses come back (midnight UTC).
 const usage = query({
   args: {},
   handler: async (ctx) => {
@@ -334,7 +300,6 @@ const usage = query({
   },
 });
 
-// What the app calls. Registered once, by convex/api/users.ts, which re-exports it.
 export const usersApi = {
   getCurrentUser,
   updateSettings,

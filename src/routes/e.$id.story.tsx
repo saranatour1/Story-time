@@ -33,15 +33,10 @@ const StoryScroll = lazy(() =>
 );
 
 const search = z.object({
-  // The scene in view, kept up to date as the film plays or the story scrolls.
   step: z.number().int().min(0).default(0).catch(0),
-  // Which page of the book is open.
   page: z.number().int().min(0).default(0).catch(0),
-  // Start at this moment, then drop out of the URL.
   momentId: z.string().optional().catch(undefined),
-  // The book, the film, or the story when a page clipped the note.
   mode: z.enum(["read", "film", "words"]).default("read").catch("read"),
-  // Closing the film returns here when it was opened from the full note.
   back: z.enum(["words"]).optional().catch(undefined),
 });
 
@@ -65,9 +60,6 @@ const StoryPage = () => {
   );
   const stage = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 900 });
-  // The URL follows the scroll without adding history; stable, so the
-  // player's effects don't rerun on unrelated renders. It keeps the mode and
-  // drops momentId.
   const onStep = useCallback(
     (next: number) =>
       void navigate({
@@ -86,8 +78,6 @@ const StoryPage = () => {
       }),
     [navigate],
   );
-  // Playing the film is a step forward. Closing it returns to the book, or to
-  // the full note when that is what opened the film.
   const playFilm = useCallback(
     (next: number) =>
       void navigate({
@@ -115,7 +105,6 @@ const StoryPage = () => {
   );
 
   if (isLoading) return <Skeleton className="h-svh w-full rounded-none" />;
-  // Signing in here keeps the shared link: OAuth comes back to this URL.
   if (!isAuthenticated) return <SignInScreen />;
   if (event === undefined || (event !== null && moments === undefined)) {
     return <Skeleton className="h-svh w-full rounded-none" />;
@@ -224,10 +213,8 @@ const BookStage = ({
   );
 };
 
-// Outside `_app`, so there's no sidebar or header: the story fills the window.
 export const Route = createFileRoute("/e/$id/story")({
   validateSearch: search,
-  // Signed-in readers only; the page asks again once it knows.
   loader: ({ context: { prefetch }, params }) => {
     const eventId = params.id as Id<"events">;
     prefetch(queries.events.get({ eventId }));

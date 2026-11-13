@@ -5,7 +5,6 @@ import type { StoryStep } from "@/lib/story-steps";
 
 type StopScene = Extract<StoryStep, { kind: "stop" }>;
 
-// On the clock where the stop happened.
 const when = (ms: number, offset?: number) =>
   formatDateTime(ms, offset, {
     weekday: "short",
@@ -15,18 +14,14 @@ const when = (ms: number, offset?: number) =>
     minute: "2-digit",
   });
 
-// The words under a stop: where and when, who, how they got there, and
-// anything written down. Pictures are the scene above.
 export const StopCaption = ({ scene, meId }: { scene: StopScene; meId: string | undefined }) => {
   const { stop } = scene;
   const transport = transportOf(stop.transport);
   const author = authorByline(scene, meId);
-  // A stop with no pictures shows its words on paper above, so here only its links.
   const pictured = stop.blocks.some((b) => b.type === "photo" || b.type === "video");
   const text = stop.blocks.filter((b) =>
     pictured ? b.type !== "photo" && b.type !== "video" : b.type === "link",
   );
-  // A stop without a place is headed by its time, or its number in the story.
   const time = stop.startsAt === undefined ? undefined : when(stop.startsAt, scene.tzOffsetMinutes);
   const heading = stop.place || time || scene.place;
   const showTime = time !== undefined && heading !== time;

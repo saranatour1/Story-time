@@ -9,7 +9,6 @@ import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-// What a failed sign-in says when the server didn't send its own words.
 const FLOW_ERRORS: Record<OauthFlowError["error"], string> = {
   ACCESS_DENIED: "Sign-in was cancelled.",
   EXPIRED: "Sign-in took too long. Please try again.",
@@ -18,7 +17,6 @@ const FLOW_ERRORS: Record<OauthFlowError["error"], string> = {
   INVALID_FLOW: "Sign-in didn't complete. Please try again.",
 };
 
-// shadcn login-03, trimmed to the OAuth providers the backend supports.
 export const LoginForm = ({
   className,
   heading = "Welcome",
@@ -47,13 +45,6 @@ export const LoginForm = ({
   );
 };
 
-// The provider buttons on their own, for pages that don't want a card.
-// OAuth comes back to the page it started on, so deep links survive sign-in;
-// `returnTo` names another address, for a page whose URL holds a secret (the
-// address is handed to the sign-in backend).
-// `prominent` makes them page-sized buttons on paper, `groupClassName` lays
-// them out, and `showError` lets a second set on a page leave the error to
-// the first.
 export const SignInButtons = ({
   className,
   groupClassName,
@@ -130,8 +121,6 @@ export const SignInButtons = ({
   );
 };
 
-// Dev only: anonymous sign-in for local testing. The backend also rejects it
-// unless ALLOW_ANONYMOUS_SIGNIN is "true" on the deployment.
 const DevAnonymousSignIn = ({ className }: { className?: string }) => {
   const { signIn } = useSignInAnonymously(authApi);
   return (

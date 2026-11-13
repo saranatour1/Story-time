@@ -18,7 +18,6 @@ const invitesModules = import.meta.glob([
 ]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 beforeEach(() => vi.useFakeTimers());
@@ -237,7 +236,6 @@ describe("media.listKeysForEvent", () => {
     });
     const keys = await owner.query(api.api.media.listKeysForEvent, { eventId });
     expect(keys).toContain(live);
-    // Deleted objects are listed too, since they may not be gone from R2 yet.
     expect(keys).toHaveLength(5051);
   });
 });

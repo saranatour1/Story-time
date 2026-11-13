@@ -19,7 +19,6 @@ const invitesModules = import.meta.glob([
 const cf = { CF_ACCOUNT_ID: "acct", CF_EMAIL_TOKEN: "token", EMAIL_FROM: "a@example.com" };
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
@@ -47,13 +46,11 @@ const enableMail = () => {
   });
   vi.useFakeTimers();
   vi.stubGlobal("fetch", fetchMock);
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   Object.assign(process.env, cf);
   return fetchMock;
 };
 
 const disableMail = () => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   for (const key of Object.keys(cf)) delete process.env[key];
   vi.unstubAllGlobals();
   vi.useRealTimers();
@@ -272,7 +269,6 @@ describe("on this day", () => {
       await t.finishAllScheduledFunctions(vi.runAllTimers);
       expect(fetchMock).not.toHaveBeenCalled();
 
-      // eslint-disable-next-line @convex-dev/no-process-env -- test setup
       Object.assign(process.env, cf);
       await t.run((ctx) =>
         ctx.db.patch("users", aId, { email: "sara@example.com", emailVerified: true }),

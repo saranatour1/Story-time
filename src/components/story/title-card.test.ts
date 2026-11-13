@@ -34,7 +34,6 @@ test("the owner's dates read as they are, and a single day reads once", () => {
 });
 
 test("the span of the moments reads each end on the day it happened there", () => {
-  // 22:15 UTC on the 8th is the 9th in Japan; 03:00 UTC on the 12th is the 12th in Japan too.
   const moments = [
     moment({ startsAt: Date.UTC(2025, 10, 8, 22, 15), tzOffsetMinutes: 540 }),
     moment({ startsAt: Date.UTC(2025, 10, 12, 3, 0), tzOffsetMinutes: 540 }),

@@ -11,7 +11,6 @@ import schema from "../schema";
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
@@ -29,7 +28,6 @@ const setup = async () => {
   );
   const link = await owner.mutation(api.api.share.enable, { eventId });
   const token = link.slice(link.indexOf("#") + 1);
-  // What the upload route does: reserve, put the bytes, confirm.
   const upload = async () => {
     const { mediaId } = await owner.mutation(api.api.pdf.reserve, { eventId, size: 2048 });
     await owner.mutation(api.api.media.confirmUpload, { mediaId });
@@ -61,8 +59,6 @@ test("the owner puts a locked PDF on the link; its password stays theirs", async
     pages: 12,
     at: expect.any(Number),
   });
-  // The file comes through the link and to invited people; the password is
-  // kept encrypted, never in the clear.
   expect(await t.query(api.api.share.mediaForShare, { token, mediaId: first })).toMatchObject({
     mime: "application/pdf",
   });
@@ -71,10 +67,8 @@ test("the owner puts a locked PDF on the link; its password stays theirs", async
     async (ctx) => (await ctx.db.query("journals").first())?.pdf?.password,
   );
   expect(JSON.stringify(stored)).not.toContain("kq7m");
-  // While it is on the link it can't be deleted from storage.
   expect(await owner.query(api.api.media.getForDelete, { mediaId: first })).toBeNull();
 
-  // A new one replaces it and hands back the old one to delete.
   const second = await upload();
   expect(
     await owner.mutation(api.api.pdf.set, {
@@ -87,7 +81,6 @@ test("the owner puts a locked PDF on the link; its password stays theirs", async
   expect(await t.query(api.api.share.mediaForShare, { token, mediaId: first })).toBeNull();
   expect(await owner.query(api.api.media.getForDelete, { mediaId: first })).not.toBeNull();
 
-  // Taken off the link: nothing to download.
   expect(await owner.mutation(api.api.pdf.drop, { eventId })).toBe(second);
   expect(await t.query(api.api.share.pdf, { token })).toBeNull();
   expect(await t.query(api.api.share.mediaForShare, { token, mediaId: second })).toBeNull();
@@ -105,7 +98,6 @@ test("a hidden share does not name the locked PDF", async () => {
   });
   expect(await t.query(api.api.share.pdf, { token })).toMatchObject({ mediaId });
 
-  // Switched off on its own, the PDF goes and the photos stay.
   await owner.mutation(api.api.share.setShown, { eventId, part: "pdf", show: false });
   expect(await t.query(api.api.share.pdf, { token })).toBeNull();
   expect(await t.query(api.api.share.mediaForShare, { token, mediaId })).toBeNull();
@@ -115,7 +107,6 @@ test("a hidden share does not name the locked PDF", async () => {
   await owner.mutation(api.api.share.setShown, { eventId, part: "photos", show: false });
   expect(await t.query(api.api.share.pdf, { token })).toBeNull();
   expect(await t.query(api.api.share.mediaForShare, { token, mediaId })).toBeNull();
-  // The owner still has the file and its password.
   expect(await owner.query(api.api.pdf.get, { eventId })).toMatchObject({
     mediaId,
     pages: 12,
@@ -143,7 +134,6 @@ test("only the owner makes one, with a real password and a size that fits", asyn
   await expect(
     viewer.mutation(api.api.pdf.set, { eventId, mediaId, password: "long enough", pages: 3 }),
   ).rejects.toThrow();
-  // A photo can't be passed off as the PDF.
   const { mediaId: photo } = await owner.mutation(api.api.media.reserveUpload, {
     eventId,
     size: 100,

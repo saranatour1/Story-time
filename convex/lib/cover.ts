@@ -3,17 +3,10 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { decryptText, encryptText } from "./crypto";
 import { MAX_JOURNAL_PAGES, tripDates } from "./journal";
 
-// The words on a journal's cover that follow the trip until someone retypes
-// them: its name, and its dates. Kept apart from journal.ts so the moment
-// writes can use it too without the two importing each other.
-
 export type CoverWords = { title: string; dates: string | undefined };
 
-// The trip's name as the cover prints it.
 export const coverTitle = (event: Doc<"events">) => (event.title || "Our trip").slice(0, 60);
 
-// The date line the cover is given: the trip's dates, or its first moment to
-// its last when it has none. At most two reads, one at each end of the index.
 export const coverDates = async (
   ctx: QueryCtx,
   event: Doc<"events">,
@@ -30,8 +23,6 @@ export const coverWords = async (ctx: QueryCtx, event: Doc<"events">): Promise<C
   return { title: coverTitle(event), dates: await coverDates(ctx, event) };
 };
 
-// Until the owner retypes the cover, its name and dates follow the trip. A
-// line that no longer says what was last written is theirs, and stays.
 export const followCover = async (
   ctx: MutationCtx,
   event: Doc<"events">,
@@ -82,10 +73,7 @@ export const followCover = async (
   }
 };
 
-// Around a write that may move a dateless trip's first or last moment: the
-// cover's date line before it, then `after()` to follow it. A trip with both
-// dates set never changes this way, so it costs nothing there.
-export const datesBefore = async (
+export const coverDatesFollowUp = async (
   ctx: QueryCtx,
   event: Doc<"events">,
 ): Promise<(ctx: MutationCtx) => Promise<void>> => {

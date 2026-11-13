@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import { errorMessage } from "@/lib/errors";
 
-// Yes/no for irreversible actions. While `onConfirm` runs the buttons are
-// disabled; if it throws, the error is shown and the dialog stays open.
 export const ConfirmDialog = ({
   open,
   onOpenChange,

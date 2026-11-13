@@ -16,7 +16,6 @@ const moment = (id: string, startsAt: number, over: Partial<MomentView> = {}): M
 
 describe("days", () => {
   test("group by the day in the zone the moment happened in, oldest first", () => {
-    // 22:15 UTC on 8 November is 07:15 on 9 November in Japan (UTC+9).
     const kyoto = Date.UTC(2025, 10, 8, 22, 15);
     const days = groupByDay([
       moment("b", kyoto, { tzOffsetMinutes: 540 }),

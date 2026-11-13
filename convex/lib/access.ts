@@ -11,11 +11,9 @@ export const getUserId = async (ctx: Ctx): Promise<Id<"users"> | null> => {
   const identity = await ctx.auth.getUserIdentity();
   if (identity === null) return null;
   const userId = ctx.db.normalizeId("users", identity.subject);
-  // A blocked account is signed out as far as every function is concerned.
   return userId === null || (await isBlocked(ctx, userId)) ? null : userId;
 };
 
-// Whether the operator blocked this account (model/users.ts, `block`).
 export const isBlocked = async (ctx: Ctx, userId: Id<"users">): Promise<boolean> => {
   return (await ctx.db.get("users", userId))?.blockedAt !== undefined;
 };
@@ -26,9 +24,6 @@ export const requireUserId = async (ctx: Ctx): Promise<Id<"users">> => {
   return userId;
 };
 
-// Role of a user on an event, or null when they have no active share grant. A
-// revoked session grants nothing. `getEventAccess` asks it about whoever is
-// signed in; an agent acting for a person asks it about that person.
 export const getEventAccessFor = async (
   ctx: Ctx,
   userId: Id<"users">,
@@ -41,7 +36,6 @@ export const getEventAccessFor = async (
   const event = await ctx.db.get("events", eventId);
   if (event === null) return null;
   if (event.ownerId === userId) return { userId, event, role: "owner" };
-  // What a blocked account made is closed to the people it invited too.
   if (await isBlocked(ctx, event.ownerId)) return null;
   const session = await ctx.db
     .query("sessions")
@@ -57,11 +51,12 @@ export const getEventAccess = async (ctx: Ctx, eventId: Id<"events">) => {
   return getEventAccessFor(ctx, userId, eventId);
 };
 
-// Same error for "missing" and "forbidden" so ids can't be probed.
-const allow = <T extends { role: EventRole }>(access: T | null, min: EventRole): T => {
-  if (access === null || RANK[access.role] < RANK[min]) {
-    throw new Error("Event not found");
-  }
+export const denyAsNotFound: () => never = () => {
+  throw new Error("Event not found");
+};
+
+const allowOrNotFound = <T extends { role: EventRole }>(access: T | null, min: EventRole): T => {
+  if (access === null || RANK[access.role] < RANK[min]) denyAsNotFound();
   return access;
 };
 
@@ -71,14 +66,19 @@ export const requireEventAccessFor = async (
   eventId: Id<"events">,
   min: EventRole,
 ) => {
-  return allow(await getEventAccessFor(ctx, userId, eventId), min);
+  return allowOrNotFound(await getEventAccessFor(ctx, userId, eventId), min);
 };
 
 export const requireEventAccess = async (ctx: Ctx, eventId: Id<"events">, min: EventRole) => {
-  return allow(await getEventAccess(ctx, eventId), min);
+  return allowOrNotFound(await getEventAccess(ctx, eventId), min);
 };
 
-// Archived experiences are read-only: call on every write that adds content.
+export const mayChangeMoment = (
+  moment: { authorId: Id<"users"> },
+  userId: Id<"users">,
+  role: EventRole,
+): boolean => role === "owner" || moment.authorId === userId;
+
 export const assertNotArchived = (event: Doc<"events">) => {
   if (event.status === "archived") {
     throw new ConvexError({
@@ -88,9 +88,6 @@ export const assertNotArchived = (event: Doc<"events">) => {
   }
 };
 
-// True when two people have an experience in common: one owns it and the
-// other holds an active grant, or both hold active grants. Used to decide
-// who may see a profile image.
 export const sharesExperience = async (
   ctx: Ctx,
   a: Id<"users">,

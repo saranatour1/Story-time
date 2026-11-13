@@ -1,26 +1,18 @@
-import { localParts } from "./local-time";
+import { wallClockAsUtc } from "./local-time";
 
 export type Geo = { lat: number; lng: number };
 
-// A photo or video: when it was taken and, if known, where and the camera's
-// UTC offset at the time.
 export type PhotoPoint = { id: string; takenAt: number; offsetMinutes?: number; geo?: Geo };
 
-// Photos taken together, in time order. The stop's time is its first
-// photo's; its place is the median of their locations.
 export type PhotoStop = { photos: PhotoPoint[]; startsAt: number; geo?: Geo };
 
-// One local calendar day. Each moment is a journey of stops; a day only
-// needs more than one when its photos can't fit in one moment.
 export type PhotoDay = { day: string; moments: PhotoStop[][] };
 
 export const STOP_GAP_MS = 45 * 60_000;
 export const STOP_RADIUS_M = 1000;
-// The server's caps: stops per moment, and items per stop.
 export const MAX_STOPS = 10;
 export const MAX_PHOTOS_PER_STOP = 20;
 
-// Great-circle distance, good enough at city scale.
 export const distanceMeters = (a: Geo, b: Geo): number => {
   const rad = Math.PI / 180;
   const dLat = (b.lat - a.lat) * rad;
@@ -31,18 +23,14 @@ export const distanceMeters = (a: Geo, b: Geo): number => {
   return 2 * 6_371_000 * Math.asin(Math.min(1, Math.sqrt(h)));
 };
 
-// The clock where the photo was taken, as a Date to read in UTC: at the
-// camera's offset, else the browser's zone.
 export const localClock = (ms: number, offsetMinutes?: number): Date => {
-  return localParts(ms, offsetMinutes);
+  return wallClockAsUtc(ms, offsetMinutes);
 };
 
-// YYYY-MM-DD on that clock.
 export const dayKey = (ms: number, offsetMinutes?: number): string => {
   return localClock(ms, offsetMinutes).toISOString().slice(0, 10);
 };
 
-// The viewer's calendar day, as the same YYYY-MM-DD the lists already use.
 export const viewerDay = (now = Date.now()): string => {
   return dayKey(now, -new Date(now).getTimezoneOffset());
 };
@@ -73,11 +61,6 @@ const chunk = <T>(list: T[], size: number): T[][] =>
     list.slice(i * size, (i + 1) * size),
   );
 
-// Sorts photos into days, moments and stops. A new stop starts after a gap
-// of more than 45 minutes, or when a photo was taken over 1 km from where
-// the stop began (when both are known). A day with more than 10 stops merges
-// the neighbours closest in time until it fits; if the per-stop cap stops
-// that, the rest spills into a second moment for the day.
 export const groupPhotos = (
   points: PhotoPoint[],
   {
@@ -91,7 +74,6 @@ export const groupPhotos = (
 
   const runs: PhotoPoint[][] = [];
   let current: PhotoPoint[] = [];
-  // Where the current stop began: its first photo with a location.
   let anchor: Geo | undefined;
   for (const p of sorted) {
     const last = current.at(-1);

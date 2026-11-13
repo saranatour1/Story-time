@@ -1,8 +1,6 @@
 import { formatDay } from "@/lib/local-time";
 import { dayKey } from "@/lib/photo-groups";
 
-// A page in the contents strip. The cover has no moment; a page the owner
-// added by hand may not either.
 export type ContentsPage = { _id: string; momentId?: string };
 
 type DayMoment = { startsAt: number; tzOffsetMinutes?: number };
@@ -16,8 +14,6 @@ export type ContentsGroup = {
 
 const DAY = { weekday: "short", month: "short", day: "numeric" } as const;
 
-// The strip, in book order, gathered the way the moments list is: the cover,
-// then each day. A page with no moment stays with the group before it.
 export const contentsByDay = (
   pages: ContentsPage[],
   moments: ReadonlyMap<string, DayMoment>,

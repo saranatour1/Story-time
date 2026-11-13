@@ -1,6 +1,5 @@
 import type { Geo } from "./crypto";
 
-// Great-circle distance, good enough at city scale.
 export const distanceMeters = (a: Geo, b: Geo): number => {
   const rad = Math.PI / 180;
   const dLat = (b.lat - a.lat) * rad;

@@ -1,14 +1,8 @@
-// Whether a web address is one this server may open. Shape checks live here so
-// queries can use them. Looking the name up is a separate step: a hostname can
-// pass every check below and still point at a machine on a private network.
-
 const TIMEOUT_MS = 5000;
 const MAX_REDIRECTS = 5;
 
 const LOCAL_SUFFIXES = [".localhost", ".local", ".localdomain", ".internal", ".home.arpa", ".arpa"];
 
-// The hostname a URL will actually be asked for: lower case, no brackets, no
-// zone id, no trailing dots. `localhost.` and `[::1]` become `localhost` and `::1`.
 export const bareHost = (host: string): string => {
   let name = host.trim().toLowerCase();
   if (name.startsWith("[") && name.endsWith("]")) name = name.slice(1, -1);
@@ -22,15 +16,10 @@ const hostOf = (url: URL): string => {
   return bareHost(url.hostname);
 };
 
-// A single label that is only digits, or a hex number (`0x7f`). Octal-looking
-// labels (`0177`) are digits too, so they are caught here without being decoded.
 const isNumericLabel = (label: string): boolean => {
   return /^\d+$/.test(label) || /^0x[0-9a-f]+$/i.test(label);
 };
 
-// An address written as a number rather than a name: IPv6, a dotted quad, a
-// short form (`127.1`), a single integer, or hex labels. All of them are
-// refused, public ranges included. The fetch never opens a literal.
 export const isLiteralAddress = (host: string): boolean => {
   const name = bareHost(host);
   if (name === "") return false;
@@ -39,7 +28,6 @@ export const isLiteralAddress = (host: string): boolean => {
   return labels.length > 0 && labels.every(isNumericLabel);
 };
 
-// Web addresses only. Local names and numeric hosts are refused before DNS.
 export const isPublicWebUrl = (url: URL): boolean => {
   if (url.protocol !== "http:" && url.protocol !== "https:") return false;
   if (url.username !== "" || url.password !== "") return false;
@@ -50,8 +38,6 @@ export const isPublicWebUrl = (url: URL): boolean => {
   return true;
 };
 
-// Where a redirect would send the next fetch, or nothing if that address is
-// not one this server should open. The next hop is still looked up before use.
 export const publicRedirect = (base: string, location: string): string | undefined => {
   try {
     const next = new URL(location, base);
@@ -89,8 +75,6 @@ const v4Private = (octets: [number, number, number, number]): boolean => {
   return false;
 };
 
-// Eight groups, or undefined when the text is not an IPv6 address. A dotted
-// IPv4 tail (`::ffff:127.0.0.1`) is folded into the last two groups first.
 const expandV6 = (host: string): number[] | undefined => {
   let text = bareHost(host);
   const tail = /(\d{1,3}(?:\.\d{1,3}){3})$/.exec(text);
@@ -139,18 +123,15 @@ const v6Private = (groups: readonly number[]): boolean => {
   if ((g0 & 0xffc0) === 0xfe80) return true;
   if ((g0 & 0xff00) === 0xff00) return true;
   if (g0 === 0x2001 && g1 === 0x0db8) return true;
-  // IPv4-mapped (::ffff:0:0/96) and 6to4 (2002::/16): the embedded address decides.
-  if (g0 === 0 && g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0xffff)
-    return v4Private(v4FromGroups(g6, g7));
-  if (g0 === 0x2002) return v4Private(v4FromGroups(g1, g2));
-  // NAT64 well-known prefix 64:ff9b::/96.
-  if (g0 === 0x0064 && g1 === 0xff9b && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0)
-    return v4Private(v4FromGroups(g6, g7));
+  const v4Mapped = g0 === 0 && g1 === 0 && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0xffff;
+  if (v4Mapped) return v4Private(v4FromGroups(g6, g7));
+  const sixToFour = g0 === 0x2002;
+  if (sixToFour) return v4Private(v4FromGroups(g1, g2));
+  const nat64 = g0 === 0x0064 && g1 === 0xff9b && g2 === 0 && g3 === 0 && g4 === 0 && g5 === 0;
+  if (nat64) return v4Private(v4FromGroups(g6, g7));
   return false;
 };
 
-// True for loopback, link-local, private, documentation, multicast, and anything
-// that is not a readable address. An unknown string fails closed.
 export const isPrivateIp = (address: string): boolean => {
   const host = bareHost(address);
   if (host === "") return true;
@@ -179,8 +160,6 @@ export type WebFetch = (
 
 export type PinnedAddress = { address: string; family: 4 | 6 };
 
-// The addresses a connection may use. Empty, mixed, or private answers pin
-// nothing: the caller must fail closed instead of looking the name up again.
 export const addressesToPin = (
   addresses: readonly string[],
 ): readonly PinnedAddress[] | undefined => {
@@ -193,7 +172,6 @@ export const addressesToPin = (
   return pinned;
 };
 
-// A DNS callback that can only return `addresses`. It never asks the network.
 export const connectLookup = (
   addresses: readonly string[],
 ):
@@ -224,8 +202,6 @@ export const connectLookup = (
   };
 };
 
-// Every address the name resolves to must be a public one. A lookup that fails
-// or returns nothing is treated as private: the page is not fetched.
 const publicAddresses = async (
   url: URL,
   resolve: WebLookup,
@@ -241,10 +217,6 @@ const publicAddresses = async (
   return addresses;
 };
 
-// Fetches a public page, following redirects by hand. Each hop is looked up,
-// and the connection is given only those addresses so a later DNS answer
-// cannot point it somewhere else. The address the response says it landed on
-// is checked the same way.
 export const readPublicPage = async (
   raw: string,
   limit: number,
@@ -292,7 +264,6 @@ export const readPublicPage = async (
   return null;
 };
 
-// Reads up to `limit` bytes, then stops the download.
 export const readHead = async (
   body: ReadableStream<Uint8Array>,
   limit: number,

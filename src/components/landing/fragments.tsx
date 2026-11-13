@@ -18,12 +18,8 @@ import { useInView, useReducedMotion } from "@/components/landing/paper";
 import { DrawnPhoto, PHOTOS } from "@/components/landing/photos";
 import { cn } from "@/lib/utils";
 
-// Small, faithful pieces of the app for the landing page, in the app's own
-// theme colours. Decorative: the text beside each one says what it shows.
-
 type Moment = {
   title: string;
-  // Each stop, and how they got there from the one before.
   stops: Array<{ place: string; by?: LucideIcon }>;
   time: string;
   by: string;
@@ -85,7 +81,6 @@ const Avatar = ({ by, agent }: { by: string; agent?: boolean }) => {
   );
 };
 
-// The itinerary: search, then each day's moments with the stops they passed.
 export const MomentsFragment = () => {
   return (
     <div
@@ -144,7 +139,6 @@ export const MomentsFragment = () => {
   );
 };
 
-// The Shared tab: a one-time invite, and who has access.
 export const InviteFragment = () => {
   return (
     <div
@@ -177,7 +171,6 @@ export const InviteFragment = () => {
   );
 };
 
-// The Shared tab's link: on, with the address to copy.
 export const LinkFragment = () => {
   return (
     <div
@@ -211,8 +204,6 @@ export const LinkFragment = () => {
   );
 };
 
-// The camera roll as photos are picked: the picks tick on one by one, and
-// the first shows the time and place read from it.
 const PICKED = new Set(["ferry", "tram", "tiles", "palace"]);
 
 export const CameraRollFragment = () => {

@@ -11,25 +11,17 @@ import { chargeEmail } from "../lib/rateLimit";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Invites waiting to be opened, per experience. The list shows them all.
-
-// Owner creates an invite. The link is returned once; if an email address is
-// given, it is passed to the email component and not stored by us.
-// `emailed` is false when no address was given or email isn't set up.
 const create = mutation({
   args: {
     eventId: v.id("events"),
     role: vRole,
     ttlDays: v.optional(v.number()),
-    // When the link stops working, picked by the owner. Wins over ttlDays.
     expiresAt: v.optional(v.number()),
     sendTo: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { userId, event } = await requireEventAccess(ctx, args.eventId, "owner");
     assertNotArchived(event);
-    // Before any email is charged. Used and expired invites are deleted, so
-    // the list holds only the ones still waiting.
     const waiting = await ctx.runQuery(components.invites.lib.listForEvent, {
       eventId: args.eventId,
     });
@@ -55,7 +47,6 @@ const create = mutation({
         message: "Enter a valid email address",
       });
     }
-    // Unconfigured, the email component could only mark the send failed.
     const emailed = sendTo !== "" && emailConfigured();
     if (emailed)
       await chargeEmail(
@@ -74,7 +65,6 @@ const create = mutation({
       role: args.role,
       ttlMs,
     });
-    // After "#", so the token never reaches a server log or a Referer header.
     const link = `${appOrigin()}/invite#${token}`;
 
     if (emailed) {
@@ -88,7 +78,6 @@ const create = mutation({
       });
     }
 
-    // Logs the action only: never the token, link or email address.
     await recordChange(ctx, {
       eventId: args.eventId,
       entity: "invite",
@@ -102,9 +91,6 @@ const create = mutation({
   },
 });
 
-// Signed-in user redeems a link. The invite is deleted only when it grants
-// something: the owner testing their own link, or a guest who already has
-// that much access, leaves it usable.
 const accept = mutation({
   args: { token: v.string() },
   handler: async (ctx, args) => {
@@ -129,16 +115,12 @@ const accept = mutation({
       .query("sessions")
       .withIndex("by_event_and_user", (q) => q.eq("eventId", event._id).eq("userId", userId))
       .unique();
-    // A link made before someone's access was revoked can't bring it back
-    // (say, one they opened while they still had access): that takes a new
-    // invite.
     if (existing?.revokedAt !== undefined && invite.createdAt < existing.revokedAt) {
       throw new ConvexError({
         code: "INVITE_INVALID",
         message: "This invite has expired or was already used",
       });
     }
-    // A link never downgrades: not a contributor to viewer, nor a co-owner at all.
     if (
       existing !== null &&
       existing.revokedAt === undefined &&
@@ -146,13 +128,10 @@ const accept = mutation({
     ) {
       return { eventId: event._id };
     }
-    // Archived experiences take no new people; the link stays unused.
     assertNotArchived(event);
     const consumed = await ctx.runMutation(components.invites.lib.consume, {
       token: args.token,
     });
-    // Taken between the lookup and here: refuse, and the throw rolls back the
-    // whole accept, so nothing is granted on a spent link.
     if (consumed === null) {
       throw new ConvexError({
         code: "INVITE_INVALID",
@@ -169,7 +148,6 @@ const accept = mutation({
         role: invite.role,
       });
     } else {
-      // Re-inviting someone whose access was revoked restores it.
       sessionId = existing._id;
       await ctx.db.patch("sessions", existing._id, {
         role: invite.role,
@@ -189,7 +167,6 @@ const accept = mutation({
   },
 });
 
-// "Not important anymore": the invite row is hard-deleted.
 const dismiss = mutation({
   args: { eventId: v.id("events"), inviteId: v.string() },
   handler: async (ctx, args) => {
@@ -224,7 +201,6 @@ const listForEvent = query({
 
 const SWEEP_BATCH = 100;
 
-// Called by the daily cron (crons can't target a component function directly).
 export const sweepExpired = internalMutation({
   args: {},
   returns: v.number(),
@@ -239,5 +215,4 @@ export const sweepExpired = internalMutation({
   },
 });
 
-// What the app calls. Registered once, by convex/api/invites.ts, which re-exports it.
 export const invitesApi = { create, accept, dismiss, listForEvent };

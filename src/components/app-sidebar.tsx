@@ -23,9 +23,6 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-// The sections of an experience, in the sidebar under it while it is open.
-// People is who can see it and what they wrote in the guestbook. Activity is
-// under the experience's More menu (event-actions-menu.tsx).
 const SECTIONS = [
   { to: "/e/$id", label: "Moments", icon: ListIcon, path: "" },
   { to: "/e/$id/journal", label: "Journal", icon: BookHeartIcon, path: "/journal" },
@@ -34,7 +31,6 @@ const SECTIONS = [
 
 export const AppSidebar = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // The experience open, if one is, and which of its sections.
   const open = /^\/e\/([^/]+)(\/[a-z]+)?\/?$/.exec(pathname);
   const eventId = open?.[1];
   const section = open?.[2] ?? "";
@@ -62,7 +58,6 @@ export const AppSidebar = () => {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarMenu className="magnetic">
             <span className="magnetic-indicator" aria-hidden />
-            {/* Every experience, folded under its tab: open by default. */}
             <Collapsible asChild defaultOpen className="group/experiences">
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Experiences" isActive={pathname === "/home"}>

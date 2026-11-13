@@ -5,8 +5,6 @@ import { PeopleOnTrip, SharedTab } from "@/components/event/shared-tab";
 import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 
-// Who can see the experience, and the notes they left. Owners manage the
-// link, invites and people; everyone else sees who is on it.
 const PeoplePage = () => {
   const { id } = Route.useParams();
   return (
@@ -25,7 +23,6 @@ const PeoplePage = () => {
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/e/$id/shared")({
   loader: ({ context: { prefetch }, params }) => {
     prefetch(queries.events.get({ eventId: params.id }));

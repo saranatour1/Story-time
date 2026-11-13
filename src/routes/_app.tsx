@@ -18,8 +18,6 @@ const AppLayout = () => {
 
   if (isLoading) return <LogoSplash />;
   if (!isAuthenticated) {
-    // Signing out heads back to the landing page. Arriving signed out signs
-    // in right here instead, so the link they opened survives.
     return wasSignedIn ? <Navigate to="/" replace /> : <SignInScreen />;
   }
 
@@ -40,9 +38,7 @@ const AppLayout = () => {
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app")({
-  // The sidebar's list and the account menu, on every page in here.
   loader: ({ context: { prefetch } }) => {
     prefetch(queries.users.getCurrentUser());
     prefetch(queries.events.listMine());

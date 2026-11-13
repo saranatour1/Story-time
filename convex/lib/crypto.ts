@@ -22,9 +22,6 @@ const fromB64 = (s: string): Uint8Array<ArrayBuffer> => {
   return out;
 };
 
-// Derivation is deterministic, so each key is derived once per isolate
-// instead of on every encrypt/decrypt. Resolved keys only (not promises), and
-// dropped if the master key changes.
 const keys = new Map<string, CryptoKey>();
 let keysFor: string | undefined;
 
@@ -49,8 +46,6 @@ const masterKey = async (): Promise<CryptoKey> => {
   );
 };
 
-// One AES-GCM key per (event, key version), derived from the master key, so
-// no per-event key is ever stored. Bump `events.keyVersion` to rotate.
 const eventKey = async (eventId: string, version: number): Promise<CryptoKey> => {
   return cached(`event:${eventId}:${version}`, async () =>
     crypto.subtle.deriveKey(
@@ -91,8 +86,6 @@ export const decryptText = async (eventId: string, value: Encrypted): Promise<st
   return dec.decode(pt);
 };
 
-// Free text that newer rows keep under the event key and older ones still hold
-// as plain text: reads either way.
 export const readText = async (
   eventId: Id<"events">,
   value: string | Encrypted | undefined,
@@ -101,8 +94,6 @@ export const readText = async (
   return decryptText(eventId, value);
 };
 
-// Coordinates are stored as "lat,lng" text under the event key, like the
-// place they pin. A malformed value reads as no pin.
 export const encryptGeo = async (
   eventId: string,
   version: number,
@@ -116,9 +107,6 @@ export const decryptGeo = async (eventId: string, value: Encrypted): Promise<Geo
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : undefined;
 };
 
-// Finds an experience from its share link without keeping the token: a keyed
-// hash of it. Derived from the master key alone, since the experience isn't
-// known yet when a link is opened.
 export const shareKeyFor = async (token: string): Promise<string> => {
   const key = await cached("share", async () =>
     crypto.subtle.deriveKey(
@@ -138,8 +126,6 @@ export const shareKeyFor = async (token: string): Promise<string> => {
   return toB64(new Uint8Array(sig)).slice(0, 22);
 };
 
-// A confirmation link, hashed the same way as a share link but with its own
-// key, so one token cannot stand in for the other.
 export const emailKeyFor = async (token: string): Promise<string> => {
   const key = await cached("email", async () =>
     crypto.subtle.deriveKey(

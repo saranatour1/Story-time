@@ -5,11 +5,15 @@ import type { PlainBlock, PlainStop } from "../model/moments";
 import { encryptGeo, encryptText, type Encrypted, type Geo } from "./crypto";
 import {
   MAX_BLOCKS_PER_MOMENT,
+  MAX_EXTRA_STOPS_PER_MOMENT,
   MAX_LABEL_LENGTH,
   MAX_LABELS_PER_MOMENT,
   MAX_STOPS_PER_MOMENT,
   MAX_TEXT_LENGTH,
 } from "./limits";
+
+const MIN_UTC_OFFSET_MINUTES = -12 * 60;
+const MAX_UTC_OFFSET_MINUTES = 14 * 60;
 
 // Typed as a whole: TypeScript only follows a `never` call through a declared type.
 export const invalid: (field: string, message: string) => never = (field, message) => {
@@ -23,17 +27,18 @@ export const checkText = (field: string, text: string, max = MAX_TEXT_LENGTH) =>
   return t;
 };
 
-// The offset a moment happened at, when one is sent. Real clocks run from
-// UTC-12 to UTC+14, so anything outside that is a bad request.
 export const checkOffset = (tzOffsetMinutes: number | undefined): number | undefined => {
   if (tzOffsetMinutes === undefined) return undefined;
-  if (!Number.isFinite(tzOffsetMinutes) || tzOffsetMinutes < -720 || tzOffsetMinutes > 840) {
+  if (
+    !Number.isFinite(tzOffsetMinutes) ||
+    tzOffsetMinutes < MIN_UTC_OFFSET_MINUTES ||
+    tzOffsetMinutes > MAX_UTC_OFFSET_MINUTES
+  ) {
     invalid("tzOffsetMinutes", "That time zone isn't valid");
   }
   return tzOffsetMinutes;
 };
 
-// An empty place means "no place".
 export const encodePlace = async (
   event: Doc<"events">,
   raw: string | undefined,
@@ -42,8 +47,6 @@ export const encodePlace = async (
   return encryptText(event._id, event.keyVersion, checkText("place", raw, 200));
 };
 
-// Coordinates pin a place on the map, so they're only valid with one. The
-// caller passes whether the stop ended up with a place.
 export const encodeGeo = async (
   event: Doc<"events">,
   geo: Geo | undefined,
@@ -63,9 +66,6 @@ export const encodeGeo = async (
   return encryptGeo(event._id, event.keyVersion, geo);
 };
 
-// Validates and encrypts one stop's blocks. When editing, `momentId` is set
-// and photos and videos already on that moment stay allowed, whoever
-// uploaded them. Stops after the first may be empty (`allowEmpty`).
 export const encodeBlocks = async (
   ctx: MutationCtx,
   args: {
@@ -92,7 +92,6 @@ export const encodeBlocks = async (
       const media = await ctx.db.get("media", b.mediaId);
       const onThisMoment = momentId !== undefined && media?.momentId === momentId;
       const freshUpload = media?.momentId === undefined && media?.uploaderId === userId;
-      // A photo block must point at an image, a video block at a video.
       const rightKind = media?.mime.startsWith(b.type === "photo" ? "image/" : "video/");
       if (
         media === null ||
@@ -143,8 +142,6 @@ export const encodeBlocks = async (
   return { blocks, mediaIds };
 };
 
-// Validates and encrypts the stops after the first. A stop needs a place or
-// something to share.
 export const encodeStops = async (
   ctx: MutationCtx,
   args: {
@@ -154,7 +151,7 @@ export const encodeStops = async (
     momentId?: Id<"moments">;
   },
 ): Promise<{ stops: NonNullable<Doc<"moments">["stops"]>; mediaIds: Id<"media">[] }> => {
-  if (args.stops.length > MAX_STOPS_PER_MOMENT - 1) {
+  if (args.stops.length > MAX_EXTRA_STOPS_PER_MOMENT) {
     invalid("stops", `At most ${MAX_STOPS_PER_MOMENT} stops per moment`);
   }
   const stops: NonNullable<Doc<"moments">["stops"]> = [];
@@ -192,7 +189,6 @@ export const encodeStops = async (
   return { stops, mediaIds };
 };
 
-// Free-text labels: trimmed, deduplicated, encrypted like other text.
 export const encodeLabels = async (
   event: Doc<"events">,
   labels: string[],
@@ -208,7 +204,6 @@ export const encodeLabels = async (
   );
 };
 
-// Every photo and video on a moment, across all its stops.
 export const mediaIdsOf = (moment: Pick<Doc<"moments">, "blocks" | "stops">): Id<"media">[] => {
   return [moment.blocks, ...(moment.stops ?? []).map((s) => s.blocks)].flatMap((blocks) =>
     blocks.flatMap((b) => (b.type === "photo" || b.type === "video" ? [b.mediaId] : [])),

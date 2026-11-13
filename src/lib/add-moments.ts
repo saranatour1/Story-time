@@ -6,9 +6,6 @@ import type { Geo, PhotoPoint } from "./photo-groups";
 import { type PhotoMeta, readPhotoMeta } from "./photo-meta";
 import { isVideoFile, MAX_VIDEO_BYTES, uploadMedia } from "./upload";
 
-// The steps that adding moments from picked files shares: the review sheet and
-// the one-tap add both read, upload, plan and create the same way.
-
 const UPLOADS_AT_ONCE = 3;
 export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -22,13 +19,8 @@ export const dayLabel = (day: string) => {
   });
 };
 
-// A picked photo or video, read on this device. `guessed` marks a time taken
-// from the file's date, not the camera's.
 export type Picked = { file: File; kind: "photo" | "video"; guessed: boolean; point: PhotoPoint };
 
-// Checks each file (type, size, and that it isn't already in `seen`, which it
-// updates) and reads when and where it was taken. Files left out are returned
-// as problems to show.
 export const readPicked = async (
   files: File[],
   seen: Set<string>,
@@ -46,7 +38,6 @@ export const readPicked = async (
         );
         return null;
       }
-      // A photo over the cap is made smaller when it uploads.
       if (video && file.size > MAX_VIDEO_BYTES) {
         problems.push(`${file.name}: videos can be at most 50 MB`);
         return null;
@@ -70,17 +61,13 @@ export const readPicked = async (
   return { picked: read.flatMap((p) => (p ? [p] : [])), problems };
 };
 
-// Uploads a few at a time, reporting progress. Stops early when `stopped` says
-// so, and when the experience is out of upload room, which every later upload
-// would hit as well.
 export const uploadAll = async (
   items: Array<{ id: string; file: File }>,
   eventId: string,
-  token: () => string,
+  currentToken: () => string,
   onProgress: (done: number, total: number) => void,
   stopped: () => boolean = () => false,
 ): Promise<{ uploaded: Map<string, string>; failures: string[]; full: boolean }> => {
-  // Item id → uploaded media id.
   const uploaded = new Map<string, string>();
   const failures: string[] = [];
   let done = 0;
@@ -93,13 +80,10 @@ export const uploadAll = async (
     while (next < items.length && !stopped() && !full) {
       const item = items[next++]!;
       try {
-        // Read at each upload: tokens are short-lived and a batch can run for minutes.
-        uploaded.set(item.id, await uploadMedia(item.file, eventId, token()));
+        uploaded.set(item.id, await uploadMedia(item.file, eventId, currentToken()));
       } catch (e) {
         const message = e instanceof Error ? e.message : "Upload failed";
         failures.push(`${item.file.name}: ${message}`);
-        // Every later upload would fail the same way: the person's bytes, or
-        // the experience's photo or video cap.
         if (/holds up to/i.test(message)) eventFull = true;
         if (/upload limit/i.test(message) || eventFull) full = true;
       }
@@ -116,25 +100,17 @@ export const uploadAll = async (
   return { uploaded, failures, full };
 };
 
-// A stop as planned. `place` is only set once someone named it.
 export type PlannedStop = { startsAt: number; photos: PhotoPoint[]; place?: string; geo?: Geo };
 export type PlannedDay = { day: string; moments: PlannedStop[][] };
 
 type CreateArgs = FunctionArgs<typeof api.moments.create>;
-// A photo or video a planned moment uses: the plan's photo id and the media it
-// became.
 export type PlannedUse = { photoId: string; mediaId: Id<"media">; kind: "photo" | "video" };
-// `create` is the moment as `api.moments.create` takes it, without the event.
-// It's undefined when none of the moment's photos uploaded.
 export type PlannedMoment = {
   label: string;
   create?: Omit<CreateArgs, "eventId">;
   uses: PlannedUse[];
 };
 
-// The moments a plan creates. A stop keeps only the photos that uploaded, and
-// is left out when none did. Coordinates go only with a place. The moment's
-// zone is the first photo's, when its camera recorded one.
 export const momentsFromPlan = (
   days: PlannedDay[],
   uploaded: ReadonlyMap<string, string>,
@@ -165,7 +141,6 @@ export const momentsFromPlan = (
         uses,
         create: {
           startsAt: first.s.startsAt,
-          // The camera's zone when it said, so the day is the trip's.
           tzOffsetMinutes:
             first.s.photos[0]?.offsetMinutes ?? -new Date(first.s.startsAt).getTimezoneOffset(),
           ...where(first.s),

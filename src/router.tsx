@@ -16,10 +16,8 @@ import { Logo, LogoSplash } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 
-// What every route's beforeLoad and loader get.
 export type RouterContext = {
   queryClient: QueryClient;
-  // Starts a query for a signed-in page (see signInGate) without waiting on it.
   prefetch: <T, K extends QueryKey>(query: FetchQueryOptions<T, Error, T, K>) => void;
 };
 
@@ -31,11 +29,7 @@ export const getRouter = () => {
       queries: {
         queryKeyHashFn: convexQueries.hashFn(),
         queryFn: convexQueries.queryFn(),
-        // Convex keeps each query live and reconnects by itself; a function
-        // that threw will throw again, so retrying only delays the error.
         retry: false,
-        // An error reaches the route's error screen, as convex/react's
-        // useQuery did.
         throwOnError: true,
       },
     },
@@ -52,8 +46,6 @@ export const getRouter = () => {
     context,
     scrollRestoration: true,
     defaultPreload: "intent",
-    // With SSR off, the server renders this inside the shell, so the first
-    // paint shows the logo rather than a blank page.
     defaultPendingComponent: LogoSplash,
     defaultNotFoundComponent: NotFound,
     defaultErrorComponent: RouteError,
@@ -68,7 +60,6 @@ export const getRouter = () => {
   });
 };
 
-// Tells the prefetch gate once Convex has confirmed who is signed in.
 const TrackSignIn = ({ onChange }: { onChange: (signedIn: boolean) => void }) => {
   const { isLoading, isAuthenticated } = useConvexAuth();
   useEffect(() => {
@@ -77,7 +68,6 @@ const TrackSignIn = ({ onChange }: { onChange: (signedIn: boolean) => void }) =>
   return null;
 };
 
-// Fills the page at the root, and the content area inside the app's layout.
 const Message = ({ title, children }: { title: string; children: React.ReactNode }) => {
   return (
     <main className="mx-auto flex min-h-[calc(100svh-6rem)] max-w-md flex-col items-center justify-center gap-4 px-6 py-12 text-center">
@@ -99,8 +89,6 @@ const NotFound = () => {
   );
 };
 
-// Render errors land here too, like a malformed id in a link (Convex's
-// validator throws inside useQuery).
 const RouteError = ({ error, reset }: ErrorComponentProps) => {
   const router = useRouter();
   return (

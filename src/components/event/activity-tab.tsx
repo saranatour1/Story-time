@@ -14,15 +14,13 @@ import { describeChange } from "@/lib/change-text";
 import { cn } from "@/lib/utils";
 
 type Kind = "everyone" | "people" | "agents" | "system";
-// Everything, one person's own changes (their user id), agents', or the
-// app's own.
-type Filter = "everyone" | "agents" | "system" | { person: string };
+type Filter = "everyone" | "agents" | "system" | { actorId: string };
 
 const matches = (filter: Filter, actor: ActorView, actorId?: string): boolean => {
   if (filter === "everyone") return true;
   if (filter === "agents") return actor.kind === "agent";
   if (filter === "system") return actor.kind === "system";
-  return actor.kind === "human" && actorId === filter.person;
+  return actor.kind === "human" && actorId === filter.actorId;
 };
 
 const WHO: Record<Exclude<Kind, "everyone">, string> = {
@@ -31,32 +29,24 @@ const WHO: Record<Exclude<Kind, "everyone">, string> = {
   system: "Story-time",
 };
 
-// What the numbers count, in a sentence: "44 changes: 37 by people, 7 by
-// Story-time." A bare number beside "People" reads as a head count.
 const summary = (counts: Record<Kind, number>): string => {
   const total = `${counts.everyone.toLocaleString()} ${counts.everyone === 1 ? "change" : "changes"}`;
   const kinds = (["people", "agents", "system"] as const).filter((who) => counts[who] > 0);
-  // One kind of author made them all: the split would only repeat the total.
   if (kinds.length < 2) return `${total}${kinds[0] ? `, all by ${WHO[kinds[0]]}` : ""}.`;
   return `${total}: ${kinds.map((who) => `${counts[who].toLocaleString()} by ${WHO[who]}`).join(", ")}.`;
 };
 
-// The full date, for the tooltip on the relative one.
 const fullDate = (ms: number) =>
   new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
-// "Today", "Yesterday", then the day itself.
 const dayLabel = (ms: number): string => {
   if (isToday(ms)) return "Today";
   if (isYesterday(ms)) return "Yesterday";
   return format(ms, isThisYear(ms) ? "EEEE, MMM d" : "EEEE, MMM d, yyyy");
 };
 
-// "Added a moment" reads "added a moment" after a name.
 const asPredicate = (phrase: string) => phrase.charAt(0).toLowerCase() + phrase.slice(1);
 
-// Every change to the experience, newest first, grouped by day: who did it (a
-// person, an agent for a person, or Story-time itself) and what, in a sentence.
 export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: string }) => {
   const { results, status, loadMore } = usePaginatedQuery(
     api.changes.listForEvent,
@@ -64,10 +54,8 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
     { initialNumItems: 25 },
   );
   const [filter, setFilter] = useState<Filter>("everyone");
-  // Totals from the server: the list only holds the pages loaded so far.
   const { data: counts } = useQuery(queries.changes.counts({ eventId }));
   const markRead = useMutation(api.changes.markRead);
-  // Opening the list is looking at it. A later moment, page or note counts again.
   useEffect(() => {
     void markRead({ eventId });
   }, [eventId, markRead, results.length]);
@@ -83,8 +71,6 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
 
   const actorOf = (c: (typeof results)[number]) => changeActorOf(c, c.actorName);
   const shown = results.filter((c) => matches(filter, actorOf(c), c.actorId));
-  // One button per person in the changes loaded so far, you first; then
-  // agents and the app itself, when they have made any.
   const people = new Map<string, string>();
   for (const c of results) {
     if (c.actorId === undefined || c.agent !== undefined || people.has(c.actorId)) continue;
@@ -94,7 +80,7 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
     { value: "everyone", label: "All" },
     ...[...people]
       .sort(([a], [b]) => Number(b === meId) - Number(a === meId))
-      .map(([person, label]) => ({ value: { person }, label })),
+      .map(([actorId, label]) => ({ value: { actorId }, label })),
     ...(counts?.agents ? [{ value: "agents" as const, label: "Agents" }] : []),
     ...(counts?.system
       ? [
@@ -108,9 +94,8 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
   ];
   const picked = (value: Filter) =>
     typeof value === "object" && typeof filter === "object"
-      ? value.person === filter.person
+      ? value.actorId === filter.actorId
       : value === filter;
-  // Newest first, as they come; a new heading wherever the day changes.
   const days: Array<{ label: string; changes: typeof shown }> = [];
   for (const c of shown) {
     const label = dayLabel(c.at);
@@ -134,7 +119,7 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
         >
           {filters.map(({ value, label, title }) => (
             <button
-              key={typeof value === "object" ? value.person : value}
+              key={typeof value === "object" ? value.actorId : value}
               type="button"
               role="radio"
               title={title}
@@ -200,8 +185,6 @@ export const ActivityTab = ({ eventId, meId }: { eventId: Id<"events">; meId?: s
   );
 };
 
-// A round mark at the start of each line: a person, an agent (violet, as on
-// its badge) or Story-time's own cog.
 const Avatar = ({ actor }: { actor: ActorView }) => {
   const Icon = actor.kind === "agent" ? BotIcon : actor.kind === "system" ? CogIcon : UserRoundIcon;
   return (
@@ -219,8 +202,6 @@ const Avatar = ({ actor }: { actor: ActorView }) => {
   );
 };
 
-// The doer, as the sentence's subject: a person by name ("You" for yourself),
-// an agent as its badge, the system as Story-time.
 const Who = ({ actor, you }: { actor: ActorView; you: boolean }) => {
   if (actor.kind === "agent") return <ActorBadge actor={actor} className="align-[1px]" />;
   if (actor.kind === "system")

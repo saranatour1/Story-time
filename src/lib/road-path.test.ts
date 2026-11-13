@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/tes
 import {
   cachedPath,
   fetchPath,
-  forgetPaths,
+  forgetPathsForTests,
   networkOf,
   parseRoute,
   roundForRouting,
@@ -160,7 +160,6 @@ describe("simplifyPath", () => {
   });
 
   test("keeps a corner when it thins", () => {
-    // A road that goes east, then turns north, with a hundred points on each side.
     const east: Path = Array.from({ length: 200 }, (_, i) => [i * 0.0005, 0]);
     const north: Path = Array.from({ length: 200 }, (_, i) => [0.0995, (i + 1) * 0.0005]);
     const thin = simplifyPath([...east, ...north], 50);
@@ -185,7 +184,7 @@ describe("fetching a path", () => {
   const ok = () => new Response(JSON.stringify(answer), { status: 200 });
 
   beforeEach(() => {
-    forgetPaths();
+    forgetPathsForTests();
     vi.useFakeTimers();
   });
   afterEach(() => {
@@ -208,7 +207,6 @@ describe("fetching a path", () => {
     expect(b).toEqual(a);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(cachedPath(STATION, GION, "bus")).toEqual(a);
-    // A car takes the same roads, so it is the same question.
     await fetchPath(STATION, GION, "car");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

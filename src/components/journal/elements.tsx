@@ -13,7 +13,6 @@ import { seeded } from "../../../convex/lib/seeded";
 import type { StoryMoment } from "@/components/event/types";
 import type { MapStop } from "@/components/story/memoir/sticky-map";
 
-// MapLibre stays out of the journal, moments and share graphs until a map is shown.
 const StickyMap = lazy(() =>
   import("@/components/story/memoir/sticky-map").then((m) => ({ default: m.StickyMap })),
 );
@@ -38,12 +37,6 @@ import {
   TONE_FILTER,
 } from "./look";
 
-// Everything that can sit on a journal page, drawn to fill the box it is
-// given. Randomness comes from the element's id, so a page looks the same on
-// every screen and in an exported PDF.
-
-// The biggest type that fits `text` on `lines` lines in a w×h box, for a font
-// whose letters are about `perChar` of the size wide.
 const fitSize = (
   text: string,
   w: number,
@@ -60,7 +53,6 @@ const fitSize = (
   return Math.min(best, h * 0.9);
 };
 
-// Type for a paragraph that fills a box about `fill` full.
 const paragraphSize = (
   text: string,
   w: number,
@@ -73,8 +65,6 @@ const paragraphSize = (
   const len = Math.max(20, text.length);
   return Math.max(min, Math.min(max, Math.sqrt((w * h * 0.62) / (len * perChar * lineHeight))));
 };
-
-// ---- Titles ----------------------------------------------------------------------------
 
 type LetterPaper = { bg: string; fg: string; font: string; weight: number; italic?: boolean };
 const LETTERS: LetterPaper[] = [
@@ -128,7 +118,6 @@ const Ransom = ({ id, text, w, h }: { id: string; text: string; w: number; h: nu
                     ...LIFT,
                   }}
                 >
-                  {/* Always a capital: mixed case read as a typo, not a cut-out. */}
                   {char.toUpperCase()}
                 </span>
               );
@@ -173,8 +162,6 @@ const Typewriter = ({ id, text, w, h }: { id: string; text: string; w: number; h
   );
 };
 
-// Tall condensed capitals, one size, like a poster's. (Letters of two sizes,
-// MoUvEmEnT, read as broken type in a title.)
 const Dada = ({ text, w, h, ink }: { text: string; w: number; h: number; ink: string }) => {
   return (
     <div
@@ -300,8 +287,6 @@ export const Title = ({ e, ink }: { e: JournalElement; ink: string }) => {
   }
 };
 
-// ---- Notes -------------------------------------------------------------------------------
-
 export const Note = ({ e }: { e: JournalElement }) => {
   const text = e.text?.trim() || "Write something here…";
   const { w, h } = e;
@@ -361,8 +346,6 @@ export const Note = ({ e }: { e: JournalElement }) => {
   );
 };
 
-// ---- Photos and stickers ----------------------------------------------------------------
-
 const Picture = ({
   mediaId,
   tone,
@@ -417,7 +400,6 @@ const Picture = ({
   );
 };
 
-// A regular wavy edge, like a photo's deckle-cut border.
 const deckle = (steps = 18, depth = 1.4) => {
   const pts: string[] = [];
   const at = (t: number) => (t % 2 === 0 ? 0 : depth);
@@ -429,7 +411,6 @@ const deckle = (steps = 18, depth = 1.4) => {
 };
 const DECKLE = deckle();
 
-// The heart, for a heart-cut photo (see HeartClip).
 export const HeartClip = () => {
   return (
     <svg aria-hidden width="0" height="0" className="absolute">
@@ -449,10 +430,6 @@ export const Photo = ({ e }: { e: JournalElement }) => {
   const paper = "#fffdf6";
   const caption = e.text?.trim();
   switch (e.style) {
-    // Photos on paper (polaroid, print, deckle) show the whole photo: a frame's
-    // shape comes from the page's layout, not the photo, so filling it would
-    // cut a tall photo's top and bottom. The paper fills the rest. Stamps and
-    // cut-out shapes (postage, torn, round, heart, plain) fill theirs.
     case "print":
       return (
         <div
@@ -530,7 +507,6 @@ export const Photo = ({ e }: { e: JournalElement }) => {
         </div>
       );
     default: {
-      // A polaroid: wide white bottom, where its caption is written.
       const edge = Math.max(8, w * 0.055);
       const foot = Math.max(edge * 3, h * 0.17);
       return (
@@ -564,8 +540,6 @@ export const Sticker = ({ e }: { e: JournalElement }) => {
     <Picture mediaId={e.mediaId} width={e.w} height={e.h} tone={e.tone} contain style={DIE_CUT} />
   );
 };
-
-// ---- Bits of ephemera ---------------------------------------------------------------------
 
 const TAPE_COLORS: Record<string, { color: string; pattern?: string }> = {
   tape: { color: "rgba(234,220,176,.82)" },
@@ -845,12 +819,8 @@ export const Deco = ({ e }: { e: JournalElement }) => {
   return SHAPES.has(name) ? <Shape name={name} /> : <MoreSticker e={e} />;
 };
 
-// ---- A moment's stops on a map -------------------------------------------------------------
-
 const STEP_MS = 1700;
 
-// The stops of a moment, numbered, on a light map in a postcard frame. Play
-// walks it stop by stop, the way the story does.
 export const MapCard = ({
   e,
   moment,
@@ -961,11 +931,6 @@ export const MapCard = ({
   );
 };
 
-// ---- Drawings ---------------------------------------------------------------------------
-
-// A drawing is kept as text: its first line the area of the page it was
-// drawn in (x y w h), then a line for each stroke: what drew it, its ink, and
-// its path in page units. Drawn into its box, it moves and scales with it.
 export type Stroke = { style: string; color: string; d: string };
 export type DrawingData = { x: number; y: number; w: number; h: number; strokes: Stroke[] };
 
@@ -987,7 +952,6 @@ export const writeDrawing = ({ x, y, w, h, strokes }: DrawingData) =>
     ...strokes.map((s) => `${s.style} ${s.color} ${s.d}`),
   ].join("\n");
 
-// A smooth path through points, rounded to tenths.
 export const pathThrough = (points: Array<{ x: number; y: number }>): string => {
   const r = (n: number) => Math.round(n * 10) / 10;
   const [first, ...rest] = points;
@@ -1035,10 +999,6 @@ export const Drawing = ({ e }: { e: JournalElement }) => {
   );
 };
 
-// ---- Links ------------------------------------------------------------------------------
-
-// A link as a little card: its picture, its title in Caslon, a line about it,
-// and where it is from, typed. Opens in a new tab when the journal is read.
 export const LinkCard = ({ e, open }: { e: JournalElement; open: boolean }) => {
   const link = readLink(e.text);
   if (!link) return null;
@@ -1138,8 +1098,6 @@ export const LinkCard = ({ e, open }: { e: JournalElement; open: boolean }) => {
   );
 };
 
-// ---- One element, whatever it is --------------------------------------------------------
-
 export const ElementView = ({
   e,
   ink,
@@ -1171,8 +1129,6 @@ export const ElementView = ({
   }
 };
 
-// Where an element sits: moved and turned by one transform, so the editor's
-// handles can change both while it is dragged.
 export const placeOf = (e: Pick<JournalElement, "x" | "y" | "rotation">) =>
   `translate(${e.x}px, ${e.y}px) rotate(${e.rotation}deg)`;
 

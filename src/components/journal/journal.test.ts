@@ -202,7 +202,6 @@ describe("the contents strip", () => {
       formatDay(june4, 0, day),
     ]);
     expect(groups[0]!.pages.map((p) => p.index)).toEqual([0]);
-    // A page with no moment stays with the day before it.
     expect(groups[1]!.pages.map((p) => p.index)).toEqual([1, 2, 3]);
     expect(groups[2]!.pages.map((p) => p.index)).toEqual([4]);
     expect(groups.every((g) => g.today === false)).toBe(true);

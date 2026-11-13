@@ -28,10 +28,8 @@ import { cn } from "@/lib/utils";
 
 const NEXT_KEYS = ["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"];
 const PREV_KEYS = ["ArrowLeft", "ArrowUp", "PageUp"];
-// The scroll position is checked against these visible fractions of a scene.
 const THRESHOLDS = Array.from({ length: 21 }, (_, i) => i / 20);
 
-// How long autoplay lingers on each scene; the title waits for its typing.
 const sceneMs = (step: StoryStep, titleTypingMs: number): number | null => {
   switch (step.kind) {
     case "title":
@@ -45,7 +43,6 @@ const sceneMs = (step: StoryStep, titleTypingMs: number): number | null => {
   }
 };
 
-// Asks for a context and gives it straight back: browsers allow only a few.
 const detectWebGL = (): boolean => {
   if (typeof document === "undefined") return false;
   try {
@@ -61,10 +58,6 @@ const detectWebGL = (): boolean => {
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// The story as a page that scrolls: every scene a screen tall, snapping
-// lightly into place, progress on top. Scroll, click, keys or the arrows move
-// through it. Autoplay (on unless the viewer prefers reduced motion) scrolls
-// on by itself until the viewer scrolls or presses a key.
 export const StoryPlayer = ({
   event,
   moments,
@@ -76,20 +69,15 @@ export const StoryPlayer = ({
   event: StoryEvent;
   moments: StoryMoment[];
   meId: string | undefined;
-  // Where the link pointed; read once, then the scroll leads.
   step: number;
-  // Keeps ?step= on the scene in view, replacing history rather than adding.
   onStep: (step: number) => void;
-  // Closing hands back the scene in view; without it, the story is left.
   onClose?: (step: number) => void;
 }) => {
   const navigate = useNavigate();
   const steps = useMemo(() => buildStorySteps(event.title, moments), [event.title, moments]);
-  // The scene most in view.
   const [current, setCurrent] = useState(() => clampStep(step, steps));
   const scene = steps[current] ?? steps[0]!;
   const [reduced] = useState(prefersReducedMotion);
-  // Nothing plays on the end card, however the story got there.
   const [playing, setPlaying] = useState(() => !reduced && scene.kind !== "end");
   useEffect(() => {
     if (scene.kind === "end") setPlaying(false);
@@ -97,9 +85,7 @@ export const StoryPlayer = ({
   const [webgl] = useState(detectWebGL);
   const stage = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
-  // The picture on top at each stop, so its scene wears that picture's colours.
   const [photoAt, setPhotoAt] = useState<Record<number, number>>({});
-  // Full screen, where the browser offers it (not iPhone Safari, for one).
   const [canFull] = useState(() => typeof document !== "undefined" && document.fullscreenEnabled);
   const [full, setFull] = useState(false);
   useEffect(() => {
@@ -111,7 +97,6 @@ export const StoryPlayer = ({
     if (document.fullscreenElement) void document.exitFullscreen();
     else void stage.current?.requestFullscreen().catch(() => {});
   }, []);
-  // The photo deck of the stop in view, for the arrow keys.
   const deck = useRef<PhotoDeckHandle>(null);
   const sections = useRef<Array<HTMLElement | null>>([]);
   const fill = useRef<HTMLSpanElement>(null);
@@ -120,14 +105,12 @@ export const StoryPlayer = ({
     [reduced, event, moments],
   );
 
-  // The scene last aimed at, ahead of the scroll, so quick presses each count.
   const at = useRef(current);
   const go = useCallback(
     (delta: number) => {
       const next = clampStep(at.current + delta, steps);
       if (next === at.current) return;
       at.current = next;
-      // Neighbours glide; longer jumps cut, so the scenes between don't load.
       sections.current[next]?.scrollIntoView({
         behavior: reduced || Math.abs(delta) > 1 ? "auto" : "smooth",
       });
@@ -138,7 +121,6 @@ export const StoryPlayer = ({
     setPlaying(play);
     go(-at.current);
   };
-  // A shared story's viewers may have no experience to go back to.
   const shared = event.role === undefined;
   const exit = useCallback(() => {
     if (onClose) {
@@ -148,12 +130,10 @@ export const StoryPlayer = ({
     void (shared ? navigate({ to: "/" }) : navigate({ to: "/e/$id", params: { id: event._id } }));
   }, [navigate, event._id, shared, onClose]);
 
-  // A deep link opens on its scene.
   useLayoutEffect(() => {
     sections.current[at.current]?.scrollIntoView();
   }, []);
 
-  // The scene most in view is the current one, and the URL follows it.
   useEffect(() => {
     const root = scroller.current;
     if (!root) return;
@@ -186,7 +166,6 @@ export const StoryPlayer = ({
       const el = e.target instanceof HTMLElement ? e.target : null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable))
         return;
-      // Enter and Space press the focused button or link, not the page.
       if (
         (e.key === " " || e.key === "Enter") &&
         el?.closest("button, a, [role=button], select, summary")
@@ -196,7 +175,6 @@ export const StoryPlayer = ({
       if (delta) {
         e.preventDefault();
         setPlaying(false);
-        // Left and right turn a stop's pictures before they turn the scenes.
         const sideways = e.key === "ArrowLeft" || e.key === "ArrowRight";
         if (!(sideways && deck.current?.flip(delta))) go(delta);
       } else if (e.key === "f" || e.key === "F") {
@@ -210,9 +188,6 @@ export const StoryPlayer = ({
     return () => window.removeEventListener("keydown", onKey);
   }, [go, exit, toggleFull]);
 
-  // Autoplay moves on when the scene's time is up, its progress segment
-  // filling meanwhile. Pausing freezes the fill; playing again starts both
-  // over together.
   useEffect(() => {
     if (!playing) return;
     const ms = sceneMs(scene, titleTypingMs);
@@ -229,11 +204,8 @@ export const StoryPlayer = ({
       a?.pause();
     };
   }, [playing, scene, go, reduced, titleTypingMs]);
-  // Once the viewer scrolls, they're the one turning the pages.
   const takeOver = () => setPlaying(false);
 
-  // A sideways swipe turns the story: left on, right back. A swipe that starts
-  // on a stop's pictures is the deck's, which marks itself out of this one.
   useSwipeSurface(
     scroller,
     {
@@ -245,7 +217,6 @@ export const StoryPlayer = ({
     { axes: "x" },
   );
 
-  // The next stop's pictures load while this scene shows.
   const upcoming = steps.slice(current + 1).find((s) => s.kind === "stop");
   usePrefetchMedia(
     upcoming?.kind === "stop"
@@ -253,8 +224,6 @@ export const StoryPlayer = ({
       : [],
   );
 
-  // Clicking a scene moves the story: left third back, the rest forward.
-  // Buttons and links inside it keep their own behaviour.
   const onStageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as Element;
     if (
@@ -267,28 +236,23 @@ export const StoryPlayer = ({
     go(e.clientX - left < width / 3 ? -1 : 1);
   };
 
-  // The title page is paper, so the chrome over it is ink; elsewhere it is light.
   const onPaper = scene.kind === "title";
   const chrome = onPaper
     ? "text-stone-900 hover:bg-stone-900/10 hover:text-stone-900"
     : "text-white hover:bg-white/10 hover:text-white";
 
   const archived = event.status === "archived";
-  // Editing needs an account here, so a shared story has no editors.
   const canEdit =
     scene.kind === "stop" &&
     !archived &&
     (event.role === "owner" ||
       (event.role === "contributor" && meId !== undefined && scene.authorId === meId));
   const legs = useMemo(() => steps.filter((s) => s.kind === "travel"), [steps]);
-  // Places in story order. The experience's own name is one only when the
-  // first leg sets off from it.
   const places = useMemo(
     () =>
       steps.flatMap((s) => (s.kind === "travel" ? [s.from] : s.kind === "stop" ? [s.place] : [])),
     [steps],
   );
-  // The places picked on a map, a repeated name keeping its first spot.
   const located = useMemo(() => {
     const spots = new Map<string, LatLng>();
     for (const s of steps)
@@ -296,10 +260,6 @@ export const StoryPlayer = ({
     return [...spots].map(([name, geo]) => ({ name, geo }));
   }, [steps]);
 
-  // Only the scenes around the one in view are built: their maps keep WebGL
-  // (never more than three contexts), so scrolling back shows the same map
-  // rather than swapping to the light version; the rest are empty screens
-  // until scrolled near.
   const sceneAt = (s: StoryStep, i: number) => {
     const active = i === current;
     const near = Math.abs(i - current) <= 1;
@@ -307,7 +267,6 @@ export const StoryPlayer = ({
       case "title":
         return <TitleCard event={event} moments={moments} animate={!reduced} />;
       case "end":
-        // Built on arrival, so its prints are dealt out in view.
         return (
           active && <EndCard event={event} moments={moments} onReplay={() => restart(!reduced)} />
         );
@@ -381,7 +340,6 @@ export const StoryPlayer = ({
             aria-label={`Scene ${i + 1} of ${steps.length}`}
             className={cn(
               "relative flex snap-start flex-col pt-12 pb-12",
-              // A long description or a pile of prints may run past one screen.
               s.kind === "title" || s.kind === "end" ? "min-h-svh" : "h-svh",
             )}
           >
@@ -390,8 +348,6 @@ export const StoryPlayer = ({
         ))}
       </div>
 
-      {/* Over the scenes, letting the scroll through between its buttons. On the
-          paper title page the chrome turns to ink, elsewhere it is light. */}
       <header
         className={cn(
           "pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-1 px-3 pt-3 transition-colors duration-500 sm:gap-1.5 sm:px-4 [&_a]:pointer-events-auto [&_button]:pointer-events-auto",

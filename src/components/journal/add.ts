@@ -1,9 +1,5 @@
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 
-// What a new thing on a page looks like before anyone moves it: its size, and
-// a spot near the middle, a little further along each time so additions fan
-// out instead of piling up.
-
 export type NewThing = Omit<JournalElement, "id" | "x" | "y" | "z" | "rotation">;
 
 const SIZES: Record<string, { w: number; h: number }> = {
@@ -67,7 +63,6 @@ export const sizeOf = (kind: JournalElement["kind"], style?: string): { w: numbe
   return SIZES[family] ?? SIZES.tape!;
 };
 
-// What the stickers with words on them say when they are first put down.
 export const WORDED: Record<string, string> = {
   ticket: "ADMIT ONE",
   postmark: "HELLO",
@@ -77,19 +72,18 @@ export const WORDED: Record<string, string> = {
   tier: "S",
 };
 
-// Shapes sit behind what is on the page; everything else goes on top.
 export const behind = (thing: Pick<JournalElement, "kind" | "style">) =>
   thing.kind === "deco" &&
   (thing.style?.startsWith("circle") || thing.style === "triangles" || thing.style === "dots");
 
-let fan = 0;
+let placedSoFar = 0;
 
 export const placed = (thing: NewThing, on: JournalElement[], id: string): JournalElement => {
   const { w, h } = {
     ...sizeOf(thing.kind, thing.style),
     ...("w" in thing && thing.w ? { w: thing.w, h: thing.h } : {}),
   };
-  const k = (fan++ % 7) - 3;
+  const fanStep = (placedSoFar++ % 7) - 3;
   const zs = on.map((e) => e.z);
   const z = behind(thing) ? Math.min(0, ...zs) - 1 : Math.max(0, ...zs) + 1;
   return {
@@ -97,21 +91,17 @@ export const placed = (thing: NewThing, on: JournalElement[], id: string): Journ
     id,
     w,
     h,
-    x: Math.round(PAGE.w / 2 - w / 2 + k * 28),
-    y: Math.round(PAGE.h / 2 - h / 2 + k * 24),
-    rotation: thing.kind === "title" || thing.kind === "map" ? 0 : k * 2,
+    x: Math.round(PAGE.w / 2 - w / 2 + fanStep * 28),
+    y: Math.round(PAGE.h / 2 - h / 2 + fanStep * 24),
+    rotation: thing.kind === "title" || thing.kind === "map" ? 0 : fanStep * 2,
     z,
   };
 };
 
-// An id for something new on a page.
 export const newId = () => Math.random().toString(36).slice(2, 10);
 
-// What carries the tape stuck across it when it moves.
 const CARRIES = new Set<JournalElement["kind"]>(["photo", "sticker", "note", "map"]);
 
-// The strips of tape lying across `e`: more than a third of each strip over it,
-// and above it. They move with it, the way tape would.
 export const tapedTo = (e: JournalElement, all: JournalElement[]): JournalElement[] => {
   if (!CARRIES.has(e.kind)) return [];
   return all.filter((t) => {

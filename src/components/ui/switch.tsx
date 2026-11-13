@@ -2,8 +2,6 @@ import * as React from "react";
 import { cn } from "cn";
 import { Switch as SwitchPrimitive } from "radix-ui";
 
-// Radix reports its state as data-state (and data-disabled), so the styles key
-// on those rather than the attributes the generated file assumed.
 function Switch({
   className,
   size = "default",

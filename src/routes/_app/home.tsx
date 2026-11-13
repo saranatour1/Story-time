@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 
 type Experience = FunctionReturnType<typeof api.events.listMine>[number];
 
-// The grid's columns follow the space it has (the sidebar may be open).
 const GRID = "grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-3";
 
 const Home = () => {
@@ -100,7 +99,6 @@ const Home = () => {
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
         </TabsList>
         <TabsContent value="grid" className="space-y-10">
-          {/* Headings only when there's more than one kind to tell apart. */}
           {owned.length > 0 && (
             <Section title={shared.length > 0 ? "Yours" : undefined} events={owned} />
           )}
@@ -129,9 +127,6 @@ const Section = ({ title, events }: { title?: string; events: Experience[] }) =>
   );
 };
 
-// One experience as a postcard: its cover (or a paper placeholder), then
-// its title, dates and size. The title's link covers the whole card; the
-// menu and Play sit above it.
 const ExperienceCard = ({ event: e }: { event: Experience }) => {
   const dates = eventDates(e);
   const archived = e.status === "archived";
@@ -215,8 +210,6 @@ const ExperienceCard = ({ event: e }: { event: Experience }) => {
   );
 };
 
-// No photo yet: cream paper, like the story's title page, with the trip drawn
-// on it when its stops are on the map, else the title's first letter.
 const PaperCover = ({ title, sketch }: { title: string; sketch?: Experience["sketch"] }) => {
   return (
     <div
@@ -235,9 +228,6 @@ const PaperCover = ({ title, sketch }: { title: string; sketch?: Experience["ske
   );
 };
 
-// The trip's shape, drawn like a pen line across the paper: fitted to the
-// card, longitude narrowed by latitude so it isn't stretched, a diamond where
-// it set off and a ringed dot where it ended.
 const SKETCH_W = 300;
 const SKETCH_H = 200;
 const SKETCH_PAD = 34;
@@ -247,7 +237,6 @@ const RouteSketch = ({ points }: { points: NonNullable<Experience["sketch"]> }) 
   const xs = points.map((p) => p.lng * k);
   const ys = points.map((p) => -p.lat);
   const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  // Fit the longer side; a trip on the spot still gets a little room.
   const span = Math.max(x1 - x0, ((y1 - y0) * SKETCH_W) / SKETCH_H, 1e-4);
   const scale = (SKETCH_W - 2 * SKETCH_PAD) / span;
   const cx = (x0 + x1) / 2;
@@ -256,8 +245,6 @@ const RouteSketch = ({ points }: { points: NonNullable<Experience["sketch"]> }) 
     SKETCH_W / 2 + (x - cx) * scale,
     SKETCH_H / 2 + ((ys[i] ?? 0) - cy) * scale,
   ]);
-  // Straight from stop to stop, joints rounded: a smooth curve would loop
-  // where a trip doubles back, and this is a route, not a scribble.
   const d = at.map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x} ${y}`).join(" ");
   const end = at[at.length - 1]!;
   const start = at[0]!;
@@ -299,7 +286,6 @@ const RouteSketch = ({ points }: { points: NonNullable<Experience["sketch"]> }) 
   );
 };
 
-// Two paper snapshots, for the empty state.
 const Snapshots = () => {
   return (
     <div aria-hidden className="relative h-36 w-52">
@@ -314,5 +300,4 @@ const Snapshots = () => {
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/home")({ component: Home });

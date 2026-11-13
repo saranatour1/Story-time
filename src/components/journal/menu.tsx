@@ -48,10 +48,6 @@ import { type NewThing, WORDED } from "./add";
 import { writable } from "./editor";
 import { DECO_NAMES, NOTE_NAMES, PAPER_LOOKS, PRINT_NAMES, TITLE_NAMES } from "./look";
 
-// What a right-click on a journal page offers: for the thing under the
-// pointer, everything you can do to it; on bare paper, things to put right
-// there and what you can do to the page.
-
 export type Layer = "front" | "forward" | "backward" | "back";
 
 export type MenuActions = {
@@ -386,7 +382,6 @@ export const JournalMenu = ({
   can,
   act,
 }: {
-  // The thing that was right-clicked, or none for bare paper.
   e: JournalElement | undefined;
   paper: string;
   pageLocked: boolean;

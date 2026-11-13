@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import type { StoryEvent, StoryMoment } from "@/components/event/types";
+import { CHAR_MS, LINE_GAP, TYPEWRITER } from "@/components/story/typewriter";
 import { formatDay } from "../../lib/local-time";
 import { stopsOf } from "../../lib/story-steps";
 
-// A time to read as a day: a moment's carries the zone it happened in.
 type When = { at: number; offset?: number };
 const day = ({ at, offset }: When) =>
   formatDay(at, offset, { month: "short", day: "numeric", year: "numeric" });
 
-// The date range: what the owner set, or the span of the moments. The owner's
-// dates have no zone; each moment's day reads in the zone it happened in.
 export const dateRange = (event: StoryEvent, moments: StoryMoment[]): string | null => {
   const sorted = [...moments].sort((a, b) => a.startsAt - b.startsAt);
   const mark = (m: StoryMoment | undefined) => m && { at: m.startsAt, offset: m.tzOffsetMinutes };
@@ -24,14 +22,8 @@ export const countStops = (moments: StoryMoment[]) => {
   return moments.reduce((n, m) => n + stopsOf(m).length, 0);
 };
 
-const TYPEWRITER = { fontFamily: '"Courier New", Courier, monospace' };
-const CHAR_MS = 35;
-// Long descriptions type faster, so the page never takes longer than this.
 const MAX_TYPING_MS = 4000;
-// A carriage return's pause between lines, in characters.
-const LINE_GAP = 8;
 
-// The page's lines, in typing order: date, title, description, counts.
 const titleLines = (event: StoryEvent, moments: StoryMoment[]): string[] => {
   const stops = countStops(moments);
   const counts =
@@ -42,7 +34,6 @@ const titleLines = (event: StoryEvent, moments: StoryMoment[]): string[] => {
   return [dateRange(event, moments) ?? "", event.title, event.description ?? "", counts];
 };
 
-// Where each line starts typing, and the typing's length, in characters.
 const timeline = (lines: string[]) => {
   const starts: number[] = [];
   let total = 0;
@@ -53,13 +44,11 @@ const timeline = (lines: string[]) => {
   return { starts, total, charMs: Math.min(CHAR_MS, MAX_TYPING_MS / Math.max(total, 1)) };
 };
 
-// How long the title page takes to type out, for autoplay.
 export const typingMs = (event: StoryEvent, moments: StoryMoment[]): number => {
   const { total, charMs } = timeline(titleLines(event, moments));
   return total * charMs;
 };
 
-// The opening page, typed out line by line like a typewriter on paper.
 export const TitleCard = ({
   event,
   moments,
@@ -84,7 +73,6 @@ export const TitleCard = ({
     return () => cancelAnimationFrame(raf);
   }, [animate, charMs, total]);
 
-  // The caret sits on the line being typed, then rests at the end of the last.
   let caretLine = 0;
   lines.forEach((l, i) => {
     if (l && (starts[i] ?? 0) <= typed) caretLine = i;
@@ -98,8 +86,6 @@ export const TitleCard = ({
       aria-label="Title"
       className="flex flex-1 items-center justify-center px-6 py-10 sm:px-12 lg:px-20"
     >
-      {/* The page is the screen: paper from edge to edge, a little darker at
-          its edges like a sheet under a lamp. */}
       <div
         aria-hidden
         className="absolute inset-0 bg-[#f3e9d6] bg-[radial-gradient(ellipse_at_50%_42%,transparent_50%,rgb(91_74_58/0.18)_100%)]"
@@ -123,8 +109,6 @@ export const TitleCard = ({
   );
 };
 
-// Text typed up to `shown` characters. The untyped rest keeps its place, so
-// the page doesn't reflow as it types; screen readers get the whole text.
 const Typed = ({ text, shown, caret }: { text: string; shown: number; caret: boolean }) => {
   const n = Math.max(0, Math.min(text.length, shown));
   return (

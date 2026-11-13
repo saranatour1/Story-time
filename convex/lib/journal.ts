@@ -1,11 +1,6 @@
+import { localParts } from "./monthDay";
 import { seeded } from "./seeded";
 
-// The journal of an experience: a book of A4 pages, a cover and then a page
-// for each moment, laid out like a scrapbook. Shared by the server (which makes
-// the first pages) and the page (which draws and edits them), so it is plain
-// data and pure functions.
-
-// A4 at 96 dots an inch. Everything on a page is placed in these units.
 export const PAGE = { w: 794, h: 1123 } as const;
 
 export const ELEMENT_KINDS = [
@@ -20,7 +15,6 @@ export const ELEMENT_KINDS = [
 ] as const;
 export type ElementKind = (typeof ELEMENT_KINDS)[number];
 
-// What a page is printed on.
 export const PAPERS = [
   "cream",
   "newsprint",
@@ -33,8 +27,6 @@ export const PAPERS = [
 ] as const;
 export type Paper = (typeof PAPERS)[number];
 
-// How a title is set. The words stay plain text, so any style can be swapped
-// for another without retyping.
 export const TITLE_STYLES = [
   "ransom",
   "typewriter",
@@ -44,7 +36,6 @@ export const TITLE_STYLES = [
   "label",
   "stamp",
 ] as const;
-// How a photo is printed.
 export const PRINT_STYLES = [
   "polaroid",
   "print",
@@ -55,9 +46,7 @@ export const PRINT_STYLES = [
   "postage",
   "plain",
 ] as const;
-// How a note is written down.
 export const NOTE_STYLES = ["typed", "hand", "lined", "kraft", "receipt"] as const;
-// Bits of ephemera. Some carry words (a ticket, a postmark, a label).
 export const DECOS = [
   "tape",
   "tape-rose",
@@ -108,9 +97,7 @@ export const DECOS = [
   "tier",
 ] as const;
 export const TONES = ["sepia", "mono"] as const;
-// What a drawing is made with.
 export const DRAW_STYLES = ["pen", "marker", "highlighter"] as const;
-// How a link shows: a card with its picture, or a luggage tag.
 export const LINK_STYLES = ["card", "tag"] as const;
 
 export const DECO_WORDS = new Set<string>([
@@ -122,15 +109,12 @@ export const DECO_WORDS = new Set<string>([
   "tier",
 ]);
 
-// How much a journal holds.
 export { MAX_JOURNAL_PAGES } from "./limits";
 export const MAX_PAGE_ELEMENTS = 120;
 export const MAX_ELEMENT_TEXT = 1000;
-// A drawing keeps its strokes as SVG path data; a link keeps its preview.
 export const MAX_DRAWING_TEXT = 40_000;
 export const MAX_LINK_TEXT = 4000;
 
-// One thing on a page. `x`/`y` is its top-left corner before it turns.
 export type JournalElement = {
   id: string;
   kind: ElementKind;
@@ -143,18 +127,14 @@ export type JournalElement = {
   style?: string;
   text?: string;
   tone?: string;
-  // An ink, as #rrggbb (a drawing's, or a title's).
   color?: string;
   mediaId?: string;
   momentId?: string;
   locked?: boolean;
-  // Words the owner changed on a piece the layout made (see `catchUpElements`).
   own?: boolean;
 };
 
 export type PageSpec = { paper: Paper; momentId?: string; elements: JournalElement[] };
-
-// ---- From moments to pages ---------------------------------------------------------
 
 type LayoutBlock = { type: string; mediaId?: string; text?: string };
 type LayoutStop = {
@@ -193,26 +173,19 @@ const pick = <T>(rnd: () => number, list: readonly T[]): T =>
   list[Math.floor(rnd() * list.length)]!;
 const tilt = (rnd: () => number, max: number) => Math.round((rnd() - 0.5) * 2 * max);
 
-// The clock where it happened, so a page's date is the day it was there.
-const localDate = (ms: number, offset = 0) => {
-  return new Date(ms + offset * 60_000);
-};
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// "Wed 3 Jun", as a page's date reads.
 export const dayLabel = (ms: number, offset?: number): string => {
-  const d = localDate(ms, offset);
-  return `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+  const { weekdayIndex, day, monthIndex } = localParts(ms, offset);
+  return `${DAYS[weekdayIndex]} ${day} ${MONTHS[monthIndex]}`;
 };
 
-// "3 JUN 2026", as a postmark stamps it.
 export const postmarkDate = (ms: number, offset?: number): string => {
-  const d = localDate(ms, offset);
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]!.toUpperCase()} ${d.getUTCFullYear()}`;
+  const { day, monthIndex, year } = localParts(ms, offset);
+  return `${day} ${MONTHS[monthIndex]!.toUpperCase()} ${year}`;
 };
 
-// "3 Jun – 9 Jun 2026", or one day alone.
 export const rangeLabel = (from: number, to: number): string => {
   const a = new Date(from);
   const b = new Date(to);
@@ -224,12 +197,6 @@ export const rangeLabel = (from: number, to: number): string => {
 
 type Dated = { startsAt: number; tzOffsetMinutes?: number };
 
-// The cover's date line. A trip's own start and end are calendar days the
-// app saved as the person's local midnight. That instant sits up to 13 hours
-// before the UTC midnight of the day they picked (UTC+13, and Chatham at
-// UTC+12:45), so the day is the UTC midnight within 13 hours after it.
-// Hawaii (UTC−10) stays on its own day. A moment's day is the day where it
-// happened, in its own zone.
 export const tripDates = (
   trip: { startsAt?: number; endsAt?: number },
   first?: Dated,
@@ -252,7 +219,6 @@ export const tripDates = (
 
 const shortPlace = (place: string | undefined) => place?.split(",")[0]?.trim() || undefined;
 
-// The photos, words and places of a moment, from every stop.
 const contentOf = (m: LayoutMoment) => {
   const blocks = [m.blocks, ...m.stops.map((s) => s.blocks)].flat();
   const photos = blocks.flatMap((b) =>
@@ -269,7 +235,6 @@ const contentOf = (m: LayoutMoment) => {
   return { photos, words, places: [...new Set(places)], pinned, transport };
 };
 
-// Where up to four photos sit on a page, as boxes with a tilt.
 const photoBoxes = (
   n: number,
   rnd: () => number,
@@ -308,10 +273,6 @@ const photoBoxes = (
   ];
 };
 
-// A moment's page: a fun title, its date as a postmark, its photos taped down,
-// its first words typed out, its stops on a map, and a shape or two behind.
-// Everything is picked from the moment's id, so the page comes out the same
-// every time it is made.
 export const momentPage = (m: LayoutMoment, index: number): PageSpec => {
   const rnd = seeded(m._id);
   const { photos, words, places, pinned, transport } = contentOf(m);
@@ -320,7 +281,6 @@ export const momentPage = (m: LayoutMoment, index: number): PageSpec => {
   const id = () => `${m._id.slice(-6)}-${n++}`;
   const add = (e: Omit<JournalElement, "id">) => elements.push({ id: id(), ...e });
 
-  // A shape or two behind everything, in a corner.
   const shape = pick(rnd, SHAPES);
   add({
     kind: "deco",
@@ -368,7 +328,6 @@ export const momentPage = (m: LayoutMoment, index: number): PageSpec => {
       ...b,
       z: 10 + i * 2,
     });
-    // A strip of tape across the top of the print.
     add({
       kind: "deco",
       style: pick(rnd, TAPES),
@@ -381,8 +340,6 @@ export const momentPage = (m: LayoutMoment, index: number): PageSpec => {
     });
   }
 
-  // Words and the map share what the photos leave: under them, or with no
-  // photos, the middle of the page (the words on the left, the map on the right).
   const word = words[0];
   const bare = shown.length === 0;
   if (word !== undefined) {
@@ -409,7 +366,6 @@ export const momentPage = (m: LayoutMoment, index: number): PageSpec => {
       : { x: 470, y: 840, w: 270, h: 240 };
     add({ kind: "map", momentId: m._id, ...box, rotation: tilt(rnd, 2), z: 31 });
   }
-  // How they got there, as a ticket, wherever there is room for one.
   if (transport && transport !== "other" && (bare || !hasMap)) {
     const at = bare ? { x: 420, y: 730 } : { x: 540, y: 1000 };
     add({
@@ -423,7 +379,6 @@ export const momentPage = (m: LayoutMoment, index: number): PageSpec => {
       z: 32,
     });
   }
-  // A page of words alone gets a little something in its empty half.
   if (bare) {
     add({
       kind: "deco",
@@ -444,14 +399,10 @@ export const momentPage = (m: LayoutMoment, index: number): PageSpec => {
   };
 };
 
-// Ids the layout still owns. Anything else on the page was added by the owner.
 export const layoutPrefix = (momentId: string): string => {
   return `${momentId.slice(-6)}-`;
 };
 
-// A fresh layout, plus whatever the owner put on the page themselves. The
-// layout's own pieces (its prints, its note, its title) are replaced, except
-// one whose words the owner changed, and one locked in place: those stay.
 export const catchUpElements = <T extends { id: string; locked?: boolean; own?: boolean }>(
   existing: readonly T[],
   fresh: readonly T[],
@@ -465,8 +416,6 @@ export const catchUpElements = <T extends { id: string; locked?: boolean; own?: 
   return [...fresh.filter((e) => !keptIds.has(e.id)), ...kept];
 };
 
-// The cover: the trip's name cut from letters, its dates typed, the first
-// photo as a polaroid, and shapes behind.
 export const coverPage = (trip: {
   id: string;
   title: string;
@@ -549,11 +498,8 @@ export const coverPage = (trip: {
   return { paper: "cream", elements };
 };
 
-// ---- Checking what a page holds -------------------------------------------------------
-
-// Whether a number is a sane coordinate or size on a page (things may hang
-// over the edge, but not wander off to infinity).
-export const onPage = (n: number) => Number.isFinite(n) && Math.abs(n) <= 5000;
+const MAX_PAGE_REACH = 5000;
+export const withinPageReach = (n: number) => Number.isFinite(n) && Math.abs(n) <= MAX_PAGE_REACH;
 
 export type LinkCard = {
   url: string;
@@ -563,8 +509,6 @@ export type LinkCard = {
   site?: string;
 };
 
-// A link's text is its address and what the page says about itself, as JSON.
-// Only web addresses open, and only https pictures load.
 export const readLink = (text: string | undefined): LinkCard | undefined => {
   try {
     const p: unknown = JSON.parse(text ?? "");

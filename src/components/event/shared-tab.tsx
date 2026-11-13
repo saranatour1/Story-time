@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { localDay, localEndOfDay } from "@/components/event/event-dates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,12 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { initials } from "@/components/user-avatar";
+import { SEEN_PING_MS } from "@/hooks/use-seen";
 import { errorMessage } from "@/lib/errors";
 
 type Role = "viewer" | "contributor";
-// What a person already in may hold: invites give the first two, co-owner is given here.
 type GrantRole = Role | "owner";
-// What each role may do, in the words a person would use.
 export const ROLE_LABEL: Record<GrantRole, string> = {
   viewer: "Can watch",
   contributor: "Can add moments",
@@ -34,13 +35,6 @@ const grantRole = (v: string): GrantRole => (v === "owner" || v === "contributor
 
 const day = (ms: number) =>
   new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-const initials = (name: string | undefined) =>
-  (name ?? "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => Array.from(w)[0]?.toUpperCase() ?? "")
-    .join("");
 
 const copy = async (text: string) => {
   try {
@@ -51,7 +45,6 @@ const copy = async (text: string) => {
   }
 };
 
-// A section of the tab: an icon, a title, a sentence on what it does, then its controls.
 const Card = ({
   icon,
   title,
@@ -86,16 +79,8 @@ const Card = ({
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-// A <input type="date"> value for a local day, and the end of the day one names.
-const dateInput = (ms: number) => {
-  const d = new Date(ms);
-  const two = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
-};
-const endOfDay = (value: string) => new Date(`${value}T23:59:59`).getTime();
 
-// The app pings every five minutes while someone has the experience open.
-const LOOKING_MS = 6 * 60 * 1000;
+const LOOKING_MS = SEEN_PING_MS + 60 * 1000;
 const lastSeen = (at: number | undefined, now: number) => {
   if (at === undefined) return "Hasn't opened it yet";
   if (now - at < LOOKING_MS) return "Looking now";
@@ -108,7 +93,6 @@ const lastSeen = (at: number | undefined, now: number) => {
   return `Last here ${when}`;
 };
 
-// What the link can leave out, in the order the switches show.
 const PARTS = [
   {
     part: "photos",
@@ -126,7 +110,6 @@ const PARTS = [
 export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) => {
   const people = usePaginatedQuery(api.sessions.listForEvent, { eventId }, { initialNumItems: 25 });
   const { data: invites } = useQuery(queries.invites.listForEvent({ eventId }));
-  // The switched-on link, or null. Undefined while it loads.
   const { data: publicLink } = useQuery(queries.share.link({ eventId }));
   const { data: shown } = useQuery(queries.share.shown({ eventId }));
   const enableLink = useMutation(api.share.enable);
@@ -139,16 +122,14 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
   const createInvite = useMutation(api.invites.create);
   const dismiss = useMutation(api.invites.dismiss);
   const [role, setRole] = useState<Role>("viewer");
-  const [expires, setExpires] = useState(() => dateInput(Date.now() + 7 * DAY_MS));
+  const [expires, setExpires] = useState(() => localDay(Date.now() + 7 * DAY_MS));
   const [email, setEmail] = useState("");
   const [shareTo, setShareTo] = useState("");
   const [sendingLink, setSendingLink] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [rotating, setRotating] = useState(false);
   const [inviting, setInviting] = useState(false);
-  // The person whose access is about to be taken away, while they confirm.
   const [removing, setRemoving] = useState<{ id: Id<"sessions">; name: string } | null>(null);
-  // Ticks each minute, so "Looking now" lapses when someone leaves.
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000);
@@ -189,12 +170,11 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
       const res = await createInvite({
         eventId,
         role,
-        expiresAt: endOfDay(expires),
+        expiresAt: localEndOfDay(expires),
         sendTo: email.trim() || undefined,
       });
       setLink(res.link);
       setEmail("");
-      // `emailed` is false when email isn't set up on the server.
       toast.success(res.emailed ? "Invite emailed" : "Invite link ready: copy it below");
     } catch (e) {
       toast.error(errorMessage(e));
@@ -244,7 +224,6 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
             </div>
             <ul aria-label="What the link shows" className="divide-y rounded-lg border">
               {PARTS.map(({ part, label, hint }) => {
-                // The PDF is the book's pictures, so it goes when photos do.
                 const follows = part === "pdf" && shown?.photos === false;
                 return (
                   <li key={part} className="flex items-center justify-between gap-3 px-3 py-2.5">
@@ -356,8 +335,8 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
               id="invite-expires"
               type="date"
               required
-              min={dateInput(now)}
-              max={dateInput(now + 365 * DAY_MS)}
+              min={localDay(now)}
+              max={localDay(now + 365 * DAY_MS)}
               value={expires}
               onChange={(e) => setExpires(e.target.value)}
             />
@@ -520,7 +499,6 @@ export const SharedTab = ({ eventId, archived }: { eventId: Id<"events">; archiv
   );
 };
 
-// Who else is on the trip, for people who don't own it: names and what they can do.
 export const PeopleOnTrip = ({ eventId }: { eventId: Id<"events"> }) => {
   const people = usePaginatedQuery(api.sessions.members, { eventId }, { initialNumItems: 25 });
   return (

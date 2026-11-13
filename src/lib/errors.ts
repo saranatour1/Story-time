@@ -1,6 +1,5 @@
 import { ConvexError } from "convex/values";
 
-// Server validation errors carry { code, field?, message }.
 export const errorMessage = (error: unknown): string => {
   if (error instanceof ConvexError) {
     const data: unknown = error.data;

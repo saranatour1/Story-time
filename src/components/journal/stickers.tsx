@@ -2,11 +2,6 @@ import type { ReactNode } from "react";
 import type { JournalElement } from "../../../convex/lib/journal";
 import { FONTS, INK, LIFT, MUSTARD, NAVY, ROSE, RUST, TEAL } from "./look";
 
-// More bits to stick on a page, drawn like old travel ephemera and the
-// cut-outs in a vintage collage pack: flat colours, an ink outline, a little
-// lift off the paper. Some carry words (a luggage tag, a ribbon, a speech
-// bubble). Each fills the box it is given.
-
 const CREAM = "#f6ecd6";
 const PAPER = "#fffdf6";
 
@@ -18,8 +13,6 @@ const Lifted = ({ children, view = "0 0 100 100" }: { children: ReactNode; view?
   );
 };
 
-// A cut-out: drawn on, then trimmed with a white edge, the way food and
-// flowers come in a sticker pack.
 const Cutout = ({ children, view = "0 0 100 100" }: { children: ReactNode; view?: string }) => {
   return (
     <svg
@@ -34,7 +27,6 @@ const Cutout = ({ children, view = "0 0 100 100" }: { children: ReactNode; view?
   );
 };
 
-// Two dots and a smile, for the cuter ones.
 const Face = ({ x, y }: { x: number; y: number }) => {
   return (
     <g>
@@ -53,7 +45,6 @@ const Face = ({ x, y }: { x: number; y: number }) => {
   );
 };
 
-// The rows of a tier list, best to worst.
 const TIER_COLOURS: Record<string, string> = {
   S: "#e2725b",
   A: "#eea25a",
@@ -63,7 +54,6 @@ const TIER_COLOURS: Record<string, string> = {
   F: "#c9a7d6",
 };
 
-// Words set to fill a box, in a given type.
 const Words = ({
   text,
   x,
@@ -866,5 +856,4 @@ export const MoreSticker = ({ e }: { e: JournalElement }): ReactNode => {
   }
 };
 
-// Gingham, as a strip of tape.
 export const GINGHAM = `repeating-linear-gradient(0deg, rgba(196,85,47,.45) 0 6px, transparent 6px 12px), repeating-linear-gradient(90deg, rgba(196,85,47,.45) 0 6px, transparent 6px 12px)`;

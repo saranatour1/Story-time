@@ -31,7 +31,6 @@ describe("agent discovery", () => {
     expect(text.split("\n")[0]).toMatch(/^# .*auth\.md/);
   });
 
-  // The file is written by hand, so a new or renamed route has to show up here.
   test("openapi.json lists every route under /api", () => {
     const routes = Object.keys(import.meta.glob("../routes/api/*.ts")).map((file) =>
       file

@@ -6,9 +6,6 @@ import { encryptText } from "../lib/crypto";
 
 const BATCH = 100;
 
-// One-off: encrypts descriptions saved as plain text before they were
-// encrypted. It walks the table in batches, scheduling itself until done, and
-// is safe to run again: `pnpm exec convex run model/migrations:encryptPlainText '{}'`
 export const encryptPlainText = internalMutation({
   args: { cursor: v.optional(v.string()) },
   returns: v.number(),
@@ -33,11 +30,6 @@ export const encryptPlainText = internalMutation({
   },
 });
 
-// One-off, after the aggregate component is first deployed: puts every upload
-// and every change made before it into the running counts (lib/aggregates.ts).
-// Until it finishes, upload budgets, photo caps and Activity's counts miss
-// those older rows. Uploads first, then changes; safe to run again:
-// `pnpm exec convex run model/migrations:backfillAggregates '{}'`
 export const backfillAggregates = internalMutation({
   args: {
     table: v.optional(v.union(v.literal("media"), v.literal("changes"))),

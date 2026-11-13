@@ -1,7 +1,6 @@
 import { expect, test } from "vite-plus/test";
 import { stripExif, withoutExif } from "./strip-exif";
 
-// A segment: its marker, a two-byte length that counts itself, then the body.
 const segment = (marker: number, body: number[]) => [
   0xff,
   marker,
@@ -13,7 +12,6 @@ const text = (s: string) => [...s].map((c) => c.charCodeAt(0));
 
 const SOI = [0xff, 0xd8];
 const APP0 = segment(0xe0, [...text("JFIF\0"), 1, 1]);
-// Where and when the photo was taken would be in here.
 const APP1 = segment(0xe1, [...text("Exif\0\0"), 0x49, 0x49, 42, 0, 8, 0, 0, 0]);
 const APP2 = segment(0xe2, [...text("ICC_PROFILE\0"), 1, 1, 0]);
 const DQT = segment(0xdb, [0, ...Array.from({ length: 64 }, () => 1)]);
@@ -37,8 +35,8 @@ test("drops the Exif and ICC segments and keeps everything else byte for byte", 
 
 test("anything that isn't a clean JPEG is left alone", () => {
   expect(withoutExif(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0]))).toBeNull();
-  expect(withoutExif(photo().slice(0, 30))).toBeNull(); // cut off inside APP1
-  expect(withoutExif(new Uint8Array([...SOI, ...APP0, ...EOI]))).toBeNull(); // no image data
+  expect(withoutExif(photo().slice(0, 30))).toBeNull();
+  expect(withoutExif(new Uint8Array([...SOI, ...APP0, ...EOI]))).toBeNull();
 });
 
 test("stripExif gives a JPEG back without its Exif, as a JPEG", async () => {

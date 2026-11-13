@@ -1,8 +1,5 @@
 import { cn } from "@/lib/utils";
 
-// A tilted photo print with the sun going down in it: the last photo of the
-// day. Fixed brand colours, so it looks the same in light and dark mode;
-// public/favicon.svg is the same drawing.
 export const Logo = ({ className }: { className?: string }) => {
   return (
     <svg viewBox="0 0 64 64" aria-hidden className={cn("size-8", className)}>
@@ -18,8 +15,6 @@ export const Logo = ({ className }: { className?: string }) => {
   );
 };
 
-// The first paint, and the moment before we know whether someone is signed
-// in: an empty screen, so nothing flashes or spins before the page is ready.
 export const LogoSplash = ({ className }: { className?: string }) => {
   return <div role="status" aria-label="Loading" className={cn("min-h-svh", className)} />;
 };

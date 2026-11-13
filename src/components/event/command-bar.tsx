@@ -23,6 +23,7 @@ import { VoiceButton } from "@/components/event/voice-button";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useCurrentAuthToken } from "@/hooks/use-current-auth-token";
 import { deletePhotos } from "@/lib/actions";
 import { plural } from "@/lib/add-moments";
 import { addPhotos } from "@/lib/add-photos";
@@ -34,12 +35,10 @@ import { MEDIA_ACCEPT } from "@/lib/upload";
 import { cn } from "@/lib/utils";
 import { track, trackAi } from "@/lib/analytics";
 
-// The geocoder asks for one lookup at a time, spaced out.
 const LOOKUP_GAP_MS = 1100;
 
 type Plan = { summary: string; needs?: string; ops: PlanOp[] };
 
-// Pins the places a plan names, one lookup at a time, near `near`.
 const pin = async (ops: PlanOp[], near: Geo | undefined): Promise<PlanOp[]> => {
   const found = new Map<string, Geo>();
   for (const [i, name] of placesToFind(ops).entries()) {
@@ -50,13 +49,6 @@ const pin = async (ops: PlanOp[], near: Geo | undefined): Promise<PlanOp[]> => {
   return withPins(ops, found);
 };
 
-// One box above the moments for everything: say what happened and it becomes
-// a moment, as before; say what to change ("move this to Friday", "add Hanover
-// as a stop by plane", "delete the second stop") and it shows the changes to
-// approve first. Applying is one step, and all of it lands together. Words can
-// be spoken (the mic) and photos can be attached: new files, or ones already
-// in the trip that aren't on a moment. With photos, the words are what they
-// are, and the photos become moments, as the Add button makes them.
 export const CommandBar = ({
   event,
   openMomentId,
@@ -82,13 +74,7 @@ export const CommandBar = ({
   const [files, setFiles] = useState<File[]>([]);
   const [picked, setPicked] = useState<ShelfItem[]>([]);
   const [shelfOpen, setShelfOpen] = useState(false);
-  // Read at each call: tokens are short-lived and a batch can run for minutes.
-  const latestToken = useRef(token);
-  useEffect(() => {
-    latestToken.current = token;
-  }, [token]);
-  // Slash focuses the box only when moment search is not on the page. That
-  // search already uses /, and its listener runs first.
+  const currentToken = useCurrentAuthToken();
   useEffect(() => {
     if (!adding) return;
     const onKey = (event: globalThis.KeyboardEvent) => {
@@ -99,7 +85,6 @@ export const CommandBar = ({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [adding]);
-  // Small previews of the first few attached files, let go of when they change.
   const [previews, setPreviews] = useState<Array<{ name: string; url: string | null }>>([]);
   useEffect(() => {
     const made = files.slice(0, 4).map((file) => ({
@@ -131,7 +116,6 @@ export const CommandBar = ({
     setPlan(null);
   };
 
-  // Something that happened, saved as a moment with only a note, stamped now.
   const addAsMoment = async (note: string) => {
     await createMoment({
       eventId: event._id,
@@ -151,8 +135,6 @@ export const CommandBar = ({
     setPlan(null);
     setPhase("reading");
     try {
-      // Photos already in the trip become one moment. The words are its note,
-      // unless new files are going out too, in which case the words go with them.
       if (picked.length > 0) {
         await createMoment({
           eventId: event._id,
@@ -168,14 +150,12 @@ export const CommandBar = ({
           return;
         }
       }
-      // New files: they become moments, and the words say what they are.
-      // Nothing to read or approve, so no plan.
       if (files.length > 0) {
         const made = await addPhotos({
           event,
           files,
           note: said,
-          token: () => latestToken.current ?? undefined,
+          currentToken,
           createMoment,
         });
         if (made) {
@@ -201,7 +181,6 @@ export const CommandBar = ({
       const open = moments?.find((m) => m._id === openMomentId)?.geo;
       setPlan({ summary: out.summary, needs: out.needs, ops: await pin(out.ops, open) });
     } catch (error) {
-      // The words stay in the box, so they can be sent again or saved as a moment.
       setProblem(errorMessage(error));
     } finally {
       setPhase("idle");
@@ -214,7 +193,6 @@ export const CommandBar = ({
     try {
       const done = await apply({ eventId: event._id, ops: plan.ops });
       track("ai_plan_applied", { changes: plan.ops.length });
-      // Photos that went with a stop or a moment are cleared from storage too.
       if (token) await deletePhotos(done.removedMediaIds, token);
       toast.success(done.summary.charAt(0).toUpperCase() + done.summary.slice(1), {
         description: plan.summary || undefined,
@@ -222,16 +200,12 @@ export const CommandBar = ({
       setPlan(null);
       setText("");
     } catch (error) {
-      // Nothing was changed; the plan stays, to try again or cancel.
       setProblem(errorMessage(error));
     } finally {
       setPhase("idle");
     }
   };
 
-  // Applying is always deliberate: a click, or ⌘/Ctrl+Enter. Plain Enter only
-  // ever reads a request, and focus never jumps to Apply on its own, so an
-  // extra Enter can't apply a plan nobody has looked at yet.
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape" && (plan !== null || problem !== null)) {
       e.stopPropagation();
@@ -289,7 +263,6 @@ export const CommandBar = ({
             <ImagesIcon aria-hidden />
           </Button>
         )}
-        {/* The words are spliced onto what is already there. */}
         <VoiceButton
           quiet
           disabled={busy}
@@ -321,9 +294,7 @@ export const CommandBar = ({
         type="file"
         accept={MEDIA_ACCEPT}
         multiple
-        tabIndex={-1}
-        // Visually hidden rather than display:none: some browsers won't click those.
-        className="sr-only"
+        hidden
         onChange={(e) => {
           const picked = Array.from(e.target.files ?? []);
           setFiles((now) => [...now, ...picked]);

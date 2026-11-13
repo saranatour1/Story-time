@@ -1,11 +1,3 @@
-// How paper looks on a story page: pages with a colour, scraps, taped prints.
-// Everything here is a name and a few colours; the page draws the rest.
-
-// ---- Random that stays put ---------------------------------------------------
-
-// A repeatable stream of numbers in [0, 1) from any string. A torn edge or a
-// print's tilt comes from the moment's id, so it looks the same every time it
-// is drawn, on every screen, in a shared link too.
 export const seeded = (seed: string): (() => number) => {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
@@ -22,12 +14,9 @@ export const seeded = (seed: string): (() => number) => {
   };
 };
 
-// ---- Pages -----------------------------------------------------------------------
-
 export type FrameLook = {
   id: string;
   name: string;
-  // The page, the ink on it, and the one loud colour (a block, a dot).
   page: string;
   ink: string;
   accent: string;
@@ -45,8 +34,6 @@ export const FRAME_LOOKS: FrameLook[] = [
 export const frameLook = (id: string | undefined): FrameLook =>
   FRAME_LOOKS.find((l) => l.id === id) ?? FRAME_LOOKS[1]!;
 
-// ---- Paper scraps -------------------------------------------------------------
-
 export type PaperLook = { id: string; name: string; page: string; ink: string };
 
 export const PAPERS: PaperLook[] = [
@@ -61,8 +48,6 @@ export const PAPERS: PaperLook[] = [
 export const paperLook = (id: string | undefined): PaperLook =>
   PAPERS.find((p) => p.id === id) ?? PAPERS[0]!;
 
-// ---- Prints --------------------------------------------------------------------
-
 export const PRINTS = [
   { id: "print", name: "Print" },
   { id: "torn", name: "Torn" },
@@ -73,8 +58,6 @@ export type PrintId = (typeof PRINTS)[number]["id"];
 export const printLook = (id: string | undefined): PrintId =>
   PRINTS.find((p) => p.id === id)?.id ?? "print";
 
-// ---- Tape ----------------------------------------------------------------------
-
 export const TAPES = [
   { id: "tape", name: "Masking", color: "rgba(236, 222, 176, 0.78)", stripe: false },
   { id: "washi-red", name: "Red washi", color: "rgba(214, 84, 70, 0.72)", stripe: true },
@@ -83,11 +66,6 @@ export const TAPES = [
 ] as const;
 export const tapeLook = (id: string | undefined) => TAPES.find((t) => t.id === id) ?? TAPES[0];
 
-// ---- Torn edges ---------------------------------------------------------------
-
-// A CSS polygon for a rectangle with an uneven, torn edge on the sides in
-// `edges`, as percentages so it fits any size. `roughness` is how far a point
-// strays, in percent of the side.
 export const tornPolygon = (
   seed: string,
   edges: { top?: boolean; right?: boolean; bottom?: boolean; left?: boolean } = {
@@ -103,7 +81,6 @@ export const tornPolygon = (
   const wobble = (on: boolean | undefined) => (on ? rnd() * roughness : 0);
   const pts: string[] = [];
   const pct = (n: number) => `${n.toFixed(2)}%`;
-  // Clockwise from the top-left corner.
   for (let i = 0; i <= steps; i++) pts.push(`${pct((i / steps) * 100)} ${pct(wobble(edges.top))}`);
   for (let i = 1; i <= steps; i++)
     pts.push(`${pct(100 - wobble(edges.right))} ${pct((i / steps) * 100)}`);
@@ -114,6 +91,5 @@ export const tornPolygon = (
   return `polygon(${pts.join(", ")})`;
 };
 
-// The jagged ends of a strip of tape.
 export const TAPE_ENDS =
   "polygon(0 0, 100% 0, 98% 20%, 100% 40%, 98% 60%, 100% 80%, 98% 100%, 0 100%, 2% 80%, 0 60%, 2% 40%, 0 20%)";

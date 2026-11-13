@@ -1,9 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { CHAR_MS, LINE_GAP, TYPEWRITER } from "@/components/story/typewriter";
 import { cn } from "@/lib/utils";
 
-// Story mode's typewriter and colours. The paper stays cream in both
-// themes, as it does in story mode.
-export const TYPEWRITER = { fontFamily: '"Courier New", Courier, monospace' };
 export const INK = "#5b4a3a";
 export const RUST = "#c2410c";
 export const PAPER = "#f3e9d6";
@@ -11,14 +9,11 @@ export const PAPER = "#f3e9d6";
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// Read once: a page that starts still stays still.
 export const useReducedMotion = () => {
   const [reduced] = useState(prefersReducedMotion);
   return reduced;
 };
 
-// True once the element has scrolled into view, so a frame's motion starts
-// where someone can see it.
 export const useInView = <T extends Element>() => {
   const ref = useRef<T>(null);
   const [inView, setInView] = useState(false);
@@ -37,7 +32,6 @@ export const useInView = <T extends Element>() => {
   return [ref, inView] as const;
 };
 
-// The sample experience every frame on the page shows.
 export const SAMPLE = {
   dates: "May 2, 2026 – May 9, 2026",
   title: "A week in Portugal",
@@ -46,12 +40,6 @@ export const SAMPLE = {
   counts: "14 moments · 23 stops",
 };
 
-// Typing timing, as story mode's title page does it.
-const CHAR_MS = 35;
-const LINE_GAP = 8;
-
-// Story mode's title page: dates, title, a line about it and the counts,
-// typed out on paper when `animate` is on.
 export const TitlePage = ({
   animate,
   size,
@@ -81,7 +69,6 @@ export const TitlePage = ({
     return () => cancelAnimationFrame(raf);
   }, [animate, total]);
 
-  // The caret shows only while typing, on the line being typed.
   let caret = -1;
   for (let i = 0; i < lines.length && typed < total; i++) {
     if ((starts[i] ?? 0) <= typed) caret = i;
@@ -137,8 +124,6 @@ export const TitlePage = ({
   );
 };
 
-// A made-up photo, drawn: the sun going down behind the bridge, seen from
-// the ferry. In a 60×60 box.
 export const SunsetPhoto = () => {
   const uid = useId().replace(/:/g, "");
   return (

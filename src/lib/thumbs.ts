@@ -1,18 +1,10 @@
-// What lists and thumbnails fetch instead of the original, and its JPEG quality.
 const DISPLAY_SIDE = 480;
 const QUALITY = 0.7;
 
-// One decode at a time: each one holds a full-size photo in memory, and a few
-// at once could exhaust a phone's.
 let turn: Promise<unknown> = Promise.resolve();
 
-// A JPEG small enough for a shelf or a card, plus the original's pixel size
-// so the layout can reserve the right box. Videos give undefined.
-export const displayThumbnail = (
-  file: File,
-): Promise<{ blob: Blob; width: number; height: number } | undefined> => {
-  if (!file.type.startsWith("image/")) return Promise.resolve(undefined);
-  const job = turn.then(() => makeDisplay(file));
+const oneDecodeAtATime = <T>(decode: () => Promise<T>): Promise<T> => {
+  const job = turn.then(decode);
   turn = job.then(
     () => undefined,
     () => undefined,
@@ -20,20 +12,18 @@ export const displayThumbnail = (
   return job;
 };
 
-// Longest sides tried, largest first, when a photo is too big to upload as is.
+export const displayThumbnail = (
+  file: File,
+): Promise<{ blob: Blob; width: number; height: number } | undefined> => {
+  if (!file.type.startsWith("image/")) return Promise.resolve(undefined);
+  return oneDecodeAtATime(() => makeDisplay(file));
+};
+
 const FIT_SIDES = [4096, 3072, 2048];
 const FIT_QUALITY = 0.85;
 
-// A JPEG of the photo that fits in `maxBytes`, for phone photos over the
-// upload cap. Undefined when it can't be decoded or won't fit. Like the
-// canvas it comes from, it carries no camera details.
 export const fitPhoto = (file: File, maxBytes: number): Promise<Blob | undefined> => {
-  const job = turn.then(() => makeFit(file, maxBytes));
-  turn = job.then(
-    () => undefined,
-    () => undefined,
-  );
-  return job;
+  return oneDecodeAtATime(() => makeFit(file, maxBytes));
 };
 
 const makeFit = async (file: File, maxBytes: number): Promise<Blob | undefined> => {
@@ -78,7 +68,6 @@ const makeDisplay = async (
   }
 };
 
-// OffscreenCanvas where the browser has it, else a <canvas> element.
 const encode = async (
   source: ImageBitmap,
   width: number,

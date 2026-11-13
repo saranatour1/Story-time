@@ -13,7 +13,6 @@ import { SHARE_EMAILS_PER_DAY } from "../lib/limits";
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
@@ -32,7 +31,6 @@ const setup = async () => {
 
 type Owner = Awaited<ReturnType<typeof setup>>["owner"];
 
-// A photo attached to a moment of `eventId`, the way the app makes one.
 const momentWithPhoto = async (owner: Owner, eventId: Id<"events">) => {
   const { mediaId } = await owner.mutation(api.api.media.reserveUpload, {
     eventId,
@@ -52,7 +50,6 @@ const momentWithPhoto = async (owner: Owner, eventId: Id<"events">) => {
   return mediaId;
 };
 
-// The link is `<origin>/s#<token>`: the token is the fragment.
 const tokenOf = (link: string) => link.slice(link.indexOf("#") + 1);
 
 describe("share links", () => {
@@ -66,9 +63,7 @@ describe("share links", () => {
     const { t, ownerId, owner, eventId } = await setup();
     await momentWithPhoto(owner, eventId);
     const link = await owner.mutation(api.api.share.enable, { eventId });
-    // Named after the title, with the key after "#".
     expect(link).toMatch(/\/s\/untitled-experience-[a-z0-9]{4}#[A-Za-z0-9_-]{20,64}$/);
-    // Switching on again hands back the same link.
     expect(await owner.mutation(api.api.share.enable, { eventId })).toBe(link);
     expect(await owner.query(api.api.share.link, { eventId })).toBe(link);
     expect((await owner.query(api.api.events.get, { eventId }))?.visibility).toBe("link");
@@ -174,21 +169,18 @@ describe("share links", () => {
       expect(await t.query(api.api.share.get, { token: candidate })).toBeNull();
       expect(await t.query(api.api.share.mediaForShare, { token: candidate, mediaId })).toBeNull();
     }
-    // Well-formed, but never issued.
     expect(await t.query(api.api.share.get, { token: "A".repeat(32) })).toBeNull();
   });
 
   test("a picture comes through a link only from a moment of that experience", async () => {
     const { t, owner, eventId } = await setup();
     const onMoment = await momentWithPhoto(owner, eventId);
-    // Uploaded but never attached to a moment.
     const { mediaId: loose } = await owner.mutation(api.api.media.reserveUpload, {
       eventId,
       size: 100,
       mime: "image/jpeg",
     });
     await owner.mutation(api.api.media.confirmUpload, { mediaId: loose });
-    // A picture from another experience.
     const other = await owner.mutation(api.api.events.createDraft, {});
     const elsewhere = await momentWithPhoto(owner, other);
     const token = tokenOf(await owner.mutation(api.api.share.enable, { eventId }));
@@ -395,7 +387,6 @@ describe("share links", () => {
     ).rejects.toThrow(/Event not found/);
     const link = await owner.mutation(api.api.share.enable, { eventId });
     const token = tokenOf(link);
-    // The ordinary link still carries the picture, so hiding is a choice.
     expect(JSON.stringify(await t.query(api.api.share.get, { token }))).toContain(photo);
 
     await owner.mutation(api.api.share.setShown, { eventId, part: "photos", show: false });
@@ -459,7 +450,6 @@ describe("share links", () => {
       "fetch",
       vi.fn(async () => Response.json({ result: {} })),
     );
-    // eslint-disable-next-line @convex-dev/no-process-env -- test setup
     Object.assign(process.env, cf);
     try {
       for (let i = 0; i < SHARE_EMAILS_PER_DAY; i++) {
@@ -476,7 +466,6 @@ describe("share links", () => {
       vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000 + 60_000);
       expect((await send("tomorrow@example.com")).emailed).toBe(true);
     } finally {
-      // eslint-disable-next-line @convex-dev/no-process-env -- test setup
       for (const key of Object.keys(cf)) delete process.env[key];
       vi.unstubAllGlobals();
       vi.useRealTimers();
@@ -555,10 +544,8 @@ describe("share links", () => {
       owner.mutation(api.api.media.reserveUpload, { eventId, size: 100, mime: "image/jpeg" }),
     ).rejects.toThrow();
     await expect(owner.mutation(api.api.events.createDraft, {})).rejects.toThrow();
-    // The public link and the invited guest are closed too.
     expect(await t.query(api.api.share.get, { token })).toBeNull();
     expect(await guest.query(api.api.events.get, { eventId })).toBeNull();
-    // A new login on the same verified email gets no fresh account.
     const again = {
       provider: {
         name: "google" as const,

@@ -1,16 +1,12 @@
-// Whether a file's first bytes are what its declared type starts with, so a
-// program or script can't be stored under a photo's name. A check of the
-// signature only: it doesn't parse the file or scan it for malware.
-
 const ascii = (head: Uint8Array, at: number, text: string): boolean => {
   return [...text].every((ch, i) => head[at + i] === ch.charCodeAt(0));
 };
 const bytes = (head: Uint8Array, ...want: number[]): boolean => {
   return want.every((b, i) => head[i] === b);
 };
-// MP4, QuickTime and AVIF are all boxes: a length, then a four-letter name.
+const BOX_SIZE_FIELD_BYTES = 4;
 const box = (head: Uint8Array, ...names: string[]): boolean => {
-  return names.some((name) => ascii(head, 4, name));
+  return names.some((name) => ascii(head, BOX_SIZE_FIELD_BYTES, name));
 };
 
 const SIGNATURES: Partial<Record<string, (head: Uint8Array) => boolean>> = {
@@ -26,14 +22,12 @@ const SIGNATURES: Partial<Record<string, (head: Uint8Array) => boolean>> = {
   "application/pdf": (h) => ascii(h, 0, "%PDF-"),
 };
 
-// False for a type with no signature here: nothing else is accepted anyway.
 export const looksLike = (head: Uint8Array, mime: string): boolean => {
   return SIGNATURES[mime]?.(head) ?? false;
 };
 
 const HEAD_BYTES = 16;
 
-// Reads the start of an upload, and hands back the whole upload to store.
 export const peek = async (
   body: ReadableStream<Uint8Array>,
 ): Promise<{ head: Uint8Array; body: ReadableStream<Uint8Array> }> => {

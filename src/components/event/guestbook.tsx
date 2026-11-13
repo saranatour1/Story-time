@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { errorMessage } from "@/lib/errors";
 
-// A short note from someone invited. The owner sees it on Activity as well.
 export const Guestbook = ({ eventId, archived }: { eventId: Id<"events">; archived: boolean }) => {
   const { data: notes } = useQuery(queries.guestNotes.list({ eventId }));
   const leave = useMutation(api.guestNotes.leave);

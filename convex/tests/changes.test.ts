@@ -13,7 +13,6 @@ import schema from "../schema";
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
@@ -70,7 +69,6 @@ describe("the log names who made each change", () => {
       eventId,
       paginationOpts: { numItems: 50, cursor: null },
     });
-    // Newest first: Sara's edit, then Noor's moment.
     const moments = page.filter((c) => c.entity === "moment");
     expect(moments).toMatchObject([
       { action: "update", actorName: "Sara" },
@@ -82,9 +80,8 @@ describe("the log names who made each change", () => {
   test("an agent acting for a person names both the agent and the person", async () => {
     const { t, owner, eventId, ownerId } = await setup();
     await t.run(async (ctx) => {
-      const access = await requireEventAccessFor(ctx, ownerId, eventId, "contributor");
+      await requireEventAccessFor(ctx, ownerId, eventId, "contributor");
       return createMoment(ctx, {
-        event: access.event,
         userId: ownerId,
         actor: { kind: "agent", name: "Claude", onBehalfOf: ownerId },
         input: {
@@ -125,7 +122,6 @@ describe("only the owner reads the log", () => {
 describe("activity counts", () => {
   test("people, agents and Story-time add up to everyone, for the owner only", async () => {
     const { t, eventId, ownerId, owner, helper } = await setup();
-    // createDraft already logged one change by the owner.
     await t.run(async (ctx) => {
       const change = { eventId, entity: "moment" as const, entityId: "m", fields: [], at: T0 };
       await ctx.db.insert("changes", { ...change, action: "create", actorId: ownerId });
@@ -138,7 +134,6 @@ describe("activity counts", () => {
       await ctx.db.insert("changes", { ...change, action: "create" });
       await ctx.db.insert("changes", { ...change, action: "expire" });
     });
-    // Written straight into the table, so counted the way old rows are.
     await t.mutation(internal.model.migrations.backfillAggregates, { table: "changes" });
     const counts = await owner.query(api.api.changes.counts, { eventId });
     const all = await t.run((ctx) =>

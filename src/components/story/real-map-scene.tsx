@@ -26,7 +26,6 @@ type Point = [number, number];
 type Placed = { name: string; geo: LatLng };
 
 const lngLat = (g: LatLng): Point => [g.lng, g.lat];
-// How long a leg in view waits for the basemap before showing the drawn map.
 const LOAD_TIMEOUT_MS = 6000;
 const PAST = {
   "line-color": "#e7e5e4",
@@ -34,25 +33,12 @@ const PAST = {
   "line-width": 1.5,
   "line-dasharray": [2, 2],
 };
-// Where an arrival comes to rest, close enough to read the streets.
 const ARRIVE_ZOOM = 12.5;
-// Where an arrival opens when it is the only place on the map.
 const LONE_ZOOM = 5;
-// A name's box on screen, estimated in pixels: how far its text sits below the
-// dot's centre (the dot's half-width plus the margin above the text), the text's
-// height, about 7px a letter, and the most a name takes before it is cut. The
-// destination's name is bigger and sits lower, clear of the transport parked on it.
 const CAPTION = { drop: 8, height: 18, perLetter: 7, maxWidth: 160 };
 const DEST_CAPTION = { drop: 26, height: 22, perLetter: 8, maxWidth: 208 };
 const CAPTION_PAD = 6;
 
-// A leg on a real map, live-tracker style: the camera starts on where they
-// left from and pulls back to show both ends while the route draws itself
-// and the transport crosses it, over the same time the drawn map takes.
-// A leg with no spot to set off from arrives instead: the camera opens wide
-// on every place and flies in on the destination, where the transport parks.
-// Earlier legs stay faint; every located place of the story is marked.
-// Mounted ahead of view, it waits on the departure until `active`.
 export const RealMapScene = ({
   leg,
   from,
@@ -65,7 +51,6 @@ export const RealMapScene = ({
   fallback,
 }: {
   leg: Leg;
-  // Where the leg sets off from, when that place is on the map.
   from?: LatLng;
   to: LatLng;
   legs: Leg[];
@@ -73,7 +58,6 @@ export const RealMapScene = ({
   places: Placed[];
   animate: boolean;
   active: boolean;
-  // Shown instead when the basemap doesn't arrive (tiles blocked, offline).
   fallback: ReactNode;
 }) => {
   const seconds = legDuration(leg.transport);
@@ -83,17 +67,11 @@ export const RealMapScene = ({
   const [progress, setProgress] = useState(animate ? 0 : 1);
   const [loaded, setLoaded] = useState(false);
   const [gaveUp, setGaveUp] = useState(false);
-  // Along the streets or tracks when a router knows them, else the arc. Until it
-  // has answered (or given up) nothing moves, so a leg never sets off along an
-  // arc and bends onto a street halfway.
   const { path, settled } = useRoutePath(from, to, leg.transport);
-  // An arrival has no route: nothing to draw from.
   const route = useMemo(
     () => (from ? (path ?? curve(lngLat(from), lngLat(to), bend(leg.transport))) : []),
     [from?.lng, from?.lat, to.lng, to.lat, leg.transport, path],
   );
-  // The legs behind stay faint: along their streets where those came back while
-  // they were in view, else as arcs.
   const behind = useMemo(() => {
     const done = legs.slice(0, current).flatMap((l, id) => {
       if (!l.fromGeo || !l.toGeo) return [];
@@ -124,7 +102,6 @@ export const RealMapScene = ({
     return () => cancelAnimationFrame(raf);
   }, [departs, animate, active, settled, seconds]);
 
-  // Timed only while in view: a scene mounted ahead may load at leisure.
   useEffect(() => {
     if (loaded || !active) return;
     const t = setTimeout(() => setGaveUp(true), LOAD_TIMEOUT_MS);
@@ -138,7 +115,6 @@ export const RealMapScene = ({
       aria-label={`${transport?.phrase ?? "Travelling"} from ${leg.from} to ${leg.to}`}
       className="relative flex-1"
     >
-      {/* Full bleed, up under the header; it fades in once the basemap is drawn. */}
       <div
         className={cn(
           "absolute inset-x-0 -top-12 bottom-0 transition-opacity duration-700",
@@ -211,8 +187,6 @@ export const RealMapScene = ({
               </MarkerContent>
             </MapMarker>
           )}
-          {/* The edges fade into the stage, darkest at the top behind the
-              header and caption; the attribution stays above it. */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_45%,#141210_100%),linear-gradient(to_bottom,#141210_0%,rgb(20_18_16/0.7)_18%,transparent_40%,transparent_85%,#141210_100%)]"
@@ -236,8 +210,6 @@ export const RealMapScene = ({
   );
 };
 
-// The transport, riding the route or parked on an arrival. Its halo pulses
-// gently while the scene plays.
 const Badge = ({ Icon, pulse = false }: { Icon?: LucideIcon; pulse?: boolean }) => {
   return (
     <span className="relative grid size-9 place-items-center">
@@ -254,9 +226,6 @@ const Badge = ({ Icon, pulse = false }: { Icon?: LucideIcon; pulse?: boolean }) 
   );
 };
 
-// Every located place is marked, but a name shows only where it fits clear of
-// the others. The destination's name comes first, then where the leg set off
-// from, then the places already visited; the rest give way.
 const PlaceMarkers = ({
   places,
   from,
@@ -272,7 +241,6 @@ const PlaceMarkers = ({
   const [named, setNamed] = useState<Set<string>>(() => new Set());
   useEffect(() => {
     if (!map || !isLoaded) return;
-    // Read again when the camera settles, not on every frame of a flight.
     const relabel = () => setNamed(namesThatFit(map, places, from, to, visited));
     relabel();
     map.on("moveend", relabel);
@@ -302,7 +270,6 @@ const PlaceMarkers = ({
                   position="bottom"
                   className={cn(
                     "max-w-40 truncate font-serif text-xs text-stone-300 [text-shadow:0_1px_3px_#141210]",
-                    // Clear of the transport, which parks here.
                     dest && "mt-5 max-w-52 text-sm font-semibold text-amber-200",
                   )}
                 >
@@ -317,8 +284,6 @@ const PlaceMarkers = ({
   );
 };
 
-// The names that fit clear of one another where the map is now. A place off
-// the screen has no name to place; its dot is simply not on the map.
 const namesThatFit = (
   map: MapLibre,
   places: Placed[],
@@ -353,17 +318,12 @@ const Loaded = ({ onLoad }: { onLoad: (loaded: boolean) => void }) => {
   return null;
 };
 
-// Room for the caption over the top of the map. The sides keep clear of
-// labels, which hang up to ~110px either side of a point on narrow phones.
 const framePadding = (map: MapLibre) => {
   const { clientWidth: w, clientHeight: h } = map.getContainer();
   const side = Math.max(w * 0.14, 110);
   return { top: h * 0.3, bottom: h * 0.14, left: side, right: side };
 };
 
-// Starts close on the departure, then (once active) eases out to frame the
-// whole route below the caption, wherever it bends. Two spots in the same place
-// just centre at street level. It waits for the route to be known (`ready`).
 const Camera = ({
   from,
   to,
@@ -394,14 +354,10 @@ const Camera = ({
     map.jumpTo({ center: [from.lng, from.lat], zoom: Math.min(zoom + 2, 14) });
     if (active)
       map.fitBounds(bounds, { ...fit, duration: Math.min(2500, seconds * 700), essential: true });
-    // Keyed on the leg's ends and its route, not their objects, so a data refresh doesn't restart it.
   }, [map, from.lat, from.lng, to.lat, to.lng, route, animate, active, ready]);
   return null;
 };
 
-// Only the destination is known, so the camera opens wide on every place of
-// the story, then (once active) flies in on the destination over the leg's
-// time. Without motion it goes straight to the destination.
 const Arrival = ({
   to,
   places,
@@ -416,8 +372,7 @@ const Arrival = ({
   active: boolean;
 }) => {
   const { map } = useMap();
-  // Keyed on the spots, not their objects, so a data refresh doesn't restart it.
-  const spots = places.map((p) => `${p.geo.lng},${p.geo.lat}`).join(";");
+  const placesKey = places.map((p) => `${p.geo.lng},${p.geo.lat}`).join(";");
   useEffect(() => {
     if (!map) return;
     const destination = lngLat(to);
@@ -441,6 +396,6 @@ const Arrival = ({
         duration: seconds * 1000,
         essential: true,
       });
-  }, [map, to.lat, to.lng, spots, seconds, animate, active]);
+  }, [map, to.lat, to.lng, placesKey, seconds, animate, active]);
   return null;
 };

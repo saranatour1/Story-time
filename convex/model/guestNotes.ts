@@ -7,8 +7,6 @@ import { decryptText, encryptText } from "../lib/crypto";
 const MAX_NOTE = 500;
 const MAX_NOTES = 50;
 
-// A short note from someone invited to the experience. Share-link visitors
-// have no account, so they cannot write one.
 const leave = mutation({
   args: { eventId: v.id("events"), text: v.string() },
   handler: async (ctx, args) => {
@@ -69,5 +67,4 @@ const list = query({
   },
 });
 
-// What the app calls. Registered once, by convex/api/guestNotes.ts, which re-exports it.
 export const guestNotesApi = { leave, list };

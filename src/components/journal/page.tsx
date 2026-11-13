@@ -7,8 +7,6 @@ import { ElementView, elementBox, HeartClip } from "./elements";
 import journalFonts from "./journal-fonts.css?url";
 import { FONTS, paperLook } from "./look";
 
-// Caveat, Special Elite, Libre Caslon and Oswald are only needed once a page
-// is on screen. The landing keeps Manrope and Newsreader.
 const useJournalFonts = () => {
   useEffect(() => {
     const id = "journal-fonts";
@@ -29,21 +27,15 @@ export type PageData = {
   elements: JournalElement[];
 };
 
-// One A4 page, drawn at `scale`: its paper and everything on it, back to front.
-// `children` sit on top in page units (the editor's handles and text box).
 export const JournalPage = forwardRef<
   HTMLDivElement,
   {
     page: Pick<PageData, "paper" | "elements">;
     moments: ReadonlyMap<string, StoryMoment>;
     scale: number;
-    // Maps can be played and photos shown at full size; off in thumbnails.
     live?: boolean;
-    // Paper export: photos stay, maps print as place names. Tiles are
-    // cross-origin and would come out blank.
-    print?: boolean;
+    mapsAsNames?: boolean;
     pageKey?: string;
-    // Being read: links open.
     reading?: boolean;
     className?: string;
     children?: ReactNode;
@@ -54,7 +46,7 @@ export const JournalPage = forwardRef<
     moments,
     scale,
     live = true,
-    print = false,
+    mapsAsNames = false,
     pageKey,
     reading = false,
     className,
@@ -87,8 +79,8 @@ export const JournalPage = forwardRef<
         <HeartClip />
         {elements.map((e) => {
           const moment = e.momentId ? moments.get(e.momentId) : undefined;
-          const names = e.kind === "map" && (!live || print);
-          const stub = (e.kind === "photo" || e.kind === "sticker") && !live && !print;
+          const names = e.kind === "map" && (!live || mapsAsNames);
+          const stub = (e.kind === "photo" || e.kind === "sticker") && !live;
           return (
             <div key={e.id} data-el={e.id} style={elementBox(e)}>
               {names ? (
@@ -107,7 +99,6 @@ export const JournalPage = forwardRef<
   );
 });
 
-// Place names in the postcard frame, for a thumbnail or a printed page.
 const MapNames = ({ moment }: { moment: StoryMoment | undefined }) => {
   const names =
     moment === undefined

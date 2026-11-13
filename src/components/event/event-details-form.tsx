@@ -1,10 +1,10 @@
 import { useMutation } from "convex/react";
 import { useForm } from "@tanstack/react-form";
-import { format } from "date-fns";
 import { useId } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { api } from "@/lib/api";
+import { localDay, localMidnight } from "@/components/event/event-dates";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -24,22 +24,18 @@ const schema = z
     message: "End must be after the start",
   });
 
-// Dates are saved as local midnight, so read them back in local time too
-// (toISOString would shift them a day for anyone east of UTC). null clears.
-const toDate = (s: string) => (s ? new Date(`${s}T00:00:00`).getTime() : null);
-const fromDate = (ms?: number) => (ms ? format(new Date(ms), "yyyy-MM-dd") : "");
+const localMidnightOrNull = (day: string) => (day ? localMidnight(day) : null);
+const localDayOrEmpty = (ms?: number) => (ms ? localDay(ms) : "");
 
 export const EventDetailsForm = ({ event, onDone }: { event: EventView; onDone?: () => void }) => {
   const update = useMutation(api.events.update);
-  // Unique ids, so labels stay tied to their inputs wherever this renders.
   const id = useId();
   const form = useForm({
     defaultValues: {
-      // A new draft starts with a placeholder title; show an empty field instead.
       title: event.status === "draft" ? "" : event.title,
       description: event.description ?? "",
-      startsAt: fromDate(event.startsAt),
-      endsAt: fromDate(event.endsAt),
+      startsAt: localDayOrEmpty(event.startsAt),
+      endsAt: localDayOrEmpty(event.endsAt),
     },
     validators: { onChange: schema },
     onSubmit: async ({ value }) => {
@@ -48,8 +44,8 @@ export const EventDetailsForm = ({ event, onDone }: { event: EventView; onDone?:
           eventId: event._id,
           title: value.title.trim(),
           description: value.description,
-          startsAt: toDate(value.startsAt),
-          endsAt: toDate(value.endsAt),
+          startsAt: localMidnightOrNull(value.startsAt),
+          endsAt: localMidnightOrNull(value.endsAt),
         });
         toast.success("Details saved");
         onDone?.();

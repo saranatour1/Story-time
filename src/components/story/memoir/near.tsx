@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-// Pictures are fetched once they are within about a screen of the view, not
-// all at once: a long story would otherwise pull every photo on arrival.
 export const Near = ({
   placeholder,
   children,

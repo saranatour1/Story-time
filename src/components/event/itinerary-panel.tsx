@@ -7,7 +7,6 @@ import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// "outline" means no editor is open; the others name the open form.
 export type Panel = "outline" | "details" | "moment";
 
 const TITLES: Record<Exclude<Panel, "outline">, string> = {
@@ -15,8 +14,6 @@ const TITLES: Record<Exclude<Panel, "outline">, string> = {
   moment: "Edit moment",
 };
 
-// The form beside the moments: the experience's details, or a moment being
-// edited (`momentId`).
 export const EditorPanel = ({
   event,
   panel,
@@ -42,7 +39,6 @@ export const EditorPanel = ({
     body = !moment ? (
       <p className="text-sm text-muted-foreground">This moment is no longer here.</p>
     ) : canEditMoment(moment.authorId) ? (
-      // `key` resets the form when another moment is selected.
       <MomentForm key={moment._id} eventId={event._id} moment={moment} onDone={onClose} />
     ) : (
       <p className="text-sm text-muted-foreground">

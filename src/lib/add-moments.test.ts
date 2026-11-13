@@ -2,7 +2,6 @@ import { afterEach, describe, expect, test, vi } from "vite-plus/test";
 import { momentsFromPlan, type PlannedDay, readPicked, uploadAll } from "./add-moments";
 import type { Geo, PhotoPoint } from "./photo-groups";
 
-// Local times, so the day holds in any time zone.
 const at = (h: number, m = 0) => new Date(2026, 6, 10, h, m).getTime();
 const point = (id: string, takenAt: number, offsetMinutes?: number): PhotoPoint => ({
   id,

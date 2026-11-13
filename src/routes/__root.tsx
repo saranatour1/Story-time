@@ -19,29 +19,27 @@ import appCss from "../styles.css?url";
 import manropeLatin from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
 import newsreaderLatin from "@fontsource-variable/newsreader/files/newsreader-latin-opsz-normal.woff2?url";
 
-// Runs before first paint so the chosen theme doesn't flash. next-themes
-// stores "light" | "dark" | "system" under the "theme" key.
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme')||'system';var dark=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);}catch(e){}})();`;
+const THEME_STORAGE_KEY = "theme";
 
-// Marks the page when this browser holds a session (Convex Auth's refresh
-// token), so the landing page's first screen stays hidden for someone on their
-// way to /home.
-const SESSION_SCRIPT = `(function(){try{for(var i=0;i<localStorage.length;i++){if((localStorage.key(i)||'').indexOf('__convexAuthRefreshToken')===0){document.documentElement.setAttribute('data-signed-in','');return}}}catch(e){}})();`;
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('${THEME_STORAGE_KEY}')||'system';var dark=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);}catch(e){}})();`;
 
-// Production builds only (.env.production), so local work isn't counted.
+const MARK_SIGNED_IN_IF_REFRESH_TOKEN_SCRIPT = `(function(){try{for(var i=0;i<localStorage.length;i++){if((localStorage.key(i)||'').indexOf('__convexAuthRefreshToken')===0){document.documentElement.setAttribute('data-signed-in','');return}}}catch(e){}})();`;
+
 const DATABUDDY_ID: string | undefined = import.meta.env.VITE_DATABUDDY_CLIENT_ID;
 
-// Crawlers need an absolute image URL, and the client has no other way to
-// know the site's origin.
 const APP_URL: string = import.meta.env.VITE_APP_URL ?? "";
+
+const DATABUDDY_PRIVACY = {
+  trackInteractions: false,
+  maskPatterns: ["/e/*", "/invite/*", "/s/*"],
+};
 
 const RootDocument = ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Emitted once by the server, then removes itself before hydration. */}
         <ScriptOnce>{THEME_INIT_SCRIPT}</ScriptOnce>
-        <ScriptOnce>{SESSION_SCRIPT}</ScriptOnce>
+        <ScriptOnce>{MARK_SIGNED_IN_IF_REFRESH_TOKEN_SCRIPT}</ScriptOnce>
         {/* HeadContent keeps one meta per name, so the light/dark pair lives here. */}
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
@@ -55,17 +53,12 @@ const RootDocument = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// What the server sends before the app loads, since server rendering is off:
-// the landing page's first screen on "/", else an empty screen.
 const RootPending = () => {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return pathname === "/" ? <LandingFirstPaint /> : <LogoSplash />;
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createRootRouteWithContext<RouterContext>()({
-  // Server rendering is off, so this is the only head link previews and
-  // crawlers see: it picks the page's tags from the path (src/lib/seo.ts).
   head: ({ matches }) => {
     const pathname = matches.at(-1)?.pathname ?? "/";
     const page = pageMeta(pathname);
@@ -126,6 +119,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     <ThemeProvider
       attribute="class"
       defaultTheme="system"
+      storageKey={THEME_STORAGE_KEY}
       enableSystem
       disableTransitionOnChange
       scriptProps={{ type: "application/json" }}
@@ -135,19 +129,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         <Toaster />
       </TooltipProvider>
       {DATABUDDY_ID && (
-        // Page views, page speed and errors, without cookies. Trip ids and
-        // invite tokens in paths are masked, and the part after # (a share
-        // link's key) is never read. Clicks count only on elements with a
-        // data-track name (src/lib/analytics.ts); general click and
-        // outgoing-link tracking stay off, since they send element labels and
-        // link text, which can name a trip.
         <Databuddy
           clientId={DATABUDDY_ID}
           trackWebVitals
           trackErrors
           trackAttributes
-          trackInteractions={false}
-          maskPatterns={["/e/*", "/invite/*", "/s/*"]}
+          {...DATABUDDY_PRIVACY}
         />
       )}
     </ThemeProvider>

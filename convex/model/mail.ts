@@ -3,21 +3,17 @@ import { components } from "../_generated/api";
 import { env, internalAction } from "../_generated/server";
 import { MAIL_OWNER } from "../lib/emailAddress";
 
-// Addresses never go to the log or stay in the outcome.
 const withoutAddresses = (text: string) => text.replace(/[^\s<>"']+@[^\s<>"']+/g, "[address]");
 
-// Sends one queued message (lib/emailAddress.ts, `queueMail`) through the
-// Cloudflare email component. Sent or refused, its address and words are
-// cleared straight after: only the outcome stays. "Sent" means Cloudflare
-// took it; the log line says what Cloudflare did with each address.
+const HANDLED_PAYLOAD = "";
+
 export const deliver = internalAction({
   args: { emailId: v.string() },
   returns: v.null(),
   handler: async (ctx, { emailId }) => {
     const mail = components.cloudflareEmail.lib;
     const row = await ctx.runQuery(mail.get, { emailId });
-    // An empty payload has been handled already, so a second run sends nothing.
-    if (row === null || row.owner !== MAIL_OWNER || row.payload === "") return null;
+    if (row === null || row.owner !== MAIL_OWNER || row.payload === HANDLED_PAYLOAD) return null;
     const { CF_ACCOUNT_ID, CF_EMAIL_TOKEN, EMAIL_FROM } = env;
     const result =
       CF_ACCOUNT_ID && CF_EMAIL_TOKEN && EMAIL_FROM
@@ -28,7 +24,7 @@ export const deliver = internalAction({
           })
         : { error: "Cloudflare Email is not configured" };
     const error = result.error === undefined ? undefined : withoutAddresses(result.error);
-    await ctx.runMutation(mail.reseal, { emailId, from: row.payload, payload: "" });
+    await ctx.runMutation(mail.reseal, { emailId, from: row.payload, payload: HANDLED_PAYLOAD });
     await ctx.runMutation(mail.markResult, {
       emailId,
       failed: error !== undefined,

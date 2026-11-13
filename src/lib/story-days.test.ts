@@ -4,7 +4,6 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { storyDays, travelMinutes } from "./story-days";
 import { buildStorySteps } from "./story-steps";
 
-// Local clock times, so the days come out the same wherever this runs.
 const at = (day: number, hour: number, minute = 0) =>
   new Date(2025, 1, day, hour, minute).getTime();
 
@@ -88,7 +87,6 @@ describe("storyDays", () => {
   });
 
   test("a stop is filed under the day it happened on, in the zone it happened in", () => {
-    // 22:15 UTC on Feb 4 is 07:15 on Feb 5 in Japan, so the stop belongs to the 5th.
     const kyoto = moment({
       _id: "k" as Id<"moments">,
       startsAt: Date.UTC(2025, 1, 4, 22, 15),
@@ -127,7 +125,6 @@ describe("travelMinutes", () => {
         stops: [{ place: "Hotel", transport: "car", blocks: [] }],
       }),
     ]);
-    // Berlin to Leipzig is 105 minutes; the Hotel has no time, so nothing for it.
     expect([...travelMinutes(steps)]).toEqual([
       [3, 105],
       [5, 45],

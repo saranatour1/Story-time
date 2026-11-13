@@ -2,13 +2,9 @@ import { BotIcon, CogIcon, UserRoundIcon } from "lucide-react";
 import { describeActor, type ActorView } from "@/lib/actors";
 import { cn } from "@/lib/utils";
 
-// Who did it, at a glance: a person is plain text with a person icon, an agent
-// is a violet pill with a robot and the word "agent", the system a cog. Colour
-// never carries the meaning alone: the icon and the word do too.
 export const ActorBadge = ({
   actor,
   className,
-  // "You" for the signed-in person's own work.
   you = false,
 }: {
   actor: ActorView;

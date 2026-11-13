@@ -1,5 +1,3 @@
-/* Served with the app rather than from Google Fonts, so Google doesn't see who
-   opens a page. (Maps still load CARTO's tiles.) */
 @import "@fontsource-variable/manrope";
 @import "@fontsource-variable/newsreader/opsz.css";
 @import "@fontsource-variable/newsreader/opsz-italic.css";
@@ -8,15 +6,11 @@
 
 @theme {
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
-  /* One serif everywhere: the site's display type, the app's titles and
-     story mode's captions. */
   --font-display: "Newsreader Variable", ui-serif, Georgia, serif;
-  /* The scrapbook's handwriting: captions on paper scraps. */
   --font-hand: "Caveat Variable", "Bradley Hand", cursive;
   --font-serif: "Newsreader Variable", ui-serif, Georgia, serif;
 }
 
-/* shadcn/ui theme tokens (neutral) */
 @custom-variant dark (&:is(.dark *):not(:is(.paper-scope, .paper-scope *)));
 
 :root,
@@ -123,8 +117,6 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
-  /* Signed in: the landing page's first screen stays hidden on the way to
-     /home (see SESSION_SCRIPT in __root.tsx). */
   [data-signed-in] [data-first-paint] {
     visibility: hidden;
   }
@@ -148,13 +140,6 @@
   }
 }
 
-/*
- * Magnetic hover (after jhey's bento effect). The hovered item claims the
- * `--magnet` anchor and a single indicator slides to its edges.
- *   - Firefox can't animate anchor insets yet, so it gets the instant jump.
- *   - Browsers without anchor positioning keep each item's own hover style.
- *   - Touch devices have no hover, so the indicator is never shown.
- */
 .magnetic {
   position: relative;
 }
@@ -187,7 +172,6 @@
     .magnetic:has(> *:hover) > .magnetic-indicator {
       opacity: 1;
     }
-    /* the indicator draws the hover, so drop the buttons' own */
     .magnetic > *:hover,
     .magnetic [data-sidebar="menu-button"]:hover:not([data-active="true"]) {
       background-color: transparent;
@@ -199,7 +183,6 @@
     transition: none;
   }
 }
-/* The landing page's film: a progress segment filling over its scene. */
 @keyframes landing-fill {
   from {
     transform: scaleX(0);
@@ -208,7 +191,6 @@
     transform: scaleX(1);
   }
 }
-/* The landing page's sea: the sun's reflection breathing on the water. */
 @keyframes landing-shimmer {
   0%,
   100% {
@@ -219,7 +201,6 @@
   }
 }
 
-/* A journal page turning: in from the spine, or back towards it. */
 @keyframes journal-turn-in {
   from {
     transform: rotateY(-28deg) translateX(24px);

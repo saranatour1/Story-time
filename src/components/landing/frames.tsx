@@ -2,16 +2,9 @@ import { ShipIcon } from "lucide-react";
 import { PAPER, RUST, useInView, useReducedMotion } from "@/components/landing/paper";
 import { cn } from "@/lib/utils";
 
-// Pictures of the real screens, drawn rather than captured, so they work in
-// both themes and never go stale. All are decorative: the text around each
-// one says what it shows.
-
 export const STAGE =
   "overflow-hidden rounded-xl bg-[#141210] text-stone-100 ring-1 ring-stone-900/10 dark:ring-white/10";
 
-// A leg as story mode shows it now: a dark street map (the Tagus, Lisbon
-// above, Almada below) with the crossing to Cacilhas. The route draws itself
-// in amber and the ferry rides it once the frame is in view.
 const ROUTE = "M31 41.5 C32 49 39 57 45 64.5";
 const ROUTE_S = 3;
 const LAND = "#1b1b1b";
@@ -19,7 +12,6 @@ const WATER = "#10161b";
 const STREET = "#2a2a2a";
 const AVENUE = "#383838";
 const SERIF = "ui-serif, Georgia, serif";
-// Small grey district names, the way the basemap letters them.
 const DISTRICTS = [
   { name: "ESTRELA", x: 12, y: 22 },
   { name: "BAIXA", x: 40, y: 27 },
@@ -31,8 +23,6 @@ const DISTRICTS = [
 export const MapFrame = () => {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
-  // Before it's seen, the ferry waits at the quay; without motion it has
-  // arrived.
   const phase = reduced ? "done" : inView ? "play" : "wait";
 
   return (
@@ -64,7 +54,6 @@ export const MapFrame = () => {
           <path d="M24 0 C26 14 25 30 27 42" />
           <path d="M0 84 C20 80 50 81 80 76" />
           <path d="M46 100 C45 88 46 76 45 65" />
-          {/* The bridge, upriver. */}
           <path d="M7 44 L11 67" strokeWidth="0.8" />
         </g>
         <text x="60" y="53" className="font-sans" fontSize="2.4" fontStyle="italic" fill="#3b4a55">
@@ -85,7 +74,6 @@ export const MapFrame = () => {
           </text>
         ))}
 
-        {/* The way still to go, then the way travelled. */}
         <path
           d={ROUTE}
           fill="none"
@@ -172,7 +160,6 @@ export const MapFrame = () => {
           <ShipIcon x={-1.8} y={-1.8} width={3.6} height={3.6} color={RUST} strokeWidth={2.2} />
         </g>
       </svg>
-      {/* The edges fade into the stage, darkest at the top behind the caption. */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,#141210_100%),linear-gradient(to_bottom,#141210_0%,rgb(20_18_16/0.7)_18%,transparent_40%,transparent_85%,#141210_100%)]" />
       <div className="absolute inset-x-0 top-0 space-y-1 px-4 pt-4 text-center [text-shadow:0_1px_6px_#141210]">
         <p className="text-[0.625rem] tracking-[0.25em] text-amber-200/90 uppercase">

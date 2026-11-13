@@ -5,15 +5,12 @@ import {
   formatDay,
   formatTime,
   fromInput,
-  localParts,
+  wallClockAsUtc,
   toInput,
 } from "./local-time";
 
-// 22:15 UTC on 8 November: 7:15 on the 9th in Japan (UTC+9), 5:15 pm on the 8th
-// in New York (UTC-5). The same moment reads differently depending on the zone.
 const KYOTO = Date.UTC(2025, 10, 8, 22, 15);
 
-// Month, day, hour and minute, read from the Date's UTC fields.
 const wallClock = (d: Date) => [
   d.getUTCMonth(),
   d.getUTCDate(),
@@ -21,18 +18,18 @@ const wallClock = (d: Date) => [
   d.getUTCMinutes(),
 ];
 
-describe("localParts", () => {
+describe("wallClockAsUtc", () => {
   test("shows the wall clock at the offset the moment happened at", () => {
-    expect(wallClock(localParts(KYOTO, 540))).toEqual([10, 9, 7, 15]);
+    expect(wallClock(wallClockAsUtc(KYOTO, 540))).toEqual([10, 9, 7, 15]);
   });
 
   test("a negative offset moves the clock back, into the day before", () => {
-    expect(wallClock(localParts(KYOTO, -300))).toEqual([10, 8, 17, 15]);
+    expect(wallClock(wallClockAsUtc(KYOTO, -300))).toEqual([10, 8, 17, 15]);
   });
 
   test("with no offset, shows the viewer's own clock", () => {
     const local = new Date(KYOTO);
-    expect(wallClock(localParts(KYOTO))).toEqual([
+    expect(wallClock(wallClockAsUtc(KYOTO))).toEqual([
       local.getMonth(),
       local.getDate(),
       local.getHours(),

@@ -1,21 +1,19 @@
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
 import { ImagePlusIcon } from "lucide-react";
-import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
+import { type ComponentProps, type ReactNode, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { EventView } from "@/components/event/types";
 import { Button } from "@/components/ui/button";
+import { useCurrentAuthToken } from "@/hooks/use-current-auth-token";
 import { addPhotos } from "@/lib/add-photos";
 import { MEDIA_ACCEPT } from "@/lib/upload";
 
-// Viewers can't add, and nothing is added to an archived experience.
 export const canAddTo = (event: EventView) =>
   event.role !== "viewer" && event.status !== "archived";
 
 type ButtonProps = ComponentProps<typeof Button>;
 
-// Picks photos and videos and makes their moments in one go, grouped by day
-// and place.
 export const QuickAddButton = ({
   event,
   variant = "default",
@@ -29,11 +27,7 @@ export const QuickAddButton = ({
 }) => {
   const createMoment = useMutation(api.moments.create);
   const token = useAuthToken();
-  // Read at each call: tokens are short-lived and a batch can run for minutes.
-  const latestToken = useRef(token);
-  useEffect(() => {
-    latestToken.current = token;
-  }, [token]);
+  const currentToken = useCurrentAuthToken();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   if (!canAddTo(event)) return null;
@@ -44,7 +38,7 @@ export const QuickAddButton = ({
       await addPhotos({
         event,
         files: Array.from(list ?? []),
-        token: () => latestToken.current ?? undefined,
+        currentToken,
         createMoment,
       });
     } finally {
@@ -69,9 +63,7 @@ export const QuickAddButton = ({
         type="file"
         accept={MEDIA_ACCEPT}
         multiple
-        tabIndex={-1}
-        // Visually hidden rather than display:none: some browsers won't click those.
-        className="sr-only"
+        hidden
         onChange={(e) => {
           void add(e.target.files);
           // Cleared, so picking the same files again still fires.

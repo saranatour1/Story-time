@@ -1,7 +1,3 @@
-// What the browser can record, and the names the server's transcriber knows.
-
-// What the recorder is asked for, best first: Chrome, Edge and Firefox make
-// webm or ogg, Safari makes mp4 (AAC).
 const PREFERRED = [
   "audio/webm;codecs=opus",
   "audio/webm",
@@ -11,7 +7,6 @@ const PREFERRED = [
 
 export type VoiceFormat = "webm" | "ogg" | "m4a";
 
-// The server's name for a recorded type, or undefined for one it can't read.
 export const formatOfMime = (mime: string): VoiceFormat | undefined => {
   const type = mime.toLowerCase().split(";")[0]?.trim();
   if (type === "audio/webm") return "webm";
@@ -20,7 +15,6 @@ export const formatOfMime = (mime: string): VoiceFormat | undefined => {
   return undefined;
 };
 
-// Whether this browser can record at all: needs a microphone API and a recorder.
 export const canRecord = (): boolean => {
   return (
     typeof MediaRecorder !== "undefined" &&
@@ -29,12 +23,10 @@ export const canRecord = (): boolean => {
   );
 };
 
-// The first type from PREFERRED this browser records, or undefined to let it choose.
 export const pickMime = (): string | undefined => {
   return PREFERRED.find((type) => MediaRecorder.isTypeSupported(type));
 };
 
-// Why the microphone wasn't available, in words for the person.
 export const micProblem = (error: unknown): string => {
   const name = error instanceof DOMException ? error.name : "";
   if (name === "NotAllowedError" || name === "SecurityError") {

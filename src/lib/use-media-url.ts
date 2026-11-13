@@ -16,12 +16,8 @@ export type MediaVariant = "full" | "thumb";
 type MediaState = { url: string | null; failed: boolean };
 type Entry = { state: MediaState; users: Set<() => void>; abort: AbortController };
 
-// Who is asking for a picture: the signed-in viewer ("bearer"), or someone who
-// opened a share link ("share"), whose token is the only credential.
 export type MediaAuth = { kind: "bearer" | "share"; token: string };
 
-// A shared story provides its link's token. Without a provider, pictures are
-// fetched with the signed-in viewer's session.
 export const MediaAuthContext = createContext<MediaAuth | null>(null);
 
 const useMediaAuth = (): MediaAuth | null => {
@@ -33,13 +29,7 @@ const useMediaAuth = (): MediaAuth | null => {
 
 const IDLE: MediaState = { url: null, failed: false };
 
-// Blob URLs by media id, least recently used first, so a picture shown again
-// (the next scene, the feed after the story) appears at once. Keyed by id
-// alone: a viewer only ever learns ids the server lets them see, and a fresh
-// token mustn't refetch what's on screen.
-// ponytail: keeps up to 40 blobs nobody is showing; raise it if revisits
-// still flash, or move to the Cache API if memory becomes the problem.
-const MAX = 40;
+const MAX_IDLE_BLOBS = 40;
 const cache = new Map<string, Entry>();
 
 const cacheKey = (mediaId: string, variant: MediaVariant): string => {
@@ -54,7 +44,6 @@ const load = (
   const key = cacheKey(mediaId, variant);
   const hit = cache.get(key);
   cache.delete(key);
-  // A failure is retried once nobody is showing it.
   if (hit && !(hit.state.failed && hit.users.size === 0)) {
     cache.set(key, hit);
     return hit;
@@ -80,11 +69,10 @@ const load = (
   return entry;
 };
 
-// Drops the oldest entries nobody is showing; one still on screen keeps its URL.
 const evict = () => {
   evictUnused(
     cache,
-    MAX,
+    MAX_IDLE_BLOBS,
     (entry) => entry.users.size === 0,
     (entry) => {
       entry.abort.abort();
@@ -93,8 +81,6 @@ const evict = () => {
   );
 };
 
-// On sign-out: every picture leaves memory, so the next person at this browser
-// can't see the last one's. Pictures on screen fall back to the placeholder.
 export const clearMediaCache = () => {
   for (const [id, entry] of cache) {
     cache.delete(id);
@@ -105,8 +91,6 @@ export const clearMediaCache = () => {
   }
 };
 
-// Private media can't use a plain <img src>, so fetch it with the viewer's
-// token and hand back a blob URL. `failed` is set when it can't be shown.
 export const useMediaUrl = (
   mediaId: string | undefined,
   variant: MediaVariant = "full",
@@ -114,7 +98,6 @@ export const useMediaUrl = (
   const auth = useMediaAuth();
   const authRef = useRef(auth);
   authRef.current = auth;
-  // Subscribes again once access arrives, not each time a token is refreshed.
   const kind = auth?.kind;
   const subscribe = useCallback(
     (notify: () => void) => {
@@ -137,9 +120,6 @@ export const useMediaUrl = (
   );
 };
 
-// True once `node` has intersected the viewport (with a margin), or immediately
-// where the browser has no IntersectionObserver. The fetch waits on this, because
-// loading=lazy cannot defer a blob URL we create ourselves.
 export const useWhenSeen = (): [RefCallback<Element>, boolean] => {
   const [seen, setSeen] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
@@ -168,11 +148,9 @@ export const useWhenSeen = (): [RefCallback<Element>, boolean] => {
   return [ref, seen];
 };
 
-// Starts loading pictures that are about to be shown.
 export const usePrefetchMedia = (mediaIds: string[]) => {
   const auth = useMediaAuth();
   const ids = mediaIds.join(" ");
-  // Taken apart, so the effect reruns for a new token rather than a new object.
   const kind = auth?.kind;
   const token = auth?.token;
   useEffect(() => {

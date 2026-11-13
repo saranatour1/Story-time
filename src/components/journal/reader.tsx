@@ -15,22 +15,24 @@ const SpreadPage = ({
   pageId,
   moments,
   scale,
-  token,
+  shareToken,
   eventId,
 }: {
   pageId: string;
   moments: ReadonlyMap<string, StoryMoment>;
   scale: number;
-  token?: string;
+  shareToken?: string;
   eventId?: string;
 }) => {
   const { data: member } = useQuery(
-    queries.journal.page(token ? "skip" : { pageId: pageId as Id<"journalPages"> }),
+    queries.journal.page(shareToken ? "skip" : { pageId: pageId as Id<"journalPages"> }),
   );
   const { data: shared } = useQuery(
-    queries.share.page(token ? { token, pageId: pageId as Id<"journalPages"> } : "skip"),
+    queries.share.page(
+      shareToken ? { token: shareToken, pageId: pageId as Id<"journalPages"> } : "skip",
+    ),
   );
-  const page = token ? shared : member;
+  const page = shareToken ? shared : member;
   if (page === undefined || page === null) {
     return (
       <div
@@ -63,8 +65,6 @@ const SpreadPage = ({
   );
 };
 
-// A page that no longer matches its moment. The words only; the button lives
-// in make mode, where the owner can ask.
 const PageNotice = ({ page }: { page: { gone: boolean; stale: boolean } }) => {
   const line = page.gone
     ? "This moment was taken out of the trip."
@@ -82,15 +82,13 @@ const PageNotice = ({ page }: { page: { gone: boolean; stale: boolean } }) => {
   );
 };
 
-// Reading the journal like a book: the cover alone, then two pages at a time
-// (one on a phone), turned with the arrows, the keyboard or a swipe.
 export const Reader = ({
   pages,
   moments,
   size,
   start,
   onPage,
-  token,
+  shareToken,
   eventId,
 }: {
   pages: Array<{ _id: string }>;
@@ -98,13 +96,10 @@ export const Reader = ({
   size: { w: number; h: number };
   start: number;
   onPage: (index: number) => void;
-  // Set on a share link, which has no signed-in reader.
-  token?: string;
-  // Set when Play can offer the full note of a clipped page.
+  shareToken?: string;
   eventId?: string;
 }) => {
   const pair = size.w >= 900;
-  // Spreads: the cover alone, then pages side by side.
   const spreads = pair
     ? [
         [0],
@@ -178,10 +173,9 @@ export const Reader = ({
                 pageId={pages[i]!._id}
                 moments={moments}
                 scale={scale}
-                token={token}
+                shareToken={shareToken}
                 eventId={eventId}
               />
-              {/* The fold down the middle of a spread. */}
               {pair && shown.length === 2 && (
                 <div
                   aria-hidden

@@ -19,7 +19,6 @@ const ACCENT = "#c2410c";
 const PAPER = "#f3e9d6";
 
 const PORTRAIT = "(orientation: portrait)";
-// A phone held upright gets a tall sheet, so the map fills its screen.
 const useOrientation = (): Orientation => {
   const portrait = useSyncExternalStore(
     (onChange) => {
@@ -33,10 +32,6 @@ const useOrientation = (): Orientation => {
   return portrait ? "portrait" : "landscape";
 };
 
-// A drawn map of the trip. Every place sits at a fixed spot; legs already
-// travelled are faint, and the current one draws itself while its transport
-// crosses it. `idle` is the scene waiting further down the page: nothing
-// travelled yet, the transport parked at the start.
 export const MapScene = ({
   places,
   legs,
@@ -71,7 +66,6 @@ export const MapScene = ({
       visited.add(l.to);
     }
   }
-  // Names that would crowd another are left out; their places keep a dot.
   const names = placeNames(points, {
     sheet: w,
     portrait: orientation === "portrait",
@@ -96,7 +90,6 @@ export const MapScene = ({
         </span>{" "}
         {leg.to}
       </h2>
-      {/* As wide as fits, but never taller than 60% of the screen. */}
       <svg
         viewBox={`0 0 ${w} ${h}`}
         className="w-full rounded-md shadow-2xl"
@@ -145,7 +138,6 @@ export const MapScene = ({
         })}
 
         <LegPath d={d} transport={leg.transport} />
-        {/* The travelled part of the leg, drawing itself. */}
         <path
           d={d}
           pathLength={1}
@@ -210,7 +202,6 @@ export const MapScene = ({
   );
 };
 
-// The leg itself, styled by how it was travelled.
 const LegPath = ({
   d,
   transport,
@@ -325,7 +316,6 @@ const LegPath = ({
   }
 };
 
-// A place's dot, and its name where the sheet has room for it (see placeNames).
 const Place = ({
   p,
   name,

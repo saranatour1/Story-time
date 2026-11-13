@@ -5,7 +5,6 @@ import { JournalBook } from "@/components/journal/book";
 import { queries } from "@/lib/queries";
 import type { Id } from "../../../convex/_generated/dataModel";
 
-// The experience as a journal of A4 pages, full width: the page is the point.
 const JournalPage = () => {
   const { id } = Route.useParams();
   const { momentId } = Route.useSearch();
@@ -16,9 +15,7 @@ const JournalPage = () => {
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/e/$id/journal")({
-  // Opens on this moment's page.
   validateSearch: z.object({ momentId: z.string().optional().catch(undefined) }),
   loader: ({ context: { prefetch }, params }) => {
     const eventId = params.id as Id<"events">;

@@ -83,15 +83,15 @@ import { useJournal } from "./use-journal";
 
 type PageId = Id<"journalPages">;
 
-// What was copied or cut, for pasting on any page of any journal open here.
-let clipboard: JournalElement | null = null;
+let copiedElement: JournalElement | null = null;
 
-// A picture's size, and whether it has see-through parts (then it is a
-// sticker, not a photo).
-const measure = async (file: File): Promise<{ w: number; h: number; clear: boolean }> => {
+const MIN_SCALE = 0.15;
+const MAX_SCALE = 3;
+
+const measure = async (file: File): Promise<{ w: number; h: number; transparent: boolean }> => {
   const bitmap = await createImageBitmap(file);
   const { width: w, height: h } = bitmap;
-  let clear = false;
+  let transparent = false;
   if (file.type === "image/png" || file.type === "image/webp" || file.type === "image/gif") {
     const canvas = document.createElement("canvas");
     canvas.width = 48;
@@ -101,13 +101,13 @@ const measure = async (file: File): Promise<{ w: number; h: number; clear: boole
     const data = ctx?.getImageData(0, 0, 48, 48).data;
     for (let i = 3; data && i < data.length; i += 4) {
       if (data[i]! < 230) {
-        clear = true;
+        transparent = true;
         break;
       }
     }
   }
   bitmap.close();
-  return { w, h, clear };
+  return { w, h, transparent };
 };
 
 const isUrl = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
@@ -116,10 +116,6 @@ const typing = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.isContentEditable || t.closest("input, textarea, select") !== null);
 
-// The journal of an experience: its pages down the side, the open page in the
-// middle, and what to add (or what to do with the picked thing) on the right.
-// Read turns it into a book; the menu prints it, saves it as a file, or brings
-// one back.
 export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: string }) => {
   const [index, setIndex] = useState(0);
   const journal = useJournal(event._id, index);
@@ -140,8 +136,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     [moments],
   );
 
-  // The page wants the room: the app's sidebar folds to its icons while the
-  // journal is open, and comes back after.
   const sidebar = useSidebar();
   const folded = useRef(false);
   useEffect(() => {
@@ -152,11 +146,8 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     return () => {
       if (folded.current) sidebar.setOpen(true);
     };
-    // Once, when the journal opens.
   }, []);
 
-  // Asked for a moment's page: open on it once that page exists. An empty list
-  // while the book is still loading is not "there is no page".
   const opened = useRef(false);
   useEffect(() => {
     if (opened.current || !momentId || !journal.ready) return;
@@ -170,13 +161,11 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
   }, [momentId, journal.ready, journal.pages, journal.pending]);
   const [selected, setSelected] = useState<string | null>(null);
   const [writing, setWriting] = useState<string | null>(null);
-  // Read or make: owners make by default, everyone else reads.
   const [mode, setMode] = useState<"read" | "make" | null>(null);
   const reading = mode === null ? !journal.owner : mode === "read" || !journal.owner;
   const setReading = (read: boolean) => setMode(read ? "read" : "make");
   const [cutting, setCutting] = useState<{ open: boolean; photo?: string }>({ open: false });
   const [removing, setRemoving] = useState<PageId | null>(null);
-  // The panel as a sheet, on a phone.
   const [sheet, setSheet] = useState(false);
   const [printing, setPrinting] = useState<{ done: number; total: number } | null>(null);
   const printJob = useRef<AbortController | null>(null);
@@ -184,14 +173,11 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
   const [sheetPage, setSheetPage] = useState<PageData | null>(null);
   const importer = useRef<HTMLInputElement>(null);
   const picker = useRef<HTMLInputElement>(null);
-  // Where pictures picked from the device go: where the page was right-clicked, or the middle.
   const pickAt = useRef<{ x: number; y: number } | undefined>(undefined);
   const token = useAuthToken();
   const keepPicture = useMutation(api.journal.keepSticker);
   const dropSticker = useMutation(api.journal.dropSticker);
   const previewLink = useAction(api.journal.linkPreview);
-  // The pen, when drawing: what draws and in which ink. Strokes drawn in one go
-  // gather into one drawing (`session`) until the pen is put down.
   const [pen, setPen] = useState<{ style: string; color: string } | null>(null);
   const session = useRef<{ page: string; id: string } | null>(null);
   const putPenDown = () => {
@@ -208,7 +194,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
   const editable = journal.canEdit && page !== undefined && !page.locked && !reading;
   const chosen = page?.elements.find((e) => e.id === selected);
 
-  // The middle column's size, for fitting the page into it.
   const stage = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 900 });
   useEffect(() => {
@@ -220,11 +205,9 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     observer.observe(el);
     return () => observer.disconnect();
   }, [reading]);
-  // The page fits the space; zoom multiplies that, from a fifth to three times A4.
-  const fit = Math.max(0.15, Math.min((size.w - 32) / PAGE.w, (size.h - 32) / PAGE.h));
+  const fit = Math.max(MIN_SCALE, Math.min((size.w - 32) / PAGE.w, (size.h - 32) / PAGE.h));
   const [zoom, setZoom] = useState(1);
-  const scale = Math.min(3, Math.max(0.15, fit * zoom));
-  // Where to keep still while zooming (a point in the stage, and the page point under it).
+  const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, fit * zoom));
   const anchor = useRef<{ sx: number; sy: number; px: number; py: number } | null>(null);
   const zoomBy = (factor: number, at?: { clientX: number; clientY: number }) => {
     const el = stage.current;
@@ -239,9 +222,8 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
         py: (el.scrollTop + sy) / scale,
       };
     }
-    setZoom((z) => Math.min(3 / fit, Math.max(0.15 / fit, z * factor)));
+    setZoom((z) => Math.min(MAX_SCALE / fit, Math.max(MIN_SCALE / fit, z * factor)));
   };
-  // After a zoom at a point, scroll so that point stays under the pointer.
   useLayoutEffect(() => {
     const el = stage.current;
     const a = anchor.current;
@@ -250,19 +232,17 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     el.scrollLeft = a.px * scale - a.sx;
     el.scrollTop = a.py * scale - a.sy;
   }, [scale]);
-  // A pinch, or ⌘/Ctrl and the wheel, zooms the page and not the browser.
   useEffect(() => {
     const el = stage.current;
     if (!el) return;
-    const wheel = (e: WheelEvent) => {
+    const zoomOnPinchOrModifierWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       zoomBy(Math.exp(-e.deltaY * 0.01), e);
     };
-    el.addEventListener("wheel", wheel, { passive: false });
-    return () => el.removeEventListener("wheel", wheel);
+    el.addEventListener("wheel", zoomOnPinchOrModifierWheel, { passive: false });
+    return () => el.removeEventListener("wheel", zoomOnPinchOrModifierWheel);
   });
-  // Holding Space turns the pointer into a hand that moves a zoomed-in page around.
   const [hand, setHand] = useState(false);
   const panning = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   useEffect(() => {
@@ -327,7 +307,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     ]);
     setSelected(id);
   };
-  // To the very front or back, or one step past its nearest neighbour.
   const layer = (e: JournalElement | undefined, to: Layer) => {
     if (!page || !e) return;
     const others = page.elements.filter((x) => x.id !== e.id).map((x) => x.z);
@@ -350,18 +329,17 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
   };
   const restack = (to: "front" | "back") => layer(chosen, to);
   const copy = (e = chosen) => {
-    if (e) clipboard = { ...e, locked: undefined };
+    if (e) copiedElement = { ...e, locked: undefined };
   };
   const cut = (e = chosen) => {
     if (!e || e.locked) return;
     copy(e);
     remove(e);
   };
-  // A copy of what was copied: at `at`, or a little off where it was.
   const pasteCopied = (at?: { x: number; y: number }) => {
-    if (!page || !editable || !clipboard) return;
+    if (!page || !editable || !copiedElement) return;
     const id = newId();
-    const c = clipboard;
+    const c = copiedElement;
     const spot = at
       ? { x: Math.round(at.x - c.w / 2), y: Math.round(at.y - c.h / 2) }
       : { x: c.x + 24, y: c.y + 24 };
@@ -369,12 +347,10 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
       ...page.elements,
       { ...c, id, ...spot, z: Math.max(0, ...page.elements.map((x) => x.z)) + 1 },
     ]);
-    clipboard = { ...c, ...spot };
+    copiedElement = { ...c, ...spot };
     setSelected(id);
   };
 
-  // A stroke of the pen joins this session's drawing (growing its frame), or
-  // starts one. A drawing someone moved or sized since is left as it is.
   const stroke = (points: Array<{ x: number; y: number }>) => {
     if (!page || !pen || points.length === 0) return;
     const pad = (DRAW_WIDTH[pen.style]?.width ?? 4) / 2 + 2;
@@ -434,8 +410,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     session.current = { page: page._id, id };
   };
 
-  // Pictures from the device: each is saved with the journal and put on the
-  // page as a photo, or as a sticker when it has see-through parts.
   const addPictures = async (files: File[], at?: { x: number; y: number }) => {
     const pictures = files.filter((f) => f.type.startsWith("image/")).slice(0, 12);
     if (!page || !editable || !token || pictures.length === 0) return;
@@ -448,16 +422,16 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
         const size = await measure(file);
         const mediaId = await uploadMedia(file, event._id, token);
         await keepPicture({ mediaId: mediaId as Id<"media"> });
-        const w = size.clear ? 260 : 340;
+        const w = size.transparent ? 260 : 340;
         const h =
-          Math.round((w * size.h) / Math.max(1, size.w)) + (size.clear ? 0 : Math.round(w * 0.12));
+          Math.round((w * size.h) / Math.max(1, size.w)) +
+          (size.transparent ? 0 : Math.round(w * 0.12));
         add(
-          size.clear
+          size.transparent
             ? { kind: "sticker", mediaId, w, h }
             : { kind: "photo", style: "polaroid", mediaId, w, h },
           placedHere,
         );
-        // The next one lands a little further along.
         if (placedHere) placedHere = { x: placedHere.x + 30, y: placedHere.y + 30 };
       }
       toast.success(pictures.length === 1 ? "Picture added" : `${pictures.length} pictures added`, {
@@ -468,7 +442,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     }
   };
 
-  // A link as a card, read from the page it points to.
   const addLink = async (url: string, at?: { x: number; y: number }) => {
     if (!page || !editable || !isUrl(url)) return;
     const toastId = toast.loading("Reading the link…");
@@ -490,7 +463,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     }
   };
 
-  // A ready-made page from the references, after this one.
   const addIdea = async (idea: Idea) => {
     if (!page || !journal.canEdit) return;
     const from = event.startsAt;
@@ -507,7 +479,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     if (id) setIndex(Math.min(index, pages.length - 1) + 1);
   };
 
-  // Pasting: a picture or a link from anywhere, else what was copied here.
   useEffect(() => {
     const paste = (ev: ClipboardEvent) => {
       if (typing(ev.target) || reading || !editable) return;
@@ -519,7 +490,7 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
       } else if (isUrl(text)) {
         ev.preventDefault();
         void addLink(text);
-      } else if (clipboard) {
+      } else if (copiedElement) {
         ev.preventDefault();
         pasteCopied();
       }
@@ -528,18 +499,15 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     return () => window.removeEventListener("paste", paste);
   });
 
-  // What the last right-click was on, and where on the page.
   const [menu, setMenu] = useState<{ id?: string; at: { x: number; y: number } }>({
     at: { x: PAGE.w / 2, y: PAGE.h / 2 },
   });
   const menuOn = page?.elements.find((e) => e.id === menu.id);
 
-  // The keys, while the journal is open and nobody is typing.
   useEffect(() => {
     const keys = (e: KeyboardEvent) => {
       if (typing(e.target) || reading) return;
       const mod = e.metaKey || e.ctrlKey;
-      // Zoom, instead of the browser's.
       if (mod && (e.key === "=" || e.key === "+" || e.key === "-" || e.key === "0")) {
         e.preventDefault();
         if (e.key === "0") setZoom(1);
@@ -585,10 +553,7 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     return () => window.removeEventListener("keydown", keys);
   });
 
-  // ---- Paper out ----------------------------------------------------------------
-
   const offstage = useRef<HTMLDivElement>(null);
-  // Pages that share the open page's day. A page with no moment exports alone.
   const pagesForDay = (): PageId[] => {
     if (!summary) return [];
     const moment = summary.momentId ? momentById.get(summary.momentId) : undefined;
@@ -606,9 +571,8 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
     if (!loaded) throw new Error("The page couldn't be drawn.");
     setSheetPage(loaded as PageData);
     const node = await waitForPage(() => offstage.current, loaded._id);
-    return { node, hasMap: false, paper: paperLook(loaded.paper).color };
+    return { node, paper: paperLook(loaded.paper).color };
   };
-  // Pages drawn one at a time offstage into one PDF, with the count shown.
   const makePdf = async (ids: PageId[]): Promise<Blob> => {
     const job = new AbortController();
     printJob.current = job;
@@ -646,7 +610,7 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
       setSheetPage(page);
       const node = await waitForPage(() => offstage.current, page._id);
       download(
-        await pagePng({ node, hasMap: false, paper: paperLook(page.paper).color }),
+        await pagePng({ node, paper: paperLook(page.paper).color }),
         `${fileName(event.title)}-page-${index + 1}.png`,
       );
     } catch (e) {
@@ -668,8 +632,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
       toast.error(errorMessage(e));
     }
   };
-
-  // ---- The page -------------------------------------------------------------------
 
   if (!journal.ready || moments === undefined) {
     return (
@@ -716,8 +678,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
   };
   const at = Math.min(index, pages.length - 1);
 
-  // What to add, or what to do with the picked thing: the right column on a
-  // wide screen, a sheet from the bottom on a phone.
   const panel = !editable ? (
     <p className="px-3 py-4 text-sm text-stone-600">
       {journal.locked
@@ -763,7 +723,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
       className="paper-scope flex h-[calc(100svh-9.5rem)] min-h-[34rem] flex-col overflow-hidden rounded-xl border border-stone-300 bg-[#e9dfcb] text-[#1f1a16]"
       style={{ backgroundImage: GRAIN }}
     >
-      {/* The toolbar. */}
       <div className="flex flex-wrap items-center gap-1 border-b border-stone-300/80 bg-[#f3ead6]/90 px-2 py-1.5">
         <h2 className="mr-2 truncate text-2xl leading-none" style={{ fontFamily: FONTS.hand }}>
           {at === 0 ? "Cover" : `Page ${at}`}
@@ -894,8 +853,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
             ))}
           </div>
         )}
-        {/* On a phone the page strip and the panel are folded away: arrows turn
-            the pages, and the panel opens as a sheet. */}
         {!reading && (
           <div className="flex items-center gap-0.5 sm:hidden">
             <Button
@@ -1045,8 +1002,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {/* Contents, by day. The open page and its neighbours are drawn small;
-            the rest stay a label, so the strip does not decode every photo. */}
         <nav
           aria-label="Pages"
           className="hidden w-32 shrink-0 flex-col gap-3 overflow-y-auto border-r border-stone-300/80 bg-[#efe6d2]/80 p-2 sm:flex"
@@ -1105,7 +1060,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
           )}
         </nav>
 
-        {/* The open page, or the book. */}
         <div
           ref={stage}
           className={cn(
@@ -1114,7 +1068,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
           )}
           onPointerDownCapture={(e) => {
             if (!hand || !stage.current) return;
-            // The hand moves the page; nothing on it is picked up.
             e.stopPropagation();
             e.preventDefault();
             panning.current = {
@@ -1133,7 +1086,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
           }}
           onPointerUp={() => (panning.current = null)}
           onPointerCancel={() => (panning.current = null)}
-          // Pictures dropped on the page land where they were let go.
           onDragOver={(e) => {
             if (editable && e.dataTransfer.types.includes("Files")) {
               e.preventDefault();
@@ -1156,7 +1108,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
           {reading ? (
             <Reader pages={pages} moments={momentById} size={size} start={at} onPage={setIndex} />
           ) : (
-            // Centred while it fits; scrollable to every edge once it doesn't.
             <div className="flex min-h-full min-w-max p-4">
               <div className="m-auto">
                 {summary?.gone && (
@@ -1196,7 +1147,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
                     <div
                       className="shadow-[0_18px_40px_rgba(40,28,10,.32)]"
                       onContextMenu={(ev) => {
-                        // What is under the pointer, and where on the page.
                         const root =
                           ev.currentTarget.querySelector<HTMLElement>("[data-journal-page]");
                         const r = root?.getBoundingClientRect();
@@ -1232,7 +1182,7 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
                     paper={page!.paper}
                     pageLocked={page!.locked || journal.locked}
                     can={{
-                      paste: clipboard !== null && editable,
+                      paste: copiedElement !== null && editable,
                       edit: journal.owner && !journal.locked,
                     }}
                     act={{
@@ -1269,7 +1219,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
           )}
         </div>
 
-        {/* What to add, or what to do with the picked thing. */}
         {!reading && (
           <aside
             aria-label={chosen ? "The picked thing" : "Things to add"}
@@ -1375,7 +1324,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
           setRemoving(null);
         }}
       />
-      {/* Pages drawn at full size, out of sight, for printing. */}
       {sheetPage !== null &&
         createPortal(
           <div
@@ -1387,7 +1335,7 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
               page={sheetPage}
               moments={momentById}
               scale={1}
-              print
+              mapsAsNames
               pageKey={sheetPage._id}
             />
           </div>,
@@ -1399,8 +1347,6 @@ export const JournalBook = ({ event, momentId }: { event: EventView; momentId?: 
 
 const THUMB = 96 / PAGE.w;
 
-// The open page and the one on either side are drawn. Every other contents
-// entry stays the paper colour and its label.
 const StripFace = ({
   pageId,
   paper,

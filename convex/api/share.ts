@@ -1,6 +1,5 @@
 import { shareApi } from "../model/share";
 
-// Written in convex/model/share.ts.
 export const {
   shown,
   setShown,

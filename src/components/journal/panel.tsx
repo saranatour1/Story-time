@@ -31,9 +31,6 @@ import { Deco, Note, Title } from "./elements";
 import { dayIdea, type Idea, IDEAS, type TierItem, tierIdea } from "./ideas";
 import { DECO_NAMES, FONTS, INK, NOTE_NAMES, PAPER_LOOKS, PRINT_NAMES, TITLE_NAMES } from "./look";
 
-// The side of the journal: what you can put on a page, or, with something
-// picked, what you can do with it.
-
 const SECTION = "font-mono text-[11px] tracking-[0.14em] text-stone-500 uppercase";
 
 const Section = ({ title, children }: { title: string; children: ReactNode }) => {
@@ -70,7 +67,6 @@ const Thumb = ({ mediaId, className }: { mediaId: string; className?: string }) 
   );
 };
 
-// A small drawing of a style, to pick it by sight.
 const Sample = ({
   children,
   label,
@@ -112,20 +108,18 @@ const sample = (kind: JournalElement["kind"], style: string, text?: string): Jou
   z: 0,
 });
 
-// Draws a title, note or bit at a small size inside a sample.
-// `room` is how wide the sample is.
 const Mini = ({
   e,
   w,
   h,
-  room = 118,
+  sampleWidth = 118,
 }: {
   e: JournalElement;
   w: number;
   h: number;
-  room?: number;
+  sampleWidth?: number;
 }) => {
-  const scale = Math.min(room / w, 56 / h);
+  const scale = Math.min(sampleWidth / w, 56 / h);
   return (
     <div style={{ width: w * scale, height: h * scale }}>
       <div style={{ width: w, height: h, transform: `scale(${scale})`, transformOrigin: "0 0" }}>
@@ -140,8 +134,6 @@ const Mini = ({
     </div>
   );
 };
-
-// ---- What to add -----------------------------------------------------------------------
 
 const photosOf = (m: MomentView): string[] =>
   [m.blocks, ...m.stops.map((s) => s.blocks)]
@@ -175,7 +167,6 @@ export const AddTray = ({
 }) => {
   const [url, setUrl] = useState("");
   const days = groupByDay(moments);
-  // What can be ranked: every place, every moment, or one moment's stops.
   const placeName = (p?: string) => p?.split(",")[0]!.trim() || undefined;
   const placesOf = (m: MomentView) =>
     [m.place, ...m.stops.map((s) => s.place)]
@@ -307,7 +298,7 @@ export const AddTray = ({
               label={`Add ${DECO_NAMES[d]}`}
               onClick={() => onAdd({ kind: "deco", style: d, text: WORDED[d], w: 0, h: 0 })}
             >
-              <Mini e={sample("deco", d, WORDED[d])} {...sizeOf("deco", d)} room={56} />
+              <Mini e={sample("deco", d, WORDED[d])} {...sizeOf("deco", d)} sampleWidth={56} />
             </Sample>
           ))}
         </div>
@@ -453,8 +444,6 @@ export const AddTray = ({
     </div>
   );
 };
-
-// ---- What to do with the picked thing ------------------------------------------------------
 
 const NAMES: Record<JournalElement["kind"], string> = {
   photo: "Photo",

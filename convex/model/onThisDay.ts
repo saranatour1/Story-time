@@ -9,8 +9,6 @@ import { localYear, monthDayOf } from "../lib/monthDay";
 const BATCH = 100;
 const SCAN = 500;
 
-// Fills month-day on moments saved before the field existed, then sends.
-// Skipped entirely when email is not configured, so nothing is queued to fail.
 export const prepare = internalMutation({
   args: { cursor: v.optional(v.string()) },
   returns: v.null(),
@@ -43,8 +41,6 @@ const utcDay = (now: number): string => {
   return `${d.getUTCFullYear()}-${month}-${day}`;
 };
 
-// One note per owner per UTC day, and only when a past year has this date.
-// The message names nothing about the memory.
 export const send = internalMutation({
   args: {},
   returns: v.null(),

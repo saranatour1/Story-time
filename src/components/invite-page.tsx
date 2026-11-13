@@ -6,21 +6,14 @@ import { LoginForm } from "@/components/login-form";
 import { SignedOutPage } from "@/components/sign-in-screen";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
+import { forgetStored } from "@/lib/storage";
 
-// Where a link's token waits in this tab while its opener signs in: sign-in
-// comes back to /invite without the "#" part, so the token never travels with it.
 export const INVITE_STASH = "storytime:invite";
 
 const forgetStash = () => {
-  try {
-    sessionStorage.removeItem(INVITE_STASH);
-  } catch {
-    // Storage blocked: there was nothing kept to forget.
-  }
+  forgetStored("session", INVITE_STASH);
 };
 
-// Opens an invite: sign in if needed, then use the token once and go to the
-// experience. Used by /invite#<token> and by older /invite/<token> links.
 export const InvitePage = ({ token, returnTo }: { token: string; returnTo?: string }) => {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const accept = useMutation(api.invites.accept);
@@ -28,14 +21,12 @@ export const InvitePage = ({ token, returnTo }: { token: string; returnTo?: stri
   const [error, setError] = useState<string | null>(
     token ? null : "This invite link is missing its code.",
   );
-  const started = useRef(false);
+  const acceptAttempted = useRef(false);
 
   useEffect(() => {
-    if (!token || !isAuthenticated || started.current) return;
-    started.current = true; // an invite works for the first person who opens it, so never retry
+    if (!token || !isAuthenticated || acceptAttempted.current) return;
+    acceptAttempted.current = true;
     accept({ token })
-      // Kept after a failure, so a reload can try again (say, once an
-      // archived experience is restored).
       .then((r) => {
         forgetStash();
         return navigate({ to: "/e/$id", params: { id: r.eventId } });
@@ -67,7 +58,6 @@ export const InvitePage = ({ token, returnTo }: { token: string; returnTo?: stri
             {isAuthenticated ? "Opening the experience…" : ""}
           </p>
         ) : (
-          // OAuth returns to this page, and the effect above accepts the invite.
           <LoginForm
             returnTo={returnTo}
             heading="You're invited"

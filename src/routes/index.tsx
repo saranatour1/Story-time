@@ -38,11 +38,10 @@ import { useInView, useReducedMotion } from "@/components/landing/paper";
 import { SwipeDeck } from "@/components/landing/swipe-deck";
 import { SignInButtons } from "@/components/login-form";
 import { Logo } from "@/components/logo";
-import { CONTAINER } from "@/components/sign-in-screen";
+import { CONTAINER } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// MapLibre is heavy, so the globe arrives only when its band comes near.
 const LiveGlobe = lazy(() =>
   import("@/components/landing/live-globe").then((m) => ({ default: m.LiveGlobe })),
 );
@@ -51,12 +50,8 @@ const Landing = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
 
   if (isAuthenticated) return <Navigate to="/home" replace />;
-  // Until auth settles, the same first screen the server sent. It stays hidden
-  // for someone with a session, so they don't see sign-in on the way to /home.
   if (isLoading) return <LandingFirstPaint />;
 
-  // Always story mode's dark room: `dark` gives the app's own buttons and
-  // cards their dark colours inside.
   return (
     <div className="dark relative flex min-h-svh flex-col overflow-x-clip bg-[#141210] text-stone-100 [color-scheme:dark]">
       <Nav />
@@ -73,8 +68,6 @@ const Landing = () => {
   );
 };
 
-// The page's frame: thin rails either side of the column, a rule between
-// bands, and a small cross where they meet.
 const RAILS = cn(CONTAINER, "relative sm:border-x sm:border-white/10");
 const EYEBROW = "font-mono text-[11px] font-medium tracking-[0.22em] text-amber-300 uppercase";
 const H2 =
@@ -111,8 +104,6 @@ const SectionLink = ({
   );
 };
 
-// "Sign in" brings the hero's buttons into view and focuses the first,
-// rather than going anywhere.
 const goToSignIn = (e: React.MouseEvent<HTMLAnchorElement>) => {
   const target = document.getElementById("sign-in");
   if (!target) return;
@@ -177,11 +168,8 @@ const Nav = () => {
   );
 };
 
-// Short single words: the first line never changes how it wraps.
 const WORDS = ["sunset", "photo", "detour", "picnic", "ferry", "toast"];
 
-// The headline's changing word, in italics. Its box eases to each word's
-// width, so the line closes up around short words instead of leaving gaps.
 const Rotating = ({ words }: { words: string[] }) => {
   const reduced = useReducedMotion();
   const [shown, setShown] = useState(0);
@@ -328,7 +316,6 @@ const Cross = ({ className }: { className: string }) => {
   );
 };
 
-// Fades a band's heading up the first time it scrolls into view.
 const Reveal = ({ className, children }: { className?: string; children: ReactNode }) => {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>();
@@ -346,7 +333,6 @@ const Reveal = ({ className, children }: { className?: string; children: ReactNo
   );
 };
 
-// One band of the page: a small label, a heading and a line, then what it shows.
 const Band = ({
   id,
   eyebrow,
@@ -382,7 +368,6 @@ const Band = ({
   );
 };
 
-// Side-by-side panels split by a rule, each with a title and a line under it.
 const Split = ({ children }: { children: ReactNode }) => {
   return (
     <div className="grid border-y border-white/10 md:grid-cols-2 md:divide-x md:divide-white/10">
@@ -445,7 +430,6 @@ const Photos = () => {
   );
 };
 
-// The globe's trip, leg by leg (live-globe.tsx draws the same stops).
 const LEGS = [
   { from: "Porto", to: "Lisbon", by: "By train", icon: TrainFrontIcon, time: "2h 58m" },
   { from: "Lisbon", to: "Marrakech", by: "By plane", icon: PlaneIcon, time: "1h 25m" },
@@ -466,8 +450,6 @@ const supportsWebGL = (): boolean => {
   }
 };
 
-// The live globe once the band is near, turning only while it's on screen.
-// Without WebGL, the drawn map stands in.
 const Globe = () => {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
@@ -605,8 +587,6 @@ const StoryMode = () => {
   );
 };
 
-// Each line checked against the code: access checks, invites, encryption,
-// media serving, archive and delete.
 const PROMISES = [
   "Only the people you invite, or anyone holding a link you switch on, can open an experience.",
   "An invite link works for the first person who opens it and expires after 7 days.",
@@ -746,5 +726,4 @@ const Footer = () => {
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/")({ component: Landing });

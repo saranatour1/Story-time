@@ -10,22 +10,19 @@ import {
   type EventRole,
 } from "../lib/access";
 import { changeCounts, eventMedia, uploadBytes } from "../lib/aggregates";
+import { invalid } from "../lib/blocks";
 import { recordChange } from "../lib/changes";
 import { coverWords, followCover } from "../lib/cover";
 import { decryptGeo, encryptText, readText } from "../lib/crypto";
 import { MAX_EVENTS_PER_USER } from "../lib/limits";
 
 const vStatus = v.union(v.literal("draft"), v.literal("active"), v.literal("archived"));
-// Owners set these by hand. A link is switched on and off only in share.ts.
 const vEditableVisibility = v.union(v.literal("private"), v.literal("invite"));
 
-// Moments read for a sketch, and the most points it keeps: enough for a shape.
 const SKETCH_MOMENTS = 12;
 const SKETCH_POINTS = 40;
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 
-// The first stops of an experience with a place on the map, in time order,
-// rounded to about 100 m (it is a drawing, not a map). Repeats in a row drop out.
 const sketchFor = async (ctx: QueryCtx, event: Doc<"events">) => {
   const moments = await ctx.db
     .query("moments")
@@ -45,8 +42,6 @@ const sketchFor = async (ctx: QueryCtx, event: Doc<"events">) => {
   return points.length >= 2 ? points : undefined;
 };
 
-// The experience as a home card shows it. No description: the cards never
-// show one, so there's nothing to decrypt for them.
 const summaryOf = (event: Doc<"events">, role: EventRole) => {
   return {
     _id: event._id,
@@ -65,8 +60,6 @@ const toView = async (event: Doc<"events">, role: EventRole) => {
   return { ...summaryOf(event, role), description: await readText(event._id, event.description) };
 };
 
-// The chosen cover, else the first photo (not video) of the earliest few
-// moments, first stop before later ones. Bounded to 5 moments per event.
 const coverFor = async (ctx: QueryCtx, event: Doc<"events">): Promise<Id<"media"> | undefined> => {
   if (event.coverMediaId !== undefined) return event.coverMediaId;
   const moments = await ctx.db
@@ -81,16 +74,12 @@ const coverFor = async (ctx: QueryCtx, event: Doc<"events">): Promise<Id<"media"
   return undefined;
 };
 
-// Typed as a whole: TypeScript only follows a `never` call through a declared type.
-const invalid: (field: string, message: string) => never = (field, message) => {
-  throw new ConvexError({ code: "INVALID", field, message });
-};
+const FREE_TEXT_FIELDS: ReadonlySet<string> = new Set(["title"]);
 
 const createDraft = mutation({
   args: {},
   handler: async (ctx) => {
     const userId = await requireUserId(ctx);
-    // Bounded: the count only needs to reach the cap. Deleting one frees a slot.
     const owned = await ctx.db
       .query("events")
       .withIndex("by_owner", (q) => q.eq("ownerId", userId))
@@ -130,8 +119,7 @@ const update = mutation({
   args: {
     eventId: v.id("events"),
     title: v.optional(v.string()),
-    description: v.optional(v.string()), // "" clears it
-    // null clears a date; omitted leaves it as is.
+    description: v.optional(v.string()),
     startsAt: v.optional(v.union(v.number(), v.null())),
     endsAt: v.optional(v.union(v.number(), v.null())),
     visibility: v.optional(vEditableVisibility),
@@ -162,13 +150,10 @@ const update = mutation({
       key: "title" | "startsAt" | "endsAt" | "visibility" | "status",
       next: string | number | null | undefined,
     ) => {
-      // null clears the field; history records it as null.
       if (next === undefined || next === (event[key] ?? null)) return;
       (patch as Record<string, unknown>)[key] = next ?? undefined;
       fields.push(key);
-      // The title is free text, like the description: log that it changed,
-      // never its words.
-      if (key === "title") return;
+      if (FREE_TEXT_FIELDS.has(key)) return;
       before[key] = event[key] ?? null;
       after[key] = next;
     };
@@ -176,14 +161,12 @@ const update = mutation({
     note("startsAt", args.startsAt);
     note("endsAt", args.endsAt);
     note("visibility", args.visibility);
-    // Taking the link off here, rather than under Shared, switches it off too.
     if (event.visibility === "link" && fields.includes("visibility")) {
       patch.shareKey = undefined;
       patch.shareToken = undefined;
     }
     note("status", args.status);
 
-    // Free text is user content: log that it changed, never its value.
     if (args.description !== undefined) {
       const next = args.description.trim() === "" ? undefined : args.description;
       if (next !== (await readText(event._id, event.description))) {
@@ -219,8 +202,6 @@ const update = mutation({
   },
 });
 
-// Takes a string: the id comes from the URL, and a malformed one should read
-// as "not found" rather than fail validation.
 const get = query({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
@@ -264,13 +245,8 @@ const listMine = query({
   },
 });
 
-// Delete an experience. Deleting the row ends everyone's access at once; the
-// rest is cleaned up in batches so a large experience can't hit write limits.
-// R2 objects are removed first by DELETE /api/events/$id, which calls this.
 const remove = mutation({
   args: { eventId: v.id("events") },
-  // Explicit return types: these handlers reference `internal.model.events`,
-  // which TypeScript would otherwise infer from these same functions.
   handler: async (ctx, args): Promise<null> => {
     await requireEventAccess(ctx, args.eventId, "owner");
     await ctx.db.delete("events", args.eventId);
@@ -288,8 +264,6 @@ export const purgeEventData = internalMutation({
   returns: v.null(),
   handler: async (ctx, { eventId }): Promise<null> => {
     let deleted = 0;
-    // The experience's running counts go in one piece each; its uploads leave
-    // their owners' byte totals row by row, below.
     await eventMedia.clear(ctx, { namespace: eventId });
     await changeCounts.clear(ctx, { namespace: eventId });
 
@@ -350,8 +324,6 @@ export const purgeEventData = internalMutation({
       await ctx.db.delete("changes", row._id);
       deleted++;
     }
-    // Legacy tables: nothing writes them any more, but older experiences
-    // still have rows. Removed with the tables (simplification A2).
     for (const row of await ctx.db
       .query("itinerary")
       .withIndex("by_event_and_day", (q) => q.eq("eventId", eventId))
@@ -380,8 +352,6 @@ export const purgeEventData = internalMutation({
       await ctx.db.delete("canvases", row._id);
       deleted++;
     }
-    // A token limited to this experience. Account-wide tokens have no eventId
-    // and stay until A2 drops the table.
     for (const row of await ctx.db
       .query("agentTokens")
       .withIndex("by_event", (q) => q.eq("eventId", eventId))
@@ -400,5 +370,4 @@ export const purgeEventData = internalMutation({
   },
 });
 
-// What the app calls. Registered once, by convex/api/events.ts, which re-exports it.
 export const eventsApi = { createDraft, update, get, listMine, remove };

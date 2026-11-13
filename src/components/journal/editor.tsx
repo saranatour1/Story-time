@@ -9,8 +9,6 @@ import {
 } from "react";
 import type Moveable from "react-moveable";
 
-// Loaded when the page can be edited, in its own chunk. The journal can paint
-// before the handles arrive.
 const MoveableView = lazy(() => import("react-moveable"));
 import { type JournalElement, PAGE } from "../../../convex/lib/journal";
 import type { MomentView } from "@/components/event/types";
@@ -18,11 +16,6 @@ import { tapedTo } from "./add";
 import { pathThrough, placeOf, StrokePath } from "./elements";
 import { FONTS } from "./look";
 import { JournalPage, type PageData } from "./page";
-
-// One page, editable: press a thing to pick it up, drag it, pull its corners
-// to size it, turn it by the round handle. Edges and middles snap to the page
-// and to each other. Double-click words to write. Nothing changes the saved
-// page until a gesture ends.
 
 const KEEP_RATIO = new Set<JournalElement["kind"]>(["photo", "sticker"]);
 const WRITABLE = new Set<JournalElement["kind"]>(["title", "note"]);
@@ -50,12 +43,10 @@ export const PageEditor = ({
   scale: number;
   editable: boolean;
   selected: string | null;
-  // The element whose words are open for writing.
   writing: string | null;
   onSelect: (id: string | null) => void;
   onWrite: (id: string | null) => void;
   onChange: (elements: JournalElement[]) => void;
-  // Drawing: what draws, and where each finished stroke goes.
   pen?: { style: string; color: string } | null;
   onStroke?: (points: Array<{ x: number; y: number }>) => void;
 }) => {
@@ -70,7 +61,6 @@ export const PageEditor = ({
   const elements = useRef(page.elements);
   elements.current = page.elements;
 
-  // The DOM node of what is selected, once it is drawn.
   useEffect(() => {
     const el = selected
       ? root.current?.querySelector<HTMLElement>(`[data-el="${CSS.escape(selected)}"]`)
@@ -85,16 +75,13 @@ export const PageEditor = ({
             (n) => n.dataset.el !== selected,
           )
         : [],
-    // Recomputed when the page or the selection changes.
     [page, selected, target],
   );
 
   const update = (id: string, change: Partial<JournalElement>) =>
     onChange(elements.current.map((e) => (e.id === id ? { ...e, ...change } : e)));
 
-  // Pressing a thing picks it up and starts a drag in the same gesture.
   const press = (ev: ReactPointerEvent<HTMLDivElement>) => {
-    // Only the main button picks up; a right-click opens the menu instead.
     if (!editable || writing || ev.button !== 0) return;
     const node = (ev.target as HTMLElement).closest<HTMLElement>("[data-el]");
     if ((ev.target as HTMLElement).closest("[data-no-drag]")) return;
@@ -175,7 +162,6 @@ export const PageEditor = ({
               onDrag={({ target: t, beforeTranslate }) => {
                 const [x, y] = [beforeTranslate[0]!, beforeTranslate[1]!];
                 t.style.transform = placeOf({ x, y, rotation: chosen.rotation });
-                // Its tape comes along.
                 for (const tape of tapedTo(chosen, elements.current)) {
                   const node = root.current?.querySelector<HTMLElement>(
                     `[data-el="${CSS.escape(tape.id)}"]`,
@@ -241,8 +227,6 @@ export const PageEditor = ({
   );
 };
 
-// Writing on a thing: a text box over it, in its place and turn. Enter keeps a
-// title; a note keeps its new lines until you click away. Escape leaves it as it was.
 const WordsBox = ({
   e,
   onDone,
@@ -292,8 +276,6 @@ const WordsBox = ({
   );
 };
 
-// The pen on the page: press, draw, lift. The stroke shows as it is drawn and
-// goes to `onStroke`, in page units, when the pen lifts.
 const DrawLayer = ({
   pen,
   scale,
@@ -323,7 +305,6 @@ const DrawLayer = ({
         if (!points) return;
         const p = at(ev);
         const last = points.at(-1)!;
-        // Close points add nothing but size.
         if (Math.hypot(p.x - last.x, p.y - last.y) > 1.5 / Math.max(scale, 0.3))
           setPoints([...points, p]);
       }}

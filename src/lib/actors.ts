@@ -1,20 +1,14 @@
-// Who made something: a person, an agent (an AI working for a person, like
-// Scribe) or the system. The server stores
-// an agent's name and leaves people unmarked; this is where that becomes a kind.
 export type ActorView =
   | { kind: "human"; name?: string }
   | { kind: "agent"; name: string; onBehalfOf?: string }
   | { kind: "system" };
 
-// A moment's author: the person, or the agent that added it for them.
 export const authorOf = (m: { authorName?: string; authorAgent?: string }): ActorView => {
   return m.authorAgent === undefined
     ? { kind: "human", name: m.authorName }
     : { kind: "agent", name: m.authorAgent, onBehalfOf: m.authorName };
 };
 
-// A moment's latest editor, once it has been edited. A person is known by their
-// id; their name is optional, so someone who set none is still a person.
 export const editorOf = (m: {
   editedAt?: number;
   editedById?: string;
@@ -28,8 +22,6 @@ export const editorOf = (m: {
   return m.editedById === undefined ? { kind: "system" } : { kind: "human", name: m.editedByName };
 };
 
-// A moment's latest edit, when it is news: an agent's, or a person's who is not
-// its author.
 export const editNoticeOf = (m: {
   authorId?: string;
   editedAt?: number;
@@ -43,8 +35,6 @@ export const editNoticeOf = (m: {
   return by.kind === "human" && m.editedById !== m.authorId ? { at: m.editedAt, by } : undefined;
 };
 
-// A change in the activity log. `name` is the person's display name, when the
-// caller has looked it up.
 export const changeActorOf = (
   c: { actorId?: string; agent?: string },
   name?: string,
@@ -53,7 +43,6 @@ export const changeActorOf = (
   return c.actorId === undefined ? { kind: "system" } : { kind: "human", name };
 };
 
-// The words for an actor, for labels and tooltips.
 export const describeActor = (actor: ActorView): string => {
   switch (actor.kind) {
     case "human":
@@ -67,9 +56,6 @@ export const describeActor = (actor: ActorView): string => {
   }
 };
 
-// The author as a story's by-line names them: "you" for the signed-in person's
-// own moment, the person by name, or the agent that added the moment for them.
-// A shared story names no one, so it has no author at all.
 export const authorByline = (
   m: { authorId?: string; authorName?: string; authorAgent?: string },
   meId?: string,

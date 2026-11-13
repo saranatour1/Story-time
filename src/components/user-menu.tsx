@@ -16,8 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
 import { clearMediaCache } from "@/lib/use-media-url";
 
-// Footer card: shows who you are and opens a menu to the side with
-// Settings and Sign out.
 export const UserMenu = () => {
   const { data: user } = useQuery(queries.users.getCurrentUser());
   const { signOut } = useAuthActions();

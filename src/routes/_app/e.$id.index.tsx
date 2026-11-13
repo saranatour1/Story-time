@@ -19,20 +19,26 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { initials } from "@/components/user-avatar";
 
 const search = z.object({
-  // Sections that were tabs here are pages of their own now; links to them
-  // are sent on (see beforeLoad).
   tab: z
     .enum(["itinerary", "shared", "activity", "canvas", "journal", "settings"])
     .optional()
     .catch(undefined),
   panel: z.enum(["outline", "details", "moment"]).default("outline").catch("outline"),
-  // The moment picked in the list, open to look at when `peek` is set.
   momentId: z.string().optional().catch(undefined),
-  // The moment open in the editor, kept apart so picking another never swaps
-  // out unsaved edits.
   editId: z.string().optional().catch(undefined),
   peek: z.boolean().optional().catch(undefined),
 });
+
+type Search = z.infer<typeof search>;
+
+const editIdFromLegacyEditLink = (s: Search) =>
+  s.panel === "moment" && !s.editId && s.momentId ? { ...s, editId: s.momentId } : s;
+
+const redirectLegacyTabLink = (tab: Search["tab"], params: { id: string }) => {
+  if (tab === "shared") throw redirect({ to: "/e/$id/shared", params });
+  if (tab === "activity") throw redirect({ to: "/e/$id/activity", params });
+  if (tab === "canvas" || tab === "journal") throw redirect({ to: "/e/$id/journal", params });
+};
 
 const EventPage = () => {
   const { id } = Route.useParams();
@@ -46,7 +52,6 @@ const EventPage = () => {
         const isOwner = event.role === "owner";
         const archived = event.status === "archived";
         const canEditMoment = (authorId: string) => !archived && (isOwner || authorId === me?.id);
-        // Editors open beside the moments.
         const openPanel = (next: Panel, nextMomentId?: string) =>
           void navigate({
             search: (s) => ({
@@ -58,8 +63,6 @@ const EventPage = () => {
               peek: undefined,
             }),
           });
-        // Picking a moment opens it to look at; Edit is a step from there, or
-        // the tile's own button.
         const pick = (moment: { _id: string }) =>
           void navigate({
             search: (s) => ({ ...s, tab: undefined, momentId: moment._id, peek: true }),
@@ -68,9 +71,6 @@ const EventPage = () => {
         const closePeek = () =>
           void navigate({ search: (s) => ({ ...s, peek: undefined }), resetScroll: false });
         return (
-          /* The moments on the left. On the right, the experience's buttons
-             and its overview, or whatever is being edited. Stacked on narrow
-             screens, the right column first. */
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start">
             <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:order-2 lg:max-h-[calc(100svh-2rem)] lg:overflow-y-auto lg:overscroll-contain">
               <ExperienceActions event={event} />
@@ -116,7 +116,6 @@ const EventPage = () => {
   );
 };
 
-// The picked moment, open to look at. Nothing shows until the list has it.
 const Peek = ({
   eventId,
   momentId,
@@ -142,8 +141,6 @@ const Peek = ({
   );
 };
 
-// The experience at a glance, from its details: what it is, when, how big and
-// who can see it, with the way to its settings for the owner.
 const Overview = ({ event, onSettings }: { event: EventView; onSettings: () => void }) => {
   const dates = eventDates(event);
   const canChange = event.role === "owner" && event.status !== "archived";
@@ -176,8 +173,6 @@ const Overview = ({ event, onSettings }: { event: EventView; onSettings: () => v
   );
 };
 
-// Who is on the trip, as Shared lists them: the first page, and the way to
-// Shared itself, where the rest are.
 const People = ({ eventId }: { eventId: Id<"events"> }) => {
   const people = usePaginatedQuery(api.sessions.members, { eventId }, { initialNumItems: 5 });
   return (
@@ -219,18 +214,9 @@ const People = ({ eventId }: { eventId: Id<"events"> }) => {
   );
 };
 
-// Last, so the components it names are defined above it.
 export const Route = createFileRoute("/_app/e/$id/")({
-  // Old edit links name the moment in `momentId` only.
-  validateSearch: search.transform((s) =>
-    s.panel === "moment" && !s.editId && s.momentId ? { ...s, editId: s.momentId } : s,
-  ),
-  beforeLoad: ({ search: s, params }) => {
-    if (s.tab === "shared") throw redirect({ to: "/e/$id/shared", params });
-    if (s.tab === "activity") throw redirect({ to: "/e/$id/activity", params });
-    if (s.tab === "canvas" || s.tab === "journal") throw redirect({ to: "/e/$id/journal", params });
-  },
-  // Started together, rather than the moments waiting on the experience.
+  validateSearch: search.transform(editIdFromLegacyEditLink),
+  beforeLoad: ({ search: s, params }) => redirectLegacyTabLink(s.tab, params),
   loader: ({ context: { prefetch }, params }) => {
     const eventId = params.id as Id<"events">;
     prefetch(queries.events.get({ eventId }));

@@ -30,17 +30,13 @@ import {
 import { deleteExperience } from "@/lib/actions";
 import { errorMessage } from "@/lib/errors";
 
-// The "..." menu for an experience. Items show only when they apply: edit
-// needs a handler, archive and delete need the owner.
 export const EventActionsMenu = ({
   event,
   onEditDetails,
   compact = false,
 }: {
-  // Home cards carry no description, and the menu never needs one.
   event: Omit<EventView, "description">;
   onEditDetails?: () => void;
-  // The icon alone, where a label would crowd (a card's corner).
   compact?: boolean;
 }) => {
   const update = useMutation(api.events.update);
@@ -49,8 +45,6 @@ export const EventActionsMenu = ({
   const [confirming, setConfirming] = useState(false);
   const isOwner = event.role === "owner";
   const archived = event.status === "archived";
-  // New moments, pages and guestbook notes since the owner last opened
-  // Activity. Not asked for on a Home card: one count per card is too many.
   const { data: unread = 0 } = useQuery(
     queries.changes.unreadCount(isOwner && !compact ? { eventId: event._id } : "skip"),
   );
@@ -60,7 +54,6 @@ export const EventActionsMenu = ({
     try {
       await update({ eventId: event._id, status: status(next) });
       toast.success(next ? "Experience archived" : "Experience restored", {
-        // Long enough to notice and reach Undo; the default is ~4s.
         duration: 10_000,
         action: {
           label: "Undo",
@@ -81,8 +74,6 @@ export const EventActionsMenu = ({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          {/* "More" is spelled out from the `sm` breakpoint up (the icon alone
-              below it, and always when `compact`, as in a card's corner). */}
           <Button
             variant="ghost"
             size="icon"

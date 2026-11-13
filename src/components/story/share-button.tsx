@@ -17,9 +17,6 @@ const copyLater = (text: Promise<string>): Promise<void> => {
   return navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
 };
 
-// Owners switch the story's link on and copy it: anyone with it can watch.
-// Everyone else copies the story's own address. On a shared story, which has
-// no role, the address on screen is the link.
 export const ShareButton = ({
   event,
   label,
@@ -57,7 +54,6 @@ export const ShareButton = ({
           description,
         });
       } else {
-        // The browser refused the clipboard: a fresh click on Copy is allowed.
         toast(url, {
           description,
           action: { label: "Copy", onClick: () => void navigator.clipboard.writeText(url) },

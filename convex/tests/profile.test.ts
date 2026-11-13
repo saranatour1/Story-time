@@ -11,7 +11,6 @@ import schema from "../schema";
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 
@@ -137,12 +136,10 @@ describe("profile images", () => {
       size: 100,
       mime: "image/png",
     });
-    // not confirmed yet
     await expect(
       a.mutation(api.api.media.setAvatar, { mediaId: reserved.mediaId }),
     ).rejects.toThrow(/available/);
     await a.mutation(api.api.media.confirmUpload, { mediaId: reserved.mediaId });
-    // someone else's image
     await expect(
       b.mutation(api.api.media.setAvatar, { mediaId: reserved.mediaId }),
     ).rejects.toThrow(/available/);
@@ -187,7 +184,6 @@ describe("profile images", () => {
     expect(await stranger.query(api.api.media.getForDownload, { mediaId })).toBeNull();
     expect(await t.query(api.api.media.getForDownload, { mediaId })).toBeNull();
 
-    // b gets a grant on one of a's experiences
     const eventId = await a.mutation(api.api.events.createDraft, {});
     const bId = (await b.query(api.api.users.getCurrentUser, {}))!.id;
     const sessionId = await t.run((ctx) =>
@@ -201,7 +197,6 @@ describe("profile images", () => {
     expect(await b.query(api.api.media.getForDownload, { mediaId })).not.toBeNull();
     expect(await stranger.query(api.api.media.getForDownload, { mediaId })).toBeNull();
 
-    // revoking that grant ends it
     await a.mutation(api.api.sessions.revoke, { sessionId });
     expect(await b.query(api.api.media.getForDownload, { mediaId })).toBeNull();
   });
@@ -322,12 +317,9 @@ describe("oauth contact email", () => {
 
     const sara = await person("sara@example.com", true);
     expect(await github(" Sara@Example.com ", true)).toBe(sara);
-    // The provider hasn't verified it: a new person.
     expect(await github("sara@example.com", false)).not.toBe(sara);
-    // Nobody here confirmed it: a new person.
     const ada = await person("ada@example.com", false);
     expect(await github("ada@example.com", true)).not.toBe(ada);
-    // Two people confirmed it: too unclear to choose, so a new person.
     const [sam, samToo] = [
       await person("sam@example.com", true),
       await person("sam@example.com", true),

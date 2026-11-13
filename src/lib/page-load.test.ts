@@ -49,7 +49,6 @@ describe("page load", () => {
     expect(story).toContain('import("@/components/story/story-scroll")');
 
     const exp = source("src/components/journal/export.ts");
-    // The journal PDF is assembled in its own module. jsPDF is not on this path.
     expect(exp).toContain('from "./pdf-book"');
     expect(exp).not.toContain('from "jspdf"');
     expect(exp).toContain('import("modern-screenshot")');

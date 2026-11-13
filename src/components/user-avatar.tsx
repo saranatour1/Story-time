@@ -3,20 +3,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMediaUrl } from "@/lib/use-media-url";
 import { cn } from "@/lib/utils";
 
-// Up to two initials ("Sara Natour" → "SN"), or "" when there's no name.
-// Array.from keeps an emoji or accented letter whole.
+const graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
 export const initials = (name: string | undefined) => {
   return (name ?? "")
     .trim()
     .split(/\s+/)
     .slice(0, 2)
-    .map((word) => Array.from(word)[0] ?? "")
+    .map((word) => Array.from(graphemes.segment(word))[0]?.segment ?? "")
     .join("")
     .toUpperCase();
 };
 
-// Shows the profile image when there is one, otherwise the name's initials,
-// or a person for people who haven't set a name.
 export const UserAvatar = ({
   mediaId,
   name,

@@ -1,8 +1,3 @@
-// Turns an activity-log row into a short sentence. The log keeps what kind of
-// change it was and the names of the fields that changed, never their values,
-// so the words come from those alone.
-
-// The words for each field a change can name.
 const FIELD_WORDS: Partial<Record<string, string>> = {
   title: "title",
   description: "description",
@@ -20,14 +15,11 @@ const FIELD_WORDS: Partial<Record<string, string>> = {
   people: "who was there",
 };
 
-// An experience's own dates read as "dates"; a moment's start is its "time".
 const wordFor = (entity: string, field: string): string => {
   if (entity === "event" && (field === "startsAt" || field === "endsAt")) return "dates";
   return FIELD_WORDS[field] ?? field;
 };
 
-// The changed fields in words: each once, in the order they were recorded. A
-// place comes with its map pin, so the pin is not named again.
 const fieldWords = (entity: string, fields: string[]): string => {
   const words = new Set(fields.map((f) => wordFor(entity, f)));
   if (fields.includes("place")) words.delete("map pin");
@@ -58,7 +50,6 @@ export const describeChange = (c: { entity: string; action: string; fields: stri
     case "event.create":
       return "Created the experience";
     case "event.update":
-      // Sharing is switched on and off, and the link renewed, on their own.
       if (onlyField(fields, "visibility")) return "Changed the sharing settings";
       if (onlyField(fields, "shareLink")) return "Made a new share link";
       if (onlyField(fields, "sharedPdf")) return "Changed the locked PDF on the share link";
@@ -83,7 +74,6 @@ export const describeChange = (c: { entity: string; action: string; fields: stri
     case "quota.create":
       return "Asked for more moments";
     case "quota.update":
-      // An answer to a request sets its status; the owner's own change sets only the limit.
       if (fields.includes("status")) {
         return fields.includes("momentLimit")
           ? "Approved a request for more moments"
@@ -93,7 +83,6 @@ export const describeChange = (c: { entity: string; action: string; fields: stri
       break;
   }
 
-  // Anything the log does not describe yet still reads as a sentence.
   const phrase = `${action} ${entity}`;
   return phrase.charAt(0).toUpperCase() + phrase.slice(1);
 };

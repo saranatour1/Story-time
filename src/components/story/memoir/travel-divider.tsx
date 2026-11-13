@@ -3,7 +3,6 @@ import type { StoryStep } from "@/lib/story-steps";
 
 type TravelScene = Extract<StoryStep, { kind: "travel" }>;
 
-// "35 m", "1 h 45 m", "2 h".
 const duration = (minutes: number) => {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -11,10 +10,6 @@ const duration = (minutes: number) => {
   return m === 0 ? `${h} h` : `${h} h ${m} m`;
 };
 
-// The leg into a stop, as a line between the cards: how they went, where to,
-// and how long after the stop before, when both stops have times (the time
-// between stops, not the ride: the stop before is in it too). Its id is its
-// step, so the map and the keys can reach it.
 export const TravelDivider = ({
   step,
   leg,

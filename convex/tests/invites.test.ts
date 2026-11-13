@@ -19,7 +19,6 @@ const invitesModules = import.meta.glob([
 ]);
 
 beforeAll(() => {
-  // eslint-disable-next-line @convex-dev/no-process-env -- test setup
   process.env.ENCRYPTION_MASTER_KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
 });
 beforeEach(() => vi.useFakeTimers());
@@ -102,7 +101,6 @@ describe("invites", () => {
     await expect(guest.mutation(api.api.invites.accept, { token: tokenOf(link) })).rejects.toThrow(
       /INVITE_INVALID/,
     );
-    // Its purge timer removed it; the cron finds nothing left.
     expect(await t.mutation(internal.model.invites.sweepExpired, {})).toBe(0);
   });
 
@@ -135,7 +133,6 @@ describe("invites", () => {
     const { owner, guest, eventId } = await setup();
     const first = await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
     await guest.mutation(api.api.invites.accept, { token: tokenOf(first.link) });
-    // A second link in the group chat: the guest opens it while still a viewer.
     const { link } = await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
     await guest.mutation(api.api.invites.accept, { token: tokenOf(link) });
     vi.advanceTimersByTime(1000);
@@ -162,7 +159,6 @@ describe("invites", () => {
     await owner.mutation(api.api.invites.accept, { token: tokenOf(link) });
     await guest.mutation(api.api.invites.accept, { token: tokenOf(link) });
 
-    // No downgrade, and the viewer link is still pending.
     expect((await guest.query(api.api.events.get, { eventId }))?.role).toBe("contributor");
     expect(await owner.query(api.api.invites.listForEvent, { eventId })).toHaveLength(1);
   });
@@ -179,22 +175,19 @@ describe("invites", () => {
       "fetch",
       vi.fn(async () => Response.json({ result: {} })),
     );
-    // eslint-disable-next-line @convex-dev/no-process-env -- test setup
     Object.assign(process.env, cf);
     try {
       for (let i = 0; i < INVITE_EMAILS_PER_DAY; i++) {
         expect((await send(`friend${i}@example.com`)).emailed).toBe(true);
       }
       await expect(send("one-more@example.com")).rejects.toThrow(/RATE_LIMITED/);
-      // A link without an email is still fine.
       await owner.mutation(api.api.invites.create, { eventId, role: "viewer" });
 
-      // A day later there's room again. A minute past the day: convex-test's
+      // A minute past the day: convex-test's
       // clock creeps ahead of a frozen fake one.
       vi.setSystemTime(Date.now() + 24 * 60 * 60 * 1000 + 60_000);
       expect((await send("tomorrow@example.com")).emailed).toBe(true);
     } finally {
-      // eslint-disable-next-line @convex-dev/no-process-env -- test setup
       for (const key of Object.keys(cf)) delete process.env[key];
       vi.unstubAllGlobals();
     }
@@ -244,7 +237,6 @@ describe("collaboration", () => {
     expect((await s.guest.query(api.api.events.get, { eventId: s.eventId }))?.role).toBe("owner");
     await s.guest.mutation(api.api.invites.create, { eventId: s.eventId, role: "viewer" });
 
-    // A viewer link opened later doesn't take co-ownership away.
     const { link } = await s.owner.mutation(api.api.invites.create, {
       eventId: s.eventId,
       role: "viewer",
@@ -304,7 +296,6 @@ describe("collaboration", () => {
         .flat()
         .some((m) => m.sessionId === null),
     ).toBe(false);
-    // The guest and two others; the removed one is left out.
     expect(everyone).toHaveLength(4);
   });
 
@@ -371,14 +362,12 @@ describe("collaboration", () => {
         .page[0]!;
     expect((await session()).lastSeenAt).toBeUndefined();
 
-    // The owner has no grant: their own visit stamps nothing.
     await owner.mutation(api.api.sessions.seen, { eventId });
     expect((await session()).lastSeenAt).toBeUndefined();
 
     await guest.mutation(api.api.sessions.seen, { eventId });
     const first = (await session()).lastSeenAt;
     expect(first).toBeDefined();
-    // A ping a minute later is not written; one five minutes later is.
     vi.advanceTimersByTime(60_000);
     await guest.mutation(api.api.sessions.seen, { eventId });
     expect((await session()).lastSeenAt).toBe(first);

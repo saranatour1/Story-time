@@ -3,15 +3,16 @@ import { MicIcon, SquareIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { MAX_VOICE_BYTES, MAX_VOICE_SECONDS } from "../../../convex/lib/limits";
+import {
+  MAX_VOICE_BYTES,
+  MAX_VOICE_SECONDS,
+  VOICE_BITS_PER_SECOND,
+} from "../../../convex/lib/limits";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 import { canRecord, formatOfMime, micProblem, pickMime } from "@/lib/voice";
 import { trackAi } from "@/lib/analytics";
 
-// Speech for the box above the moments. Press to record, press again to stop;
-// the clip goes to the server, comes back as text and lands in the box, where
-// it can be fixed before it's sent. The clip is not kept anywhere.
 export const VoiceButton = ({
   onText,
   disabled,
@@ -33,11 +34,10 @@ export const VoiceButton = ({
     const rec = recorder.current;
     recorder.current = null;
     if (rec === null) return;
-    rec.onstop = null; // a recording thrown away isn't sent
+    rec.onstop = null;
     if (rec.state !== "inactive") rec.stop();
     rec.stream.getTracks().forEach((track) => track.stop());
   };
-  // Leaving the page lets go of the microphone.
   useEffect(() => release, []);
 
   const send = async (clip: Blob, mime: string) => {
@@ -64,10 +64,9 @@ export const VoiceButton = ({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mime = pickMime();
-      // Speech needs little: 32 kbit/s keeps a minute well under the size limit.
       const rec = new MediaRecorder(stream, {
         ...(mime ? { mimeType: mime } : {}),
-        audioBitsPerSecond: 32_000,
+        audioBitsPerSecond: VOICE_BITS_PER_SECOND,
       });
       const chunks: Blob[] = [];
       rec.ondataavailable = (e) => {
@@ -89,7 +88,6 @@ export const VoiceButton = ({
     }
   };
 
-  // A minute is the longest a request holds.
   useEffect(() => {
     if (phase === "recording" && seconds >= MAX_VOICE_SECONDS) recorder.current?.stop();
   }, [phase, seconds]);

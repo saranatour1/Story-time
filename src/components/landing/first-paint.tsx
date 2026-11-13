@@ -1,20 +1,12 @@
+import { CONTAINER } from "@/components/container";
 import { DuskScene } from "@/components/landing/dusk";
 import { Logo } from "@/components/logo";
-
-// sign-in-screen's CONTAINER. Importing it from there would pull the sign-in
-// form into every page's first load.
-const CONTAINER = "mx-auto w-full max-w-[1168px] px-4 sm:px-6";
 
 export const HERO_LEAD =
   "Everyone who was there adds what they caught. Story-time puts it in order and plays it back as a little film, with your route drawn on a map.";
 export const HERO_NOTE =
   "New here? Signing in creates your account. It's private until you share it.";
 
-// The landing page's first screen as plain markup. Server rendering is off, so
-// the server sends this in the HTML and the page shows before its script has
-// loaded; the real page then takes its place, laid out the same. Someone who is
-// already signed in is on their way to /home: the inline script in __root.tsx
-// marks the page, and styles.css keeps this hidden for them.
 export const LandingFirstPaint = () => {
   return (
     <div className="dark relative flex min-h-svh flex-col overflow-x-clip bg-[#141210] text-stone-100 [color-scheme:dark]">
@@ -48,7 +40,6 @@ export const LandingFirstPaint = () => {
             <p className="mt-6 max-w-[50ch] text-base leading-relaxed text-pretty text-white/70 sm:text-lg">
               {HERO_LEAD}
             </p>
-            {/* Where the sign-in buttons go, at their height, so nothing moves. */}
             <div
               aria-hidden
               className="mt-9 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center"

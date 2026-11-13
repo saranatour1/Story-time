@@ -1,6 +1,3 @@
-// Slash focuses the box, the way a search field does. It stays out of the way
-// when a modifier is held, or when the key would land in something already
-// being typed.
 type KeyTarget = EventTarget | { tagName?: unknown; isContentEditable?: unknown } | null;
 
 const isTyping = (target: KeyTarget): boolean => {
@@ -22,7 +19,6 @@ export const wantsCommand = (event: {
   return !isTyping(event.target);
 };
 
-// Moment search already advertises `/`. The box must not take that key.
 export const commandTakesSlash = (
   event: {
     key: string;

@@ -2,12 +2,6 @@ import { convexQuery } from "@convex-dev/react-query";
 import type { FunctionArgs, FunctionReference } from "convex/server";
 import { api } from "@/lib/api";
 
-// Everything the app reads, as TanStack Query options: one factory per
-// feature, named like convex/api/. Components call
-// `useQuery(queries.moments.list({ eventId }))` from @tanstack/react-query, and
-// route loaders prefetch the same options, so both share one cache entry.
-// Each entry stays live: Convex pushes changes into the cache, so nothing here
-// is ever refetched or invalidated by hand. Pass "skip" to wait for the args.
 type Args<F extends FunctionReference<"query">> = FunctionArgs<F> | "skip";
 
 export const queries = {

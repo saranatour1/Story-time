@@ -2,16 +2,10 @@ import { AIBudget } from "@convex-dev/ai-budget";
 import { components } from "../../_generated/api";
 import type { ActionCtx } from "../../_generated/server";
 
-// Measures every AI call: which model, for whom, for which feature, its
-// tokens, and its cost (the gateway's own dollar figure). It keeps no prompts
-// or responses: `storeContent: false`, set once per deployment by
-// model/aiBudget.ts `configure`. It caps nothing; the daily allowance is
-// lib/rateLimit.ts. Its dashboard is at <deployment>.convex.site/aibudget.
 export const aiBudget = new AIBudget(components.aiBudget);
 
 export type MeteredFeature = "note" | "transport" | "intent" | "plan" | "voice" | "title";
 
-// The gateway's cost for one AI SDK call, in nanodollars, when it reports one.
 const gatewayCostNanos = (providerMetadata: unknown): number | undefined => {
   if (
     typeof providerMetadata !== "object" ||
@@ -26,9 +20,6 @@ const gatewayCostNanos = (providerMetadata: unknown): number | undefined => {
     : undefined;
 };
 
-// Runs one AI call and records it. `run` returns the call's result with its
-// usage and provider metadata (the AI SDK's), or a cost in dollars when the
-// call is a plain fetch. An error is recorded, then thrown on as it was.
 export const metered = async <T>(
   ctx: ActionCtx,
   call: { userId: string; feature: MeteredFeature; model: string },

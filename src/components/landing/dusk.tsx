@@ -1,17 +1,10 @@
 import { useEffect, useId, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { useReducedMotion } from "@/components/landing/paper";
 
-// The hero's backdrop: dusk over the sea between two headlands, the sun going
-// down behind the story player, and a week in Portugal lit along the shores.
-// Drawn in layers that drift apart as the page scrolls (the sun sets as you
-// go), so it is sharp at any size and weighs nothing. Decorative.
-
 const W = 1440;
 const H = 900;
-// Where the sea meets the sky.
 const HORIZON = 772;
 
-// The same sky on every visit: positions from a fixed hash, not Math.random.
 const hash = (i: number, n: number) => {
   const s = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453;
   return s - Math.floor(s);
@@ -23,13 +16,11 @@ const STARS = Array.from({ length: 90 }, (_, i) => ({
   opacity: 0.15 + hash(i, 4) * 0.65,
   twinkles: hash(i, 5) > 0.86,
 }));
-// The sun's reflection: short strokes on the water, wider nearer the shore.
 const GLINTS = Array.from({ length: 13 }, (_, k) => ({
   y: HORIZON + 6 + k * 9,
   w: 40 + k * 14 + hash(k, 7) * 30,
   delay: hash(k, 8) * 3,
 }));
-// A week in Portugal, on the two shores either side of the player.
 const LEFT_ROUTE = "M-10 862 C20 848 44 836 72 828 S128 806 170 800 S204 794 230 792";
 const RIGHT_ROUTE = "M1210 798 C1240 795 1266 793 1290 790 S1352 778 1392 772 S1430 766 1460 764";
 const STOPS = [
@@ -39,8 +30,6 @@ const STOPS = [
   { x: 1392, y: 772, name: "Sintra" },
 ];
 
-// Sets `--p` on the element: 0 at the top of the page, 1 once it has scrolled
-// out of view. The layers read it to drift; nothing re-renders.
 export const useScrollDepth = (ref: RefObject<HTMLElement | null>) => {
   const reduced = useReducedMotion();
   useEffect(() => {
@@ -64,7 +53,6 @@ export const useScrollDepth = (ref: RefObject<HTMLElement | null>) => {
   }, [ref, reduced]);
 };
 
-// One layer of the scene, moved down by `drift` pixels as `--p` goes to 1.
 const Layer = ({ drift, children }: { drift: number; children: ReactNode }) => {
   const style: CSSProperties = { transform: `translate3d(0, calc(var(--p, 0) * ${drift}px), 0)` };
   return (
@@ -80,7 +68,6 @@ const Layer = ({ drift, children }: { drift: number; children: ReactNode }) => {
   );
 };
 
-// Fine film grain over the scene, from an SVG noise filter.
 const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
 export const DuskScene = () => {
@@ -177,7 +164,6 @@ export const DuskScene = () => {
             />
           ))}
         </g>
-        {/* Thin clouds catching the last light. */}
         <g fill="#ffb59a" fillOpacity="0.12">
           <ellipse cx="300" cy="628" rx="260" ry="6" />
           <ellipse cx="1130" cy="602" rx="300" ry="7" />
@@ -191,7 +177,6 @@ export const DuskScene = () => {
       </Layer>
 
       <Layer drift={24}>
-        {/* Hazy far hills, then the two headlands down to the water. */}
         <path
           d="M0 720 L120 690 L230 706 L330 676 L430 700 L500 694 L560 772 L0 772 Z"
           fill={`url(#${id("far")})`}
@@ -275,7 +260,6 @@ export const DuskScene = () => {
         className="absolute inset-0 opacity-[0.08] mix-blend-overlay"
         style={{ backgroundImage: GRAIN }}
       />
-      {/* The scene fades into the page under the player. */}
       <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[#141210]" />
     </div>
   );

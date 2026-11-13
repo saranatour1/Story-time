@@ -9,7 +9,6 @@ import {
   toStop,
 } from "./photo-groups";
 
-// Local times, so day boundaries hold in any time zone.
 const at = (day: number, h: number, m = 0) => new Date(2026, 6, day, h, m).getTime();
 let n = 0;
 const photo = (takenAt: number, geo?: Geo, offsetMinutes?: number): PhotoPoint => ({
@@ -19,7 +18,6 @@ const photo = (takenAt: number, geo?: Geo, offsetMinutes?: number): PhotoPoint =
   geo,
 });
 
-// Roughly 0.009° of latitude is 1 km.
 const lisbon: Geo = { lat: 38.7, lng: -9.14 };
 const north = (km: number): Geo => ({ lat: lisbon.lat + km * 0.009, lng: lisbon.lng });
 
@@ -49,7 +47,6 @@ describe("groupPhotos", () => {
     const days = groupPhotos([
       photo(at(10, 9), lisbon),
       photo(at(10, 9, 5), north(0.6)),
-      // Without a location it stays put, whatever the distance.
       photo(at(10, 9, 10)),
       photo(at(10, 9, 15), north(1.2)),
     ]);
@@ -57,7 +54,6 @@ describe("groupPhotos", () => {
   });
 
   test("days follow the camera's zone when it recorded one, not the browser's", () => {
-    // Tokyo (+09:00): 08:00 and 23:30 on the 10th, 00:30 on the 11th.
     const tokyo = (day: number, h: number, m = 0) => Date.UTC(2026, 6, day, h - 9, m);
     const days = groupPhotos([
       photo(tokyo(10, 8), undefined, 540),
@@ -79,8 +75,6 @@ describe("groupPhotos", () => {
   });
 
   test("a day with more than 10 stops merges the neighbours closest in time", () => {
-    // 12 stops an hour apart, except two that follow their neighbour by 50
-    // and 46 minutes.
     const times = [0, 60, 120, 170, 230, 290, 350, 410, 456, 516, 576, 636].map(
       (m) => at(10, 7) + m * 60_000,
     );
@@ -98,7 +92,6 @@ describe("groupPhotos", () => {
   });
 
   test("spills into a second moment when merging can't fit the day", () => {
-    // 11 full stops, each 20 photos: nothing can merge.
     const full = Array.from({ length: 11 }, (_, s) =>
       Array.from({ length: 20 }, (_, i) => photo(at(10, 6) + s * 60 * 60_000 + i * 1000)),
     ).flat();
@@ -134,7 +127,6 @@ test("distanceMeters and dayKey", () => {
   expect(distanceMeters(lisbon, north(1))).toBeGreaterThan(990);
   expect(distanceMeters(lisbon, north(1))).toBeLessThan(1010);
   expect(dayKey(at(9, 23, 59))).toBe("2026-07-09");
-  // 2026-07-10 02:00 UTC is still the 9th in New York (-04:00).
   expect(dayKey(Date.UTC(2026, 6, 10, 2), -240)).toBe("2026-07-09");
   expect(localClock(Date.UTC(2026, 6, 10, 2), -240).getUTCHours()).toBe(22);
   expect(localClock(at(10, 18, 30)).getUTCHours()).toBe(18);

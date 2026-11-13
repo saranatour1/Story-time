@@ -18,20 +18,19 @@ import {
   tiltOf,
   wordsOf,
 } from "@/components/story/photo-deck-math";
+import { TYPEWRITER } from "@/components/story/typewriter";
+import { readStored, writeStored } from "@/lib/storage";
 import type { Stop } from "@/lib/story-steps";
 import { isForward, SWIPE_PX, type SwipeDirection, useSwipeSurface } from "@/lib/use-swipe";
 import { cn } from "@/lib/utils";
 
-// Remembered once the gesture hint has been shown on this device.
 const HINT_KEY = "storytime:deck-hint";
 const HINT_MS = 4000;
-const TYPEWRITER = { fontFamily: '"Courier New", Courier, monospace' };
 
 const FLIGHT_MS = 280;
 const SETTLE_MS = 220;
 const REST = "translate3d(0px, 0px, 0px) rotate(0deg)";
 const SPRING = "cubic-bezier(0.34, 1.4, 0.64, 1)";
-// Where a card goes when it is pushed off: off the screen on the side it was pushed.
 const FLY: Record<SwipeDirection, string> = {
   left: "translate3d(-160%, 0px, 0px) rotate(-16deg)",
   right: "translate3d(160%, 0px, 0px) rotate(16deg)",
@@ -43,30 +42,23 @@ type Pose = { transform: string; opacity: string };
 type Flight = { index: number; dir: SwipeDirection };
 
 export type PhotoDeckHandle = {
-  // Turns one picture: +1 forward, -1 back. False when already at that end.
   flip(delta: 1 | -1): boolean;
 };
 
-// The top card lies square; the two behind it peek out, smaller and tilted.
 const restPose = (offset: number, tilt: number, reduced: boolean): string => {
   if (offset < 1) return REST;
   return `translate3d(0px, ${offset * 3}%, 0px) scale(${offset === 1 ? 0.95 : 0.9}) rotate(${reduced ? 0 : tilt}deg)`;
 };
 
-// The pictures of a stop as a deck of prints. Swipe, drag, tap or press to turn
-// them; past the last or before the first, the story takes the move.
 export const PhotoDeck = forwardRef<
   PhotoDeckHandle,
   {
     stop: Stop;
     active: boolean;
-    // Set while the story plays: the time each picture stays up.
     autoplayMs: number | null;
     reduced: boolean;
     onEdge(direction: "forward" | "back"): void;
-    // Any touch or click on the deck stops autoplay.
     onInteract(): void;
-    // The picture now on top, so the scene can wash itself in its colours.
     onIndexChange?(index: number): void;
   }
 >(function PhotoDeck(
@@ -75,7 +67,6 @@ export const PhotoDeck = forwardRef<
 ) {
   const media = useMemo(() => picturesOf(stop), [stop]);
   const words = useMemo(() => wordsOf(stop), [stop]);
-  // A line or two is set large, so a short note fills its page; a long one smaller.
   const written = words.reduce((n, b) => n + b.text.length, 0);
   const wordSize =
     written < 90
@@ -86,28 +77,18 @@ export const PhotoDeck = forwardRef<
   const count = media.length;
   const root = useRef<HTMLDivElement>(null);
   const cards = useRef(new Map<number, HTMLDivElement>());
-  // The picture in view, ahead of the render, so quick presses each count.
   const aim = useRef(0);
   const [index, setIndex] = useState(0);
-  // Pictures pushed off the top and still on their way out.
   const [flying, setFlying] = useState<Flight[]>([]);
-  // Where the cards were just before a change, and the picture coming back in.
   const before = useRef<Map<number, Pose> | null>(null);
   const entering = useRef<Flight | null>(null);
   const dragging = useRef(false);
 
-  // The first deck of pictures someone meets says how to turn them, once per
-  // device, and goes as soon as they touch it.
   const [hint, setHint] = useState(false);
   useEffect(() => {
     if (!active || media.length < 2) return;
-    let seen = false;
-    try {
-      seen = localStorage.getItem(HINT_KEY) === "1";
-      localStorage.setItem(HINT_KEY, "1");
-    } catch {
-      // Storage refused (a private window): the hint shows each time, which is fine.
-    }
+    const seen = readStored("local", HINT_KEY) === "1";
+    writeStored("local", HINT_KEY, "1");
     if (seen) return;
     setHint(true);
     const t = setTimeout(() => setHint(false), HINT_MS);
@@ -124,7 +105,6 @@ export const PhotoDeck = forwardRef<
     told.current?.(index);
   }, [index]);
 
-  // A stop with fewer pictures keeps the view on one that is still there.
   useEffect(() => {
     const to = clampIndex(aim.current, count);
     if (to === aim.current) return;
@@ -132,8 +112,6 @@ export const PhotoDeck = forwardRef<
     setIndex(to);
   }, [count]);
 
-  // Where every card is now, mid-drag and mid-flight included, so the change
-  // animates from what the viewer is seeing.
   const snapshot = () => {
     const poses = new Map<number, Pose>();
     for (const [i, el] of cards.current) {
@@ -143,8 +121,6 @@ export const PhotoDeck = forwardRef<
     before.current = poses;
   };
 
-  // Moves the picture in view to `to`. A picture pushed forward leaves in `leaves`;
-  // one brought back enters from `enters`, the side the finger went.
   const commit = (to: number, leaves?: SwipeDirection, enters?: SwipeDirection) => {
     const from = aim.current;
     snapshot();
@@ -161,8 +137,6 @@ export const PhotoDeck = forwardRef<
     setIndex(to);
   };
 
-  // One picture on or back. The sides are where the move came from; keys and
-  // taps have none, so they use the swipe's own.
   const flipBy = (delta: 1 | -1, side: SwipeDirection): boolean => {
     if (atEdge(aim.current, count, delta)) return false;
     const to = nextIndex(aim.current, count, delta);
@@ -172,7 +146,6 @@ export const PhotoDeck = forwardRef<
     return true;
   };
 
-  // A drag that doesn't commit: the top card springs back into place.
   const settle = () => {
     dragging.current = false;
     const el = cards.current.get(aim.current);
@@ -195,8 +168,6 @@ export const PhotoDeck = forwardRef<
     }
   };
 
-  // The top card follows the finger, turning a little and fading toward the
-  // distance that commits. At an end it is held back to a third.
   const follow = (dx: number, dy: number) => {
     const el = cards.current.get(aim.current);
     if (!el) return;
@@ -217,7 +188,6 @@ export const PhotoDeck = forwardRef<
       if (!dragging.current) {
         dragging.current = true;
         onInteract();
-        // A card still easing into place starts this drag from where it is.
         const el = cards.current.get(aim.current);
         el?.getAnimations().forEach((a) => a.cancel());
         if (el) el.style.willChange = "transform";
@@ -225,7 +195,6 @@ export const PhotoDeck = forwardRef<
       follow(dx, dy);
     },
     onSwipe(direction) {
-      // A flick can end inside one frame, before any drag was reported.
       onInteract();
       dragging.current = false;
       const delta = isForward(direction) ? 1 : -1;
@@ -246,8 +215,6 @@ export const PhotoDeck = forwardRef<
     },
   });
 
-  // While the story plays the pictures turn on their own, up to the last one;
-  // the scene's dwell moves the story on from there.
   useEffect(() => {
     if (!active || autoplayMs === null || reduced) return;
     const timer = window.setInterval(() => {
@@ -257,9 +224,6 @@ export const PhotoDeck = forwardRef<
     return () => window.clearInterval(timer);
   }, [active, autoplayMs, reduced, count]);
 
-  // The cards animate from where they were to where they are now: a card that
-  // moved glides, a card pushed off flies, a card brought back enters from the
-  // side the finger went. Reduced motion only fades the picture that is up.
   useLayoutEffect(() => {
     const start = before.current;
     const enter = entering.current;
@@ -300,7 +264,6 @@ export const PhotoDeck = forwardRef<
     if (to !== aim.current) commit(to);
   };
 
-  // The top three are built, plus the card on its way out; the rest wait.
   const shown = [
     ...new Set([index - 1, index, index + 1, index + 2, ...flying.map((f) => f.index)]),
   ]
@@ -318,8 +281,6 @@ export const PhotoDeck = forwardRef<
       className="relative flex h-full w-full touch-none select-none flex-col items-center justify-center gap-4 p-4"
     >
       {count === 0 ? (
-        // No pictures: the words are the picture, typed on the same paper as
-        // the title page. The caption below leaves them out.
         <div
           style={TYPEWRITER}
           className="w-full max-w-2xl -rotate-[1deg] rounded-sm bg-[#f3e9d6] bg-[radial-gradient(ellipse_at_50%_40%,transparent_55%,rgb(91_74_58/0.16)_100%)] px-7 py-9 text-stone-900 shadow-[0_30px_60px_-15px_rgb(0_0_0/0.7),0_10px_20px_-10px_rgb(0_0_0/0.5)] [text-shadow:0_0_1px_rgb(28_25_23/0.35)] sm:px-12 sm:py-14"
@@ -347,9 +308,6 @@ export const PhotoDeck = forwardRef<
         </div>
       ) : (
         <>
-          {/* As big as the screen allows: the full width, or the height left
-              after the header, the dots and the caption. Upright on a phone
-              held upright, where most pictures are taken that way too. */}
           <div
             className="relative aspect-[4/3] w-full max-w-[min(100%,calc((100svh-20rem)*4/3))] portrait:aspect-[3/4] portrait:max-w-[min(100%,calc((100svh-20rem)*3/4))]"
             onDragStart={(e) => e.preventDefault()}

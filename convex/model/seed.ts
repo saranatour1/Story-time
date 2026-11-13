@@ -5,28 +5,14 @@ import { recordChange } from "../lib/changes";
 import { encryptText } from "../lib/crypto";
 import { createMoment, type MomentCreate } from "./moments";
 
-// A made-up trip to Japan to look at the app with: ten days in spring from
-// Tokyo to Osaka, real places and where they are, how they got between them,
-// and the notes, moods and labels a person would write. No photos: those are
-// added the usual way. Dev only. The function runtime is not told dev from
-// prod (only CONVEX_CLOUD_URL and CONVEX_SITE_URL), so the dev deployment
-// must set the same name the CLI keeps in .env.local:
-//   pnpm exec convex env set CONVEX_DEPLOYMENT dev:<name>
-//   pnpm exec convex run model/seed:japan '{"userId": "..."}'
-// Each run makes a new experience; delete it like any other.
-
 const PROD_DEPLOYMENT = "strong-stoat-772";
 
 const readEnv = (name: string): string | undefined => {
-  // CONVEX_SITE_URL and CONVEX_CLOUD_URL are set by Convex itself and can't be
-  // declared in convex.config.ts; this dev-only guard reads them directly.
-  // eslint-disable-next-line @convex-dev/no-process-env -- system variables, see above
+  // eslint-disable-next-line @convex-dev/no-process-env -- CONVEX_DEPLOYMENT is not declared in convex.config.ts
   const value = (process.env as Record<string, string | undefined>)[name];
   return typeof value === "string" && value !== "" ? value : undefined;
 };
 
-// Refuses unless this is a dev deployment that said so, and not production
-// even if that variable was copied onto it.
 const assertDevDeployment = (): void => {
   const site = readEnv("CONVEX_SITE_URL") ?? "";
   const cloud = readEnv("CONVEX_CLOUD_URL") ?? "";
@@ -41,7 +27,6 @@ const assertDevDeployment = (): void => {
   }
 };
 
-// Japan is UTC+9 all year.
 const JST = 9 * 60;
 const at = (day: number, hour: number, minute = 0) => Date.UTC(2025, 3, day, hour - 9, minute);
 
@@ -345,7 +330,6 @@ export const japan = internalMutation({
       visibility: "private",
       momentCount: 0,
       keyVersion: 1,
-      // Trip dates are calendar days (see `tripDates`).
       startsAt: Date.UTC(2025, 3, 1),
       endsAt: Date.UTC(2025, 3, 10),
     });
@@ -365,13 +349,8 @@ export const japan = internalMutation({
       fields: ["title", "status", "visibility"],
       after: { title, status: "draft", visibility: "private" },
     });
-    // One at a time, so each sees the count the last one left. The journal
-    // cuts their pages on its own, after.
     for (const moment of TRIP) {
-      const event = await ctx.db.get("events", eventId);
-      if (event === null) throw new Error("The trip went missing while it was being made.");
       await createMoment(ctx, {
-        event,
         userId: user._id,
         actor: { kind: "human", userId: user._id },
         input: { ...moment, eventId, tzOffsetMinutes: JST },
