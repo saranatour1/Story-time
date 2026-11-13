@@ -56,7 +56,8 @@ const summaryOf = (event: Doc<"events">, role: EventRole) => {
     endsAt: event.endsAt,
     status: event.status,
     visibility: event.visibility,
-    momentCount: event.momentCount,
+    // The moments in the story: archived ones aren't counted.
+    momentCount: event.momentCount - (event.archivedCount ?? 0),
     role,
   };
 };
@@ -67,6 +68,7 @@ const toView = async (event: Doc<"events">, role: EventRole) => {
 
 // The chosen cover, else the first photo (not video) of the earliest few
 // moments, first stop before later ones. Bounded to 5 moments per event.
+// Guests see the cover too, so a hidden photo or an archived moment's never is one.
 const coverFor = async (ctx: QueryCtx, event: Doc<"events">): Promise<Id<"media"> | undefined> => {
   if (event.coverMediaId !== undefined) return event.coverMediaId;
   const moments = await ctx.db
@@ -74,8 +76,11 @@ const coverFor = async (ctx: QueryCtx, event: Doc<"events">): Promise<Id<"media"
     .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
     .take(5);
   for (const moment of moments) {
+    if (moment.archived === true) continue;
     for (const blocks of [moment.blocks, ...(moment.stops ?? []).map((s) => s.blocks)]) {
-      for (const block of blocks) if (block.type === "photo") return block.mediaId;
+      for (const block of blocks) {
+        if (block.type === "photo" && block.hidden !== true) return block.mediaId;
+      }
     }
   }
   return undefined;

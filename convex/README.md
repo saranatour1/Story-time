@@ -80,7 +80,7 @@ the `…Api` object of the `model/` file with the same path.
 | File                      | What it owns                                                                                                    |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `model/events.ts`         | Experiences: create, rename, dates, the home list, delete (and the purge of everything in one).                 |
-| `model/moments.ts`        | Moments: create, list, edit, delete. `createMoment` is the one insert every path uses.                          |
+| `model/moments.ts`        | Moments: create, list, edit, archive, delete. `createMoment` is the one insert every path uses; `momentFor` is what a reader is shown. |
 | `model/media.ts`          | Uploads (reserved by the Worker, then confirmed), avatars, who may download or delete, the upload sweep.        |
 | `model/journal.ts`        | The journal: outline and pages, cutting pages for moments, saving, catching up, locks, stickers, link previews. |
 | `model/pdf.ts`            | The password-locked PDF on the share link.                                                                      |
@@ -104,7 +104,7 @@ the `…Api` object of the `model/` file with the same path.
 
 | File                  | What it is                                                                                                       |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `lib/access.ts`       | Who may do what on an experience (`requireEventAccess`).                                                         |
+| `lib/access.ts`       | Who may do what on an experience (`requireEventAccess`), and who a hidden photo or archived moment is kept from (`seesAllOf`, `withheld`). |
 | `lib/actors.ts`       | Who is acting: a person, an AI working for one, or the system.                                                   |
 | `lib/appUrl.ts`       | The web app's origins, from `APP_URL`.                                                                           |
 | `lib/aggregates.ts`   | Running counts and sums (upload bytes, photos and videos, changes), and the helpers that write uploads.          |

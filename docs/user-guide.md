@@ -84,6 +84,10 @@ The secret part of a share link sits after `#` in the address. Send the whole ad
 
 An archived experience cannot turn on a new share link, and it takes no new people.
 
+**Hiding a photo.** When you edit a moment, each photo and video has an eye button. Press it and that picture is hidden from other people: the people you invited and anyone with the share link no longer get it, in the list, in the story or by its address. You, the experience's owners and whoever wrote the moment still see it, marked with a crossed-out eye. Press the button again to show it. A moment whose every picture is hidden, with no words left, is not shown to other people at all.
+
+**Archiving a moment.** **Archive** on a moment takes it out of the story and hides it from everyone but you and the experience's owners. It stays in your Moments list, dimmed and marked **Archived**, and **Restore** brings it back. The moment count leaves archived moments out. Whoever can edit a moment can archive it.
+
 ## Play
 
 On Moments, picking a moment you can change opens it to edit. Picking anyone else's opens Play at that moment: the journal on its page, or the story you scroll if it has no page. **Play** on the book starts the film at that moment. Closing the film brings you back to the book.

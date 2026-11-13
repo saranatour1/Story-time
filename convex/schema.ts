@@ -24,9 +24,11 @@ export const vRole = v.union(v.literal("viewer"), v.literal("contributor"));
 // by an invite, and allowed everything the experience's owner is.
 export const vGrantRole = v.union(vRole, v.literal("owner"));
 
+// A hidden photo or video is kept from everyone but the experience's owners
+// and the moment's author (lib/access.ts, `seesAllOf`).
 export const vBlock = v.union(
-  v.object({ type: v.literal("photo"), mediaId: v.id("media") }),
-  v.object({ type: v.literal("video"), mediaId: v.id("media") }),
+  v.object({ type: v.literal("photo"), mediaId: v.id("media"), hidden: v.optional(v.boolean()) }),
+  v.object({ type: v.literal("video"), mediaId: v.id("media"), hidden: v.optional(v.boolean()) }),
   v.object({
     type: v.literal("link"),
     url: vEncrypted,
@@ -200,6 +202,8 @@ export default defineSchema({
     region: v.optional(vRegion), // legacy, unused
     momentLimit: v.optional(v.number()), // legacy, unused: lib/limits.ts holds the one limit
     momentCount: v.number(),
+    // How many of those moments are archived; absent when none ever was.
+    archivedCount: v.optional(v.number()),
     keyVersion: v.number(),
     coverMediaId: v.optional(v.id("media")),
   })
@@ -230,6 +234,9 @@ export default defineSchema({
     lastEdit: v.optional(vLastEdit),
     // "MM-DD" where the moment happened, so a daily job can find this date.
     monthDay: v.optional(v.string()),
+    // Archived: out of the story, and kept from everyone but the experience's
+    // owners and the moment's author until it is restored.
+    archived: v.optional(v.boolean()),
   })
     .index("by_event_and_startsAt", ["eventId", "startsAt"])
     .index("by_monthDay", ["monthDay"]),

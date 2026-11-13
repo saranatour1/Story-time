@@ -1,7 +1,7 @@
 import { ConvexError, v, type Infer } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { assertNotArchived, isBlocked, requireEventAccess } from "../lib/access";
+import { assertNotArchived, isBlocked, requireEventAccess, withheld } from "../lib/access";
 import { appOrigin } from "../lib/appUrl";
 import { emailConfigured, queueMail, replyAddress } from "../lib/emailAddress";
 import { recordChange } from "../lib/changes";
@@ -306,7 +306,8 @@ const get = query({
   handler: async (ctx, args) => {
     const event = await eventFor(ctx, args.token);
     if (event === null) return null;
-    const moments = await listForEvent(ctx, event);
+    // Nobody on a link is someone a moment holds nothing back from.
+    const moments = await listForEvent(ctx, event, null);
     const { photos, film } = shownOf(event);
     return {
       // The name this link goes by, so an old address can move to it.
@@ -318,7 +319,7 @@ const get = query({
         description: await readText(event._id, event.description),
         startsAt: event.startsAt,
         endsAt: event.endsAt,
-        momentCount: event.momentCount,
+        momentCount: event.momentCount - (event.archivedCount ?? 0),
         status: event.status,
       },
       // Field by field, so a field added to moments later isn't shared by accident.
@@ -396,6 +397,7 @@ const mediaForShare = query({
       if (!pages.some((page) => page.elements.some((element) => element.mediaId === media._id)))
         return null;
     }
+    if (await withheld(ctx, media, null)) return null;
     const thumbKey = args.variant === "thumb" ? media.thumbR2Key : undefined;
     return {
       r2Key: thumbKey ?? media.r2Key,

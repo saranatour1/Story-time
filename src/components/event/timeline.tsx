@@ -2,7 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import {
+  ArchiveIcon,
+  ArchiveRestoreIcon,
   ArrowDownUpIcon,
+  EyeOffIcon,
   ImagesIcon,
   PencilIcon,
   PlayIcon,
@@ -22,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { deletePhotos } from "@/lib/actions";
+import { errorMessage } from "@/lib/errors";
 import { authorOf } from "@/lib/actors";
 import { formatTime } from "@/lib/local-time";
 import { matchesSearch } from "@/lib/moment-filters";
@@ -83,6 +87,19 @@ export const Timeline = ({
   const { data: leftOut } = useQuery(queries.journal.unpaged({ eventId: event._id }));
   const unpaged = new Set(leftOut?.full ? leftOut.momentIds : []);
   const remove = useMutation(api.moments.remove);
+  const setArchived = useMutation(api.moments.setArchived);
+  const archive = async (m: MomentView) => {
+    try {
+      await setArchived({ momentId: m._id, archived: !m.archived });
+      toast.success(
+        m.archived
+          ? "Moment restored"
+          : "Moment archived. Only you and the experience's owners see it now.",
+      );
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
   const token = useAuthToken();
   const [deleting, setDeleting] = useState<MomentView | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
@@ -226,6 +243,7 @@ export const Timeline = ({
                   media.length === 1 && "row-span-2",
                   media.length > 1 && "col-span-2 row-span-2",
                   selected && "ring-2 ring-ring",
+                  m.archived && "opacity-60",
                 )}
               >
                 <button
@@ -268,6 +286,16 @@ export const Timeline = ({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
+                      aria-label={m.archived ? "Restore moment" : "Archive moment"}
+                      className="text-muted-foreground"
+                      onClick={() => void archive(m)}
+                    >
+                      {m.archived ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
                       aria-label="Delete moment"
                       className="text-muted-foreground hover:text-destructive"
                       onClick={() => setDeleting(m)}
@@ -292,7 +320,8 @@ export const Timeline = ({
         >
           {paged.status === "LoadingMore"
             ? "Loading…"
-            : `Show more (${event.momentCount - moments.length} left)`}
+            : // The count leaves archived moments out; this list may hold some.
+              `Show more (${Math.max(0, event.momentCount - moments.filter((m) => !m.archived).length)} left)`}
         </Button>
       )}
       <ConfirmDialog
@@ -355,8 +384,8 @@ const Caption = ({
         className={cn(
           "block font-mono text-[11px] tracking-[0.08em] uppercase",
           overPhoto ? "text-white/75" : "text-muted-foreground",
-          // Room for Edit and Delete, which sit over a tile with no photo.
-          roomForActions && "pr-16",
+          // Room for Edit, Archive and Delete, which sit over a tile with no photo.
+          roomForActions && "pr-24",
         )}
       >
         {day.label} · {formatTime(m.startsAt, m.tzOffsetMinutes)}
@@ -370,6 +399,7 @@ const Caption = ({
             Today
           </span>
         )}
+        {m.archived && <span className="ml-1.5 font-sans tracking-normal normal-case">Archived</span>}
       </span>
       <span
         className={cn(
@@ -417,7 +447,11 @@ const isTyping = (target: EventTarget | null) => {
 
 // A moment's photos filling its tile: one, two side by side, or one large with
 // two beside it. Videos have no stored thumbnail, so they show as a play tile.
-const Mosaic = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }) => {
+const Mosaic = ({
+  media,
+}: {
+  media: Array<{ mediaId: string; video: boolean; hidden: boolean }>;
+}) => {
   const shown = media.slice(0, 3);
   return (
     <span
@@ -427,7 +461,7 @@ const Mosaic = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }
         shown.length === 3 && "grid-cols-3 grid-rows-2",
       )}
     >
-      {shown.map(({ mediaId, video }, i) => (
+      {shown.map(({ mediaId, video, hidden }, i) => (
         <span
           key={mediaId}
           className={cn(
@@ -441,6 +475,11 @@ const Mosaic = ({ media }: { media: Array<{ mediaId: string; video: boolean }> }
             </span>
           ) : (
             <AuthImage mediaId={mediaId} alt="" className="aspect-auto size-full rounded-none" />
+          )}
+          {hidden && (
+            <span className="absolute right-1 bottom-1 rounded-md bg-black/55 p-1 text-white backdrop-blur-sm">
+              <EyeOffIcon aria-label="Hidden from other people" className="size-3.5" />
+            </span>
           )}
         </span>
       ))}

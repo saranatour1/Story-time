@@ -131,7 +131,8 @@ const StoryPage = () => {
     );
   }
 
-  const listed = moments ?? [];
+  // An archived moment is out of the story, for its owner too.
+  const listed = (moments ?? []).filter((moment) => !moment.archived);
   const start = momentId ? stepForMoment(buildStorySteps(event.title, listed), momentId) : step;
   if (mode === "film") {
     return (

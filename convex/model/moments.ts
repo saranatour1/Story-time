@@ -4,7 +4,13 @@ import type { Infer, ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import { mutation, query } from "../_generated/server";
 import { MOMENT_LIMIT, momentsToRead } from "../lib/limits";
-import { assertNotArchived, getEventAccessFor, requireEventAccess } from "../lib/access";
+import {
+  assertNotArchived,
+  getEventAccessFor,
+  type Reader,
+  requireEventAccess,
+  seesAllOf,
+} from "../lib/access";
 import { changeFields, lastEditOf, type Actor } from "../lib/actors";
 import {
   checkOffset,
@@ -26,8 +32,8 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 
 // The decrypted shape clients send and receive.
 export const vPlainBlock = v.union(
-  v.object({ type: v.literal("photo"), mediaId: v.id("media") }),
-  v.object({ type: v.literal("video"), mediaId: v.id("media") }),
+  v.object({ type: v.literal("photo"), mediaId: v.id("media"), hidden: v.optional(v.boolean()) }),
+  v.object({ type: v.literal("video"), mediaId: v.id("media"), hidden: v.optional(v.boolean()) }),
   v.object({
     type: v.literal("link"),
     url: v.string(),
@@ -80,7 +86,10 @@ export const vMomentView = v.object({
   labels: v.array(v.string()),
   // Who was there: people on the trip, by name when they set one.
   people: v.array(v.object({ userId: v.id("users"), name: v.optional(v.string()) })),
+  // Only ever true, and only for a reader the moment holds nothing back from.
+  archived: v.optional(v.boolean()),
 });
+type MomentView = Infer<typeof vMomentView>;
 
 const viewBlocks = async (
   event: Doc<"events">,
@@ -152,7 +161,22 @@ export const viewMoment = async (
         name: (await ctx.db.get("users", userId))?.displayName,
       })),
     ),
+    archived: moment.archived,
   };
+};
+
+// The moment as a reader gets it. Someone it holds nothing back from gets it
+// whole. Anyone else gets it without its hidden photos and videos, and not at
+// all when it is archived or nothing of it is left to show.
+export const momentFor = (view: MomentView, seesAll: boolean): MomentView | null => {
+  if (seesAll) return view;
+  if (view.archived === true) return null;
+  const shown = (blocks: PlainBlock[]) =>
+    blocks.filter((b) => !((b.type === "photo" || b.type === "video") && b.hidden === true));
+  const blocks = shown(view.blocks);
+  const stops = view.stops.map((stop) => ({ ...stop, blocks: shown(stop.blocks) }));
+  if (blocks.length + stops.reduce((n, stop) => n + stop.blocks.length, 0) === 0) return null;
+  return { ...view, blocks, stops };
 };
 
 // What a new moment takes. `create` takes these as they are; an agent adds
@@ -263,22 +287,27 @@ export const createMoment = async (
   return momentId;
 };
 
+// Every moment of the experience this reader may see, as they may see it.
 export const listForEvent = async (
   ctx: QueryCtx,
   event: Doc<"events">,
-): Promise<Array<Infer<typeof vMomentView>>> => {
+  reader: Reader,
+): Promise<MomentView[]> => {
   const moments = await ctx.db
     .query("moments")
     .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
     .take(momentsToRead(event.momentCount));
-  return Promise.all(moments.map((m) => viewMoment(ctx, event, m)));
+  const views = await Promise.all(
+    moments.map(async (m) => momentFor(await viewMoment(ctx, event, m), seesAllOf(reader, m))),
+  );
+  return views.filter((view) => view !== null);
 };
 
 const list = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
-    const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
-    return listForEvent(ctx, event);
+    const { event, ...reader } = await requireEventAccess(ctx, args.eventId, "viewer");
+    return listForEvent(ctx, event, reader);
   },
 });
 
@@ -292,16 +321,17 @@ const page = query({
     newestFirst: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { event } = await requireEventAccess(ctx, args.eventId, "viewer");
+    const { event, ...reader } = await requireEventAccess(ctx, args.eventId, "viewer");
     const result = await ctx.db
       .query("moments")
       .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
       .order(args.newestFirst === true ? "desc" : "asc")
       .paginate(args.paginationOpts);
-    return {
-      ...result,
-      page: await Promise.all(result.page.map((m) => viewMoment(ctx, event, m))),
-    };
+    const views = await Promise.all(
+      result.page.map(async (m) => momentFor(await viewMoment(ctx, event, m), seesAllOf(reader, m))),
+    );
+    // A page may come back short: the moments kept from this reader are in it.
+    return { ...result, page: views.filter((view) => view !== null) };
   },
 });
 
@@ -533,6 +563,39 @@ const remove = mutation({
   },
 });
 
+// Archive a moment, or bring it back. Archived, it is out of the story and
+// kept from everyone but the experience's owners and its author. Whoever may
+// edit the moment may archive it.
+const setArchived = mutation({
+  args: { momentId: v.id("moments"), archived: v.boolean() },
+  handler: async (ctx, args) => {
+    const moment = await ctx.db.get("moments", args.momentId);
+    if (moment === null) throw new Error("Moment not found");
+    const { userId, event, role } = await requireEventAccess(ctx, moment.eventId, "contributor");
+    if (role !== "owner" && moment.authorId !== userId) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "You can only archive your own moments",
+      });
+    }
+    assertNotArchived(event);
+    if ((moment.archived === true) === args.archived) return null;
+    await ctx.db.patch("moments", moment._id, { archived: args.archived ? true : undefined });
+    await ctx.db.patch("events", event._id, {
+      archivedCount: Math.max(0, (event.archivedCount ?? 0) + (args.archived ? 1 : -1)),
+    });
+    await recordChange(ctx, {
+      eventId: event._id,
+      entity: "moment",
+      entityId: moment._id,
+      actorId: userId,
+      action: "update",
+      fields: ["archived"],
+    });
+    return null;
+  },
+});
+
 // The write behind `remove`, shared with typed requests. Detaches the moment's
 // photos (returned, so the caller can clear them from R2) and logs the change. Access checks stay with the caller.
 export const deleteMoment = async (
@@ -548,6 +611,10 @@ export const deleteMoment = async (
   await ctx.db.delete("moments", moment._id);
   await ctx.db.patch("events", event._id, {
     momentCount: Math.max(0, event.momentCount - 1),
+    // Spread, not `undefined`: a patch with undefined would clear the count.
+    ...(moment.archived === true && {
+      archivedCount: Math.max(0, (event.archivedCount ?? 0) - 1),
+    }),
   });
   await followCover(ctx);
 
@@ -563,4 +630,4 @@ export const deleteMoment = async (
 };
 
 // What the app calls. Registered once, by convex/api/moments.ts, which re-exports it.
-export const momentsApi = { create, list, page, update, remove };
+export const momentsApi = { create, list, page, update, remove, setArchived };
