@@ -23,10 +23,12 @@ import { DefaultStartHour } from "@/components/ui/event-calendar/constants";
 import { weekBars } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 
-// Story-time: dates read in the browser's language, and each day says its
-// full date to a screen reader, as the calendar this replaced did.
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const FULL_DAY = new Intl.DateTimeFormat(undefined, { dateStyle: "full" });
+
+const MIN_LANES = 3;
+// Grid rows count from 1, and the first holds the day numbers.
+const FIRST_LANE_ROW = 2;
 
 interface MonthViewProps {
   currentDate: Date;
@@ -68,13 +70,8 @@ export function MonthView({ currentDate, events, onEventSelect, onEventCreate }:
       </div>
       <div className="grid flex-1 auto-rows-fr">
         {weeks.map((week) => {
-          // Story-time: coss draws a button per event per day, which breaks a
-          // trip into pieces that change row and lose their title. Here each
-          // event is one bar per week, laid over the day cells: the cells
-          // fill every row of the week's grid, the bars take a row each.
           const bars = weekBars(week, events);
-          // Room for three at once; a busier week grows to show them all.
-          const lanes = Math.max(3, ...bars.map((bar) => bar.lane + 1));
+          const lanes = Math.max(MIN_LANES, ...bars.map((bar) => bar.lane + 1));
 
           return (
             <div
@@ -111,20 +108,19 @@ export function MonthView({ currentDate, events, onEventSelect, onEventCreate }:
                   </DroppableCell>
                 </div>
               ))}
-              {bars.map(({ event, col, span, lane, starts, ends }) => (
+              {bars.map(({ event, col, span, lane, startsThisWeek, endsThisWeek }) => (
                 <div
-                  // Flush with the week's edge where the event carries on.
-                  className={cn("min-w-0", starts && "ms-1", ends && "me-1")}
+                  className={cn("min-w-0", startsThisWeek && "ms-1", endsThisWeek && "me-1")}
                   key={event.id}
                   style={{
                     gridColumn: `${col + 1} / span ${span}`,
-                    gridRow: lane + 2,
+                    gridRow: lane + FIRST_LANE_ROW,
                   }}
                 >
                   <DraggableEvent
                     event={event}
-                    isFirstDay={starts}
-                    isLastDay={ends}
+                    isFirstDay={startsThisWeek}
+                    isLastDay={endsThisWeek}
                     offsetDays={Math.max(
                       0,
                       differenceInCalendarDays(week[col] ?? event.start, event.start),

@@ -1,15 +1,14 @@
-import { addDays, isSameDay, isToday } from "date-fns";
+import { addDays, isToday } from "date-fns";
 import { CalendarDaysIcon } from "lucide-react";
 import { useMemo } from "react";
 
 import {
   AgendaDaysToShow,
   type CalendarEvent,
+  agendaEventsOn,
   EventItem,
-  getAgendaEventsForDay,
 } from "@/components/ui/event-calendar";
 
-// Story-time: day headings in the browser's language.
 const DAY = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
   day: "numeric",
@@ -23,7 +22,6 @@ interface AgendaViewProps {
 }
 
 export function AgendaView({ currentDate, events, onEventSelect }: AgendaViewProps) {
-  // Show events for the next days based on constant
   const days = useMemo(() => {
     return Array.from({ length: AgendaDaysToShow }, (_, i) => addDays(new Date(currentDate), i));
   }, [currentDate]);
@@ -33,14 +31,8 @@ export function AgendaView({ currentDate, events, onEventSelect }: AgendaViewPro
     onEventSelect(event);
   };
 
-  // Story-time: an event is listed once, on the day it starts (or on the
-  // first day shown, if it began before then), not on every day it covers.
-  const eventsOn = (day: Date) =>
-    getAgendaEventsForDay(events, day).filter(
-      (event) => day === days[0] || isSameDay(day, new Date(event.start)),
-    );
+  const eventsOn = (day: Date) => agendaEventsOn(events, day, day === days[0]);
 
-  // Check if there are any days with events
   const hasEvents = days.some((day) => eventsOn(day).length > 0);
 
   return (

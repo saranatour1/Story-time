@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 interface DroppableCellProps {
   id: string;
   date: Date;
-  time?: number; // For week/day views, represents hours (e.g., 9.25 for 9:15)
+  hourOfDay?: number;
   children?: React.ReactNode;
   className?: string;
   onClick?: () => void;
@@ -15,7 +15,7 @@ interface DroppableCellProps {
 export function DroppableCell({
   id,
   date,
-  time,
+  hourOfDay,
   children,
   className,
   onClick,
@@ -25,18 +25,10 @@ export function DroppableCell({
   const { setNodeRef, isOver } = useDroppable({
     data: {
       date,
-      time,
+      hourOfDay,
     },
     id,
   });
-
-  // Format time for display in tooltip (only for debugging)
-  const formattedTime =
-    time !== undefined
-      ? `${Math.floor(time)}:${Math.round((time - Math.floor(time)) * 60)
-          .toString()
-          .padStart(2, "0")}`
-      : null;
 
   return (
     <div
@@ -47,7 +39,6 @@ export function DroppableCell({
       data-dragging={isOver && activeEvent ? true : undefined}
       onClick={onClick}
       ref={setNodeRef}
-      title={formattedTime ? `${formattedTime}` : undefined}
     >
       {children}
     </div>

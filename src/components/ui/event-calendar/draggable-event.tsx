@@ -1,9 +1,13 @@
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { differenceInDays } from "date-fns";
 import { useRef } from "react";
 
-import { type CalendarEvent, EventItem, useCalendarDnd } from "@/components/ui/event-calendar";
+import {
+  type CalendarEvent,
+  EventItem,
+  isMultiDayEvent,
+  useCalendarDnd,
+} from "@/components/ui/event-calendar";
 
 interface DraggableEventProps {
   event: CalendarEvent;
@@ -15,8 +19,6 @@ interface DraggableEventProps {
   multiDayWidth?: number;
   isFirstDay?: boolean;
   isLastDay?: boolean;
-  // Story-time: how many day columns a month bar covers, and how many days
-  // into the event it begins (0 in the week the event starts).
   span?: number;
   offsetDays?: number;
   "aria-hidden"?: boolean | "true" | "false";
@@ -37,15 +39,10 @@ export function DraggableEvent({
   "aria-hidden": ariaHidden,
 }: DraggableEventProps) {
   const { activeEvent } = useCalendarDnd();
-  // Story-time: an event has a bar in every week it spans, so each needs its
-  // own id.
   const dragId = `${event.id}-${view}-${offsetDays}`;
   const elementRef = useRef<HTMLDivElement>(null);
 
-  // Check if this is a multi-day event
-  const eventStart = new Date(event.start);
-  const eventEnd = new Date(event.end);
-  const isMultiDayEvent = isMultiDay || event.allDay || differenceInDays(eventEnd, eventStart) >= 1;
+  const spansDays = isMultiDay || isMultiDayEvent(event);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     data: {
@@ -53,7 +50,7 @@ export function DraggableEvent({
       height: height || elementRef.current?.offsetHeight || null,
       isFirstDay,
       isLastDay,
-      isMultiDay: isMultiDayEvent,
+      isMultiDay: spansDays,
       multiDayWidth: multiDayWidth,
       offsetDays,
       span,
@@ -63,7 +60,6 @@ export function DraggableEvent({
     id: dragId,
   });
 
-  // Don't render if this event is being dragged (any of its bars)
   if (isDragging || activeEvent?.id === event.id) {
     return <div className="opacity-0" ref={setNodeRef} style={{ height: height || "auto" }} />;
   }
@@ -72,11 +68,11 @@ export function DraggableEvent({
     ? {
         height: height || "auto",
         transform: CSS.Translate.toString(transform),
-        width: isMultiDayEvent && multiDayWidth ? `${multiDayWidth}%` : undefined,
+        width: spansDays && multiDayWidth ? `${multiDayWidth}%` : undefined,
       }
     : {
         height: height || "auto",
-        width: isMultiDayEvent && multiDayWidth ? `${multiDayWidth}%` : undefined,
+        width: spansDays && multiDayWidth ? `${multiDayWidth}%` : undefined,
       };
 
   return (

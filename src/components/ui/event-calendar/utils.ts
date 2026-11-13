@@ -1,10 +1,16 @@
-import { isSameDay } from "date-fns";
+import {
+  addHours,
+  areIntervalsOverlapping,
+  differenceInMinutes,
+  getHours,
+  getMinutes,
+  isSameDay,
+  startOfDay,
+} from "date-fns";
 
 import type { CalendarEvent, EventColor } from "@/components/ui/event-calendar";
+import { StartHour, WeekCellsHeight } from "@/components/ui/event-calendar/constants";
 
-/**
- * Get CSS classes for event colors
- */
 export function getEventColorClasses(color?: EventColor | string): string {
   const eventColor = color || "sky";
 
@@ -26,44 +32,90 @@ export function getEventColorClasses(color?: EventColor | string): string {
   }
 }
 
-/**
- * Get CSS classes for border radius based on event position in multi-day events
- */
 export function getBorderRadiusClasses(isFirstDay: boolean, isLastDay: boolean): string {
   if (isFirstDay && isLastDay) {
-    return "rounded"; // Both ends rounded
+    return "rounded";
   }
   if (isFirstDay) {
-    return "rounded-l rounded-r-none"; // Only left end rounded
+    return "rounded-l rounded-r-none";
   }
   if (isLastDay) {
-    return "rounded-r rounded-l-none"; // Only right end rounded
+    return "rounded-r rounded-l-none";
   }
-  return "rounded-none"; // No rounded corners
+  return "rounded-none";
 }
 
-/**
- * Check if an event is a multi-day event
- */
 export function isMultiDayEvent(event: CalendarEvent): boolean {
   const eventStart = new Date(event.start);
   const eventEnd = new Date(event.end);
   return event.allDay || eventStart.getDate() !== eventEnd.getDate();
 }
 
-/**
- * Get all events for a day (for agenda view)
- */
-export function getAgendaEventsForDay(events: CalendarEvent[], day: Date): CalendarEvent[] {
+export function agendaEventsOn(
+  events: CalendarEvent[],
+  day: Date,
+  isFirstDayShown: boolean,
+): CalendarEvent[] {
   return events
     .filter((event) => {
       const eventStart = new Date(event.start);
       const eventEnd = new Date(event.end);
-      return (
-        isSameDay(day, eventStart) ||
-        isSameDay(day, eventEnd) ||
-        (day > eventStart && day < eventEnd)
-      );
+      const startsThatDay = isSameDay(day, eventStart);
+      const stillRunning = isSameDay(day, eventEnd) || (day > eventStart && day < eventEnd);
+      return startsThatDay || (isFirstDayShown && stillRunning);
     })
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+}
+
+export interface PositionedEvent {
+  event: CalendarEvent;
+  top: number;
+  height: number;
+  left: number;
+  width: number;
+  zIndex: number;
+}
+
+export function positionTimedEvents(day: Date, timedEvents: CalendarEvent[]): PositionedEvent[] {
+  const sortedEvents = [...timedEvents].sort((a, b) => {
+    const aStart = new Date(a.start);
+    const bStart = new Date(b.start);
+    if (aStart < bStart) return -1;
+    if (aStart > bStart) return 1;
+    return (
+      differenceInMinutes(new Date(b.end), bStart) - differenceInMinutes(new Date(a.end), aStart)
+    );
+  });
+
+  const dayStart = startOfDay(day);
+  const columns: CalendarEvent[][] = [];
+
+  return sortedEvents.map((event) => {
+    const eventStart = new Date(event.start);
+    const eventEnd = new Date(event.end);
+    const adjustedStart = isSameDay(day, eventStart) ? eventStart : dayStart;
+    const adjustedEnd = isSameDay(day, eventEnd) ? eventEnd : addHours(dayStart, 24);
+    const startHour = getHours(adjustedStart) + getMinutes(adjustedStart) / 60;
+    const endHour = getHours(adjustedEnd) + getMinutes(adjustedEnd) / 60;
+
+    const overlapsColumn = (column: CalendarEvent[]) =>
+      column.some((placed) =>
+        areIntervalsOverlapping(
+          { end: adjustedEnd, start: adjustedStart },
+          { end: new Date(placed.end), start: new Date(placed.start) },
+        ),
+      );
+    const firstFree = columns.findIndex((column) => !overlapsColumn(column));
+    const columnIndex = firstFree === -1 ? columns.length : firstFree;
+    (columns[columnIndex] ??= []).push(event);
+
+    return {
+      event,
+      height: (endHour - startHour) * WeekCellsHeight,
+      left: columnIndex === 0 ? 0 : columnIndex * 0.1,
+      top: (startHour - StartHour) * WeekCellsHeight,
+      width: columnIndex === 0 ? 1 : 0.9,
+      zIndex: 10 + columnIndex,
+    };
+  });
 }

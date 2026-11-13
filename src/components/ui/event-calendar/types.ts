@@ -9,7 +9,6 @@ export interface CalendarEvent {
   allDay?: boolean;
   color?: EventColor;
   location?: string;
-  // Story-time: an event the viewer may open but not drag to new dates.
   readOnly?: boolean;
 }
 

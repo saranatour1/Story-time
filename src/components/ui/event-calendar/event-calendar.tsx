@@ -42,10 +42,8 @@ import {
 
 export interface EventCalendarProps {
   events?: CalendarEvent[];
-  // Story-time: no built-in dialog. Opening, moving and creating are the
-  // caller's; the calendar only reports them.
   onEventSelect?: (event: CalendarEvent) => void;
-  onEventUpdate?: (event: CalendarEvent) => void;
+  onEventUpdate?: (event: CalendarEvent, daysMoved: number) => void;
   onEventCreate?: (start: Date) => void;
   className?: string;
   initialView?: CalendarView;
@@ -53,12 +51,21 @@ export interface EventCalendarProps {
 
 const noop = () => {};
 
-// Story-time: the title reads in the browser's language, like dates elsewhere
-// in the app.
 const MONTH = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
 const MONTHS = new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
 const dayTitle = (dateStyle: "medium" | "long" | "full", date: Date) =>
   new Intl.DateTimeFormat(undefined, { dateStyle }).format(date);
+
+const isShortcutOrTyping = (e: KeyboardEvent): boolean =>
+  e.metaKey ||
+  e.ctrlKey ||
+  e.altKey ||
+  e.target instanceof HTMLInputElement ||
+  e.target instanceof HTMLTextAreaElement ||
+  e.target instanceof HTMLSelectElement ||
+  (e.target instanceof HTMLElement &&
+    (e.target.isContentEditable ||
+      e.target.closest('[role="dialog"], [role="menu"], [role="listbox"]') !== null));
 
 export function EventCalendar({
   events = [],
@@ -71,25 +78,9 @@ export function EventCalendar({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>(initialView);
 
-  // Add keyboard shortcuts for view switching
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if user is typing in an input, textarea or contentEditable element,
-      // holding a modifier (Cmd+A is select all, not the agenda view), or in a
-      // select, dialog, menu or listbox, where letters are type-ahead
-      if (
-        e.metaKey ||
-        e.ctrlKey ||
-        e.altKey ||
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement ||
-        (e.target instanceof HTMLElement &&
-          (e.target.isContentEditable ||
-            e.target.closest('[role="dialog"], [role="menu"], [role="listbox"]') !== null))
-      ) {
-        return;
-      }
+      if (isShortcutOrTyping(e)) return;
 
       switch (e.key.toLowerCase()) {
         case "m":
@@ -122,7 +113,6 @@ export function EventCalendar({
     } else if (view === "day") {
       setCurrentDate(addDays(currentDate, -1));
     } else if (view === "agenda") {
-      // For agenda view, go back 30 days (a full month)
       setCurrentDate(addDays(currentDate, -AgendaDaysToShow));
     }
   };
@@ -135,7 +125,6 @@ export function EventCalendar({
     } else if (view === "day") {
       setCurrentDate(addDays(currentDate, 1));
     } else if (view === "agenda") {
-      // For agenda view, go forward 30 days (a full month)
       setCurrentDate(addDays(currentDate, AgendaDaysToShow));
     }
   };

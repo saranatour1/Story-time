@@ -1,5 +1,5 @@
 import { useMutation } from "convex/react";
-import { addDays, differenceInCalendarDays } from "date-fns";
+import { addDays } from "date-fns";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { type Trip, TripPeek } from "@/components/trip-peek";
@@ -9,21 +9,17 @@ import { errorMessage } from "@/lib/errors";
 
 const COLORS: EventColor[] = ["amber", "sky", "violet", "rose", "emerald", "orange"];
 
-// A trip keeps its colour from one visit to the next: it comes from the id.
 const colorOf = (id: string): EventColor =>
   COLORS[[...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % COLORS.length] ?? "amber";
+
+const undoToastFor = (tripId: string) => `moved-${tripId}`;
 
 const shift = (ms: number | undefined, days: number) =>
   ms === undefined ? undefined : addDays(ms, days).getTime();
 
-// The experiences on coss's event calendar (month, week, day, agenda). A trip
-// covers every day from its start to its end, or the one day it has; trips
-// with no dates are only in the grid. Clicking a trip shows what it holds
-// (TripPeek); its owner can drag it to new dates in the month view.
 export const TripCalendar = ({ trips }: { trips: Trip[] }) => {
   const [peekId, setPeekId] = useState<string | null>(null);
   const peeked = trips.find((trip) => trip._id === peekId);
-  // The bar stays where it was dropped while the save is on its way.
   const update = useMutation(api.events.update).withOptimisticUpdate((store, args) => {
     const now = store.getQuery(api.events.listMine, {});
     if (now === undefined) return;
@@ -42,7 +38,6 @@ export const TripCalendar = ({ trips }: { trips: Trip[] }) => {
     );
   });
 
-  // Kept between renders, so opening the preview doesn't lay the views out again.
   const events = useMemo(
     () =>
       trips.flatMap((trip): CalendarEvent[] => {
@@ -63,30 +58,22 @@ export const TripCalendar = ({ trips }: { trips: Trip[] }) => {
     [trips],
   );
 
-  // Trips are whole days: move both dates by the days dragged, whatever time
-  // of day the calendar reports, so they stay at local midnight.
-  const move = async (moved: CalendarEvent) => {
+  const move = async (moved: CalendarEvent, daysMoved: number) => {
     const trip = trips.find((t) => t._id === moved.id);
-    const from = trip?.startsAt ?? trip?.endsAt;
-    if (trip === undefined || from === undefined) return;
-    const days = differenceInCalendarDays(moved.start, from);
-    if (days === 0) return;
-    const save = (by: number) =>
-      update({
-        eventId: trip._id,
-        startsAt: shift(trip.startsAt, by),
-        endsAt: shift(trip.endsAt, by),
-      });
+    if (trip === undefined || daysMoved === 0) return;
+    const datesBefore = { eventId: trip._id, startsAt: trip.startsAt, endsAt: trip.endsAt };
+    const datesAfter = {
+      eventId: trip._id,
+      startsAt: shift(trip.startsAt, daysMoved),
+      endsAt: shift(trip.endsAt, daysMoved),
+    };
     try {
-      await save(days);
-      // A drag is easy to make by accident, so the way back is one click. One
-      // toast per trip: a later move replaces this Undo, which would otherwise
-      // put the trip back two moves and lose the later one.
+      await update(datesAfter);
       toast.success(`Moved "${trip.title}"`, {
-        id: `moved-${trip._id}`,
+        id: undoToastFor(trip._id),
         action: {
           label: "Undo",
-          onClick: () => void save(0).catch((e) => toast.error(errorMessage(e))),
+          onClick: () => void update(datesBefore).catch((e) => toast.error(errorMessage(e))),
         },
       });
     } catch (e) {
@@ -99,7 +86,7 @@ export const TripCalendar = ({ trips }: { trips: Trip[] }) => {
       <EventCalendar
         events={events}
         onEventSelect={(event) => setPeekId(event.id)}
-        onEventUpdate={(event) => void move(event)}
+        onEventUpdate={(event, daysMoved) => void move(event, daysMoved)}
       />
       {peeked && <TripPeek trip={peeked} onClose={() => setPeekId(null)} />}
     </section>

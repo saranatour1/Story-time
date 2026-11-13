@@ -10,13 +10,8 @@ import {
 } from "@/components/ui/event-calendar";
 import { cn } from "@/lib/utils";
 
-// Story-time: dates read in the browser's language.
 const DAYS = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
-// Using date-fns format with custom formatting:
-// 'h' - hours (1-12)
-// 'a' - am/pm
-// ':mm' - minutes with leading zero (only if the token 'mm' is present)
 const formatTimeWithOptionalMinutes = (date: Date) => {
   return format(date, getMinutes(date) === 0 ? "ha" : "h:mma").toLowerCase();
 };
@@ -29,12 +24,11 @@ interface EventWrapperProps {
   onClick?: (e: React.MouseEvent) => void;
   className?: string;
   children: React.ReactNode;
-  currentTime?: Date;
+  displayEnd: Date;
   dndListeners?: SyntheticListenerMap;
   dndAttributes?: DraggableAttributes;
 }
 
-// Shared wrapper component for event styling
 function EventWrapper({
   event,
   isFirstDay = true,
@@ -43,18 +37,10 @@ function EventWrapper({
   onClick,
   className,
   children,
-  currentTime,
+  displayEnd,
   dndListeners,
   dndAttributes,
 }: EventWrapperProps) {
-  // Always use the currentTime (if provided) to determine if the event is in the past
-  const displayEnd = currentTime
-    ? new Date(
-        new Date(currentTime).getTime() +
-          (new Date(event.end).getTime() - new Date(event.start).getTime()),
-      )
-    : new Date(event.end);
-
   const isEventInPast = isPast(displayEnd);
 
   return (
@@ -83,7 +69,7 @@ interface EventItemProps {
   isDragging?: boolean;
   onClick?: (e: React.MouseEvent) => void;
   showTime?: boolean;
-  currentTime?: Date; // For updating time during drag
+  draggedStart?: Date;
   isFirstDay?: boolean;
   isLastDay?: boolean;
   children?: React.ReactNode;
@@ -98,7 +84,7 @@ export function EventItem({
   isDragging,
   onClick,
   showTime,
-  currentTime,
+  draggedStart,
   isFirstDay = true,
   isLastDay = true,
   children,
@@ -108,21 +94,19 @@ export function EventItem({
 }: EventItemProps) {
   const eventColor = event.color;
 
-  // Use the provided currentTime (for dragging) or the event's actual time
   const displayStart = useMemo(() => {
-    return currentTime || new Date(event.start);
-  }, [currentTime, event.start]);
+    return draggedStart || new Date(event.start);
+  }, [draggedStart, event.start]);
 
   const displayEnd = useMemo(() => {
-    return currentTime
+    return draggedStart
       ? new Date(
-          new Date(currentTime).getTime() +
+          new Date(draggedStart).getTime() +
             (new Date(event.end).getTime() - new Date(event.start).getTime()),
         )
       : new Date(event.end);
-  }, [currentTime, event.start, event.end]);
+  }, [draggedStart, event.start, event.end]);
 
-  // Calculate event duration in minutes
   const durationMinutes = useMemo(() => {
     return differenceInMinutes(displayEnd, displayStart);
   }, [displayStart, displayEnd]);
@@ -130,12 +114,10 @@ export function EventItem({
   const getEventTime = () => {
     if (event.allDay) return "All day";
 
-    // For short events (less than 45 minutes), only show start time
     if (durationMinutes < 45) {
       return formatTimeWithOptionalMinutes(displayStart);
     }
 
-    // For longer events, show both start and end time
     return `${formatTimeWithOptionalMinutes(displayStart)} - ${formatTimeWithOptionalMinutes(displayEnd)}`;
   };
 
@@ -146,7 +128,7 @@ export function EventItem({
           "mt-[var(--event-gap)] h-[var(--event-height)] items-center text-[10px] sm:text-xs",
           className,
         )}
-        currentTime={currentTime}
+        displayEnd={displayEnd}
         dndAttributes={dndAttributes}
         dndListeners={dndListeners}
         event={event}
@@ -178,7 +160,7 @@ export function EventItem({
           view === "week" ? "text-[10px] sm:text-xs" : "text-xs",
           className,
         )}
-        currentTime={currentTime}
+        displayEnd={displayEnd}
         dndAttributes={dndAttributes}
         dndListeners={dndListeners}
         event={event}
@@ -206,7 +188,6 @@ export function EventItem({
     );
   }
 
-  // Agenda view - kept separate since it's significantly different
   return (
     <button
       className={cn(
@@ -223,7 +204,6 @@ export function EventItem({
       <div className="font-medium text-sm">{event.title}</div>
       <div className="text-xs opacity-70">
         {event.allDay ? (
-          // Story-time: an event of several days says which.
           <span>
             {isSameDay(displayStart, displayEnd)
               ? "All day"

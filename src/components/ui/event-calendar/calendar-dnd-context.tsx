@@ -15,16 +15,31 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { getEventCoordinates } from "@dnd-kit/utilities";
-import { addMinutes, differenceInMinutes } from "date-fns";
-import { createContext, type ReactNode, useContext, useId, useRef, useState } from "react";
+import { addMinutes, differenceInCalendarDays, differenceInMinutes, subDays } from "date-fns";
+import { createContext, type ReactNode, useContext, useId, useState } from "react";
 
 import { type CalendarEvent, EventItem } from "@/components/ui/event-calendar";
 import { dayGrabbed } from "@/lib/calendar";
 
-// Story-time: a month bar is as wide as its days, so it overlaps a whole row
-// of cells. The day it is dropped on is the one under the pointer.
-const collisionDetection: CollisionDetection = (args) =>
+const monthDropsUnderPointerElseOverlap: CollisionDetection = (args) =>
   args.active.data.current?.view === "month" ? pointerWithin(args) : rectIntersection(args);
+
+const atQuarterHour = (day: Date, hourOfDay: number): Date => {
+  const hours = Math.floor(hourOfDay);
+  const quarter = Math.min(3, Math.round((hourOfDay - hours) * 4));
+  const at = new Date(day);
+  at.setHours(hours, quarter * 15, 0, 0);
+  return at;
+};
+
+const atTimeOf = (day: Date, clock: Date): Date => {
+  const at = new Date(day);
+  at.setHours(clock.getHours(), clock.getMinutes(), clock.getSeconds(), clock.getMilliseconds());
+  return at;
+};
+
+const sameMinute = (a: Date, b: Date): boolean =>
+  Math.floor(a.getTime() / 60_000) === Math.floor(b.getTime() / 60_000);
 
 // Story-time: dnd-kit's defaults tell screen readers to press space to pick an
 // event up (there is no keyboard sensor here) and read out raw ids. Say what
@@ -47,53 +62,44 @@ const screenReaderInstructions = {
   draggable: "Press Enter to open. To move it to other dates, drag it with a mouse or by touch.",
 };
 
-// Define the context type
 type CalendarDndContextType = {
   activeEvent: CalendarEvent | null;
   activeId: UniqueIdentifier | null;
   activeView: "month" | "week" | "day" | null;
-  currentTime: Date | null;
+  draggedStart: Date | null;
   eventHeight: number | null;
   isMultiDay: boolean;
   multiDayWidth: number | null;
 };
 
-// Create the context
 const CalendarDndContext = createContext<CalendarDndContextType>({
   activeEvent: null,
   activeId: null,
   activeView: null,
-  currentTime: null,
+  draggedStart: null,
   eventHeight: null,
   isMultiDay: false,
   multiDayWidth: null,
 });
 
-// Hook to use the context
 export const useCalendarDnd = () => useContext(CalendarDndContext);
 
-// Props for the provider
 interface CalendarDndProviderProps {
   children: ReactNode;
-  onEventUpdate: (event: CalendarEvent) => void;
+  onEventUpdate: (event: CalendarEvent, daysMoved: number) => void;
 }
 
 export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProviderProps) {
   const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [activeView, setActiveView] = useState<"month" | "week" | "day" | null>(null);
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [draggedStart, setDraggedStart] = useState<Date | null>(null);
   const [eventHeight, setEventHeight] = useState<number | null>(null);
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [multiDayWidth, setMultiDayWidth] = useState<number | null>(null);
 
-  // Store original event dimensions
-  const eventDimensions = useRef<{ height: number }>({ height: 0 });
-
-  // Configure sensors for better drag detection
   const sensors = useSensors(
     useSensor(MouseSensor, {
-      // Require the mouse to move by 5px before activating
       activationConstraint: {
         distance: 5,
       },
@@ -102,7 +108,6 @@ export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProv
     // after 5px, so a swipe that began on a bar moved the trip. On touch a
     // drag now needs a press and hold; a swipe scrolls the page.
     useSensor(TouchSensor, {
-      // Press delay of 250ms, with tolerance of 5px of movement
       activationConstraint: {
         delay: 250,
         tolerance: 5,
@@ -110,13 +115,11 @@ export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProv
     }),
   );
 
-  // Generate a stable ID for the DndContext
   const dndContextId = useId();
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
 
-    // Add safety check for data.current
     if (!active.data.current) {
       console.error("Missing data in drag start event", event);
       return;
@@ -139,72 +142,27 @@ export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProv
     setActiveEvent(calendarEvent);
     setActiveId(active.id);
     setActiveView(view);
-    setCurrentTime(new Date(calendarEvent.start));
+    setDraggedStart(new Date(calendarEvent.start));
     setIsMultiDay(eventIsMultiDay || false);
     setMultiDayWidth(eventMultiDayWidth || null);
 
-    // Store event height if provided
-    if (height) {
-      eventDimensions.current.height = height;
-      setEventHeight(height);
-    }
+    if (height) setEventHeight(height);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
     const { over } = event;
 
     if (over && activeEvent && over.data.current) {
-      const { date, time } = over.data.current as { date: Date; time?: number };
+      const { date, hourOfDay } = over.data.current as { date: Date; hourOfDay?: number };
 
-      // Update time for week/day views
-      if (time !== undefined && activeView !== "month") {
-        const newTime = new Date(date);
-
-        // Calculate hours and minutes with 15-minute precision
-        const hours = Math.floor(time);
-        const fractionalHour = time - hours;
-
-        // Map to nearest 15 minute interval (0, 0.25, 0.5, 0.75)
-        let minutes = 0;
-        if (fractionalHour < 0.125) minutes = 0;
-        else if (fractionalHour < 0.375) minutes = 15;
-        else if (fractionalHour < 0.625) minutes = 30;
-        else minutes = 45;
-
-        newTime.setHours(hours, minutes, 0, 0);
-
-        // Only update if time has changed
-        if (
-          !currentTime ||
-          newTime.getHours() !== currentTime.getHours() ||
-          newTime.getMinutes() !== currentTime.getMinutes() ||
-          newTime.getDate() !== currentTime.getDate() ||
-          newTime.getMonth() !== currentTime.getMonth() ||
-          newTime.getFullYear() !== currentTime.getFullYear()
-        ) {
-          setCurrentTime(newTime);
-        }
+      let hovered: Date | undefined;
+      if (hourOfDay !== undefined && activeView !== "month") {
+        hovered = atQuarterHour(date, hourOfDay);
       } else if (activeView === "month") {
-        // For month view, just update the date but preserve time
-        const newTime = new Date(date);
-        if (currentTime) {
-          newTime.setHours(
-            currentTime.getHours(),
-            currentTime.getMinutes(),
-            currentTime.getSeconds(),
-            currentTime.getMilliseconds(),
-          );
-        }
-
-        // Only update if date has changed
-        if (
-          !currentTime ||
-          newTime.getDate() !== currentTime.getDate() ||
-          newTime.getMonth() !== currentTime.getMonth() ||
-          newTime.getFullYear() !== currentTime.getFullYear()
-        ) {
-          setCurrentTime(newTime);
-        }
+        hovered = draggedStart ? atTimeOf(date, draggedStart) : new Date(date);
+      }
+      if (hovered && !(draggedStart && sameMinute(hovered, draggedStart))) {
+        setDraggedStart(hovered);
       }
     }
   };
@@ -212,13 +170,11 @@ export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProv
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    // Add robust error checking
-    if (!over || !activeEvent || !currentTime) {
-      // Reset state and exit early
+    if (!over || !activeEvent || !draggedStart) {
       setActiveEvent(null);
       setActiveId(null);
       setActiveView(null);
-      setCurrentTime(null);
+      setDraggedStart(null);
       setEventHeight(null);
       setIsMultiDay(false);
       setMultiDayWidth(null);
@@ -226,7 +182,6 @@ export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProv
     }
 
     try {
-      // Safely access data with checks
       if (!active.data.current || !over.data.current) {
         throw new Error("Missing data in drag event");
       }
@@ -237,84 +192,42 @@ export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProv
         span?: number;
         offsetDays?: number;
       };
-      const overData = over.data.current as { date?: Date; time?: number };
+      const overData = over.data.current as { date?: Date; hourOfDay?: number };
 
-      // Verify we have all required data
       if (!activeData.event || !overData.date) {
         throw new Error("Missing required event data");
       }
 
       const calendarEvent = activeData.event;
       const date = overData.date;
-      const time = overData.time;
+      const originalStart = new Date(calendarEvent.start);
 
-      // Calculate new start time
-      const newStart = new Date(date);
-
-      // If time is provided (for week/day views), set the hours and minutes
-      if (time !== undefined) {
-        const hours = Math.floor(time);
-        const fractionalHour = time - hours;
-
-        // Map to nearest 15 minute interval (0, 0.25, 0.5, 0.75)
-        let minutes = 0;
-        if (fractionalHour < 0.125) minutes = 0;
-        else if (fractionalHour < 0.375) minutes = 15;
-        else if (fractionalHour < 0.625) minutes = 30;
-        else minutes = 45;
-
-        newStart.setHours(hours, minutes, 0, 0);
+      let newStart: Date;
+      if (overData.hourOfDay !== undefined) {
+        newStart = atQuarterHour(date, overData.hourOfDay);
       } else {
-        // Story-time: the pointer is over the day that was grabbed, which is
-        // not always the event's first: the bar may be several days wide,
-        // and may be a later week of the event. Step back to the start.
         const bar = active.rect.current.initial;
         const grabbed = getEventCoordinates(event.activatorEvent);
-        const span = activeData.span ?? 1;
-        const daysIn =
+        const grabbedDayOfEvent =
           (activeData.offsetDays ?? 0) +
-          (bar && grabbed ? dayGrabbed(grabbed.x, bar.left, bar.width, span) : 0);
-        newStart.setDate(newStart.getDate() - daysIn);
-
-        // For month view, preserve the original time from currentTime
-        newStart.setHours(
-          currentTime.getHours(),
-          currentTime.getMinutes(),
-          currentTime.getSeconds(),
-          currentTime.getMilliseconds(),
-        );
+          (bar && grabbed ? dayGrabbed(grabbed.x, bar.left, bar.width, activeData.span ?? 1) : 0);
+        newStart = atTimeOf(subDays(date, grabbedDayOfEvent), originalStart);
       }
 
-      // Calculate new end time based on the original duration
-      const originalStart = new Date(calendarEvent.start);
-      const originalEnd = new Date(calendarEvent.end);
-      const durationMinutes = differenceInMinutes(originalEnd, originalStart);
-      const newEnd = addMinutes(newStart, durationMinutes);
-
-      // Only update if the start time has actually changed
-      const hasStartTimeChanged =
-        originalStart.getFullYear() !== newStart.getFullYear() ||
-        originalStart.getMonth() !== newStart.getMonth() ||
-        originalStart.getDate() !== newStart.getDate() ||
-        originalStart.getHours() !== newStart.getHours() ||
-        originalStart.getMinutes() !== newStart.getMinutes();
-
-      if (hasStartTimeChanged) {
-        // Update the event only if the time has changed
-        onEventUpdate({
-          ...calendarEvent,
-          end: newEnd,
-          start: newStart,
-        });
+      if (!sameMinute(newStart, originalStart)) {
+        const durationMinutes = differenceInMinutes(new Date(calendarEvent.end), originalStart);
+        onEventUpdate(
+          { ...calendarEvent, end: addMinutes(newStart, durationMinutes), start: newStart },
+          differenceInCalendarDays(newStart, originalStart),
+        );
       }
     } catch (error) {
       console.error("Error in drag end handler:", error);
     } finally {
-      // Always reset state
       setActiveEvent(null);
       setActiveId(null);
       setActiveView(null);
-      setCurrentTime(null);
+      setDraggedStart(null);
       setEventHeight(null);
       setIsMultiDay(false);
       setMultiDayWidth(null);
@@ -324,7 +237,7 @@ export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProv
   return (
     <DndContext
       accessibility={{ announcements, screenReaderInstructions }}
-      collisionDetection={collisionDetection}
+      collisionDetection={monthDropsUnderPointerElseOverlap}
       id={dndContextId}
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
@@ -336,7 +249,7 @@ export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProv
           activeEvent,
           activeId,
           activeView,
-          currentTime,
+          draggedStart,
           eventHeight,
           isMultiDay,
           multiDayWidth,
@@ -350,11 +263,10 @@ export function CalendarDndProvider({ children, onEventUpdate }: CalendarDndProv
               style={{
                 height: eventHeight ? `${eventHeight}px` : "auto",
                 width: isMultiDay && multiDayWidth ? `${multiDayWidth}%` : "100%",
-                // Remove the transform that was causing the shift
               }}
             >
               <EventItem
-                currentTime={currentTime || undefined}
+                draggedStart={draggedStart || undefined}
                 event={activeEvent}
                 isDragging={true}
                 showTime={activeView !== "month"}

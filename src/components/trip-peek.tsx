@@ -22,18 +22,14 @@ export type Trip = Pick<
   "_id" | "title" | "startsAt" | "endsAt" | "role" | "momentCount"
 >;
 
-// Enough to tell what the trip holds without it becoming the trip's own page.
-const MOMENTS = 4;
-const PHOTOS = 4;
+const MAX_MOMENTS = 4;
+const MAX_PHOTOS_PER_MOMENT = 4;
 
-// A trip opened from the calendar to look at, over the page: its dates and
-// size, then the photos and first words of its latest moments. Nothing here
-// changes it; Open goes to the trip itself.
 export const TripPeek = ({ trip, onClose }: { trip: Trip; onClose: () => void }) => {
   const latest = usePaginatedQuery(
     api.moments.page,
     { eventId: trip._id, newestFirst: true },
-    { initialNumItems: MOMENTS },
+    { initialNumItems: MAX_MOMENTS },
   );
   const moments = latest.status === "LoadingFirstPage" ? undefined : latest.results;
   const size = `${trip.momentCount} ${trip.momentCount === 1 ? "moment" : "moments"}`;
@@ -56,7 +52,7 @@ export const TripPeek = ({ trip, onClose }: { trip: Trip; onClose: () => void })
             <ul className="space-y-4">
               {moments.map((moment) => {
                 const blocks = [...moment.blocks, ...moment.stops.flatMap((stop) => stop.blocks)];
-                const photos = blocks.filter((b) => b.type === "photo").slice(0, PHOTOS);
+                const photos = blocks.filter((b) => b.type === "photo").slice(0, MAX_PHOTOS_PER_MOMENT);
                 const videos = blocks.filter((b) => b.type === "video").length;
                 const words = blocks.find((b) => b.type === "note" || b.type === "feeling");
                 return (

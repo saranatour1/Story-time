@@ -1,27 +1,21 @@
 import { differenceInCalendarDays } from "date-fns";
 
-// An event's bar in one week: the first column it covers, how many it spans,
-// the row it sits on, and whether it really starts and ends here or carries
-// on from, or into, another week.
 export type Bar<T> = {
   event: T;
   col: number;
   span: number;
   lane: number;
-  starts: boolean;
-  ends: boolean;
+  startsThisWeek: boolean;
+  endsThisWeek: boolean;
 };
 
-// One bar for each event the week touches, covering every local day from its
-// start to its end. Events that overlap sit on different lanes, the earlier
-// one higher, so a bar never changes row part-way along.
 export const weekBars = <T extends { start: Date; end: Date }>(
   week: Date[],
   events: T[],
 ): Bar<T>[] => {
   const first = week[0];
   if (first === undefined) return [];
-  const lastTaken: number[] = []; // per lane, the last column in use
+  const lastColumnByLane: number[] = [];
   return events
     .map((event) => {
       const from = differenceInCalendarDays(event.start, first);
@@ -32,15 +26,12 @@ export const weekBars = <T extends { start: Date; end: Date }>(
     .map(({ event, from, to }) => {
       const col = Math.max(from, 0);
       const end = Math.min(to, week.length - 1);
-      const free = lastTaken.findIndex((last) => last < col);
-      const lane = free === -1 ? lastTaken.length : free;
-      lastTaken[lane] = end;
-      return { event, col, span: end - col + 1, lane, starts: from >= 0, ends: to < week.length };
+      const free = lastColumnByLane.findIndex((last) => last < col);
+      const lane = free === -1 ? lastColumnByLane.length : free;
+      lastColumnByLane[lane] = end;
+      return { event, col, span: end - col + 1, lane, startsThisWeek: from >= 0, endsThisWeek: to < week.length };
     });
 };
 
-// Which day of a bar the pointer went down on (0 is the bar's first), from
-// where it landed across the bar's width. The trip then starts that many days
-// before the day it is dropped on.
 export const dayGrabbed = (x: number, left: number, width: number, span: number): number =>
   width > 0 ? Math.min(span - 1, Math.max(0, Math.floor((x - left) / (width / span)))) : 0;

@@ -13,13 +13,11 @@ export function useCurrentTimeIndicator(currentDate: Date, view: "day" | "week")
       const hours = now.getHours();
       const minutes = now.getMinutes();
       const totalMinutes = (hours - StartHour) * 60 + minutes;
-      const dayStartMinutes = 0; // 12am
-      const dayEndMinutes = (EndHour - StartHour) * 60; // 12am next day
+      const dayStartMinutes = 0;
+      const dayEndMinutes = (EndHour - StartHour) * 60;
 
-      // Calculate position as percentage of day
       const position = ((totalMinutes - dayStartMinutes) / (dayEndMinutes - dayStartMinutes)) * 100;
 
-      // Check if current day is in view based on the calendar view
       let isCurrentTimeVisible = false;
 
       if (view === "day") {
@@ -37,10 +35,8 @@ export function useCurrentTimeIndicator(currentDate: Date, view: "day" | "week")
       setCurrentTimeVisible(isCurrentTimeVisible);
     };
 
-    // Calculate immediately
     calculateTimePosition();
 
-    // Update every minute
     const interval = setInterval(calculateTimePosition, 60000);
 
     return () => clearInterval(interval);

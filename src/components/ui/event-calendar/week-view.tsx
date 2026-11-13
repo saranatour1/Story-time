@@ -1,13 +1,10 @@
 import {
   addHours,
-  areIntervalsOverlapping,
-  differenceInMinutes,
   eachDayOfInterval,
   eachHourOfInterval,
   endOfWeek,
   format,
   getHours,
-  getMinutes,
   isSameDay,
   isToday,
   startOfDay,
@@ -18,18 +15,17 @@ import { useMemo } from "react";
 
 import {
   type CalendarEvent,
+  positionTimedEvents,
   DraggableEvent,
   DroppableCell,
   EventItem,
   isMultiDayEvent,
   useCurrentTimeIndicator,
-  WeekCellsHeight,
 } from "@/components/ui/event-calendar";
 import { EndHour, StartHour, WeekStartsOn } from "@/components/ui/event-calendar/constants";
 import { weekBars } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 
-// Story-time: weekday names in the browser's language.
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const NARROW_WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
 
@@ -38,15 +34,6 @@ interface WeekViewProps {
   events: CalendarEvent[];
   onEventSelect: (event: CalendarEvent) => void;
   onEventCreate: (startTime: Date) => void;
-}
-
-interface PositionedEvent {
-  event: CalendarEvent;
-  top: number;
-  height: number;
-  left: number;
-  width: number;
-  zIndex: number;
 }
 
 export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: WeekViewProps) {
@@ -64,11 +51,9 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
     });
   }, [currentDate]);
 
-  // Get all-day events and multi-day events for the week
   const allDayEvents = useMemo(() => {
     return events
       .filter((event) => {
-        // Include explicitly marked all-day events or multi-day events
         return event.allDay || isMultiDayEvent(event);
       })
       .filter((event) => {
@@ -83,18 +68,14 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
       });
   }, [events, days]);
 
-  // Process events for each day to calculate positions
   const processedDayEvents = useMemo(() => {
     const result = days.map((day) => {
-      // Get events for this day that are not all-day events or multi-day events
       const dayEvents = events.filter((event) => {
-        // Skip all-day events and multi-day events
         if (event.allDay || isMultiDayEvent(event)) return false;
 
         const eventStart = new Date(event.start);
         const eventEnd = new Date(event.end);
 
-        // Check if event is on this day
         return (
           isSameDay(day, eventStart) ||
           isSameDay(day, eventEnd) ||
@@ -102,94 +83,7 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
         );
       });
 
-      // Sort events by start time and duration
-      const sortedEvents = [...dayEvents].sort((a, b) => {
-        const aStart = new Date(a.start);
-        const bStart = new Date(b.start);
-        const aEnd = new Date(a.end);
-        const bEnd = new Date(b.end);
-
-        // First sort by start time
-        if (aStart < bStart) return -1;
-        if (aStart > bStart) return 1;
-
-        // If start times are equal, sort by duration (longer events first)
-        const aDuration = differenceInMinutes(aEnd, aStart);
-        const bDuration = differenceInMinutes(bEnd, bStart);
-        return bDuration - aDuration;
-      });
-
-      // Calculate positions for each event
-      const positionedEvents: PositionedEvent[] = [];
-      const dayStart = startOfDay(day);
-
-      // Track columns for overlapping events
-      const columns: { event: CalendarEvent; end: Date }[][] = [];
-
-      for (const event of sortedEvents) {
-        const eventStart = new Date(event.start);
-        const eventEnd = new Date(event.end);
-
-        // Adjust start and end times if they're outside this day
-        const adjustedStart = isSameDay(day, eventStart) ? eventStart : dayStart;
-        const adjustedEnd = isSameDay(day, eventEnd) ? eventEnd : addHours(dayStart, 24);
-
-        // Calculate top position and height
-        const startHour = getHours(adjustedStart) + getMinutes(adjustedStart) / 60;
-        const endHour = getHours(adjustedEnd) + getMinutes(adjustedEnd) / 60;
-
-        // Adjust the top calculation to account for the new start time
-        const top = (startHour - StartHour) * WeekCellsHeight;
-        const height = (endHour - startHour) * WeekCellsHeight;
-
-        // Find a column for this event
-        let columnIndex = 0;
-        let placed = false;
-
-        while (!placed) {
-          const col = columns[columnIndex] || [];
-          if (col.length === 0) {
-            columns[columnIndex] = col;
-            placed = true;
-          } else {
-            const overlaps = col.some((c) =>
-              areIntervalsOverlapping(
-                { end: adjustedEnd, start: adjustedStart },
-                {
-                  end: new Date(c.event.end),
-                  start: new Date(c.event.start),
-                },
-              ),
-            );
-
-            if (!overlaps) {
-              placed = true;
-            } else {
-              columnIndex++;
-            }
-          }
-        }
-
-        // Ensure column is initialized before pushing
-        const currentColumn = columns[columnIndex] || [];
-        columns[columnIndex] = currentColumn;
-        currentColumn.push({ end: adjustedEnd, event });
-
-        // Calculate width and left position based on number of columns
-        const width = columnIndex === 0 ? 1 : 0.9;
-        const left = columnIndex === 0 ? 0 : columnIndex * 0.1;
-
-        positionedEvents.push({
-          event,
-          height,
-          left,
-          top,
-          width,
-          zIndex: 10 + columnIndex, // Higher columns get higher z-index
-        });
-      }
-
-      return positionedEvents;
+      return positionTimedEvents(day, dayEvents);
     });
 
     return result;
@@ -229,8 +123,6 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
 
       {showAllDaySection && (
         <div className="border-border/70 border-b bg-muted/50">
-          {/* Story-time: one bar per event across its days, as in the month
-              view, in place of coss's button per event per day. */}
           <div
             className="grid grid-cols-8"
             style={{
@@ -253,9 +145,9 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
                 style={{ gridColumn: dayIndex + 2, gridRow: "1 / -1" }}
               />
             ))}
-            {allDayBars.map(({ event, col, span, lane, starts, ends }) => (
+            {allDayBars.map(({ event, col, span, lane, startsThisWeek, endsThisWeek }) => (
               <div
-                className={cn("min-w-0", starts && "ms-1", ends && "me-1")}
+                className={cn("min-w-0", startsThisWeek && "ms-1", endsThisWeek && "me-1")}
                 key={event.id}
                 style={{
                   gridColumn: `${col + 2} / span ${span}`,
@@ -264,8 +156,8 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
               >
                 <EventItem
                   event={event}
-                  isFirstDay={starts}
-                  isLastDay={ends}
+                  isFirstDay={startsThisWeek}
+                  isLastDay={endsThisWeek}
                   onClick={(e) => handleEventClick(event, e)}
                   view="month"
                 />
@@ -297,7 +189,6 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
             data-today={isToday(day) || undefined}
             key={day.toString()}
           >
-            {/* Positioned events */}
             {(processedDayEvents[dayIndex] ?? []).map((positionedEvent) => (
               <div
                 className="absolute z-10 px-0.5"
@@ -323,7 +214,6 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
               </div>
             ))}
 
-            {/* Current time indicator - only show for today's column */}
             {currentTimeVisible && isToday(day) && (
               <div
                 className="pointer-events-none absolute right-0 left-0 z-20"
@@ -342,7 +232,6 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
                   className="relative min-h-[var(--week-cells-height)] border-border/70 border-b last:border-b-0"
                   key={hour.toString()}
                 >
-                  {/* Quarter-hour intervals */}
                   {[0, 1, 2, 3].map((quarter) => {
                     const quarterHourTime = hourValue + quarter * 0.25;
                     return (
@@ -363,7 +252,7 @@ export function WeekView({ currentDate, events, onEventSelect, onEventCreate }: 
                           startTime.setMinutes(quarter * 15);
                           onEventCreate(startTime);
                         }}
-                        time={quarterHourTime}
+                        hourOfDay={quarterHourTime}
                       />
                     );
                   })}
