@@ -525,22 +525,31 @@ const setArchived = mutation({
       });
     }
     assertNotArchived(event);
-    if ((moment.archived === true) === args.archived) return null;
-    await ctx.db.patch("moments", moment._id, { archived: args.archived ? true : undefined });
-    await ctx.db.patch("events", event._id, {
-      archivedCount: Math.max(0, (event.archivedCount ?? 0) + (args.archived ? 1 : -1)),
-    });
-    await recordChange(ctx, {
-      eventId: event._id,
-      entity: "moment",
-      entityId: moment._id,
-      actorId: userId,
-      action: "update",
-      fields: ["archived"],
-    });
+    await archiveMoment(ctx, { event, moment, userId, archived: args.archived });
     return null;
   },
 });
+
+// The caller has checked the person may change the moment.
+export const archiveMoment = async (
+  ctx: MutationCtx,
+  args: { event: Doc<"events">; moment: Doc<"moments">; userId: Id<"users">; archived: boolean },
+): Promise<void> => {
+  const { event, moment, userId, archived } = args;
+  if ((moment.archived === true) === archived) return;
+  await ctx.db.patch("moments", moment._id, { archived: archived ? true : undefined });
+  await ctx.db.patch("events", event._id, {
+    archivedCount: Math.max(0, (event.archivedCount ?? 0) + (archived ? 1 : -1)),
+  });
+  await recordChange(ctx, {
+    eventId: event._id,
+    entity: "moment",
+    entityId: moment._id,
+    actorId: userId,
+    action: "update",
+    fields: ["archived"],
+  });
+};
 
 export const deleteMoment = async (
   ctx: MutationCtx,

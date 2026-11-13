@@ -436,6 +436,25 @@ describe("applying a plan", () => {
     expect((await owner.query(api.api.events.get, { eventId }))!.momentCount).toBe(1);
   });
 
+  test("archiving needs no removal yes, keeps the moment, and can be undone", async () => {
+    const { owner, eventId, theirs, list, t } = await setup();
+    const found = await owner.query(internal.model.ai.command.read, { eventId });
+    const { ops } = resolvePlan({ summary: "x", ops: [{ op: "archive", moment: 2 }] }, found, {
+      removesOk: false,
+      zone: 0,
+    });
+    expect(ops).toEqual([{ op: "archive", momentId: theirs, archived: true }]);
+    const out = await owner.mutation(api.api.ai.command.apply, { eventId, ops });
+    expect(out.summary).toBe("1 archived");
+    expect((await t.run((ctx) => ctx.db.get("moments", theirs)))?.archived).toBe(true);
+    expect((await list()).find((m) => m._id === theirs)?.archived).toBe(true);
+    await owner.mutation(api.api.ai.command.apply, {
+      eventId,
+      ops: [{ op: "archive", momentId: theirs, archived: false }],
+    });
+    expect((await t.run((ctx) => ctx.db.get("moments", theirs)))?.archived).toBeUndefined();
+  });
+
   test("a helper may change their own moment but not the owner's", async () => {
     const { helper, eventId, flight, theirs, list } = await setup();
     await helper.mutation(api.api.ai.command.apply, {

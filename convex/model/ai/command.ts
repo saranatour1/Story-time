@@ -28,6 +28,7 @@ import {
 import { AI_LIMIT_MESSAGE, creditAi, takeAi } from "../../lib/rateLimit";
 import { TRANSPORTS, vGeo, vTransport } from "../../schema";
 import {
+  archiveMoment,
   createMoment,
   deleteMoment,
   listForEvent,
@@ -44,7 +45,13 @@ const MAX_OUTPUT_TOKENS = 900;
 const NOTE_PREVIEW = 80;
 
 export const vOp = v.object({
-  op: v.union(v.literal("add"), v.literal("edit"), v.literal("addStop"), v.literal("remove")),
+  op: v.union(
+    v.literal("add"),
+    v.literal("edit"),
+    v.literal("addStop"),
+    v.literal("archive"),
+    v.literal("remove"),
+  ),
   momentId: v.optional(v.id("moments")),
   stop: v.optional(v.number()),
   after: v.optional(v.number()),
@@ -55,6 +62,7 @@ export const vOp = v.object({
   transport: v.optional(v.union(vTransport, v.null())),
   note: v.optional(v.string()),
   labels: v.optional(v.array(v.string())),
+  archived: v.optional(v.boolean()),
 });
 export type Op = Infer<typeof vOp>;
 
@@ -76,6 +84,7 @@ const vMomentLine = v.object({
   labels: v.array(v.string()),
   note: v.optional(v.string()),
   editable: v.boolean(),
+  archived: v.boolean(),
 });
 
 const vContext = v.object({
@@ -124,6 +133,7 @@ export const read = internalQuery({
         labels: m.labels,
         note: said?.slice(0, NOTE_PREVIEW),
         editable: mayChangeMoment(m, userId, role),
+        archived: m.archived === true,
       };
     });
     const open = moments.findIndex((m) => m.id === openId);
@@ -145,7 +155,7 @@ export const read = internalQuery({
 const INTENTS = {
   new: "It tells what happened, or is a note to keep, and asks for nothing already saved to change.",
   change:
-    "It asks to change something already saved: move or rename a moment or stop, set its time, place or transport, add a stop or a note, change labels.",
+    "It asks to change something already saved: move or rename a moment or stop, set its time, place or transport, add a stop or a note, change labels, archive a moment or bring one back from the archive.",
   remove:
     "It asks to delete or remove something already saved: a moment, a stop, a note or a label.",
   unclear: "It is too vague to act on, or is not about this experience.",
@@ -212,13 +222,14 @@ const INSTRUCTIONS = [
   "- add: a new moment. It needs a `note`, one short line in the author's voice, first person plural and past tense. It may have when, place, transport and labels.",
   "- edit: change moment `moment`, or its stop `stop` (default 1). Set only what the sentence changes: when, place, transport (null clears it), note (a note added to that stop; the existing text stays) and, for stop 1 only, labels (the full list after the change, keeping the existing ones unless told to drop them).",
   "- addStop: add a stop to moment `moment`, after stop `after` (default: at the end). It needs a place or a note, and may have when and transport.",
+  "- archive: archive moment `moment` (hide it from the story, kept, not deleted), with `archived` true; `archived` false brings an archived moment back. Use this, never remove, when the sentence says archive, hide or put away.",
   "- remove: delete stop `stop` of moment `moment`, or the whole moment when `stop` is left out. Never remove stop 1 on its own; remove the moment instead. Remove only what the sentence asks to remove.",
   "Times are the clock where the moment happened, as YYYY-MM-DDTHH:mm. If only a date is given, give just YYYY-MM-DD and the existing clock time is kept. Dates like 'the next day' count from the date of the moment they are about.",
   "Use only what the sentence says. Never invent places, times or names. If you can't tell what to change, leave `ops` empty and say what you need in `needs`.",
   "`summary` is one short plain line saying what you will do, like 'Move Hanover to 21 Feb and add a stop in Berlin'. In `summary` and `needs` never use the moment or stop numbers: name moments by their place or date. No emojis, no exclamation marks.",
 ].join("\n");
 
-const JSON_INSTRUCTIONS = `${INSTRUCTIONS}\nReply with JSON only: {"summary": string, "needs": optional string, "ops": [{"op": "add"|"edit"|"addStop"|"remove", "moment": optional number, "stop": optional number, "after": optional number, "when": optional string, "place": optional string, "transport": optional one of ${TRANSPORTS.join(", ")} or null, "note": optional string, "labels": optional string[]}]}.`;
+const JSON_INSTRUCTIONS = `${INSTRUCTIONS}\nReply with JSON only: {"summary": string, "needs": optional string, "ops": [{"op": "add"|"edit"|"addStop"|"archive"|"remove", "moment": optional number, "stop": optional number, "after": optional number, "when": optional string, "place": optional string, "transport": optional one of ${TRANSPORTS.join(", ")} or null, "note": optional string, "labels": optional string[], "archived": optional boolean}]}.`;
 
 const WHEN = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/;
 
@@ -227,7 +238,7 @@ const rawPlan = z.object({
   needs: z.string().max(200).optional(),
   ops: z.array(
     z.object({
-      op: z.enum(["add", "edit", "addStop", "remove"]),
+      op: z.enum(["add", "edit", "addStop", "archive", "remove"]),
       moment: z.number().int().min(1).optional(),
       stop: z.number().int().min(1).max(MAX_STOPS_PER_MOMENT).optional(),
       after: z.number().int().min(1).max(MAX_STOPS_PER_MOMENT).optional(),
@@ -236,6 +247,7 @@ const rawPlan = z.object({
       transport: z.enum(TRANSPORTS).nullable().optional(),
       note: z.string().max(MAX_TEXT_LENGTH).optional(),
       labels: z.array(z.string().max(MAX_LABEL_LENGTH)).max(MAX_LABELS_PER_MOMENT).optional(),
+      archived: z.boolean().optional(),
     }),
   ),
 });
@@ -267,7 +279,7 @@ const describeLine = (line: Line, n: number, zone: number): string => {
     .join(", ");
   const labels = line.labels.length > 0 ? ` labels: ${line.labels.join(", ")};` : "";
   const note = line.note === undefined ? "" : ` note: "${line.note}"`;
-  return `${n}. ${localOf(line.startsAt, offset).replace("T", " ")} · stops ${route};${labels}${note}${line.editable ? "" : " (not yours to change)"}`;
+  return `${n}. ${localOf(line.startsAt, offset).replace("T", " ")} · stops ${route};${labels}${note}${line.archived ? " (archived)" : ""}${line.editable ? "" : " (not yours to change)"}`;
 };
 
 export const promptFor = (c: Context, text: string, now: number, zone: number): string => {
@@ -290,7 +302,7 @@ const trimmed = (s: string | undefined) => {
   return t === undefined || t === "" ? undefined : t;
 };
 
-const RANK = { add: 0, edit: 1, addStop: 2, remove: 4 };
+const RANK = { add: 0, edit: 1, addStop: 2, archive: 2, remove: 4 };
 const rank = (op: Op) => (op.op === "remove" && op.stop !== undefined ? 3 : RANK[op.op]);
 export const orderOps = (ops: Op[]): Op[] => {
   return ops
@@ -377,6 +389,16 @@ export const resolvePlan = (
       };
       if ([startsAt, place, r.transport, note, edit.labels].every((x) => x === undefined)) continue;
       ops.push(edit);
+      continue;
+    }
+
+    if (r.op === "archive") {
+      const archived = r.archived ?? true;
+      if (m.archived === archived) {
+        said.push(archived ? "That moment is already archived." : "That moment isn't archived.");
+        continue;
+      }
+      ops.push({ op: "archive", momentId: m.id, archived });
       continue;
     }
 
@@ -573,6 +595,10 @@ const runOp = async (
   if (op.op === "remove" && op.stop === undefined) {
     return { removed: (await deleteMoment(ctx, { event, moment, userId })).removedMediaIds };
   }
+  if (op.op === "archive") {
+    await archiveMoment(ctx, { event, moment, userId, archived: op.archived ?? true });
+    return { removed: [] };
+  }
 
   const view = await viewMoment(ctx, event, moment);
   const stop = op.stop ?? 1;
@@ -644,6 +670,8 @@ const summaryOf = (ops: Op[]): string => {
   const parts = [
     [count((o) => o.op === "add"), "added"],
     [count((o) => o.op === "edit" || o.op === "addStop"), "changed"],
+    [count((o) => o.op === "archive" && o.archived !== false), "archived"],
+    [count((o) => o.op === "archive" && o.archived === false), "restored"],
     [count((o) => o.op === "remove"), "removed"],
   ] as const;
   return parts

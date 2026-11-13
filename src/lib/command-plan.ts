@@ -98,6 +98,14 @@ export const describeOp = (op: PlanOp, moments: MomentView[]): PlanLine => {
     };
   }
 
+  if (op.op === "archive") {
+    return {
+      heading: nameOf(m),
+      changes: [op.archived === false ? "bring back from the archive" : "archive it"],
+      destructive: false,
+    };
+  }
+
   if (op.op === "addStop") {
     return {
       heading: nameOf(m),

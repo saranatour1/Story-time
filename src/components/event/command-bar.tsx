@@ -11,7 +11,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { queries } from "@/lib/queries";
@@ -128,8 +128,7 @@ export const CommandBar = ({
     toast.success("Moment added");
   };
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submit = async (said: string) => {
     if ((!said && files.length === 0 && picked.length === 0) || busy) return;
     setProblem(null);
     setPlan(null);
@@ -179,7 +178,14 @@ export const CommandBar = ({
         return;
       }
       const open = moments?.find((m) => m._id === openMomentId)?.geo;
-      setPlan({ summary: out.summary, needs: out.needs, ops: await pin(out.ops, open) });
+      const next = { summary: out.summary, needs: out.needs, ops: await pin(out.ops, open) };
+      // Only a delete waits for a yes; everything else is done as asked.
+      const deletes = next.ops.some((op) => op.op === "remove");
+      if (next.ops.length > 0 && !deletes && !next.needs) {
+        await run(next);
+        return;
+      }
+      setPlan(next);
     } catch (error) {
       setProblem(errorMessage(error));
     } finally {
@@ -187,18 +193,22 @@ export const CommandBar = ({
     }
   };
 
+  const run = async (plan: Plan) => {
+    const done = await apply({ eventId: event._id, ops: plan.ops });
+    track("ai_plan_applied", { changes: plan.ops.length });
+    if (token) await deletePhotos(done.removedMediaIds, token);
+    toast.success(done.summary.charAt(0).toUpperCase() + done.summary.slice(1), {
+      description: plan.summary || undefined,
+    });
+    setPlan(null);
+    setText("");
+  };
+
   const applyPlan = async () => {
     if (plan === null || plan.ops.length === 0 || busy) return;
     setPhase("applying");
     try {
-      const done = await apply({ eventId: event._id, ops: plan.ops });
-      track("ai_plan_applied", { changes: plan.ops.length });
-      if (token) await deletePhotos(done.removedMediaIds, token);
-      toast.success(done.summary.charAt(0).toUpperCase() + done.summary.slice(1), {
-        description: plan.summary || undefined,
-      });
-      setPlan(null);
-      setText("");
+      await run(plan);
     } catch (error) {
       setProblem(errorMessage(error));
     } finally {
@@ -219,7 +229,10 @@ export const CommandBar = ({
   return (
     <div className="space-y-2" onKeyDown={onKeyDown}>
       <form
-        onSubmit={(e) => void submit(e)}
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit(said);
+        }}
         className="flex items-center gap-0.5 rounded-2xl border bg-background py-1 pr-1 pl-3 shadow-xs transition-shadow focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30"
         aria-label="Add or change something"
       >
@@ -266,7 +279,11 @@ export const CommandBar = ({
         <VoiceButton
           quiet
           disabled={busy}
-          onText={(spoken) => setText((now) => (now.trim() ? `${now.trim()} ${spoken}` : spoken))}
+          onText={(spoken) => {
+            const words = said ? `${said} ${spoken}` : spoken;
+            setText(words);
+            void submit(words);
+          }}
         />
         <Button
           type="submit"
