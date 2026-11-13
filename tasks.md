@@ -29,7 +29,7 @@ In this order. No feed, no like counts, no public profiles.
 - Edit moment: a photo fills only an empty When, so a moment's first stop (which always has a time) keeps its time when photos are added to it. Decide whether a photo taken earlier should move it.
 - Collaboration follow-ups: tag people when a moment is first added (today it's only on edit).
 
-- AI Budget on production: after it's deployed, run `pnpm exec convex run model/aiBudget:configure --deployment production-eu` once, and set `AI_BUDGET_DASHBOARD_TOKEN` there to open the dashboard. Consider a global daily spend cap (`aiBudget.global.setLimits`) as a killswitch.
+- After the AI Budget and the agent: both components are unmounted. Delete the `aiBudget` and `agent` components' data in the dashboard (dev, then prod), and remove `AI_BUDGET_DASHBOARD_TOKEN` from the deployments that have it.
 - Voice with zero data retention: turn on `provider.zdr` in `convex/model/ai/voice.ts` once the gateway's transcription route accepts it (it answers 400 today).
 - Databuddy: after the next production deploy, check the dashboard shows the first page view (localhost is ignored).
 - Lighthouse on a slow phone: the landing page's first screen now comes in the HTML, but the 120 KB core script still holds performance near 70. Server-rendering the landing page, or a smaller core bundle, would get it to 90.

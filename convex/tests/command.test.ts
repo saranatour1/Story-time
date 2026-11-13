@@ -18,7 +18,6 @@ import {
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { rateLimiter } from "../lib/rateLimit";
-import { AI_PER_DAY } from "../lib/limits";
 import schema from "../schema";
 
 const modules = import.meta.glob(["../**/*.ts", "../**/*.js", "!../**/*.test.ts"]);
@@ -303,9 +302,9 @@ describe("who can ask", () => {
       owner.action(api.api.ai.command.propose, { eventId, text, zone: 0 });
     await expect(ask("   ")).rejects.toThrow("Say what to add or change");
     await expect(ask("x".repeat(601))).rejects.toThrow("under 600");
-    for (let i = 0; i < AI_PER_DAY; i++)
+    for (let i = 0; i < 10; i++)
       await t.run((ctx) => rateLimiter.limit(ctx, "ai", { key: ownerId }));
-    await expect(ask("move this to Friday")).rejects.toThrow("today's 10 AI requests");
+    await expect(ask("move this to Friday")).rejects.toThrow("today's AI requests");
   });
 });
 

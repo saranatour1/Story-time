@@ -9,9 +9,9 @@ type DecisionModel = Exclude<Experimental_DecisionModel, string>;
 // can't be asked yet (see model/ai/voice.ts).
 export const ZDR: GatewayModelOptions = { zdr: true };
 
-// The models, by the gateway's ids (also what lib/ai/budget.ts records).
-export const HAIKU = "anthropic/claude-haiku-5.5";
-export const JEV = "typesafe/jev-1.13";
+// The models, by the gateway's ids.
+const HAIKU = "anthropic/claude-haiku-5.5";
+const JEV = "typesafe/jev-1.13";
 
 // Haiku reads the photos and writes the diary line and labels.
 export const scribeModel = convexGateway.messages(HAIKU, ZDR);

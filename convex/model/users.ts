@@ -5,7 +5,7 @@ import { vGithubProfile } from "@convex-dev/auth/methods/github/server";
 import { vGoogleProfile } from "@convex-dev/auth/methods/google/server";
 import { calculateRateLimit, DAY } from "@convex-dev/rate-limiter";
 import { getUserId, requireUserId } from "../lib/access";
-import { AI_PER_DAY, MAX_EVENTS_PER_USER, MAX_LIVE_UPLOAD_BYTES } from "../lib/limits";
+import { MAX_EVENTS_PER_USER, MAX_LIVE_UPLOAD_BYTES } from "../lib/limits";
 import { rateLimiter } from "../lib/rateLimit";
 import { liveUploadBytes } from "./media";
 import { appOrigins } from "../lib/appUrl";
@@ -348,7 +348,7 @@ const usage = query({
     return {
       ai: {
         left: Math.max(0, Math.floor(today.value)),
-        limit: AI_PER_DAY,
+        limit: stored.config.rate,
         resetsAt: (today.windowStart ?? now) + DAY,
       },
       storage: { used: bytes, limit: MAX_LIVE_UPLOAD_BYTES },
