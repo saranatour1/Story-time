@@ -53,7 +53,7 @@ Two different things share the word "Convex":
 - **Provisioning identity** is Convex's OAuth for third-party apps. It gives the front door a token to manage a person's Convex team or project. It is not a login for the people using their app.
 - **App sign-in** stays what it is today: Convex Auth on the deployment, with GitHub and Google. In BYO each deployment runs its own, with its own `AUTH_PRIVATE_KEY`, `AUTH_JWKS` and its own GitHub and Google OAuth apps. The callbacks are `https://<name>.convex.site/oauth/{github,google}/callback`. `convex.config.ts` already reads all of these from env, so no code changes.
 
-Invitees to a BYO story create an account on the owner's deployment. The Data & privacy page says so.
+Invitees to a BYO story create an account on the owner's deployment, and the app should tell them so.
 
 ## Storage
 
@@ -109,11 +109,11 @@ I read "subs" as their own plans and bills: Convex usage, storage, the AI gatewa
 - **Invite emails** need `CF_ACCOUNT_ID`, `CF_EMAIL_TOKEN` and `EMAIL_FROM`, all optional already. Without them, invites are copy-link only.
 - **Limits** (10 AI uses a day, 20 waiting invites, upload caps, all in `convex/lib/limits.ts`) are per deployment. The owner can change the numbers on their own deployment.
 
-## What the Data & privacy page must say
+## What a privacy page would need to say
 
-The page's copy depends on the mode and never claims something that isn't true for the one in use.
+The Data & privacy page was removed on 2026-11-13. If one comes back, its copy depends on the mode and never claims something that isn't true for the one in use.
 
-- Hosted: the page as it is today.
+- Hosted: what leaves the browser for the AI gateway, OpenStreetMap services and sign-in providers, as the removed page listed (see `git log -- src/routes/_app/settings.data.tsx`).
 - BYO: your data is in your Convex deployment and your storage. This website serves the app and sees your IP address like any website. It does not see your stories, photos, keys or session.
 - In both modes the browser still calls photon.komoot.io, OpenStreetMap routers and map tiles. Those stay listed.
 
@@ -128,7 +128,7 @@ The page's copy depends on the mode and never claims something that isn't true f
 ## Build order
 
 0. **No behavior change.** `resolveBackend()`, the `/story-time/info` route and contract number, link parsing for `@name`, tests. Hosted only.
-1. **Paste a URL**, Convex storage, browser-side encryption, the deploy guide, Data page copy.
+1. **Paste a URL**, Convex storage, browser-side encryption, the deploy guide, privacy copy.
 2. **Connect with Convex** provisioning.
 3. **Their own R2 or S3 bucket.**
 

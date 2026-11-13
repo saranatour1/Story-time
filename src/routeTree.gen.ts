@@ -23,7 +23,6 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as SChar123NameChar125RouteImport } from './routes/s.{-$name}'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.index'
 import { Route as AppSettingsAccountRouteImport } from './routes/_app/settings.account'
-import { Route as AppSettingsDataRouteImport } from './routes/_app/settings.data'
 import { Route as AppSettingsProfileRouteImport } from './routes/_app/settings.profile'
 import { Route as ApiEventsIdRouteImport } from './routes/api/events.$id'
 import { Route as ApiMediaIdRouteImport } from './routes/api/media.$id'
@@ -102,11 +101,6 @@ const AppSettingsAccountRoute = AppSettingsAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AppSettingsRoute,
 } as any)
-const AppSettingsDataRoute = AppSettingsDataRouteImport.update({
-  id: '/data',
-  path: '/data',
-  getParentRoute: () => AppSettingsRoute,
-} as any)
 const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -161,7 +155,6 @@ export interface FileRoutesByFullPath {
   '/s/{-$name}': typeof SChar123NameChar125Route
   '/invite/': typeof InviteIndexRoute
   '/settings/account': typeof AppSettingsAccountRoute
-  '/settings/data': typeof AppSettingsDataRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/api/events/$id': typeof ApiEventsIdRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -184,7 +177,6 @@ export interface FileRoutesByTo {
   '/s/{-$name}': typeof SChar123NameChar125Route
   '/invite': typeof InviteIndexRoute
   '/settings/account': typeof AppSettingsAccountRoute
-  '/settings/data': typeof AppSettingsDataRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/api/events/$id': typeof ApiEventsIdRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -210,7 +202,6 @@ export interface FileRoutesById {
   '/s/{-$name}': typeof SChar123NameChar125Route
   '/invite/': typeof InviteIndexRoute
   '/_app/settings/account': typeof AppSettingsAccountRoute
-  '/_app/settings/data': typeof AppSettingsDataRoute
   '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/api/events/$id': typeof ApiEventsIdRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -236,7 +227,6 @@ export interface FileRouteTypes {
     | '/s/{-$name}'
     | '/invite/'
     | '/settings/account'
-    | '/settings/data'
     | '/settings/profile'
     | '/api/events/$id'
     | '/api/media/$id'
@@ -259,7 +249,6 @@ export interface FileRouteTypes {
     | '/s/{-$name}'
     | '/invite'
     | '/settings/account'
-    | '/settings/data'
     | '/settings/profile'
     | '/api/events/$id'
     | '/api/media/$id'
@@ -284,7 +273,6 @@ export interface FileRouteTypes {
     | '/s/{-$name}'
     | '/invite/'
     | '/_app/settings/account'
-    | '/_app/settings/data'
     | '/_app/settings/profile'
     | '/api/events/$id'
     | '/api/media/$id'
@@ -412,13 +400,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsAccountRouteImport
       parentRoute: typeof AppSettingsRoute
     }
-    '/_app/settings/data': {
-      id: '/_app/settings/data'
-      path: '/data'
-      fullPath: '/settings/data'
-      preLoaderRoute: typeof AppSettingsDataRouteImport
-      parentRoute: typeof AppSettingsRoute
-    }
     '/_app/settings/profile': {
       id: '/_app/settings/profile'
       path: '/profile'
@@ -480,14 +461,12 @@ declare module '@tanstack/react-router' {
 
 interface AppSettingsRouteChildren {
   AppSettingsAccountRoute: typeof AppSettingsAccountRoute
-  AppSettingsDataRoute: typeof AppSettingsDataRoute
   AppSettingsProfileRoute: typeof AppSettingsProfileRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
 const AppSettingsRouteChildren: AppSettingsRouteChildren = {
   AppSettingsAccountRoute: AppSettingsAccountRoute,
-  AppSettingsDataRoute: AppSettingsDataRoute,
   AppSettingsProfileRoute: AppSettingsProfileRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
