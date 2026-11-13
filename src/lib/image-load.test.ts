@@ -9,6 +9,7 @@ import {
   type MountedImage,
 } from "./image-load";
 
+// An open page has 8 photos and 3 of them are in the viewport.
 const fixture = (): MountedImage[] => {
   const shown = visibleTiles(640);
   const page = Array.from({ length: 8 }, (_, i) => ({

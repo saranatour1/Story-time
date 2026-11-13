@@ -13,12 +13,18 @@ const allowedRedirectOrigins = appOrigins();
 export const { startSignInWithGithub, completeSignInWithGithub } = setupGithub(core, {
   component: components.authGithub,
   allowedRedirectOrigins,
-}).attachUserCallbacks({ createUser: internal.model.users.createGithubUser });
+}).attachUserCallbacks({
+  createUser: internal.model.users.createGithubUser,
+  onSignIn: internal.model.users.saveOauthProfile,
+});
 
 export const { startSignInWithGoogle, completeSignInWithGoogle } = setupGoogle(core, {
   component: components.authGoogle,
   allowedRedirectOrigins,
-}).attachUserCallbacks({ createUser: internal.model.users.createGoogleUser });
+}).attachUserCallbacks({
+  createUser: internal.model.users.createGoogleUser,
+  onSignIn: internal.model.users.saveOauthProfile,
+});
 
 export const { signInAnonymously } = setupAnonymous(core, {
   component: components.authAnonymous,

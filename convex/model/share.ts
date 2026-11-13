@@ -1,14 +1,11 @@
 import { ConvexError, v, type Infer } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { assertNotArchived, isBlocked, requireEventAccess } from "../lib/access";
+import { assertNotArchived, isBlocked, requireEventAccess, withheld } from "../lib/access";
 import { appOrigin } from "../lib/appUrl";
 import { emailConfigured, queueMail, replyAddress } from "../lib/emailAddress";
 import { recordChange } from "../lib/changes";
 import { decryptText, encryptText, readText, shareKeyFor } from "../lib/crypto";
-import { contentsOf, pageInEvent } from "./journal";
-import { MAX_JOURNAL_PAGES } from "../lib/journal";
-import { isSharedPdf } from "../lib/sharedPdf";
 import { listForEvent, type PlainBlock, vMomentView } from "./moments";
 import { SHARE_EMAILS_PER_DAY } from "../lib/limits";
 import { chargeEmail } from "../lib/rateLimit";
@@ -106,11 +103,10 @@ const sharedMoment = (moment: Infer<typeof vMomentView>, redact: boolean, film: 
   };
 };
 
-const vPart = v.union(v.literal("photos"), v.literal("film"), v.literal("pdf"));
+const vPart = v.union(v.literal("photos"), v.literal("film"));
 const shownOf = (event: Doc<"events">) => ({
   photos: event.shareRedacted !== true,
   film: event.shareHide?.film !== true,
-  pdf: event.shareHide?.pdf !== true,
 });
 
 const shown = query({
@@ -132,7 +128,7 @@ const setShown = mutation({
       event._id,
       args.part === "photos"
         ? { shareRedacted: hide }
-        : { shareHide: { ...event.shareHide, [args.part]: hide } },
+        : { shareHide: { ...event.shareHide, film: hide } },
     );
     await recordChange(ctx, {
       eventId: args.eventId,
@@ -270,7 +266,8 @@ const get = query({
   handler: async (ctx, args) => {
     const event = await eventFor(ctx, args.token);
     if (event === null) return null;
-    const moments = await listForEvent(ctx, event);
+    // Nobody on a link is someone a moment holds nothing back from.
+    const moments = await listForEvent(ctx, event, null);
     const { photos, film } = shownOf(event);
     return {
       slug: event.shareSlug,
@@ -281,7 +278,7 @@ const get = query({
         description: await readText(event._id, event.description),
         startsAt: event.startsAt,
         endsAt: event.endsAt,
-        momentCount: event.momentCount,
+        momentCount: event.momentCount - (event.archivedCount ?? 0),
         status: event.status,
       },
       moments: moments.map((m) => sharedMoment(m, !photos, film)),
@@ -289,38 +286,7 @@ const get = query({
   },
 });
 
-const journal = query({
-  args: { token: v.string() },
-  handler: async (ctx, args) => {
-    const event = await eventFor(ctx, args.token);
-    if (event === null) return null;
-    return { pages: await contentsOf(ctx, event) };
-  },
-});
-
-const page = query({
-  args: { token: v.string(), pageId: v.id("journalPages") },
-  handler: async (ctx, args) => {
-    const event = await eventFor(ctx, args.token);
-    if (event === null) return null;
-    return await pageInEvent(ctx, event, args.pageId, event.shareRedacted === true);
-  },
-});
-
-const pdf = query({
-  args: { token: v.string() },
-  handler: async (ctx, args) => {
-    const event = await eventFor(ctx, args.token);
-    if (event === null || !shownOf(event).photos || !shownOf(event).pdf) return null;
-    const journal = await ctx.db
-      .query("journals")
-      .withIndex("by_event", (q) => q.eq("eventId", event._id))
-      .unique();
-    if (!journal?.pdf) return null;
-    return { mediaId: journal.pdf.mediaId, pages: journal.pdf.pages, at: journal.pdf.at };
-  },
-});
-
+// route gets. Only a picture on a moment qualifies; a loose upload does not.
 const mediaForShare = query({
   args: {
     token: v.string(),
@@ -332,17 +298,8 @@ const mediaForShare = query({
     if (event === null || event.shareRedacted === true) return null;
     const media = await ctx.db.get("media", args.mediaId);
     if (media === null || media.status !== "ready" || media.eventId !== event._id) return null;
-    if (media.momentId === undefined && media.purpose === "pdf") {
-      if (!shownOf(event).pdf || !(await isSharedPdf(ctx, event._id, media._id))) return null;
-    } else if (media.momentId === undefined) {
-      if (media.purpose !== "sticker") return null;
-      const pages = await ctx.db
-        .query("journalPages")
-        .withIndex("by_event_and_order", (q) => q.eq("eventId", event._id))
-        .take(MAX_JOURNAL_PAGES);
-      if (!pages.some((page) => page.elements.some((element) => element.mediaId === media._id)))
-        return null;
-    }
+    if (media.momentId === undefined) return null;
+    if (await withheld(ctx, media, null)) return null;
     const thumbKey = args.variant === "thumb" ? media.thumbR2Key : undefined;
     return {
       r2Key: thumbKey ?? media.r2Key,
@@ -362,8 +319,5 @@ export const shareApi = {
   rotate,
   emailLink,
   get,
-  journal,
-  page,
-  pdf,
   mediaForShare,
 };

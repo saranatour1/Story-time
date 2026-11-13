@@ -12,8 +12,6 @@ crons.interval(
   {},
 );
 
-crons.cron("backfill journal pages", "23 4 * * *", internal.model.journal.backfillWaiting, {});
-
 crons.cron("on this day", "17 15 * * *", internal.model.onThisDay.prepare, {});
 
 export default crons;

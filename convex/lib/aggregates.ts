@@ -20,6 +20,8 @@ export const uploadBytes = new TableAggregate<{
   sumValue: (media) => (live(media) ? media.size + (media.thumbSize ?? 0) : 0),
 });
 
+// An experience's live photos and videos, for their caps. Deleted uploads and
+// anything with a purpose are "other". Profile images have no experience.
 export const eventMedia = new TableAggregate<{
   Namespace: Id<"events"> | null;
   Key: "photo" | "video" | "other";

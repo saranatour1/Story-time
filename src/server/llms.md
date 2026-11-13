@@ -1,6 +1,6 @@
 # Story-time
 
-> Story-time keeps the photos and notes from a trip in the order they happened, and only the people who were there can see them. Everyone adds what they caught; the app puts it in order by time and place, draws the route on a map, makes a scrapbook journal, and plays it back as a short film.
+> Story-time keeps the photos and notes from a trip in the order they happened, and only the people who were there can see them. Everyone adds what they caught; the app puts it in order by time and place, draws the route on a map, and plays it back as a short film.
 
 This file is for AI agents and assistants. Served at /llms.txt, and at / when a request asks for `text/markdown`.
 
@@ -9,7 +9,6 @@ This file is for AI agents and assistants. Served at /llms.txt, and at / when a 
 - Make an experience (a trip, a wedding weekend, a day out) and invite the people who were there. An invite works once, for one person, as a viewer or a contributor.
 - Add photos from the camera roll. The browser reads each photo's time and place, removes that metadata from the file, and groups the photos into moments by day and stop.
 - Type or say a sentence ("we had lunch at the market, then took the ferry") to add, change or remove moments.
-- Read the trip as a journal: an A4 scrapbook with a page per moment, stickers cut from photos, and a PDF export, which can be locked with a password.
 - Play it back as a film, stop by stop, with the route drawn on a map: along streets for walking, cycling, driving, buses and trains, and as an arc for flights and ferries.
 - Share a read-only link that the owner can switch off at any time, and get an optional email when a past year has the same date.
 
@@ -19,7 +18,7 @@ This file is for AI agents and assistants. Served at /llms.txt, and at / when a 
 - Notes, places, labels and links are encrypted in the database, with a key per experience.
 - Photos are encrypted in storage with a key per experience. Each one is served only after a check that the person asking may see it.
 - The database runs in the EU (Ireland). Photos are stored with Cloudflare R2, in a bucket located in Europe.
-- AI features (photo notes, the sentence box, voice, journal titles) send only what that feature needs.
+- AI features (photo notes, the sentence box, voice) send only what that feature needs.
 
 ## For agents
 

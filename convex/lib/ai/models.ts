@@ -5,8 +5,9 @@ type DecisionModel = Exclude<Experimental_DecisionModel, string>;
 
 export const ZDR: GatewayModelOptions = { zdr: true };
 
-export const HAIKU = "anthropic/claude-haiku-5.5";
-export const JEV = "typesafe/jev-1.13";
+// The models, by the gateway's ids.
+const HAIKU = "anthropic/claude-haiku-5.5";
+const JEV = "typesafe/jev-1.13";
 
 export const scribeModel = convexGateway.messages(HAIKU, ZDR);
 

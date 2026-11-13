@@ -1,10 +1,9 @@
-export const localParts = (ms: number, tzOffsetMinutes: number | undefined) => {
+const localParts = (ms: number, tzOffsetMinutes: number | undefined) => {
   const shifted = new Date(ms + (tzOffsetMinutes ?? 0) * 60_000);
   return {
     year: shifted.getUTCFullYear(),
     monthIndex: shifted.getUTCMonth(),
     day: shifted.getUTCDate(),
-    weekdayIndex: shifted.getUTCDay(),
   };
 };
 

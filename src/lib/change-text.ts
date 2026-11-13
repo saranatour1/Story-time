@@ -13,6 +13,7 @@ const FIELD_WORDS: Partial<Record<string, string>> = {
   stops: "stops",
   labels: "labels",
   people: "who was there",
+  archived: "archived or restored",
 };
 
 const wordFor = (entity: string, field: string): string => {
@@ -39,8 +40,6 @@ export const describeChange = (c: { entity: string; action: string; fields: stri
   switch (`${entity}.${action}`) {
     case "moment.create":
       return "Added a moment";
-    case "page.create":
-      return "Added a page";
     case "guestNote.create":
       return "Left a note in the guestbook";
     case "moment.update":
@@ -52,7 +51,6 @@ export const describeChange = (c: { entity: string; action: string; fields: stri
     case "event.update":
       if (onlyField(fields, "visibility")) return "Changed the sharing settings";
       if (onlyField(fields, "shareLink")) return "Made a new share link";
-      if (onlyField(fields, "sharedPdf")) return "Changed the locked PDF on the share link";
       if (onlyField(fields, "shareRedacted")) return "Changed whether the share link shows photos";
       if (onlyField(fields, "shareShown")) return "Changed what the share link shows";
       if (onlyField(fields, "shareEmail")) return "Emailed the share link";

@@ -34,10 +34,12 @@ export const firstLine = (m: MomentView): string | undefined => {
   return m.place ?? m.stops.find((s) => s.place)?.place;
 };
 
-export const mediaOf = (m: MomentView): Array<{ mediaId: string; video: boolean }> =>
+export const mediaOf = (
+  m: MomentView,
+): Array<{ mediaId: string; video: boolean; hidden: boolean }> =>
   allBlocks(m).flatMap((b) =>
     b.type === "photo" || b.type === "video"
-      ? [{ mediaId: b.mediaId, video: b.type === "video" }]
+      ? [{ mediaId: b.mediaId, video: b.type === "video", hidden: b.hidden === true }]
       : [],
   );
 

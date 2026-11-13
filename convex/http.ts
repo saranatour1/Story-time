@@ -1,8 +1,7 @@
 import { httpRouter } from "convex/server";
-import { aiBudget } from "./lib/ai/budget";
 
+// No routes of our own. Sign-in and OAuth are mounted by the auth components
+// in convex.config.ts (their httpPrefix).
 const http = httpRouter();
-
-aiBudget.registerRoutes(http);
 
 export default http;

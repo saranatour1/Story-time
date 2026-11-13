@@ -5,7 +5,7 @@ import { vGithubProfile } from "@convex-dev/auth/methods/github/server";
 import { vGoogleProfile } from "@convex-dev/auth/methods/google/server";
 import { calculateRateLimit, DAY } from "@convex-dev/rate-limiter";
 import { getUserId, requireUserId } from "../lib/access";
-import { AI_PER_DAY, MAX_EVENTS_PER_USER, MAX_LIVE_UPLOAD_BYTES } from "../lib/limits";
+import { MAX_EVENTS_PER_USER, MAX_LIVE_UPLOAD_BYTES } from "../lib/limits";
 import { rateLimiter } from "../lib/rateLimit";
 import { liveUploadBytes } from "./media";
 import { appOrigins } from "../lib/appUrl";
@@ -21,6 +21,7 @@ import {
   cleanUsername,
 } from "../lib/profile";
 
+// malformed address is left off.
 const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string | undefined => {
   if (!profile.emailVerified || profile.email === undefined) return undefined;
   const email = cleanEmail(profile.email);
@@ -29,6 +30,8 @@ const oauthEmail = (profile: { email?: string; emailVerified: boolean }): string
   return email;
 };
 
+// new user instead. A new row holds only the verified contact email; the
+// name and photo arrive right after, in saveOauthProfile.
 const userFor = async (ctx: MutationCtx, email: string | undefined): Promise<Id<"users">> => {
   if (email !== undefined) {
     const known = (
@@ -45,14 +48,19 @@ const userFor = async (ctx: MutationCtx, email: string | undefined): Promise<Id<
   return await ctx.db.insert("users", email === undefined ? {} : { email, emailVerified: true });
 };
 
+const vGithub = v.object({
+  name: v.literal("github"),
+  accountId: v.string(),
+  profile: vGithubProfile,
+});
+const vGoogle = v.object({
+  name: v.literal("google"),
+  accountId: v.string(),
+  profile: vGoogleProfile,
+});
+
 export const createGithubUser = internalMutation({
-  args: {
-    provider: v.object({
-      name: v.literal("github"),
-      accountId: v.string(),
-      profile: vGithubProfile,
-    }),
-  },
+  args: { provider: vGithub },
   returns: v.id("users"),
   handler: async (ctx, args) => {
     return await userFor(ctx, oauthEmail(args.provider.profile));
@@ -60,16 +68,33 @@ export const createGithubUser = internalMutation({
 });
 
 export const createGoogleUser = internalMutation({
-  args: {
-    provider: v.object({
-      name: v.literal("google"),
-      accountId: v.string(),
-      profile: vGoogleProfile,
-    }),
-  },
+  args: { provider: vGoogle },
   returns: v.id("users"),
   handler: async (ctx, args) => {
     return await userFor(ctx, oauthEmail(args.provider.profile));
+  },
+});
+
+// Convex Auth runs this on every GitHub or Google sign-in, the first one
+// included, and it is the only time the profile is seen (none is kept). The
+// provider's name fills an empty display name and never replaces one. Its
+// photo is kept as of the latest sign-in.
+export const saveOauthProfile = internalMutation({
+  args: { provider: v.union(vGithub, vGoogle), userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { provider, userId }) => {
+    const user = await ctx.db.get("users", userId);
+    if (user === null) return null;
+    const name = provider.profile.name?.trim();
+    const photo =
+      provider.name === "github" ? provider.profile.avatarUrl : provider.profile.picture;
+    await ctx.db.patch("users", userId, {
+      displayName:
+        user.displayName ??
+        (name === undefined || name === "" || name.length > MAX_DISPLAY_NAME ? undefined : name),
+      imageUrl: photo?.startsWith("https://") === true ? photo : user.imageUrl,
+    });
+    return null;
   },
 });
 
@@ -128,6 +153,7 @@ const getCurrentUser = query({
       emailVerified: verified,
       onThisDay: user.onThisDay === true,
       imageMediaId: user.imageMediaId,
+      imageUrl: user.imageUrl,
       locale: user.locale,
     };
   },
@@ -291,7 +317,7 @@ const usage = query({
     return {
       ai: {
         left: Math.max(0, Math.floor(today.value)),
-        limit: AI_PER_DAY,
+        limit: stored.config.rate,
         resetsAt: (today.windowStart ?? now) + DAY,
       },
       storage: { used: bytes, limit: MAX_LIVE_UPLOAD_BYTES },

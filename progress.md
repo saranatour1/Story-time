@@ -2,6 +2,12 @@
 
 What has landed, newest first. One line per change; the PR has the detail.
 
+## 2026-11-13
+
+- **The journal is gone**, and with it the locked PDF, stickers, link previews and the scrapbook fonts. Play and the share link open the story you scroll, as they did before the book; the film is still one tap away, unless the owner switched it off on the link. Nine packages left `package.json`. `journals` and `journalPages` left the schema; rows a deployment still has stay, unvalidated, until deleted in the dashboard, and so do sticker and PDF uploads (`tasks.md` has the clean-up).
+- **AI limits on the rate limiter alone.** The ten AI uses a day live only in `convex/lib/rateLimit.ts`, and a request the AI couldn't answer (the box's plan, a transcription) gives its use back with the rate limiter's `credit`. The AI Budget component, its `/aibudget` dashboard, `metered()` and `AI_PER_DAY` are gone, and `@convex-dev/ai-budget` left `package.json`. `convex/model/ai/command.ts` lost its comments and some nesting; it does what it did.
+- **No agent component.** The box's plan was the only thing on `@convex-dev/agent`, and it made a thread per request only to delete it: no history, no stored messages, no tools. Haiku is now called straight through the AI SDK (`convex/lib/ai/generate.ts`), with the same instructions and the same JSON fallback. Jev and voice never used it.
+
 ## 2026-11-02
 
 - **Agent discovery.** The home page sends `Link` headers, `/.well-known/api-catalog` lists the Worker's routes (RFC 9727), `/openapi.json` describes them, and `/auth.md` says agents can't register and which credentials a person can hand them. No OAuth metadata: the app has no OAuth server for agents.

@@ -19,10 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { initials } from "@/components/user-avatar";
 
 const search = z.object({
-  tab: z
-    .enum(["itinerary", "shared", "activity", "canvas", "journal", "settings"])
-    .optional()
-    .catch(undefined),
+  tab: z.enum(["itinerary", "shared", "activity", "settings"]).optional().catch(undefined),
   panel: z.enum(["outline", "details", "moment"]).default("outline").catch("outline"),
   momentId: z.string().optional().catch(undefined),
   editId: z.string().optional().catch(undefined),
@@ -37,7 +34,6 @@ const editIdFromLegacyEditLink = (s: Search) =>
 const redirectLegacyTabLink = (tab: Search["tab"], params: { id: string }) => {
   if (tab === "shared") throw redirect({ to: "/e/$id/shared", params });
   if (tab === "activity") throw redirect({ to: "/e/$id/activity", params });
-  if (tab === "canvas" || tab === "journal") throw redirect({ to: "/e/$id/journal", params });
 };
 
 const EventPage = () => {
@@ -221,7 +217,6 @@ export const Route = createFileRoute("/_app/e/$id/")({
     const eventId = params.id as Id<"events">;
     prefetch(queries.events.get({ eventId }));
     prefetch(queries.moments.list({ eventId }));
-    prefetch(queries.journal.unpaged({ eventId }));
   },
   component: EventPage,
 });

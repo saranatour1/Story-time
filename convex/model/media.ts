@@ -1,5 +1,4 @@
 import { ConvexError, v } from "convex/values";
-import { isSharedPdf } from "../lib/sharedPdf";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
@@ -16,10 +15,10 @@ import {
   requireEventAccess,
   requireUserId,
   sharesExperience,
+  withheld,
 } from "../lib/access";
 import { eventMedia, insertMedia, patchMedia, uploadBytes } from "../lib/aggregates";
 import { recordChange } from "../lib/changes";
-import { mediaOnAPage } from "./journal";
 import {
   AVATAR_MIME_TYPES,
   IMAGE_MIME_TYPES,
@@ -72,6 +71,8 @@ const reserveUpload = mutation({
         maxBytes,
       });
     }
+    // Photos and videos have their own caps. Deleted uploads don't count, so
+    // removing one frees room.
     const held = await eventMedia.count(ctx, {
       namespace: args.eventId,
       bounds: { eq: isVideo ? "video" : "photo" },
@@ -254,14 +255,9 @@ const getForDownload = query({
     if (media.eventId === undefined) return null;
     const access = await getEventAccess(ctx, media.eventId);
     if (access === null) return null;
-    if (
-      media.momentId === undefined &&
-      media.purpose !== "sticker" &&
-      !(media.purpose === "pdf" && (await isSharedPdf(ctx, media.eventId, media._id))) &&
-      media.uploaderId !== access.userId
-    ) {
-      return null;
-    }
+    // Photos not yet attached to a moment are visible to their uploader only.
+    if (media.momentId === undefined && media.uploaderId !== access.userId) return null;
+    if (await withheld(ctx, media, access)) return null;
     return delivered(media, args.variant, media.eventId);
   },
 });
@@ -352,9 +348,6 @@ const deletableBy = async (
     return user?.imageMediaId !== media._id;
   }
   if (media.momentId !== undefined || media.eventId === undefined) return false;
-  if (media.purpose === "sticker" && (await mediaOnAPage(ctx, media.eventId, media._id)))
-    return false;
-  if (media.purpose === "pdf" && (await isSharedPdf(ctx, media.eventId, media._id))) return false;
   const access = await getEventAccess(ctx, media.eventId);
   if (access === null || access.role === "viewer") return false;
   if (access.role === "owner") return true;
@@ -414,6 +407,7 @@ const UNATTACHED_LIMIT = 24;
 const showable = (mime: string) =>
   IMAGE_MIME_TYPES.some((kind) => kind === mime) || VIDEO_MIME_TYPES.some((kind) => kind === mime);
 
+// first. Anything with a purpose, and anyone else's loose uploads, stay off the shelf.
 const unattached = query({
   args: { eventId: v.id("events") },
   handler: async (ctx, args) => {
@@ -426,8 +420,7 @@ const unattached = query({
     const mine = rows.filter(
       (row) =>
         row.momentId === undefined &&
-        row.purpose !== "sticker" &&
-        row.purpose !== "avatar" &&
+        row.purpose === undefined &&
         row.uploaderId === userId &&
         showable(row.mime),
     );

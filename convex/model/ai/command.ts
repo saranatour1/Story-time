@@ -1,16 +1,13 @@
-import { Agent, createThread } from "@convex-dev/agent";
 import {
   experimental_decide,
   type Experimental_DecisionAnswer,
   type Experimental_DecisionQuestion,
 } from "ai";
-import { ConvexError, v } from "convex/values";
-import type { Infer } from "convex/values";
+import { ConvexError, v, type Infer } from "convex/values";
 import { z } from "zod";
-import { components, internal } from "../../_generated/api";
+import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
-import type { MutationCtx } from "../../_generated/server";
-import { type ActionCtx, action, internalQuery, mutation } from "../../_generated/server";
+import { action, internalQuery, mutation, type MutationCtx } from "../../_generated/server";
 import {
   assertNotArchived,
   mayChangeMoment,
@@ -28,8 +25,8 @@ import {
   MAX_STOPS_PER_MOMENT,
   MAX_TEXT_LENGTH,
 } from "../../lib/limits";
-import { AI_LIMIT_MESSAGE, takeAi } from "../../lib/rateLimit";
-import { TRANSPORTS } from "../../schema";
+import { AI_LIMIT_MESSAGE, creditAi, takeAi } from "../../lib/rateLimit";
+import { TRANSPORTS, vGeo, vTransport } from "../../schema";
 import {
   createMoment,
   deleteMoment,
@@ -39,10 +36,8 @@ import {
   type MomentEdit,
   type PlainStop,
 } from "../moments";
-import { vGeo, vTransport } from "../../schema";
 import { generateStructured } from "../../lib/ai/generate";
-import { JEV, jevModel, scribeModel, skipReason } from "../../lib/ai/models";
-import { metered } from "../../lib/ai/budget";
+import { jevModel, skipReason } from "../../lib/ai/models";
 
 const LIST_CAP = 60;
 const MAX_OUTPUT_TOKENS = 900;
@@ -100,7 +95,7 @@ export const read = internalQuery({
   handler: async (ctx, args): Promise<Context> => {
     const { userId, event, role } = await requireEventAccess(ctx, args.eventId, "contributor");
     assertNotArchived(event);
-    const all = await listForEvent(ctx, event);
+    const all = await listForEvent(ctx, event, { userId, role });
     const openId =
       args.openMomentId === undefined ? null : ctx.db.normalizeId("moments", args.openMomentId);
     const anchor = all.find((m) => m._id === openId)?.startsAt ?? Date.now();
@@ -112,7 +107,9 @@ export const read = internalQuery({
             .slice(0, LIST_CAP)
             .sort((a, b) => a.startsAt - b.startsAt);
     const moments = kept.map((m): Line => {
-      const said = m.blocks.find((b) => b.type === "note" || b.type === "feeling");
+      const said = m.blocks.flatMap((b) =>
+        b.type === "note" || b.type === "feeling" ? [b.text] : [],
+      )[0];
       return {
         id: m._id,
         startsAt: m.startsAt,
@@ -125,10 +122,7 @@ export const read = internalQuery({
           transport: s.transport,
         })),
         labels: m.labels,
-        note:
-          said === undefined || (said.type !== "note" && said.type !== "feeling")
-            ? undefined
-            : said.text.slice(0, NOTE_PREVIEW),
+        note: said?.slice(0, NOTE_PREVIEW),
         editable: mayChangeMoment(m, userId, role),
       };
     });
@@ -158,9 +152,7 @@ const INTENTS = {
 } as const;
 type Intent = keyof typeof INTENTS;
 
-const isIntent = (value: string): value is Intent => {
-  return value in INTENTS;
-};
+const isIntent = (value: string): value is Intent => value in INTENTS;
 
 export type Verdict = { intent: Intent | undefined; removes: number | undefined };
 
@@ -180,31 +172,23 @@ export const readVerdict = (answers: Answers): Verdict => {
   };
 };
 
-const judge = async (
-  ctx: ActionCtx,
-  userId: string,
-  text: string,
-  open: boolean,
-): Promise<Verdict> => {
+const judge = async (text: string, open: boolean): Promise<Verdict> => {
   try {
-    const answers = await metered(ctx, { userId, feature: "intent", model: JEV }, async () => {
-      const out = await experimental_decide({
-        model: jevModel(),
-        state: { text, momentOpenOnScreen: open },
-        questions: {
-          intent: {
-            type: "choice",
-            instructions: "What is the person asking for? Read `text`. Say which of these it is.",
-            criteria: INTENTS,
-          },
-          removes: {
-            type: "boolean",
-            instructions:
-              "Does `text` ask to delete or remove something that is already saved (a moment, a stop, a note or a label)?",
-          },
+    const { answers } = await experimental_decide({
+      model: jevModel(),
+      state: { text, momentOpenOnScreen: open },
+      questions: {
+        intent: {
+          type: "choice",
+          instructions: "What is the person asking for? Read `text`. Say which of these it is.",
+          criteria: INTENTS,
         },
-      });
-      return { result: out.answers, usage: out.usage, providerMetadata: out.providerMetadata };
+        removes: {
+          type: "boolean",
+          instructions:
+            "Does `text` ask to delete or remove something that is already saved (a moment, a stop, a note or a label)?",
+        },
+      },
     });
     return readVerdict(answers);
   } catch (error) {
@@ -257,13 +241,6 @@ const rawPlan = z.object({
 });
 export type RawPlan = z.infer<typeof rawPlan>;
 
-const planner = new Agent(components.agent, {
-  name: "Scribe",
-  languageModel: scribeModel,
-  instructions: INSTRUCTIONS,
-  storageOptions: { saveMessages: "none" },
-});
-
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export const localOf = (ms: number, offset: number): string => {
@@ -308,30 +285,22 @@ export const promptFor = (c: Context, text: string, now: number, zone: number): 
   ].join("\n");
 };
 
-const FIRST_EXTRA_STOP = 2;
-const extraStopIndex = (stop: number) => stop - FIRST_EXTRA_STOP;
-
 const trimmed = (s: string | undefined) => {
   const t = s?.trim();
   return t === undefined || t === "" ? undefined : t;
 };
 
-const rank = (op: Op) =>
-  op.op === "add"
-    ? 0
-    : op.op === "edit"
-      ? 1
-      : op.op === "addStop"
-        ? 2
-        : op.stop !== undefined
-          ? 3
-          : 4;
+const RANK = { add: 0, edit: 1, addStop: 2, remove: 4 };
+const rank = (op: Op) => (op.op === "remove" && op.stop !== undefined ? 3 : RANK[op.op]);
 export const orderOps = (ops: Op[]): Op[] => {
   return ops
     .map((op, i) => ({ op, i }))
     .sort((a, b) => rank(a.op) - rank(b.op) || a.i - b.i)
     .map(({ op }) => op);
 };
+
+const FIRST_EXTRA_STOP = 2;
+const extraStopIndex = (stop: number) => stop - FIRST_EXTRA_STOP;
 
 export const resolvePlan = (
   raw: RawPlan,
@@ -501,7 +470,7 @@ const propose = action({
     }
 
     const t0 = Date.now();
-    const verdict = await judge(ctx, found.userId, text, found.open !== undefined);
+    const verdict = await judge(text, found.open !== undefined);
     const judged = Date.now() - t0;
     if (verdict.intent === "new") return { kind: "new" };
     if (verdict.intent === "unclear") {
@@ -515,30 +484,23 @@ const propose = action({
 
     const zone = found.zone ?? args.zone;
     const prompt = promptFor(found, text, Date.now(), zone);
-    const threadId = await createThread(ctx, components.agent);
     let plan: RawPlan;
     try {
-      plan = await generateStructured(
-        ctx,
-        planner,
-        threadId,
-        {
-          schema: rawPlan,
-          messages: [{ role: "user", content: prompt }],
-          jsonInstructions: JSON_INSTRUCTIONS,
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
-        },
-        { userId: found.userId, feature: "plan" },
-      );
+      plan = await generateStructured({
+        schema: rawPlan,
+        instructions: INSTRUCTIONS,
+        jsonInstructions: JSON_INSTRUCTIONS,
+        messages: [{ role: "user", content: prompt }],
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
+      });
     } catch (error) {
       console.warn("Scribe couldn't plan a request:", skipReason(error));
+      await creditAi(ctx, found.userId);
       throw new ConvexError({
         code: "AI_UNAVAILABLE",
         message:
           'I couldn\'t read that just now. Try again, or save it as a moment with "Add as a moment".',
       });
-    } finally {
-      await planner.deleteThreadSync(ctx, { threadId }).catch(() => undefined);
     }
     const { ops, needs } = resolvePlan(plan, found, {
       removesOk: allowsRemoval(verdict, text),

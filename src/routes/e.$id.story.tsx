@@ -1,23 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useConvexAuth } from "convex/react";
-import { PlayIcon } from "lucide-react";
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-  type RefObject,
-} from "react";
+import { lazy, Suspense, useCallback } from "react";
 import { z } from "zod";
 import { queries } from "@/lib/queries";
 import type { Id } from "../../convex/_generated/dataModel";
-import { pageForPlay, playSurface } from "@/components/journal/play";
-import { Reader } from "@/components/journal/reader";
 import { SignInScreen } from "@/components/sign-in-screen";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,70 +21,41 @@ const StoryScroll = lazy(() =>
 
 const search = z.object({
   step: z.number().int().min(0).default(0).catch(0),
-  page: z.number().int().min(0).default(0).catch(0),
   momentId: z.string().optional().catch(undefined),
-  mode: z.enum(["read", "film", "words"]).default("read").catch("read"),
-  back: z.enum(["words"]).optional().catch(undefined),
+  // The story to read, or the film to watch.
+  mode: z.enum(["read", "film"]).default("read").catch("read"),
 });
 
 const StoryPage = () => {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const { id } = Route.useParams();
-  const { step, page, momentId, mode } = Route.useSearch();
+  const { step, momentId, mode } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const eventId = id as Id<"events">;
   const { data: event } = useQuery(queries.events.get(isAuthenticated ? { eventId } : "skip"));
   const { data: moments } = useQuery(queries.moments.list(event ? { eventId } : "skip"));
-  const { data: book } = useQuery(
-    queries.journal.outline(event && mode === "read" ? { eventId } : "skip"),
-  );
   const { data: me } = useQuery(queries.users.getCurrentUser(isAuthenticated ? {} : "skip"));
   useDocumentTitle(event ? `${event.title} · Story-time` : undefined);
   useSeen(event?._id);
-  const momentById = useMemo(
-    () => new Map((moments ?? []).map((moment) => [moment._id, moment])),
-    [moments],
-  );
-  const stage = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ w: 800, h: 900 });
   const onStep = useCallback(
     (next: number) =>
       void navigate({
-        search: (prev) => ({ step: next, mode: prev.mode, back: prev.back }),
+        search: (prev) => ({ step: next, mode: prev.mode }),
         replace: true,
         resetScroll: false,
       }),
     [navigate],
   );
-  const onPage = useCallback(
-    (next: number) =>
-      void navigate({
-        search: (prev) => ({ page: next, mode: "read", back: prev.back }),
-        replace: true,
-        resetScroll: false,
-      }),
-    [navigate],
-  );
+  // Playing the film is a step forward. Closing it returns to the story, at
+  // the scene the film had reached.
   const playFilm = useCallback(
-    (next: number) =>
-      void navigate({
-        search: (prev) => ({
-          step: next,
-          page: prev.page,
-          mode: "film",
-          back: prev.mode === "words" ? "words" : undefined,
-        }),
-      }),
+    (next: number) => void navigate({ search: { step: next, mode: "film" } }),
     [navigate],
   );
   const closeFilm = useCallback(
     (next: number) =>
       void navigate({
-        search: (prev) => ({
-          step: next,
-          page: prev.page,
-          mode: prev.back === "words" ? "words" : "read",
-        }),
+        search: { step: next, mode: "read" },
         replace: true,
         resetScroll: false,
       }),
@@ -120,11 +78,12 @@ const StoryPage = () => {
     );
   }
 
-  const listed = moments ?? [];
+  // An archived moment is out of the story, for its owner too.
+  const listed = (moments ?? []).filter((moment) => !moment.archived);
   const start = momentId ? stepForMoment(buildStorySteps(event.title, listed), momentId) : step;
-  if (mode === "film") {
-    return (
-      <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
+  return (
+    <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
+      {mode === "film" ? (
         <StoryPlayer
           event={event}
           moments={listed}
@@ -133,16 +92,7 @@ const StoryPage = () => {
           onStep={onStep}
           onClose={closeFilm}
         />
-      </Suspense>
-    );
-  }
-  const pages = book?.pages ?? [];
-  const surface =
-    mode === "words" ? "story" : book === undefined ? "loading" : playSurface(pages, momentId);
-  if (surface === "loading") return <Skeleton className="h-svh w-full rounded-none" />;
-  if (surface === "story") {
-    return (
-      <Suspense fallback={<Skeleton className="h-svh w-full rounded-none" />}>
+      ) : (
         <StoryScroll
           event={event}
           moments={listed}
@@ -151,65 +101,8 @@ const StoryPage = () => {
           onStep={onStep}
           onPlayFilm={playFilm}
         />
-      </Suspense>
-    );
-  }
-  const at = momentId ? pageForPlay(pages, momentId) : page;
-  const openMoment = pages[at]?.momentId;
-  const filmFrom = openMoment
-    ? stepForMoment(buildStorySteps(event.title, listed), openMoment)
-    : start;
-  return (
-    <div className="flex h-svh flex-col bg-[#e9dfcb] text-[#1f1a16]">
-      <header className="flex items-center justify-between gap-3 px-4 py-3">
-        <h1 className="min-w-0 truncate font-serif text-xl">
-          <Link to="/e/$id" params={{ id: event._id }} className="hover:underline">
-            {event.title}
-          </Link>
-        </h1>
-        {listed.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => playFilm(filmFrom)}>
-            <PlayIcon aria-hidden />
-            Play
-          </Button>
-        )}
-      </header>
-      <BookStage stage={stage} setSize={setSize}>
-        <Reader
-          pages={pages}
-          moments={momentById}
-          size={size}
-          start={at}
-          onPage={onPage}
-          eventId={event._id}
-        />
-      </BookStage>
-    </div>
-  );
-};
-
-const BookStage = ({
-  stage,
-  setSize,
-  children,
-}: {
-  stage: RefObject<HTMLDivElement | null>;
-  setSize: (size: { w: number; h: number }) => void;
-  children: ReactNode;
-}) => {
-  useEffect(() => {
-    const el = stage.current;
-    if (!el) return;
-    const report = () => setSize({ w: el.clientWidth, h: el.clientHeight });
-    report();
-    const observer = new ResizeObserver(report);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [stage, setSize]);
-  return (
-    <div ref={stage} className="min-h-0 flex-1">
-      {children}
-    </div>
+      )}
+    </Suspense>
   );
 };
 

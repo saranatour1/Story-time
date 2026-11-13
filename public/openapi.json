@@ -8,7 +8,7 @@
   "paths": {
     "/api/upload": {
       "post": {
-        "summary": "Upload a photo, video, profile image, thumbnail or journal PDF",
+        "summary": "Upload a photo, video, profile image or thumbnail",
         "security": [{ "bearer": [] }],
         "parameters": [
           {
@@ -22,12 +22,12 @@
             "name": "X-Purpose",
             "in": "header",
             "description": "Leave out for a photo or video.",
-            "schema": { "type": "string", "enum": ["avatar", "thumb", "journal-pdf"] }
+            "schema": { "type": "string", "enum": ["avatar", "thumb"] }
           },
           {
             "name": "X-Event-Id",
             "in": "header",
-            "description": "The experience. Required for a photo, video or journal PDF.",
+            "description": "The experience. Required for a photo or video.",
             "schema": { "type": "string" }
           },
           {

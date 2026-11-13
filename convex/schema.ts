@@ -1,6 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { ELEMENT_KINDS } from "./lib/journal";
 
 export const vEncrypted = v.object({
   iv: v.string(),
@@ -15,9 +14,11 @@ export const vRegion = v.union(v.literal("us"), v.literal("eu"), v.literal("au")
 export const vRole = v.union(v.literal("viewer"), v.literal("contributor"));
 export const vGrantRole = v.union(vRole, v.literal("owner"));
 
+// A hidden photo or video is kept from everyone but the experience's owners
+// and the moment's author (lib/access.ts, `seesAllOf`).
 export const vBlock = v.union(
-  v.object({ type: v.literal("photo"), mediaId: v.id("media") }),
-  v.object({ type: v.literal("video"), mediaId: v.id("media") }),
+  v.object({ type: v.literal("photo"), mediaId: v.id("media"), hidden: v.optional(v.boolean()) }),
+  v.object({ type: v.literal("video"), mediaId: v.id("media"), hidden: v.optional(v.boolean()) }),
   v.object({
     type: v.literal("link"),
     url: vEncrypted,
@@ -70,26 +71,6 @@ export const vCanvasKind = v.union(
   v.literal("tape"),
 );
 
-export const vJournalKind = v.union(...ELEMENT_KINDS.map((k) => v.literal(k)));
-export const vJournalElement = v.object({
-  id: v.string(),
-  kind: vJournalKind,
-  x: v.number(),
-  y: v.number(),
-  w: v.number(),
-  h: v.number(),
-  rotation: v.number(),
-  z: v.number(),
-  style: v.optional(v.string()),
-  text: v.optional(vEncrypted),
-  tone: v.optional(v.string()),
-  color: v.optional(v.string()),
-  mediaId: v.optional(v.id("media")),
-  momentId: v.optional(v.id("moments")),
-  locked: v.optional(v.boolean()),
-  own: v.optional(v.boolean()),
-});
-
 export const vChangeEntity = v.union(
   v.literal("event"),
   v.literal("moment"),
@@ -99,7 +80,7 @@ export const vChangeEntity = v.union(
   v.literal("invite"),
   v.literal("quota"),
   v.literal("user"),
-  v.literal("page"),
+  v.literal("page"), // legacy: older Activity rows carry it, nothing writes it
   v.literal("guestNote"),
 );
 
@@ -130,6 +111,9 @@ export default defineSchema({
     emailVerifyExpires: v.optional(v.number()),
     onThisDay: v.optional(v.boolean()),
     imageMediaId: v.optional(v.id("media")),
+    // The photo on their GitHub or Google account, as of the last sign-in.
+    // An image they upload (imageMediaId) is shown instead.
+    imageUrl: v.optional(v.string()),
     blockedAt: v.optional(v.number()),
     blockedReason: v.optional(v.string()),
     region: v.optional(vRegion),
@@ -150,6 +134,8 @@ export default defineSchema({
     shareKey: v.optional(v.string()),
     shareToken: v.optional(vEncrypted),
     shareRedacted: v.optional(v.boolean()),
+    // More the owner switched off on the link: the film with its map. `pdf`
+    // is legacy: older experiences may carry it, and nothing reads it.
     shareHide: v.optional(
       v.object({ film: v.optional(v.boolean()), pdf: v.optional(v.boolean()) }),
     ),
@@ -157,6 +143,8 @@ export default defineSchema({
     region: v.optional(vRegion),
     momentLimit: v.optional(v.number()),
     momentCount: v.number(),
+    // How many of those moments are archived; absent when none ever was.
+    archivedCount: v.optional(v.number()),
     keyVersion: v.number(),
     coverMediaId: v.optional(v.id("media")),
   })
@@ -175,10 +163,14 @@ export default defineSchema({
     transport: v.optional(vTransport),
     stops: v.optional(v.array(vStop)),
     labels: v.optional(v.array(vEncrypted)),
+    // share link leaves them out.
     people: v.optional(v.array(v.id("users"))),
     authorAgent: v.optional(v.string()),
     lastEdit: v.optional(vLastEdit),
     monthDay: v.optional(v.string()),
+    // Archived: out of the story, and kept from everyone but the experience's
+    // owners and the moment's author until it is restored.
+    archived: v.optional(v.boolean()),
   })
     .index("by_event_and_startsAt", ["eventId", "startsAt"])
     .index("by_monthDay", ["monthDay"]),
@@ -199,6 +191,8 @@ export default defineSchema({
 
   media: defineTable({
     eventId: v.optional(v.id("events")),
+    // An avatar belongs to a user. "sticker" and "pdf" are legacy: older
+    // uploads carry them, and nothing writes them.
     purpose: v.optional(v.union(v.literal("avatar"), v.literal("sticker"), v.literal("pdf"))),
     momentId: v.optional(v.id("moments")),
     uploaderId: v.id("users"),
@@ -272,28 +266,6 @@ export default defineSchema({
     authorId: v.id("users"),
     text: vEncrypted,
   }).index("by_event", ["eventId"]),
-
-  journals: defineTable({
-    eventId: v.id("events"),
-    filledAt: v.optional(v.number()),
-    locked: v.optional(v.boolean()),
-    pdf: v.optional(
-      v.object({ mediaId: v.id("media"), password: vEncrypted, pages: v.number(), at: v.number() }),
-    ),
-  }).index("by_event", ["eventId"]),
-
-  journalPages: defineTable({
-    eventId: v.id("events"),
-    order: v.number(),
-    paper: v.string(),
-    locked: v.optional(v.boolean()),
-    momentId: v.optional(v.id("moments")),
-    builtFrom: v.optional(v.number()),
-    edited: v.optional(v.boolean()),
-    elements: v.array(vJournalElement),
-  })
-    .index("by_event_and_order", ["eventId", "order"])
-    .index("by_event_and_moment", ["eventId", "momentId"]),
 
   canvases: defineTable({
     eventId: v.id("events"),

@@ -52,8 +52,6 @@ export const StickyMap = ({
   reduced,
   className,
   onPick,
-  light = false,
-  printable = false,
 }: {
   stops: MapStop[];
   focus: number | null;
@@ -61,11 +59,8 @@ export const StickyMap = ({
   reduced: boolean;
   className?: string;
   onPick: (step: number) => void;
-  light?: boolean;
-  printable?: boolean;
 }) => {
-  const { resolvedTheme: appTheme } = useTheme();
-  const resolvedTheme = light ? "light" : appTheme;
+  const { resolvedTheme } = useTheme();
 
   const dark = resolvedTheme === "dark";
   const paths = useChainPaths(stops);
@@ -99,7 +94,6 @@ export const StickyMap = ({
       <MapView
         theme={theme}
         interactive={false}
-        canvasContextAttributes={printable ? { preserveDrawingBuffer: true } : undefined}
         className="h-full w-full overflow-hidden rounded-xl border border-[#5b4a3a]/20"
       >
         <Camera framing={framing} framingKey={framingKey} reduced={reduced} />
@@ -152,7 +146,7 @@ export const StickyMap = ({
             </MapMarker>
           );
         })}
-        {!printable && <MapControls position="bottom-right" showZoom />}
+        <MapControls position="bottom-right" showZoom />
       </MapView>
     </section>
   );

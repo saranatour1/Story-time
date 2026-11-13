@@ -1,6 +1,6 @@
 # How Story-time is wired
 
-A map of the running app: what each piece is, which file owns it, and how a photo becomes a page. For someone using the screens, see [user-guide.md](user-guide.md). This describes the code on `master`.
+A map of the running app: what each piece is, which file owns it, and how a photo becomes a moment. For someone using the screens, see [user-guide.md](user-guide.md). This describes the code on `master`.
 
 ## Stack
 
@@ -38,7 +38,7 @@ flowchart LR
 
 ## Auth and who may touch a trip
 
-Sign-in is OAuth only. `convex/auth.ts` wires GitHub and Google and, for a dev build, anonymous sign-in. `createGithubUser` and `createGoogleUser` in `convex/model/users.ts` insert an empty `users` row. The OAuth profile is not copied. A typed email in Settings is stored and is not a login.
+Sign-in is OAuth only. `convex/auth.ts` wires GitHub and Google and, for a dev build, anonymous sign-in. `createGithubUser` and `createGoogleUser` in `convex/model/users.ts` insert a `users` row with the provider's verified email, and `saveOauthProfile` then runs on every sign-in: it fills an empty display name from the provider's name and saves the address of the provider's photo (`imageUrl`). An uploaded image (`imageMediaId`) is shown instead of it. A typed email in Settings is stored and is not a login.
 
 The Convex auth config (`convex/auth.config.ts`) trusts JWTs from that deployment's site URL. `requireUserId` and `requireEventAccess` in `convex/lib/access.ts` are the gate. The signed-in user id is the JWT subject. A missing trip and a trip you cannot see both throw `Event not found`, so an id cannot be probed.
 
@@ -50,18 +50,16 @@ A share link is not a user. `convex/model/share.ts` `eventFor` hashes the token,
 
 `convex/schema.ts` is the source of truth. Sensitive fields use `vEncrypted` (`iv`, `ct`, `v`).
 
-| Table          | Role                                                                                                                                                                                                                         |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users`        | Display name, username, optional email, avatar media id.                                                                                                                                                                     |
-| `events`       | A trip. Owner, title, dates, status (`draft`, `active`, `archived`), visibility, share key and encrypted share token, `momentCount`, `keyVersion`. Title is plain text and has a search index.                               |
-| `moments`      | One stop-by-stop memory. Time, encrypted place and geo, blocks (photo, video, link, note, feeling), transport, extra stops, labels. Indexed by `eventId` + `startsAt`.                                                       |
-| `media`        | One upload. R2 key, size, mime, status (`reserved`, `ready`, `deleted`), purpose (`avatar` or `sticker` when set), moment id when attached.                                                                                  |
-| `journals`     | One book per experience. `locked`, and `filledAt` (a high-water mark on moment creation time, not the clock).                                                                                                                |
-| `journalPages` | One A4 page. Order, paper, optional `momentId`, encrypted element text, layout numbers in the clear. Optional `builtFrom` and `edited` for catch-up. Capped in code at 400 (`MAX_JOURNAL_PAGES` in `convex/lib/journal.ts`). |
-| `sessions`     | Invite grants: user, experience, role, `revokedAt`.                                                                                                                                                                          |
-| `changes`      | The Activity log. Names the field that changed, not the secret.                                                                                                                                                              |
+| Table      | Role                                                                                                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`    | Display name, username, optional email, avatar media id.                                                                                                                                       |
+| `events`   | A trip. Owner, title, dates, status (`draft`, `active`, `archived`), visibility, share key and encrypted share token, `momentCount`, `keyVersion`. Title is plain text and has a search index. |
+| `moments`  | One stop-by-stop memory. Time, encrypted place and geo, blocks (photo, video, link, note, feeling), transport, extra stops, labels. Indexed by `eventId` + `startsAt`.                         |
+| `media`    | One upload. R2 key, size, mime, status (`reserved`, `ready`, `deleted`), purpose (`avatar` when set), moment id when attached.                                                                 |
+| `sessions` | Invite grants: user, experience, role, `revokedAt`.                                                                                                                                            |
+| `changes`  | The Activity log. Names the field that changed, not the secret.                                                                                                                                |
 
-Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (the `@sarant/cloudflare-email-component` package), three aggregates for counts and byte totals (`convex/lib/aggregates.ts`), plus the auth (core, GitHub, Google, anonymous), agent, AI budget and rate-limiter components mounted in `convex/convex.config.ts`.
+Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (the `@sarant/cloudflare-email-component` package), three aggregates for counts and byte totals (`convex/lib/aggregates.ts`), plus the auth (core, GitHub, Google, anonymous) and rate-limiter components mounted in `convex/convex.config.ts`.
 
 These tables are still in the schema and are not part of the product. Nothing in the app writes them. `purgeEventData` in `convex/model/events.ts` deletes per-experience rows when a trip is removed. Account-wide `agentTokens` (no `eventId`) stay until that cleanup is done by hand:
 
@@ -80,49 +78,19 @@ Photos go through `src/lib/add-photos.ts` and `src/lib/upload.ts`. The Worker re
 
 A sentence goes through `CommandBar` (`src/components/event/command-bar.tsx`). If Jev calls it new, the client calls `moments.create` immediately. A change waits for Apply, which calls `api.ai.command.apply`.
 
-`createMoment` in `convex/model/moments.ts` is the shared insert. It checks the 300-moment cap (`MOMENT_LIMIT` in `convex/lib/limits.ts`), encrypts place, geo, notes, and labels, bumps `momentCount`, writes a `changes` row, and schedules `internal.model.journal.makePages`.
+`createMoment` in `convex/model/moments.ts` is the shared insert. It checks the 300-moment cap (`MOMENT_LIMIT` in `convex/lib/limits.ts`), encrypts place, geo, notes, and labels, bumps `momentCount`, and writes a `changes` row.
 
 ```mermaid
 sequenceDiagram
   participant UI as Moments page
   participant W as Worker /api/upload
   participant C as Convex moments.create
-  participant J as journal.makePages
   UI->>W: photo bytes plus Bearer token
   W->>C: reserveUpload
   W->>W: R2 put with ssecKeyFor
   W->>C: confirmUpload
   UI->>C: create moment
-  C->>J: schedule makePages
-  J->>J: cover if needed, then one page per new moment
 ```
-
-Direct inserts in tests do not schedule pages. Only `createMoment` does, plus unlocking a journal (`convex/model/journal.ts`).
-
-## Page generation
-
-`makePages` and `makePageBatch` in `convex/model/journal.ts` walk moments whose `_creationTime` is past `journals.filledAt`. A batch is 20 pages, then it schedules itself. The cover is created with the first moment, not for an empty trip. `filledAt` moves forward only over moments that received a page or already had one. A locked journal makes no pages and does not move `filledAt`. Unlocking schedules `makePages`.
-
-A page the owner removed on purpose is not recreated. A trip that already had moments before this job existed gets pages the next time a moment is added, or when a locked journal is unlocked. Nothing walks that backlog on its own.
-
-The layout for a new page is `momentPage` and `coverPage` in `convex/lib/journal.ts`. Generated element ids look like the last six characters of the moment id, then a dash. `builtFrom` stores `lastEdit.at`, or the moment's creation time. `savePage` sets `edited`.
-
-Catch-up is `catchUpState` plus the `refresh` mutation in `convex/model/journal.ts`. The open book does not refresh inside a query. `useJournal` in `src/components/journal/use-journal.ts` calls `refresh` once when the outline says a page is stale, unedited, and the viewer can edit. **Update this page** calls `refresh` with that page id and keeps elements whose ids are not the generated prefix (`catchUpElements`).
-
-## The journal on screen
-
-| Route or file                                  | Job                                                                                                                                    |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/routes/_app/e.$id.journal.tsx`            | The signed-in book.                                                                                                                    |
-| `src/components/journal/book.tsx`              | Make and Read, the contents strip, Export, lock.                                                                                       |
-| `src/components/journal/reader.tsx`            | Turning pages. Used by Read and by the share link.                                                                                     |
-| `src/components/journal/contents.ts`           | Groups the strip by day.                                                                                                               |
-| `src/components/journal/page.tsx`              | One A4 page.                                                                                                                           |
-| `src/components/journal/elements.tsx`          | Pictures, words, maps, link cards.                                                                                                     |
-| `src/components/journal/export.ts`             | PDF, a picture of the page, the `.journal.json` file.                                                                                  |
-| `convex/model/journal.ts` `outline` and `page` | The open book subscribes to a contents list, then decrypts one page. `get` decrypts the whole book for the journal file and for tests. |
-
-`outline` calls `contentsOf`, which decrypts one short label per page and runs `catchUpState` (one moment read per page). It does not decrypt every note.
 
 ## Sharing
 
@@ -130,17 +98,15 @@ Catch-up is `catchUpState` plus the `refresh` mutation in `convex/model/journal.
 
 The public link is `share.enable`, `share.disable`, and `share.rotate` in `convex/model/share.ts`. The stored lookup is a hash (`shareKey`). The token itself is encrypted so the owner can copy it again. The URL is `origin + /s#token`.
 
-`src/routes/s.tsx` reads the fragment, calls `share.get` (the trip and moments, no author names) and `share.journal` (page ids and labels), and renders `Reader`. `share.page` returns one decrypted page, or null if the page is not in that experience. **Play** on that page mounts `StoryPlayer`.
+`src/routes/s.{-$name}.tsx` reads the fragment, calls `share.get` (the trip and moments, no author names), and renders the scrolling story (`StoryScroll`). **Play** mounts `StoryPlayer`, unless the owner switched the film off.
 
 Invites are `convex/model/invites.ts` plus `convex/components/invites`. The owner gets a one-time link (`/invite#token`). Accepting it writes a `sessions` row. Optional email is below.
 
 ## Play
 
-`src/routes/e.$id.story.tsx` is the signed-in player. The search params are `step`, `page`, `momentId`, and `mode` (`read`, `film`, `words`).
+`src/routes/e.$id.story.tsx` is the signed-in player. The search params are `step`, `momentId`, and `mode` (`read`, `film`).
 
-`playSurface` and `pageForPlay` in `src/components/journal/play.ts` choose the book when the journal has that moment's page, and the scrolling story otherwise. `mode=words` is the full note. `mode=film` is `src/components/story/story-player.tsx`. Closing the film returns to the book, or to the full note if it was opened from words. **Play from here** on the moments page (`src/routes/_app/e.$id.index.tsx`) links here with the moment id.
-
-A clipped note on a page links to `mode=words` (**Read the moment**). The share route does not pass an experience id into `Reader`, so that link is not on the public book.
+`mode=read` is the scrolling story (`src/components/story/story-scroll.tsx`). `mode=film` is `src/components/story/story-player.tsx`. Closing the film returns to the story. **Play from here** on the moments page (`src/routes/_app/e.$id.index.tsx`) links here with the moment id.
 
 ## The command bar and the AI pipeline
 
@@ -149,36 +115,34 @@ The box is `src/components/event/command-bar.tsx`. It is not an MCP client. `con
 `api.ai.command.propose` (`convex/model/ai/command.ts`):
 
 1. `internal.model.ai.command.read` loads the trip for the signed-in contributor.
-2. The `command` rate limit fires (60 an hour, `convex/lib/rateLimit.ts`).
+2. `takeAi` takes one of the person's ten AI uses for the day (`convex/lib/rateLimit.ts`). If Haiku can't plan, `creditAi` gives it back.
 3. Jev (`typesafe/jev-1.13`, `jevModel` in `convex/lib/ai/models.ts`) labels the sentence new, change, remove, or unclear.
 4. A new sentence returns `{ kind: "new" }`. The client saves a note moment. No plan.
-5. Otherwise Haiku (`anthropic/claude-haiku-5.5`, `scribeModel`) plans through `@convex-dev/agent`. Instructions are the `INSTRUCTIONS` string in `command.ts`. The thread is deleted afterward (`saveMessages: "none"`).
+5. Otherwise Haiku (`anthropic/claude-haiku-5.5`, `scribeModel`) plans with one AI SDK call (`generateStructured` in `convex/lib/ai/generate.ts`). Instructions are the `INSTRUCTIONS` string in `command.ts`. Nothing is stored: there is no thread, message history or tool loop.
 6. `resolvePlan` drops removals unless `allowsRemoval` says the sentence asked for one. At most 8 operations (`MAX_COMMAND_OPS`).
 
-`api.ai.command.apply` writes those operations in one transaction or not at all. New moments go through `createMoment`, so they get pages. The client deletes any R2 objects the mutation reports as removed.
+`api.ai.command.apply` writes those operations in one transaction or not at all. New moments go through `createMoment`. The client deletes any R2 objects the mutation reports as removed.
 
-Voice is separate: `api.ai.voice.transcribe` (`convex/model/ai/voice.ts`), Whisper `openai/whisper-large-v3-turbo`, 40 an hour. It fills the box. It does not save.
+Voice is separate: `api.ai.voice.transcribe` (`convex/model/ai/voice.ts`), Whisper `openai/whisper-large-v3-turbo`, drawing on the same ten uses and giving one back when the transcription fails. It fills the box. It does not save.
 
 Nothing else calls AI. Added photos are grouped into moments and their places named from GPS without it, and a moment's note is only what a person wrote.
 
 Models are called through the Convex AI Gateway (`convex/lib/ai/models.ts`). No provider key is stored in this repo. Propose fails soft or returns `AI_UNAVAILABLE`.
 
-A journal link card's preview fetches a public `http` or `https` URL from an action, with a size and time cap, and refuses localhost and literal IPs (`isPublicWebUrl`). It does not check where a hostname resolves. The card can store an `https` preview image inside the encrypted element text (`readLink` in `convex/lib/journal.ts`).
-
 ## Encryption and keys
 
 One secret, `ENCRYPTION_MASTER_KEY`, base64 of 32 bytes. It must be the same value on the Convex deployment and on the Worker. Two HKDF salts keep the keys apart.
 
-| Use                                                          | Code                                                 | Salt              | Label                                         |
-| ------------------------------------------------------------ | ---------------------------------------------------- | ----------------- | --------------------------------------------- |
-| Notes, places, coordinates, labels, link text, journal words | `encryptText` / `eventKey` in `convex/lib/crypto.ts` | `storytime/event` | `eventId:keyVersion`                          |
-| R2 objects                                                   | `ssecKeyFor` in `src/server/r2.ts`                   | `storytime/r2`    | `eventId:version`, or `avatar:userId:version` |
+| Use                                           | Code                                                 | Salt              | Label                                         |
+| --------------------------------------------- | ---------------------------------------------------- | ----------------- | --------------------------------------------- |
+| Notes, places, coordinates, labels, link text | `encryptText` / `eventKey` in `convex/lib/crypto.ts` | `storytime/event` | `eventId:keyVersion`                          |
+| R2 objects                                    | `ssecKeyFor` in `src/server/r2.ts`                   | `storytime/r2`    | `eventId:version`, or `avatar:userId:version` |
 
 AES-GCM IVs are random. The per-experience key is derived when needed and is not stored. Bumping `events.keyVersion` changes later field encryptions. It does not re-encrypt old rows by itself, and it does not change an object already written to R2 under the previous version. Each `media` row keeps the `keyVersion` it was stored with.
 
 `readText` still accepts a plain string for a description saved before encryption. `migrations.encryptPlainText` in `convex/model/migrations.ts` is the one-off that walks those rows. It is not a cron.
 
-What stays in the clear: experience title, times, transport, layout numbers, media ids, R2 keys, mime types. Share queries decrypt for the token holder and then return the words. Photo bytes are not inside the AES-GCM ciphertext. They are authorized and then streamed. A share link is allowed to receive them. See [user-guide.md](user-guide.md) for the check you can do in the browser and in the bucket.
+What stays in the clear: experience title, times, transport, media ids, R2 keys, mime types. Share queries decrypt for the token holder and then return the words. Photo bytes are not inside the AES-GCM ciphertext. They are authorized and then streamed. A share link is allowed to receive them. See [user-guide.md](user-guide.md) for the check you can do in the browser and in the bucket.
 
 ## Media upload and serving
 
@@ -195,7 +159,7 @@ Serving is `GET /api/media/$id` (`src/routes/api/media.$id.ts`). A bearer token 
 
 Delete of a trip is `DELETE /api/events/$id` (`src/routes/api/events.$id.ts`): list keys, delete the R2 objects, then `events.remove`, which schedules `purgeEventData`. Replacing a single photo deletes that object from the media route's DELETE handler.
 
-`getForDownload` hides a detached photo that is not a sticker from everyone except the uploader. A sticker that is still on a page cannot be deleted (`mediaOnAPage` in `convex/model/journal.ts`).
+`getForDownload` hides a detached photo from everyone except the uploader.
 
 ## Email
 
@@ -205,13 +169,12 @@ Only invites send mail. `invites.create` calls `queueMail` (`convex/lib/emailAdd
 
 ## Rate limits and other caps
 
-| Name                               | Where                                       | Amount                                          |
-| ---------------------------------- | ------------------------------------------- | ----------------------------------------------- |
-| `command`                          | `convex/lib/rateLimit.ts`                   | 60 an hour                                      |
-| `voice`                            | same                                        | 40 an hour                                      |
-| Invite, share, confirmation emails | `convex/lib/rateLimit.ts`                   | 10, 10 and 5 a day                              |
-| Waiting invites                    | same                                        | 50 per experience                               |
-| Moments, media, bytes, pages       | `convex/lib/limits.ts`, `MAX_JOURNAL_PAGES` | See the table in [user-guide.md](user-guide.md) |
+| Name                               | Where                     | Amount                                          |
+| ---------------------------------- | ------------------------- | ----------------------------------------------- |
+| `ai` (the box and voice)           | `convex/lib/rateLimit.ts` | 10 a day per person, back at midnight UTC       |
+| Invite, share, confirmation emails | `convex/lib/rateLimit.ts` | 10, 10 and 5 a day                              |
+| Waiting invites                    | same                      | 50 per experience                               |
+| Moments, media, bytes              | `convex/lib/limits.ts`    | See the table in [user-guide.md](user-guide.md) |
 
 Invite expiry has a daily cron as a backstop (`convex/crons.ts`, 03:17 UTC) plus a timer on the invite itself.
 
@@ -220,7 +183,6 @@ Invite expiry has a daily cron as a backstop (`convex/crons.ts`, 03:17 UTC) plus
 - The box and voice send the sentence (with the trip's moments for context) or the recording to the Convex AI Gateway. Nothing is kept there, and the app works without it. Details in [The command bar and the AI pipeline](#the-command-bar-and-the-ai-pipeline).
 - Place search and photo location names send the typed text or the photo's coordinates to photon.komoot.io (OpenStreetMap).
 - Story legs by foot, bike, car, bus or train ask OpenStreetMap's public routers (routing.openstreetmap.de, routing.openrailrouting.org) for a route from the viewer's browser. Only the two stops are sent, rounded to about 100 m, and answers stay in memory. Without a router the leg is a curve.
-- Journal stickers are cut out on the device (MediaPipe). Only the model is downloaded, from Google.
 
 ## Environment
 
@@ -271,17 +233,15 @@ Other scripts: `pnpm preview` serves the build, `pnpm generate-routes` regenerat
 
 Vitest (`vitest.config.ts`) uses the edge-runtime environment and includes `convex/**/*.test.ts` and `src/**/*.test.ts`. There is no Playwright suite.
 
-Convex tests use `convex-test`. They register the email and invites components where a test touches them. Journal tests fake timers because `makePages` is scheduled with `runAfter(0)`. Representative files:
+Convex tests use `convex-test`. They register the email and invites components where a test touches them. Representative files:
 
-| File                                                    | What it holds still                                                                   |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `convex/tests/journal.test.ts`                          | Pages cut with the moment, lock, catch-up, share of a page.                           |
-| `convex/tests/share.test.ts`                            | Link on and off, one page, sticker bytes only when a page shows the sticker.          |
-| `convex/tests/moment-actions.test.ts`                   | Coordinates stored as `iv` / `ct`, not as the raw numbers.                            |
-| `convex/tests/command.test.ts`                          | Plans and apply.                                                                      |
-| `convex/tests/invites.test.ts`                          | Email only when the Cloudflare vars are present, and the daily cap.                   |
-| `convex/tests/ai.test.ts`, `convex/tests/voice.test.ts` | The AI allowance, page titles and transcription helpers.                              |
-| `src/components/journal/journal.test.ts`                | Contents grouping, the long-PDF label, play surface. Pure functions, not the browser. |
+| File                                                    | What it holds still                                                             |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `convex/tests/share.test.ts`                            | Link on and off, what it shows, pictures only from a moment of that experience. |
+| `convex/tests/moment-actions.test.ts`                   | Coordinates stored as `iv` / `ct`, not as the raw numbers.                      |
+| `convex/tests/command.test.ts`                          | Plans and apply.                                                                |
+| `convex/tests/invites.test.ts`                          | Email only when the Cloudflare vars are present, and the daily cap.             |
+| `convex/tests/ai.test.ts`, `convex/tests/voice.test.ts` | The AI allowance and transcription helpers.                                     |
 
 No test performs a real R2 GET with and without the SSE-C key.
 
@@ -317,19 +277,17 @@ The Checks workflow only blocks a merge once it is marked as a required status c
 ## File index
 
 ```
-src/routes/              pages. _app/ is signed in. api/ is the Worker. s.tsx is the share link. e.$id.story.tsx is Play.
-src/components/journal/  the book
+src/routes/              pages. _app/ is signed in. api/ is the Worker. s.{-$name}.tsx is the share link. e.$id.story.tsx is Play.
 src/components/event/    moments, the command bar, invites
 src/components/story/    the film and the scrolling story
 src/server/r2.ts         SSE-C keys and the Convex HTTP client the Worker uses
 src/lib/                 upload, media blob cache, time, maps
 convex/schema.ts         tables
 convex/model/moments.ts        create and edit
-convex/model/journal.ts        pages, outline, catch-up
 convex/model/share.ts          the public link
 convex/model/media.ts          reserve, confirm, download rights
-convex/model/ai/               command, voice, unfurl
-convex/lib/              access, crypto, limits, rate limits, page layout
+convex/model/ai/               command, voice
+convex/lib/              access, crypto, limits, rate limits
 convex/components/       email and invites
 convex/tests/            convex-test
 docs/user-guide.md       the same system, as a person uses it

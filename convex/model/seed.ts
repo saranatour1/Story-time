@@ -349,6 +349,7 @@ export const japan = internalMutation({
       fields: ["title", "status", "visibility"],
       after: { title, status: "draft", visibility: "private" },
     });
+    // One at a time, so each sees the count the last one left.
     for (const moment of TRIP) {
       await createMoment(ctx, {
         userId: user._id,

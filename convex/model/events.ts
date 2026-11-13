@@ -12,7 +12,6 @@ import {
 import { changeCounts, eventMedia, uploadBytes } from "../lib/aggregates";
 import { invalid } from "../lib/blocks";
 import { recordChange } from "../lib/changes";
-import { coverWords, followCover } from "../lib/cover";
 import { decryptGeo, encryptText, readText } from "../lib/crypto";
 import { MAX_EVENTS_PER_USER } from "../lib/limits";
 
@@ -51,7 +50,8 @@ const summaryOf = (event: Doc<"events">, role: EventRole) => {
     endsAt: event.endsAt,
     status: event.status,
     visibility: event.visibility,
-    momentCount: event.momentCount,
+    // The moments in the story: archived ones aren't counted.
+    momentCount: event.momentCount - (event.archivedCount ?? 0),
     role,
   };
 };
@@ -60,6 +60,7 @@ const toView = async (event: Doc<"events">, role: EventRole) => {
   return { ...summaryOf(event, role), description: await readText(event._id, event.description) };
 };
 
+// Guests see the cover too, so a hidden photo or an archived moment's never is one.
 const coverFor = async (ctx: QueryCtx, event: Doc<"events">): Promise<Id<"media"> | undefined> => {
   if (event.coverMediaId !== undefined) return event.coverMediaId;
   const moments = await ctx.db
@@ -67,8 +68,11 @@ const coverFor = async (ctx: QueryCtx, event: Doc<"events">): Promise<Id<"media"
     .withIndex("by_event_and_startsAt", (q) => q.eq("eventId", event._id))
     .take(5);
   for (const moment of moments) {
+    if (moment.archived === true) continue;
     for (const blocks of [moment.blocks, ...(moment.stops ?? []).map((s) => s.blocks)]) {
-      for (const block of blocks) if (block.type === "photo") return block.mediaId;
+      for (const block of blocks) {
+        if (block.type === "photo" && block.hidden !== true) return block.mediaId;
+      }
     }
   }
   return undefined;
@@ -178,16 +182,6 @@ const update = mutation({
 
     if (fields.length === 0) return null;
     await ctx.db.patch("events", args.eventId, patch);
-    if (fields.includes("title") || fields.includes("startsAt") || fields.includes("endsAt")) {
-      const updated = await ctx.db.get("events", args.eventId);
-      if (updated !== null)
-        await followCover(
-          ctx,
-          updated,
-          await coverWords(ctx, event),
-          await coverWords(ctx, updated),
-        );
-    }
     await recordChange(ctx, {
       eventId: args.eventId,
       entity: "event",
@@ -287,20 +281,6 @@ export const purgeEventData = internalMutation({
       .withIndex("by_event_and_user", (q) => q.eq("eventId", eventId))
       .take(PURGE_BATCH)) {
       await ctx.db.delete("sessions", row._id);
-      deleted++;
-    }
-    for (const row of await ctx.db
-      .query("journalPages")
-      .withIndex("by_event_and_order", (q) => q.eq("eventId", eventId))
-      .take(PURGE_BATCH)) {
-      await ctx.db.delete("journalPages", row._id);
-      deleted++;
-    }
-    for (const row of await ctx.db
-      .query("journals")
-      .withIndex("by_event", (q) => q.eq("eventId", eventId))
-      .take(PURGE_BATCH)) {
-      await ctx.db.delete("journals", row._id);
       deleted++;
     }
     for (const row of await ctx.db

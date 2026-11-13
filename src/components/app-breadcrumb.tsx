@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/breadcrumb";
 
 const SECTION_NAMES: Record<string, string> = {
-  "/journal": "Journal",
   "/shared": "People",
   "/activity": "Activity",
 };
