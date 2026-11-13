@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "@tanstack/react-query";
 import { LogOutIcon } from "lucide-react";
+import { ConnectedAgents } from "@/components/settings/connected-agents";
 import { SettingsBlock, SettingsPage } from "@/components/settings/section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,6 +86,12 @@ const Account = () => {
           description="Each person gets 10 AI uses a day, shared by everything that uses AI: notes written for your photos, the box, and voice. Moments still save without them."
         >
           <Usage />
+        </SettingsBlock>
+        <SettingsBlock
+          title="AI agents"
+          description="Let your own AI agent read your experiences and add, change or archive moments for you. It can't delete anything, share anything or see your photos."
+        >
+          <ConnectedAgents />
         </SettingsBlock>
         <SettingsBlock
           title="Signing in"

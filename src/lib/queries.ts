@@ -21,6 +21,11 @@ export const queries = {
     listForEvent: (args: Args<typeof api.invites.listForEvent>) =>
       convexQuery(api.invites.listForEvent, args),
   },
+  mcp: {
+    getAuthRequest: (args: Args<typeof api.mcp.getAuthRequest>) =>
+      convexQuery(api.mcp.getAuthRequest, args),
+    listConnections: () => convexQuery(api.mcp.listConnections, {}),
+  },
   media: {
     unattached: (args: Args<typeof api.media.unattached>) =>
       convexQuery(api.media.unattached, args),

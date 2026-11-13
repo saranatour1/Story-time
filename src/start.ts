@@ -9,6 +9,7 @@ const securityHeaders = createMiddleware({ type: "request" }).server(async ({ ne
   const headers = result.response.headers;
   if (headers.get("content-type")?.startsWith("text/html")) {
     headers.set("X-Frame-Options", "DENY");
+    headers.set("Content-Security-Policy", "frame-ancestors 'none'");
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   }
