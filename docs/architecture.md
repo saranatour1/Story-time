@@ -59,7 +59,7 @@ A share link is not a user. `convex/model/share.ts` `eventFor` hashes the token,
 | `sessions` | Invite grants: user, experience, role, `revokedAt`.                                                                                                                                            |
 | `changes`  | The Activity log. Names the field that changed, not the secret.                                                                                                                                |
 
-Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (the `@sarant/cloudflare-email-component` package), three aggregates for counts and byte totals (`convex/lib/aggregates.ts`), plus the auth (core, GitHub, Google, anonymous) and rate-limiter components mounted in `convex/convex.config.ts`.
+Convex components have their own tables: invite tokens (`convex/components/invites`), the email outbox (the `@sarant/cloudflare-email-component` package), three aggregates for counts and byte totals (`convex/lib/aggregates.ts`), plus the auth (core, GitHub, Google, anonymous), rate-limiter and MCP (`@convex-dev/mcp`: OAuth clients, consent requests, connections and hashed tokens) components mounted in `convex/convex.config.ts`.
 
 These tables are still in the schema and are not part of the product. Nothing in the app writes them. `purgeEventData` in `convex/model/events.ts` deletes per-experience rows when a trip is removed. Account-wide `agentTokens` (no `eventId`) stay until that cleanup is done by hand:
 
@@ -68,7 +68,7 @@ These tables are still in the schema and are not part of the product. Nothing in
 - `quotaRequests`
 - `agentTokens`
 
-`convex/http.ts` mounts no routes of ours. Sign-in HTTP routes come from the auth components. There is no MCP server in the tree.
+`convex/http.ts` mounts the MCP server's routes: `/mcp`, `/mcp/oauth/*` and the two `/.well-known/oauth-*` documents. Sign-in HTTP routes come from the auth components.
 
 ## Moment creation
 
@@ -76,7 +76,7 @@ Two ways in, one write.
 
 Photos go through `src/lib/add-photos.ts` and `src/lib/upload.ts`. The Worker reserves a `media` row, stores the bytes, then confirms. `api.moments.create` in `convex/model/moments.ts` attaches those ids to a new moment. Words typed with the photos become the first note.
 
-A sentence goes through `CommandBar` (`src/components/event/command-bar.tsx`). If Jev calls it new, the client calls `moments.create` immediately. A change waits for Apply, which calls `api.ai.command.apply`.
+A sentence goes through `CommandBar` (`src/components/event/command-bar.tsx`). If Jev calls it new, the client calls `moments.create` immediately. A change is applied at once through `api.ai.command.apply`; only one that deletes something, or that the box has a question about, waits for Apply.
 
 `createMoment` in `convex/model/moments.ts` is the shared insert. It checks the 300-moment cap (`MOMENT_LIMIT` in `convex/lib/limits.ts`), encrypts place, geo, notes, and labels, bumps `momentCount`, and writes a `changes` row.
 
@@ -110,7 +110,9 @@ Invites are `convex/model/invites.ts` plus `convex/components/invites`. The owne
 
 ## The command bar and the AI pipeline
 
-The box is `src/components/event/command-bar.tsx`. It is not an MCP client. `convex/http.ts` is empty of our routes, and nothing reads `agentTokens` to sign a request in.
+The box is `src/components/event/command-bar.tsx`. It is not an MCP client, and nothing reads `agentTokens` to sign a request in.
+
+A person's own AI agent connects through the MCP server in `convex/model/mcp.ts`. It has seven tools (list and search, add, change, archive; nothing deletes or shares) in two scopes, `moments:read` and `moments:write`. A tool call carries no sign-in: the component hands the tool the user id the connection was approved for, and each tool calls an internal function that checks access for that id the way the app does (`getEventAccessFor`, `mayChangeMoment`) and writes through the box's own operations (`runOp`), recorded as an agent acting for the person. The person approves a connection on `/connect` (`src/routes/_app/connect.tsx`) and lists, disconnects or creates keys in Settings, under Account.
 
 `api.ai.command.propose` (`convex/model/ai/command.ts`):
 
