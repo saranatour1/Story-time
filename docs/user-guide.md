@@ -6,7 +6,7 @@ The shape of it is simple. You put in photos, or one sentence. You get a book of
 
 ## Sign in
 
-On the sign-in screen, use **Continue with Google** or **Continue with GitHub**. There is no password in the app. Story-time does not copy your name or email from Google or GitHub. What you later type under Settings is what the app stores.
+On the sign-in screen, use **Continue with Google** or **Continue with GitHub**. There is no password in the app. Story-time copies your name, your profile picture's address and your verified email from Google or GitHub. You can change the name and upload a different picture under Settings.
 
 **Continue anonymously (dev only)** is for a private test copy. It should not appear on the real site, and the switch that allows it (`ALLOW_ANONYMOUS_SIGNIN`) should be left unset there.
 

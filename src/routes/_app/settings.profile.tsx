@@ -17,7 +17,7 @@ const Profile = () => {
   return (
     <SettingsPage
       title="Profile"
-      description="A confirmed email from sign-in is saved here. Your name and photo are not."
+      description="Your name, photo and confirmed email are saved from sign-in. Change them here."
     >
       {user === undefined ? (
         <Skeleton className="h-80 w-full" />
@@ -26,6 +26,7 @@ const Profile = () => {
           <SettingsBlock title="Photo" description="Shown next to your name.">
             <AvatarField
               mediaId={user.imageMediaId}
+              imageUrl={user.imageUrl}
               name={user.displayName?.trim() || user.username}
             />
           </SettingsBlock>

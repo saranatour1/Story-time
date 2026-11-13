@@ -157,6 +157,9 @@ export default defineSchema({
     // Opt-in: a daily note that a memory is waiting. No memory text is mailed.
     onThisDay: v.optional(v.boolean()),
     imageMediaId: v.optional(v.id("media")),
+    // The photo on their GitHub or Google account, as of the last sign-in.
+    // An image they upload (imageMediaId) is shown instead.
+    imageUrl: v.optional(v.string()),
     // Set by the operator (users:block) on an account that abused the service.
     // A blocked person reads as signed out everywhere, their experiences and
     // links stop opening for everyone, and their email can't sign up again.

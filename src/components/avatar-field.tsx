@@ -9,7 +9,15 @@ import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/errors";
 import { AVATAR_TYPES, deleteMedia, uploadAvatar } from "@/lib/upload";
 
-export const AvatarField = ({ mediaId, name }: { mediaId?: Id<"media">; name?: string }) => {
+export const AvatarField = ({
+  mediaId,
+  imageUrl,
+  name,
+}: {
+  mediaId?: Id<"media">;
+  imageUrl?: string;
+  name?: string;
+}) => {
   const token = useAuthToken();
   const setAvatar = useMutation(api.media.setAvatar);
   const clearAvatar = useMutation(api.media.clearAvatar);
@@ -48,7 +56,7 @@ export const AvatarField = ({ mediaId, name }: { mediaId?: Id<"media">; name?: s
 
   return (
     <div className="flex items-center gap-4">
-      <UserAvatar mediaId={mediaId} name={name} className="size-20 text-2xl" />
+      <UserAvatar mediaId={mediaId} imageUrl={imageUrl} name={name} className="size-20 text-2xl" />
       <div className="space-y-2">
         <div className="flex gap-2">
           <Button
